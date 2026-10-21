@@ -10,6 +10,7 @@ import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Exec, Sub } from "./env";
 import { launchMaxAge, sameHex, validateInitData, type InitData } from "./initdata.mjs";
+import { pdfLinkOk, pdfSig } from "./pdf-link";
 import { createBot, deletedSummary, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
@@ -28,7 +29,6 @@ import { bookLabel, validVerseDate } from "./verse-of-day.mjs";
 import { dictionary } from "./dictionary";
 import { resources } from "./resources";
 import { bs } from "./bs";
-import { buildCatalog, emptyCatalog, SLUGS, type PassageMediaMoment } from "./passage-media.mjs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
@@ -294,11 +294,6 @@ app.post("/api/ask", async (c) => {
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
 const NOTE_PATH = /^\/(classes|captains|history|study|encyclopedia)\/[A-Za-z0-9_-][A-Za-z0-9._/-]{0,160}$/;
 const okNotePath = (p: string) => NOTE_PATH.test(p) && !p.includes("..");
-async function pdfSig(env: Env, path: string, exp: number): Promise<string> {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(`pdf:${env.BOT_TOKEN}`), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${path}|${exp}`));
-  return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 40);
-}
 type NoteJson = { kind?: string; title?: string; date?: string; teacher?: string; url?: string; body?: string };
 app.post("/api/notes/pdf", async (c) => {
   const body = await c.req.json<{ path?: string; send?: boolean }>().catch(() => null);
@@ -313,7 +308,7 @@ app.post("/api/notes/pdf", async (c) => {
     return c.json({ ok: true, sent: true });
   }
   const exp = Math.floor(Date.now() / 1000) + 900;
-  const url = `${new URL(c.req.url).origin}/api/pdf${path}?exp=${exp}&sig=${await pdfSig(c.env, path, exp)}`;
+  const url = `${new URL(c.req.url).origin}/api/pdf${path}?exp=${exp}&sig=${await pdfSig(c.env.BOT_TOKEN, path, exp)}`;
   return c.json({ ok: true, url, file: pdfName(note) });
 });
 // A backup of everything the reader kept (Bible Strong's Backup screen): the app sends its
@@ -335,7 +330,7 @@ app.post("/api/backup", async (c) => {
 app.get("/api/pdf/*", async (c) => {
   const path = c.req.path.slice("/api/pdf".length);
   const exp = Number(c.req.query("exp")), sig = c.req.query("sig") ?? "";
-  if (!okNotePath(path) || !(exp > Date.now() / 1000) || sig !== (await pdfSig(c.env, path, exp))) return c.text("This link has expired. Ask for the PDF again from the app.", 403);
+  if (!okNotePath(path) || !(await pdfLinkOk(c.env.BOT_TOKEN, path, exp, sig))) return c.text("This link has expired. Ask for the PDF again from the app.", 403);
   const note = await dataJson<NoteJson>(c.env, `/api/notes${path}.json`, c.executionCtx);
   if (!note?.body) return c.text("Not found", 404);
   const bytes = await notePdf(note, { site: c.env.SITE_URL });
@@ -649,25 +644,9 @@ app.get("/card/:slug/:chapter/:file", async (c) => {
   return res;
 });
 
-// The Bible Strong fork, staged at /app/strong: a real file is served as is; any other path
-// under it is one of its screens, so it gets the fork's index.html (the asset fallback would
-// give the current app's).
-// The reader's inline class videos for one chapter, public and same-origin with the fork.
-app.get("/app/strong/_media/:book/:chapter", async (c) => {
-  const book = Number(c.req.param("book")), chapter = Number(c.req.param("chapter"));
-  if (!Number.isInteger(book) || !Number.isInteger(chapter)) return c.notFound();
-  const slug = SLUGS[book - 1];
-  const ok = slug && chapter >= 1 && chapter <= 200;
-  const data = ok ? await dataJson<{ moments?: PassageMediaMoment[] }>(c.env, `/api/concordance/${slug}/${chapter}.json`, c.executionCtx) : null;
-  const catalog = ok ? buildCatalog(book, chapter, data?.moments ?? []) : emptyCatalog();
-  return c.json(catalog, 200, { "cache-control": "public, max-age=3600" });
-});
-app.get("/app/strong/*", async (c) => {
-  const url = new URL(c.req.url);
-  if (/\.[a-z0-9]+$/i.test(url.pathname)) return c.env.ASSETS.fetch(c.req.raw);
-  return c.env.ASSETS.fetch(new Request(new URL("/app/strong/", url), c.req.raw));
-});
-app.get("/app/strong", (c) => c.redirect("/app/strong/" + new URL(c.req.url).search, 301));
+// The Bible Strong fork once lived at /app/strong; it is gone, and its old links open the app.
+app.get("/app/strong", (c) => c.redirect("/app/", 301));
+app.get("/app/strong/*", (c) => c.redirect("/app/", 301));
 
 // Anything else is the Mini App (run_worker_first only routes the paths above here).
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));

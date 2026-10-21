@@ -9,9 +9,9 @@ export function readerCollection(key: string): MigrationRecord["collection"] | u
   if (/^bs_l_.+_\d+$/.test(key)) return "links";
   if (key === "bs_bm" || key === "bm") return "bookmarks";
   if (key === "bs_tags") return "tags";
-  if (/^rel_.+_\d+$/.test(key)) return "relations";
+  if (/^rel_.+_\d+$/.test(key) || key === "rel_other") return "relations";
 }
-const isList = (key: string) => key === "bs_bm" || key === "bm" || /^rel_.+_\d+$/.test(key);
+const isList = (key: string) => key === "bs_bm" || key === "bm" || /^rel_.+_\d+$/.test(key) || key === "rel_other";
 export function readerEntries(key: string, raw: string | null): Record<string, unknown> {
   if (raw === null) return {};
   const value = JSON.parse(raw);

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
+const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const verses = Array.from({ length: 31 }, (_, i) => ({ verse: i + 1, text: i === 0 ? "In the beginning God created the heaven and the earth." : `Verse ${i + 1}: And God said, Let there be light: and there was light.` }));
 async function setup(page: Page) {
@@ -18,7 +19,8 @@ async function setup(page: Page) {
     if (chapter) return r.fulfill({ json: { book: chapter[1], chapter: +chapter[2], translation: "KJV", verses } });
     return r.fulfill({ status: 404, body: "" });
   });
-  await page.route("**/api/verse-of-day*", r => r.fulfill({ json: { ref: new URL(r.request().url()).searchParams.has("date") ? "Genesis 1:2" : "Genesis 1:1", slug: "genesis", chapter: 1, verse: new URL(r.request().url()).searchParams.has("date") ? 2 : 1, text: "In the beginning God created the heaven and the earth." } }));
+  // Today's verse is Genesis 1:1, every earlier day's Genesis 1:2 (the app asks by the reader's own date).
+  await page.route("**/api/verse-of-day*", r => { const past = (new URL(r.request().url()).searchParams.get("date") ?? today()) < today(); return r.fulfill({ json: { ref: past ? "Genesis 1:2" : "Genesis 1:1", slug: "genesis", chapter: 1, verse: past ? 2 : 1, text: "In the beginning God created the heaven and the earth." } }); });
   await page.addInitScript(() => {
     if (!localStorage.getItem("cj:bs")) localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress" }));
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "one", groups: [{ id: "one", name: "My tabs", color: "#2dd4bf", current: "bible-one", tabs: [{ id: "bible-one", path: "/read/genesis/1" }, { id: "bible-two", path: "/read/john/3?v=16-18" }] }] }));
@@ -29,8 +31,7 @@ async function menu(page: Page, action: string) {
   await page.getByRole("menuitem", { name: action, exact: true }).click();
 }
 async function overview(page: Page) {
-  if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-kept]").click();
-  await page.getByRole("button", { name: /\d+ Tabs open/ }).click();
+  await page.getByRole("button", { name: /^Tabs, \d+ open$/ }).click();
   await expect(page.getByRole("main", { name: "Your tabs" })).toBeVisible();
 }
 test.beforeEach(async ({ page }) => setup(page));
@@ -101,8 +102,8 @@ test("reader adding a second finger cancels the pending long press", async ({ pa
   await page.clock.runFor(500);
   await touchVerse(page, "touchend", 0);
   await page.clock.runFor(250);
-  await expect(page.locator(".bs-resourcetabs")).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".bs-resfooter")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
 });
 
@@ -142,7 +143,7 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
   // A jump from the book picker changes the chapter in place too, as Bible Strong's picker does.
   await page.locator(".bs-pill--book").click();
-  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.locator(".bs-picker-sheet").getByRole("button", { name: "John", exact: true }).click();
   await page.getByRole("button", { name: "Chapter 1", exact: true }).click();
   await expect(page).toHaveURL(/\/read\/john\/1$/);
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
@@ -171,16 +172,16 @@ test("reader chapter changes stay in place: Back leaves the reader and a collaps
 test("book picker long press opens the chapter in a new tab, as Bible Strong's web picker does", async ({ page }) => {
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
-  await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tabs, 2 open", exact: true })).toBeVisible();
   await page.locator(".bs-pill--book").click();
-  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.locator(".bs-picker-sheet").getByRole("button", { name: "John", exact: true }).click();
   const tile = page.getByRole("button", { name: "Chapter 2", exact: true });
   const t = (await tile.boundingBox())!;
   await page.mouse.move(t.x + t.width / 2, t.y + t.height / 2);
   await page.mouse.down(); await page.waitForTimeout(650); await page.mouse.up();
   await expect(page).toHaveURL(/\/read\/john\/2$/);
-  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
-  await expect(page.locator(".bs-picker")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Tabs, 3 open", exact: true })).toBeVisible();
+  await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
 });
 
 test("Go to verse never collapses the header, even when the jump's scroll lands after its settle time", async ({ page }) => {
@@ -252,17 +253,17 @@ test("reader press preference still swaps resources and verse selection", async 
   await page.goto("/read/genesis/1");
   await menu(page, "Font and settings");
   await page.getByRole("button", { name: "Showing strongs: Long press", exact: true }).click();
-  await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await page.locator("#verset-1 .bs-num").click();
-  await expect(page.locator(".bs-resourcetabs")).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".bs-resfooter")).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
-  await page.getByRole("dialog").getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   const b = (await page.locator("#verset-1 .bs-num").boundingBox())!;
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
   await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up();
   await expect(page.getByRole("dialog", { name: "Selected: Genesis 1:1", exact: true })).toBeVisible();
-  await expect(page.locator(".bs-resourcetabs")).toHaveCount(0);
+  await expect(page.locator(".bs-resfooter")).toHaveCount(0);
 });
 
 test("reader selections and expanded passage context belong to their own tabs", async ({ page }) => {
@@ -283,12 +284,15 @@ test("reader selections and expanded passage context belong to their own tabs", 
   await expect(page.locator("#verset-1")).not.toHaveAttribute("data-selected");
 });
 
-test("new Bible tab stays selected and carries its focused passage", async ({ page }) => {
+test("a new Bible tab carries its focused passage, and the reader stays in their tab until Go to tab", async ({ page }) => {
   await page.goto("/read/genesis/1?v=1-2");
   await menu(page, "Open in new tab");
+  const current = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!); return s.groups[0].current; });
+  await expect(page.getByRole("button", { name: "Tabs, 3 open", exact: true })).toBeVisible();
+  expect(await current()).toBe("bible-one");
+  await page.locator(".toast", { hasText: "New tab created" }).getByRole("button", { name: "Go to tab" }).click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=1-2/);
-  await expect.poll(() => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!); return s.groups[0].current; })).not.toBe("bible-one");
-  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
+  await expect.poll(current).not.toBe("bible-one");
   await expect(page.locator(".bs-verse")).toHaveCount(2);
 });
 
@@ -315,7 +319,7 @@ test("the book picker changes the chapter in place, so Back from it does not ste
   await page.goto("/more");
   await page.goto("/read/genesis/1");
   await page.locator(".bs-pill--book").click();
-  await page.locator(".bs-picker").getByRole("button", { name: "John", exact: true }).click();
+  await page.locator(".bs-picker-sheet").getByRole("button", { name: "John", exact: true }).click();
   await page.getByRole("button", { name: "Chapter 3", exact: true }).click();
   await expect(page).toHaveURL(/\/read\/john\/3/);
   await page.goBack();
@@ -352,7 +356,7 @@ test("search applies filters on the server, pages, sorts, and preserves a typed 
 test("reader verse numbers can be hidden without hiding them from assistive technology", async ({ page }) => {
   await page.goto("/read/genesis/1"); await menu(page, "Font and settings");
   await page.getByRole("switch", { name: "Verse numbers", exact: true }).click();
-  await page.getByRole("dialog", { name: "Font and settings" }).getByRole("button", { name: "Close", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(page.locator("#verset-1 .bs-num")).toHaveCount(0);
   await expect(page.locator("#verset-1 .sr-only")).toHaveText("1");
   await page.reload(); await expect(page.locator("#verset-1")).toBeVisible();
@@ -468,11 +472,11 @@ test("keyboard palette switches to an existing tab and opens a passage with its 
   const input = page.getByRole("combobox", { name: "Find a tab or tool" });
   await input.fill("John"); await input.press("Enter");
   await expect(page).toHaveURL(/\/read\/john\/3\?v=16-18/);
-  await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tabs, 2 open", exact: true })).toBeVisible();
   await page.keyboard.press("Control+k"); await input.fill("Genesis 1:2-3"); await input.press("Enter");
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2-3/);
-  await expect(page.getByRole("button", { name: "3 Tabs open", exact: true })).toBeVisible();
-  await page.keyboard.press("Control+Alt+w"); await expect(page.getByRole("button", { name: "2 Tabs open", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tabs, 3 open", exact: true })).toBeVisible();
+  await page.keyboard.press("Control+Alt+w"); await expect(page.getByRole("button", { name: "Tabs, 2 open", exact: true })).toBeVisible();
   await page.keyboard.press("Control+k"); await input.fill("study");
   await expect(page.getByRole("option", { name: /My studies/ })).toBeVisible();
   await input.press("Enter"); await expect(page).toHaveURL(/\/studies$/);
@@ -540,7 +544,7 @@ test("Mac shortcuts cycle recent tabs and do not interrupt a note editor", async
   await expect(page.getByRole("textbox", { name: "Description", exact: true })).toHaveValue("Keep my writing");
 });
 
-test("notes list searches and sorts as Bible Strong's AllNotesTabScreen, and filters by tag", async ({ page }) => {
+test("notes list searches and sorts as Bible Strong's BibleVerseNotesScreen, and filters by tag", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("cj:bs_tags", JSON.stringify({ t1: { id: "t1", name: "Light", date: 1 } }));
     localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({
@@ -549,18 +553,30 @@ test("notes list searches and sorts as Bible Strong's AllNotesTabScreen, and fil
     }));
     localStorage.setItem("cj:bs_n_john_1", JSON.stringify({ "4": { id: "n3", title: "Ark of the word", description: "The life was the light of men.", date: 2000 } }));
   });
-  await page.goto("/bookmarks?tab=notes");
+  await page.goto("/notes");
   const order = () => page.getByRole("link").filter({ hasText: /Light was the first|Beginning|Ark of the word/ }).allInnerTexts().then(t => t.map(s => /Light was the first|Beginning|Ark of the word/.exec(s)![0]));
   await expect.poll(order).toEqual(["Light was the first", "Ark of the word", "Beginning"]);
-  await page.getByRole("button", { name: "Title A–Z", exact: true }).click();
+  // Bible Strong's filter panel: Order, Search, Tags.
+  const choose = async (row: string, choice: string) => {
+    await page.locator(".head .bs-filter").click();
+    await page.locator(".panel-filter", { hasText: row }).click();
+    await page.getByRole("radio", { name: choice, exact: true }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  };
+  await choose("Order", "Title A–Z");
   await expect.poll(order).toEqual(["Ark of the word", "Beginning", "Light was the first"]);
-  await page.getByRole("button", { name: "Oldest", exact: true }).click();
+  await choose("Order", "Oldest");
   await expect.poll(order).toEqual(["Beginning", "Ark of the word", "Light was the first"]);
   // Fuzzy search over titles and text, as upstream's searchWithMatches.
-  await page.getByRole("searchbox", { name: "Search notes" }).fill("beginning");
+  await page.locator(".head .bs-filter").click();
+  await page.locator(".panel-filter", { hasText: "Search" }).click();
+  await page.getByRole("searchbox", { name: "Search" }).fill("beginning");
   await expect.poll(order).toEqual(["Beginning"]);
-  await page.getByRole("searchbox", { name: "Search notes" }).fill("");
-  await page.getByRole("button", { name: "Light", exact: true }).click();
+  await page.getByRole("searchbox", { name: "Search" }).fill("");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await choose("Tags", "Light");
   await expect.poll(order).toEqual(["Light was the first"]);
 });
 
@@ -573,10 +589,11 @@ test("history keeps the verse gone to and opens on it, as Bible Strong's history
   await expect(page.locator("#verset-28")).toBeInViewport();
   await page.goto("/history");
   // One row per passage: the chapter itself and verse 28 of it.
-  await expect(page.getByRole("link", { name: /Genesis 1:28$/ })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Genesis 1$/ })).toBeVisible();
-  await page.getByRole("link", { name: /Genesis 1:28$/ }).click();
-  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=28$/);
+  const row = (title: string) => page.locator(".histitem", { has: page.locator(".histitem__title", { hasText: new RegExp(`^${title}$`) }) });
+  await expect(row("Genesis 1:28")).toBeVisible();
+  await expect(row("Genesis 1")).toBeVisible();
+  await row("Genesis 1:28").click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?at=28$/);
   await expect(page.locator("#verset-28")).toBeVisible();
 });
 
@@ -624,7 +641,7 @@ test("a touch that stops a gliding page taps neither the verse nor the dock unde
   await page.clock.runFor(300);
   await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
   await glide(page);
-  await tapTab(page, "Classes");
+  await tapTab(page, "Search");
   await page.clock.runFor(300);
   await expect(page).toHaveURL(/\/read\/genesis\/1/);
   // Once the page has come to rest, the same taps work.
@@ -717,7 +734,7 @@ test("the drawers show the live class, the offline notice, the account and legal
   await context.setOffline(false);
   await expect(home.getByText("You are offline")).toHaveCount(0);
   await home.getByRole("button", { name: "Close Home" }).click();
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("button", { name: "Main menu", exact: true }).click();
   const more = page.locator(".drawer--more");
   await expect(more.locator(".more__account")).toHaveAttribute("href", "/settings/account");
   await expect(more.getByRole("navigation", { name: "Legal" }).getByRole("link", { name: "Privacy" })).toHaveAttribute("href", "/privacy");
@@ -726,6 +743,128 @@ test("the drawers show the live class, the offline notice, the account and legal
   await more.locator(".drawer__scroll").evaluate(el => { el.scrollTop = 300; });
   await more.getByRole("button", { name: "Close the menu" }).click();
   await expect(more).not.toHaveAttribute("data-open");
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("button", { name: "Main menu", exact: true }).click();
   await expect.poll(() => more.locator(".drawer__scroll").evaluate(el => el.scrollTop)).toBe(300);
+});
+
+test("a verse picked from History opens the whole chapter at that verse, not a focused passage", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:hist", JSON.stringify([{ slug: "genesis", chapter: 1, verse: 18, name: "Genesis 1", at: Date.now() }])));
+  await page.goto("/history");
+  await page.locator(".histitem", { hasText: "Genesis 1:18" }).click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?at=18$/);
+  await expect(page.locator("#verset-18")).toBeInViewport();
+  await expect(page.locator("#verset-1")).toHaveCount(1);
+  await expect(page.locator(".bs-context")).toHaveCount(0);
+});
+
+test("opening the app at its root reopens the tab that was current", async ({ page }) => {
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+});
+
+test("opening the app at its root stays on Home when the kept tabs cannot be read", async ({ page }) => {
+  await page.addInitScript(() => { localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "gone", groups: [] })); localStorage.removeItem("cj:tabs"); });
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#verset-1")).toHaveCount(0);
+});
+
+test("going back to verse 1 of the same chapter scrolls the reader back to the top", async ({ page }) => {
+  await page.goto("/read/genesis/1?at=28");
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await page.evaluate(() => { history.pushState({}, "", "/read/genesis/1"); dispatchEvent(new PopStateEvent("popstate")); });
+  await expect(page.locator("#verset-1")).toBeInViewport();
+});
+
+test("a verse opened while the last chapter stands in is scrolled to again when its chapter arrives", async ({ page }) => {
+  // John 3 is slow and longer than Genesis 1, so its verse 18 sits far lower than the stand-in's.
+  const long = Array.from({ length: 36 }, (_, i) => ({ verse: i + 1, text: `Verse ${i + 1}: ${"For God so loved the world, that he gave his only begotten Son. ".repeat(6)}` }));
+  await page.route(`${DATA}/api/kjv/john/3.json`, async r => { await new Promise(res => setTimeout(res, 800)); await r.fulfill({ json: { book: "john", chapter: 3, translation: "KJV", verses: long } }); });
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await page.evaluate(() => { history.pushState({}, "", "/read/john/3?at=18"); dispatchEvent(new PopStateEvent("popstate")); });
+  await expect(page.locator("#verset-18 .bs-text")).toContainText("For God so loved");
+  await expect(page.locator("#verset-18")).toBeInViewport();
+});
+
+test("the relation picker offers the notes written in the reader", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1/2": { id: "n", title: "Creation", description: "My saved note", date: 1 } })));
+  await page.goto("/relations?endpoint=john-3-16");
+  await page.getByRole("button", { name: "Add a precept" }).click();
+  const picker = page.getByRole("dialog", { name: "Add relation" });
+  await expect(picker.locator("text=Creation")).toBeVisible();
+});
+
+test("the dictionary pages through every entry of a letter, and says when a page did not load", async ({ page }) => {
+  let failNext = false;
+  await page.route("**/api/dictionary?*", r => {
+    const url = new URL(r.request().url()), p = +(url.searchParams.get("page") ?? 1);
+    if (p === 2 && failNext) { failNext = false; return r.fulfill({ status: 500, body: "" }); }
+    const all = Array.from({ length: 70 }, (_, i) => ({ slug: `a${i + 1}`, term: `Aentry ${i + 1}` }));
+    return r.fulfill({ json: { count: 70, page: p, pages: 2, rows: all.slice((p - 1) * 60, p * 60), related: [], total: 3963 } });
+  });
+  await page.goto("/dictionary?letter=A");
+  await expect(page.getByRole("link", { name: "Aentry 1", exact: true })).toBeVisible();
+  await page.locator(".list-more").scrollIntoViewIfNeeded();
+  await expect(page.getByRole("link", { name: "Aentry 70" })).toBeVisible();
+  // A failed list is a failure with Retry, not an empty letter.
+  await page.unroute("**/api/dictionary?*");
+  await page.route("**/api/dictionary?*", r => r.fulfill({ status: 503, body: "" }));
+  await page.goto("/dictionary?letter=B");
+  await expect(page.getByText("The dictionary did not load")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+});
+
+test("a typed Strong's number is searched as written, whatever the language tab", async ({ page }) => {
+  await page.route(`${DATA}/api/strongs/index.json`, r => r.fulfill({ json: [
+    { n: "H26", lemma: "אֲבִיגַיִל", xlit: "Abigail", def: "Abigail", count: 17 },
+    { n: "G26", lemma: "ἀγάπη", xlit: "agape", def: "love", count: 116 },
+  ] }));
+  await page.goto("/lexicon?lang=hebrew");
+  await page.fill("#lex-q", "G26");
+  await expect(page.locator("a[href='/lexicon/G26']").filter({ hasText: "love" })).toBeVisible();
+  await expect(page.locator("a[href='/lexicon/H26']")).toHaveCount(0);
+});
+
+test("a verse's references that fail to load say so, with Retry, instead of 'none'", async ({ page }) => {
+  let fail = true;
+  await page.route(`${DATA}/api/xref/genesis/1.json`, r => (fail ? r.fulfill({ status: 500, body: "" }) : r.fulfill({ json: { 1: [["john", 1, 1]] } })));
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1 .bs-num")).toBeVisible();
+  await touchVerse(page, "touchstart", 1);
+  await touchVerse(page, "touchend", 0);
+  await page.getByRole("tab", { name: "Study" }).click();
+  await page.getByRole("button", { name: "References", exact: true }).click();
+  const sheet = page.locator(".bs-resources");
+  await expect(sheet.getByText("This did not load.")).toBeVisible();
+  await expect(sheet.getByText("No cross references for this verse.")).toHaveCount(0);
+  fail = false;
+  await sheet.getByRole("button", { name: "Retry" }).click();
+  await expect(sheet.getByText("This did not load.")).toHaveCount(0);
+});
+
+test("a running plan whose books fail to load says so, and never offers to start over", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:plan", JSON.stringify({ startedAt: "2026-10-01", day: 3, streak: 2, perDay: 4, books: ["john"], name: "John" })));
+  await page.route(`${DATA}/api/kjv/books.json`, r => r.fulfill({ status: 500, body: "" }));
+  await page.goto("/plan");
+  await expect(page.getByText("Your plan did not load")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start the plan" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Start over" })).toHaveCount(0);
+});
+
+test("the day's verse is asked for by the reader's own date", async ({ page }) => {
+  const asked: string[] = [];
+  page.on("request", r => { if (r.url().includes("/api/verse-of-day")) asked.push(new URL(r.url()).searchParams.get("date") ?? ""); });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await expect.poll(() => asked).toContain(await page.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }));
+});
+
+test("a saved relation between two non-verse items opens from the saved list", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:rel_other", JSON.stringify([{ id: "r1", type: "linked", direction: "none", endpoints: [{ type: "dictionary", slug: "eden", label: "Eden" }, { type: "entry", url: "/classes/2026/x", kind: "class", label: "A class" }], createdAt: 1, updatedAt: 1 }])));
+  await page.goto("/relations");
+  await page.locator(".nt-item", { hasText: "Eden" }).click();
+  await expect(page).toHaveURL(/endpoint=dictionary%3Aeden/);
+  await expect(page.locator(".rel-row", { hasText: "A class" })).toBeVisible();
 });

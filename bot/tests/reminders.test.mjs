@@ -257,6 +257,18 @@ test("the cron's metadata filter and the admin counts agree with the records", (
   assert.deepEqual(counts, { telegram: 1, push: 1, both: 1, paused: 0, off: 2 });
 });
 
+test("a plan of some books is reminded from those books, not from Genesis", () => {
+  const exodusOnly = on("UTC", { plan: { day: 0, perDay: 2, books: ["exodus"] } });
+  const p = portion(exodusOnly, BOOKS);
+  assert.equal(p.label, "Exodus 1–2");
+  assert.deepEqual(p.chapters, [{ slug: "exodus", chapter: 1 }, { slug: "exodus", chapter: 2 }]);
+  assert.equal(portion(on("UTC", { plan: { day: 1, perDay: 2, books: ["exodus"] } }), BOOKS), null, "past the plan's last book: nothing from the rest of the library");
+  const r = applyContent(blank(), { plan: { day: 0, perDay: 2, books: ["exodus"] } });
+  assert.deepEqual(r.plan, { day: 0, perDay: 2, books: ["exodus"] });
+  assert.deepEqual(applyContent(r, { plan: { day: 5, perDay: 2, books: ["<x>"] } }).plan, { day: 0, perDay: 2, books: ["exodus"] }, "malformed books leave the plan as it was");
+  assert.deepEqual(applyContent(r, { plan: { day: 1, perDay: 2, books: [] } }).plan, { day: 1, perDay: 2 }, "no books: the whole library");
+});
+
 test("the app's place is taken only when well formed", () => {
   const r = applyContent(blank(), { plan: { day: 3, perDay: 4 }, last: { slug: "john", chapter: 3 } });
   assert.deepEqual([r.plan, r.last], [{ day: 3, perDay: 4 }, { slug: "john", chapter: 3 }]);

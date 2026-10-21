@@ -19,20 +19,28 @@ cp -r app/dist/. .deploy/app/
 # Every page and file: no MIME sniffing, no full URL sent to other sites, and only this site and
 # Telegram's web clients (web.telegram.org frames the Mini App) may show it inside a frame.
 # Telegram's phone and desktop apps open it in their own web view, which frame-ancestors does not touch.
-cat > .deploy/_headers <<'HEADERS'
+# A script policy is reported only, not enforced, until reports show it fits normal use: scripts
+# from this site, Telegram's Mini App SDK (telegram.org, in index.html), Google's API loader that
+# Firebase Auth fetches on phones and Safari (apis.google.com), and the inline scripts the app
+# carries (the theme set before the first paint), named by hash so a change to one is seen.
+INLINE=$(node -e '
+  const fs = require("fs"), { createHash } = require("crypto"), q = String.fromCharCode(39), out = new Set();
+  for (const f of process.argv.slice(1)) {
+    if (!fs.existsSync(f)) continue;
+    for (const m of fs.readFileSync(f, "utf8").matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi))
+      if (m[1].trim()) out.add(q + "sha256-" + createHash("sha256").update(m[1]).digest("base64") + q);
+  }
+  process.stdout.write([...out].map((h) => " " + h).join(""));
+' .deploy/index.html)
+cat > .deploy/_headers <<HEADERS
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org https://*.telegram.org
+  Content-Security-Policy-Report-Only: script-src 'self' https://telegram.org https://apis.google.com$INLINE; object-src 'none'; base-uri 'self'
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 /app/assets/*
   Cache-Control: public, max-age=31536000, immutable
 HEADERS
-# The Bible Strong fork (strong/, built by strong/build-web.sh) is staged beside the current
-# app at /app/strong while it is built out; the current app at /app is unchanged.
-if [ -d strong/dist ]; then
-  mkdir -p .deploy/app/strong
-  cp -r strong/dist/. .deploy/app/strong/
-fi
 echo "staged $(find .deploy -type f | wc -l) asset files in .deploy/"

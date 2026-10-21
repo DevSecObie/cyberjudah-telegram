@@ -18,8 +18,10 @@ const cloud = (page: Page) => page.evaluate(() => (window as unknown as { __tg: 
 const tapVerse = async (page: Page, n: number) => { await page.click(`#verset-${n} .bs-num`); await page.waitForTimeout(400); };
 const longPressVerse = async (page: Page, n: number) => { await page.locator(`#verset-${n} .bs-num`).evaluate((el) => el.scrollIntoView({ block: "center" })); await page.waitForTimeout(300); const b = (await page.locator(`#verset-${n} .bs-num`).boundingBox())!; await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await page.mouse.down(); await page.waitForTimeout(550); await page.mouse.up(); };
 /** A long press that must end in the resources sheet: the runner's first press can land while the text is still reflowing, so try again before giving up. */
-const openResources = async (page: Page, n: number) => { for (let i = 0; i < 3; i++) { await longPressVerse(page, n); if (await page.locator(".bs-resourcetabs").isVisible({ timeout: 4000 }).catch(() => false)) return; await page.waitForTimeout(500); } };
+const openResources = async (page: Page, n: number) => { for (let i = 0; i < 3; i++) { await longPressVerse(page, n); if (await page.locator(".bs-resfooter").isVisible({ timeout: 4000 }).catch(() => false)) return; await page.waitForTimeout(500); } };
 
+/** Where the person's screen is scrolled: in its sheet when opened from People, as Bible Strong's entity sheet. */
+const personY = (page: Page) => page.evaluate(() => Math.round(document.querySelector(".route-sheet .bs-sheet__body")?.scrollTop ?? scrollY));
 test.beforeEach(async ({ page }) => setup(page));
 
 test("note HTML is sanitized before it reaches the page", async ({ page }) => {
@@ -82,8 +84,10 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   // Tags: a new tag on the highlight shows as a chip under the last verse of the group.
   await tapVerse(page, 1);
   await page.click(".bs-action >> text=Tag");
-  await page.fill(".bs-search input", "promises");
+  await page.fill(".bs-sheetsearch input", "promises");
   await page.click(".bs-tagrow--create");
+  // As in Bible Strong, a new tag is created unselected; a tap selects it.
+  await page.click(".bs-tagrow[role=checkbox]");
   await expect(page.locator(".bs-tagrow[role=checkbox]")).toHaveAttribute("aria-checked", "true");
   await page.mouse.click(195, 60); // the backdrop dismisses the sheet
   await expect(page.locator("#verset-2 .bs-inline-item")).toContainText("promises");
@@ -100,23 +104,27 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await tapVerse(page, 1);
   await expect(page.locator(".bs-selected")).toHaveCount(0);
   await expect(page.locator(".bs-pill--book")).toHaveText("Psalms 23");
-  // The lists: bookmarks, highlights with the tag, notes.
-  await page.click('.tab[aria-label="Menu"]');
-  await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
-  await page.click(".mcard__row >> text=Bookmarks, highlights");
-  await expect(page.locator(".row__title").first()).toHaveText("Comfort");
-  await page.click('[role=tab] >> text=Highlights');
-  await expect(page.locator(".row__title").first()).toHaveText("Psalms 23");
-  await page.click(".chip >> text=promises");
-  await expect(page.locator(".row__sub").first()).toContainText("Verses 1");
-  await page.click('[role=tab] >> text=Notes');
-  await expect(page.locator(".row__title").first()).toHaveText("The shepherd psalm.");
+  // The lists, each its own screen as in Bible Strong: bookmarks, highlights with the tag, notes.
+  const fromMenu = async (label: string) => {
+    await page.click('.tab[aria-label="Main menu"]');
+    await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
+    await page.locator(".mcard__row", { hasText: new RegExp(`^${label}$`) }).click();
+  };
+  await fromMenu("Bookmarks");
+  await expect(page.locator(".bmitem__text b").first()).toHaveText("Comfort");
+  await fromMenu("Highlights");
+  // One highlight over both verses, as Bible Strong groups them, with its tag.
+  await expect(page.locator(".tagd-item__ref").first()).toContainText("Psalms 23:1-2");
+  await expect(page.locator(".tagd-item").first().locator(".tagd-chip")).toContainText("promises");
+  await fromMenu("Notes");
+  await expect(page.locator(".noteitem__title").first()).toHaveText("The shepherd psalm.");
+  await expect(page.locator(".noteitem__meta").first()).toContainText("Psalms 23:1-2 - ");
 });
 
 test("the book pill opens Books; a chapter tile opens the chapter; the chevrons jump to a verse", async ({ page }) => {
   await page.goto(`/read/john/3${LAUNCH}`);
   await page.click(".bs-pill--book");
-  await expect(page.locator(".bs-picker__header b")).toHaveText("Books");
+  await expect(page.locator(".bs-picker-sheet .bs-sheet__titles b").last()).toHaveText("Books");
   await expect(page.locator(".bs-bookrow span", { hasText: /^John$/ })).toHaveCSS("font-weight", "700");
   // The book being read is scrolled into view, not left below the fold.
   await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
@@ -126,31 +134,29 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
   await expect(page).toHaveURL(/\/read\/psalms\/23/);
   await expect(page.locator(".bs-pill--book")).toHaveText("Psalms 23");
   await page.click(".bs-header__verses");
-  await expect(page.locator(".bs-picker__header b")).toHaveText("Go to verse");
+  await expect(page.locator(".bs-picker-sheet .bs-sheet__titles b").last()).toHaveText("Go to verse");
   await expect(page.locator(".bs-versetile")).toHaveCount(6);
   await page.click('.bs-versetile[aria-label="Verse 4"]');
-  await expect(page.locator(".bs-picker")).toHaveCount(0);
+  await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   // Grid layout: three-letter books, New Testament in red.
   await page.click(".bs-pill--book");
   await page.click(".bs-filterbtn");
   await page.click('.bs-filter__opts button >> text=Grid');
   await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(237, 191, 196)");
   await page.click(".bs-bookshort >> text=Mat");
-  await expect(page.locator(".bs-picker__header b")).toHaveText("Matthew");
+  await expect(page.locator(".bs-picker-sheet .bs-sheet__titles b").last()).toHaveText("Matthew");
   await page.click('.bs-chaptertile[aria-label="Chapter 5"]');
   await expect(page).toHaveURL(/\/read\/matthew\/5/);
 });
 
-test("header cards search, keep chapter navigation in place, and close with Telegram Back", async ({ page }) => {
+test("the header's selectors are Bible Strong's sheets: they search, keep chapter navigation in place, and close with Telegram Back", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.click(".bs-pill--book");
   const card = page.getByRole("dialog", { name: "Books", exact: true });
   await expect(card).toBeVisible();
-  // Measure the full border box after the opening scale animation has finished.
-  await expect(card).toHaveCSS("transform", "none");
-  const bounds = (await card.boundingBox())!;
-  expect(bounds.y).toBeLessThan(130);
-  expect(bounds.height).toBeLessThanOrEqual(530);
+  // Bible Strong's BookSelectorSheet: a full-height bottom sheet, its title centred.
+  await expect(card).toHaveClass(/bs-sheet--full/);
+  await expect(card.locator(".bs-sheet__header")).toHaveAttribute("data-center", "");
   await page.getByRole("textbox", { name: "Search books" }).fill("maccabees");
   await expect(page.locator(".bs-bookrow")).toHaveCount(2);
   await page.locator(".bs-bookrow").first().click();
@@ -158,7 +164,7 @@ test("header cards search, keep chapter navigation in place, and close with Tele
   await page.getByRole("button", { name: "Back to books" }).click();
   await expect(page.getByRole("textbox", { name: "Search books" })).toHaveValue("maccabees");
   await press(page, "back");
-  await expect(page.locator(".bs-picker")).toHaveCount(0);
+  await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   await expect(page.locator(".bs-pill--book")).toBeFocused();
   await page.click(".bs-pill--version");
   await expect(page.locator(".bs-versions__language")).toHaveText("English");
@@ -166,7 +172,7 @@ test("header cards search, keep chapter navigation in place, and close with Tele
   await page.getByRole("textbox", { name: "Search versions" }).fill("unknown");
   await expect(page.getByText("No versions found.")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.locator(".bs-picker")).toHaveCount(0);
+  await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
   await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
   await expect(page.getByRole("menuitem")).toHaveText(["Font and settings", "Search the Scriptures", "Recently viewed", "Add bookmark", "Export…", "Open in new tab"]);
@@ -178,11 +184,11 @@ test("Font and settings: night theme, verse mode, text size, fonts, all kept in 
   await page.click(".bs-dropdown__item >> text=Font and settings");
   await expect(page.locator(".bs-params__row").first()).toContainText("Theme");
   await page.click('.bs-touchicon[aria-label="Day"]');
-  await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(252, 251, 247)");
+  await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await page.click('.bs-touchicon[aria-label="Night"]');
   await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(18, 45, 66)");
   await page.click('[role=radio][aria-label="Black"]');
-  await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(9, 9, 11)");
+  await expect(page.locator(".bs")).toHaveCSS("background-color", "rgb(0, 0, 0)");
   await page.click('.bs-touchicon[aria-label="Increase text size"]');
   await expect(page.locator(".bs-params__value >> text=110%")).toBeVisible();
   await page.click('.bs-touchicon[aria-label^="Verse mode"]');
@@ -199,13 +205,13 @@ test("a long press opens Strong's, with dictionary and references available", as
   await expect(page.locator("#verset-8")).toBeVisible();
   await longPressVerse(page, 8);
   await expect(page.locator(".bs-sheet__titles b")).toHaveText("Genesis 2:8");
-  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("tab", { name: "Dictionary", exact: true }).click();
   await expect(page.locator(".bs-sheet__titles small")).toHaveText("Dictionary");
   await expect(page.locator(".bs-resrow b", { hasText: /^Eden$/ })).toBeVisible();
-  await page.click('.bs-resourcetabs button >> text=References');
+  await page.click('.bs-resfooter button >> text=References');
   await expect(page.locator(".bs-resources .xref__chip").first()).toBeVisible();
-  await page.click('.bs-resourcetabs button >> text=Dictionary');
+  await page.click('.bs-resfooter button >> text=Dictionary');
   await page.locator(".bs-resrow", { has: page.locator("b", { hasText: /^Eden$/ }) }).click();
   await expect(page).toHaveURL(/\/dictionary\/eden/);
   await expect(page.locator(".dict p").first()).toContainText("Delight");
@@ -219,8 +225,8 @@ test("the precepts a class lined up with a verse: a tag under the verse, and a P
   await expect(tag).toBeVisible();
   await longPressVerse(page, 11);
   await expect(page.locator(".bs-sheet__titles b")).toHaveText("Isaiah 11:11");
-  await page.click('.bs-resourcetabs button >> text=Precepts');
-  await expect(page.locator(".bs-sheet__titles small")).toHaveText("Precepts taught with this verse");
+  await page.click('.bs-resfooter button >> text=Precepts');
+  await expect(page.locator(".bs-sheet__titles small")).toHaveText("Precepts");
   const row = page.locator(".bs-precept").first();
   await expect(row).toBeVisible();
   await expect(row.locator("small")).toContainText(/\S/);
@@ -324,7 +330,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   await page.click(".sheet__item >> text=refers to");
   await page.click(".sheet__item >> nth=0");
   await page.fill("#sheet-text", "The shepherd");
-  await page.click(".sheet__form button[type=submit]");
+  await page.press("#sheet-text", "Enter");
   await expect(page.locator(".rel-row__title")).toContainText("refers to");
   await page.click('.rel-row .icon-btn[aria-label="Options"]');
   await page.click(".sheet__item >> text=Remove");
@@ -340,30 +346,6 @@ test("Link and Relation are their own verse actions: a link saved from Link show
   await page.fill('input[placeholder="Untitled link"]', "The shepherd class");
   await page.click(".bs-sheet__actions button >> text=Save");
   await expect(page.locator("#verset-1 .rel-inline .rel-tag", { hasText: "The shepherd class" })).toBeVisible();
-});
-
-test("liquid glass: pressing the current section lifts its pill, dragging carries it along the bar, letting go opens where it lands", async ({ page }) => {
-  await page.goto(`/search${LAUNCH}`);
-  const dock = page.locator("nav.tabs");
-  const from = await dock.locator(".tab[data-on]").boundingBox();
-  const to = await dock.locator(".tab", { hasText: "Classes" }).boundingBox();
-  await page.mouse.move(from!.x + from!.width / 2, from!.y + from!.height / 2);
-  await page.mouse.down();
-  await expect(dock).toHaveAttribute("data-lift", "");
-  for (let i = 1; i <= 8; i++) await page.mouse.move(from!.x + from!.width / 2 + ((to!.x - from!.x) * i) / 8, from!.y + from!.height / 2);
-  await expect(dock).toHaveAttribute("data-drag", "");
-  // Feedback is present but restrained, so icons stay inside their navigation targets.
-  const magnification = Number(await dock.locator(".tab", { hasText: "Classes" }).evaluate((b) => b.style.getPropertyValue("--mag")));
-  expect(magnification).toBeGreaterThan(1);
-  expect(magnification).toBeLessThanOrEqual(1.06);
-  if (process.env.SHOTS) await dock.screenshot({ path: `${process.env.SHOTS}/liquid-drag.png` });
-  await page.mouse.up();
-  await expect(page).toHaveURL(/\/classes/);
-  await expect(dock).not.toHaveAttribute("data-lift", "");
-  await expect(dock.locator(".tab[data-on]")).toContainText("Classes");
-  // A plain tap on another section still opens it.
-  await dock.locator(".tab", { hasText: "Search" }).click();
-  await expect(page).toHaveURL(/\/search/);
 });
 
 test("Back as in Bible Strong: every page but the main places has a ←, and a page opened by a link goes back to its parent", async ({ page }) => {
@@ -399,13 +381,13 @@ test("tabs are roots, detail screens push, and the back button walks them", asyn
   await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
   // The menu is a drawer over the Bible, as in Bible Strong: the back button closes it first.
-  await page.click('.tab[aria-label="Menu"]');
+  await page.click('.tab[aria-label="Main menu"]');
   await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
   await expect.poll(async () => (await state(page)).back).toBe(true);
   await press(page, "back");
   await expect(page.locator(".drawer--more[data-open]")).toHaveCount(0);
   // A screen opened from it pushes, and the back button returns to the Bible.
-  await page.click('.tab[aria-label="Menu"]');
+  await page.click('.tab[aria-label="Main menu"]');
   await page.click(".mcard__row >> text=Settings");
   await expect(page).toHaveURL(/\/settings/);
   await expect(page.locator("h1.title")).toHaveText("Settings");
@@ -425,7 +407,7 @@ test("coming back keeps your place: typed search words, the menu a page was open
   // Words typed but not yet searched are kept, as Bible Strong's search tab keeps its value.
   await page.fill("#q", "John 3:16");
   await expect(page).toHaveURL(/typed=John/);
-  await page.click('.tab[aria-label="Menu"]');
+  await page.click('.tab[aria-label="Main menu"]');
   await page.click(".mcard__row >> text=Settings");
   await expect(page).toHaveURL(/\/settings/);
   await expect(page.locator(".drawer[data-open]")).toHaveCount(0);
@@ -434,11 +416,11 @@ test("coming back keeps your place: typed search words, the menu a page was open
   await expect(page).toHaveURL(/\/search/);
   await expect(page.locator(".srch__bar #q")).toHaveValue("John 3:16");
   await expect(page.locator(".drawer--more[data-open]")).toBeVisible();
-  await page.goto(`/bookmarks${LAUNCH}`);
-  await page.getByRole("tab", { name: /^Highlights/ }).click();
-  await expect(page).toHaveURL(/tab=highlights/);
+  // Kept's old address for its highlights leads to the Highlights screen, and stays there.
+  await page.goto(`/bookmarks?tab=highlights${LAUNCH}`);
+  await expect(page).toHaveURL(/\/highlights(#|$)/);
   await page.reload();
-  await expect(page.getByRole("tab", { name: /^Highlights/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".head h1")).toHaveText("Highlights");
 });
 
 test("Home is Bible Strong's drawer: it slides the app aside and closes with a swipe", async ({ page }) => {
@@ -485,7 +467,7 @@ test("one theme: the Bible's day and night colours are the whole app's", async (
   await page.click('[role=tab] >> text=Day');
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.locator("html")).toHaveAttribute("data-palette", "default");
-  expect(await canvas()).toBe("#fcfbf7");
+  expect(await canvas()).toBe("#ffffff");
   await page.click(".row >> text=Day colour");
   await page.click(".row >> text=Day colour");
   await expect(page.locator("html")).toHaveAttribute("data-palette", "nature");
@@ -538,50 +520,54 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
   await page.goto(`/${LAUNCH}`);
   await page.click('.tab[aria-label="Bible"]');
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
-  await page.click('.tab[aria-label$="Tabs open"]');
+  await page.click('.tab[aria-label^="Tabs, "]');
   await expect(page).toHaveURL(/\/tabs/);
   await expect(page.locator(".tabcard")).toHaveCount(1);
-  await expect(page.locator(".tabcard__title b").first()).toHaveText("Genesis 1 - KJV");
+  // The title is cut in the middle to fit the card (ellipsizeMode="middle"); the card keeps the whole name.
+  await expect(page.locator(".tabcard__open").first()).toHaveAttribute("aria-label", "Open Genesis 1 - KJV");
   await expect(page.locator(".tabcard__preview").first()).toContainText("In the beginning");
   // In the switcher the bottom bar is its controls: +, the group (the default group shows its count), OK.
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
   await page.click('[aria-label="Add a tab"]');
   await expect(page.locator(".nt-heading")).toHaveText("What would you like to explore?");
-  await page.click(".nt-item >> text=Strong");
-  await expect(page).toHaveURL(/\/lexicon/);
-  await page.click('.tab[aria-label$="Tabs open"]');
+  await page.locator(".ntcard", { hasText: "Everyone named in the Bible" }).click();
+  await expect(page).toHaveURL(/\/people/);
+  await page.click('.tab[aria-label^="Tabs, "]');
   await expect(page.locator(".tabcard")).toHaveCount(2);
   await expect(page.locator(".switcherbar__group")).toHaveText("2 tabs");
-  await page.click('.tabcard__close[aria-label="Close Strong"]');
+  await page.click('.tabcard__close[aria-label="Close People"]');
   await expect(page.locator(".tabcard")).toHaveCount(1);
-  // A new group starts with its own New Tab page; the first group keeps its Bible tab.
+  // A new group starts empty, with Bible Strong's Create a tab; the first group keeps its Bible tab.
   await page.click(".switcherbar__group");
-  await page.click(".sheet__item >> text=New group");
-  await page.locator(".sheet textarea").fill("Revelation");
-  await page.click(".sheet button[type=submit]");
-  await page.locator(".sheet .swatch").nth(2).click();
+  await page.getByRole("button", { name: "New group" }).click();
+  await page.getByRole("textbox", { name: "Group name" }).fill("Revelation");
+  await page.getByRole("radio", { name: "Color 3" }).click();
+  await page.getByRole("button", { name: "Create group" }).click();
   await expect(page.locator(".switcherbar__group")).toHaveText("Revelation");
-  await expect(page.locator(".tabcard__title b").first()).toHaveText("New tab");
+  await expect(page.locator(".switcher__page[data-active] .tabcard")).toHaveCount(0);
+  await expect(page.locator(".switcher__page[data-active]").getByRole("button", { name: "Create a tab" })).toBeVisible();
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs-groups.png` }); }
   await page.click(".switcherbar__group");
-  await page.click(".sheet__item >> text=1 tab");
+  await page.getByRole("button", { name: "View my groups" }).click();
+  await page.getByRole("button", { name: /^1 tab\. Main group/ }).click();
   await expect(page.locator(".switcherbar__group")).toHaveText("1 tab");
-  await expect(page.locator(".tabcard__title b").first()).toHaveText("Genesis 1 - KJV");
-  await expect(page.locator(".tabcard__preview").first()).toContainText("In the beginning");
+  await expect(page.locator(".switcher__page[data-active] .tabcard__open").first()).toHaveAttribute("aria-label", "Open Genesis 1 - KJV");
+  await expect(page.locator(".switcher__page[data-active] .tabcard__preview").first()).toContainText("In the beginning");
   if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/tabs.png` }); }
   await page.click(".switcherbar__ok");
   await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
 });
 
-test("the new-tab finder opens the chosen Search tool", async ({ page }) => {
+test("the finder opens the chosen Search tool", async ({ page }) => {
   await page.goto(`/new${LAUNCH}`);
-  await page.getByRole("button", { name: "A passage, a tab, a tool…" }).click();
+  await page.locator(".nt-heading").waitFor();
+  await page.keyboard.press("Control+k");
   const finder = page.getByRole("dialog", { name: "Find a tab or tool" });
   await expect(finder).toBeVisible();
   await finder.getByRole("combobox").fill("Search");
   await finder.getByRole("option", { name: "Search Open in a new tab", exact: true }).click();
   await expect(page).toHaveURL(/\/search/);
-  await expect(page.locator('.tab[aria-label="Search"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.locator('.tab[aria-label="Search"]')).not.toHaveAttribute("aria-current");
 });
 
 test("the settings button opens settings", async ({ page }) => {
@@ -600,7 +586,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
     bs_n_genesis_1: JSON.stringify({ "1": { id: "note1", title: "Beginning", description: "", date: 1 } }),
     plan: JSON.stringify({ startedAt: "2026-09-30", day: 1, streak: 0, perDay: 4 }),
   });
-  await page.route("**/api/verse-of-day", (r) => r.fulfill({ json: { ref: "Genesis 1:1", slug: "genesis", chapter: 1, verse: 1, text: "In the beginning God created the heaven and the earth." } }));
+  await page.route("**/api/verse-of-day*", (r) => r.fulfill({ json: { ref: "Genesis 1:1", slug: "genesis", chapter: 1, verse: 1, text: "In the beginning God created the heaven and the earth." } }));
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.getByRole("button", { name: "Home", exact: true }).click();
   const home = page.locator(".drawer--home");
@@ -610,8 +596,8 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await expect(home.locator(".stats__cell small")).toHaveText(["Highlight", "Bookmarks", "Note", "Studies", "Precepts", "Tags"]);
   // A reading plan is not a personal study.
   await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("0");
-  await expect(home.locator('.stats__cell[href="/bookmarks?tab=highlights"] b')).toHaveText("1");
-  await expect(home.locator('.stats__cell[href="/bookmarks?tab=notes"] b')).toHaveText("1");
+  await expect(home.locator('.stats__cell[href="/highlights"] b')).toHaveText("1");
+  await expect(home.locator('.stats__cell[href="/notes"] b')).toHaveText("1");
   await expect(home.locator('.stats__cell[href="/relations"] b')).toHaveText("2");
   await home.getByRole("button", { name: "Image", exact: true }).click();
   const image = page.getByRole("dialog", { name: "Verse image" });
@@ -623,7 +609,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await home.locator('.stats__cell[href="/studies"]').click();
   await expect(page).toHaveURL(/\/studies$/);
   await page.getByRole("button", { name: "New study", exact: true }).click();
-  await expect(page.getByLabel("Study title", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Edit study", exact: true })).toBeVisible();
   await goInApp(page, "/read/genesis/1");
   await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect(home.locator('.stats__cell[href="/studies"] b')).toHaveText("1");
@@ -633,7 +619,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
   await page.locator(".nt-item").last().click();
   await expect(page).toHaveURL(/endpoint=note%3Apsalms-23-1/);
   await expect(page.locator(".rel-row")).toContainText("CyberJudah");
-  await page.getByRole("button", { name: "Menu", exact: true }).click();
+  await page.getByRole("button", { name: "Main menu", exact: true }).click();
   await expect(page.locator(".mcard__head")).toHaveText(["Yours", "Resources", "The Law", "Settings", "CyberJudah"]);
 });
 
@@ -660,6 +646,8 @@ test("welcome keeps Search and Ask separate, with the dashboard in the Home draw
   await expect(home.locator(".stats__cell")).toHaveCount(6);
   await expect(home.locator('.home a[href="/plan"]')).toHaveText(/Start a reading plan/);
   await expect(home.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
+  // Bible Strong's Courses & videos card opens the classes.
+  await expect(home.getByRole("link", { name: "Open courses and videos" })).toHaveAttribute("href", "/classes");
   await expect(home.locator(".widget")).toHaveCount(6);
   await home.getByRole("button", { name: "Close Home" }).click();
   await search.fill("Seattle");
@@ -903,11 +891,11 @@ test("a verse links to each class that read it, on YouTube at that moment", asyn
   const stack = page.locator(".bs-entities__stack");
   await stack.scrollIntoViewIfNeeded();
   await expect(page.locator(".bs-entities__title")).toHaveText("In This Chapter");
-  await expect(stack).toHaveAttribute("aria-label", /^People in this chapter: Cain, /);
+  await expect(stack).toHaveAttribute("aria-label", /^In this chapter: Cain, /);
   await expect(stack.locator("[data-person-stack]")).toHaveCount(3);
   // A tap spreads everyone over the page; Escape puts them back; a person opens their page.
   await stack.click();
-  const people = page.getByRole("dialog", { name: "People in this chapter" });
+  const people = page.getByRole("dialog", { name: "In this chapter" });
   await expect(people.locator(".bs-people__item").first()).toContainText("Cain");
   await page.keyboard.press("Escape");
   await expect(people).toHaveCount(0);
@@ -920,7 +908,7 @@ test("a verse's Comments hold each class's own breakdown of it, and watch from t
   await page.goto(`/read/genesis/4${LAUNCH}`);
   await expect(page.locator("#verset-5")).toBeVisible();
   await longPressVerse(page, 5);
-  await page.click('.bs-resourcetabs button >> text=Comments');
+  await page.click('.bs-resfooter button >> text=Comments');
   const card = page.locator(".bs-comment", { hasText: "Bitterness: The Hidden Leaven" }).first();
   await expect(card.locator(".bs-comment__points li").first()).toContainText("Cain was very wroth, and his countenance fell");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comments.png` });
@@ -929,13 +917,13 @@ test("a verse's Comments hold each class's own breakdown of it, and watch from t
   expect(opened.at(-1)?.[1]).toBe("https://www.youtube.com/watch?v=rBRp1JXmK6U&t=2035s");
 });
 
-test("in the Bible, an open sheet shows Telegram's back button and closes with it, its ✕ or a swipe down", async ({ page }) => {
+test("in the Bible, an open sheet shows Telegram's back button and closes with it or a swipe down", async ({ page }) => {
   await page.goto(`/read/genesis/4${LAUNCH}`);
   await expect(page.locator("#verset-5")).toBeVisible();
   expect((await state(page)).back).toBe(false);
   // Back button closes the open sheet, and hides again.
   await longPressVerse(page, 5);
-  await page.click('.bs-resourcetabs button >> text=Comments');
+  await page.click('.bs-resfooter button >> text=Comments');
   await expect(page.locator("[data-sheet-open]")).toHaveCount(1);
   await expect.poll(async () => (await state(page)).back).toBe(true);
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/sheet-close.png` });
@@ -945,7 +933,7 @@ test("in the Bible, an open sheet shows Telegram's back button and closes with i
   await expect(page).toHaveURL(/\/read\/genesis\/4/);
   // The ✕ closes it.
   await page.click(".bs-pill--book");
-  await page.click('.bs-picker [aria-label="Close"]');
+  await page.keyboard.press("Escape");
   await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
   // Other controls remain sheets: a swipe down closes Font and settings; a short one springs back.
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
@@ -956,15 +944,15 @@ test("in the Bible, an open sheet shows Telegram's back button and closes with i
   await expect(page.locator("[data-sheet-open]")).toHaveCount(1);
   await swipe(200);
   await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
-  // A swipe up opens a half sheet to full height: the verse's tags.
-  await tapVerse(page, 1);
-  await page.locator(".bs-selected .bs-action", { hasText: /^Tags?$/ }).first().click();
-  const note = page.locator(".bs-sheet").filter({ has: page.locator(".bs-sheet__titles") }).last();
-  const before = (await note.boundingBox())!.height;
-  await page.waitForTimeout(350);
-  const t = (await note.locator(".bs-sheet__titles").boundingBox())!;
-  await page.mouse.move(t.x + t.width / 2, t.y + 10); await page.mouse.down(); await page.mouse.move(t.x + t.width / 2, t.y - 120, { steps: 8 }); await page.mouse.up();
-  await expect.poll(async () => (await note.boundingBox())!.height).toBeGreaterThan(before + 40);
+  // A swipe up takes a sheet with two detents to its taller one: Font and settings, 40% then full.
+  await page.click('.bs-iconbtn[aria-label="Scripture options"]');
+  await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
+  const params = page.getByRole("dialog", { name: "Font and settings", exact: true });
+  const before = (await params.boundingBox())!.height;
+  await page.waitForTimeout(550);
+  const t = (await params.locator(".bs-sheet__handle").boundingBox())!;
+  await page.mouse.move(t.x + t.width / 2, t.y + 2); await page.mouse.down(); await page.mouse.move(t.x + t.width / 2, t.y - 120, { steps: 8 }); await page.mouse.up();
+  await expect.poll(async () => (await params.boundingBox())!.height).toBeGreaterThan(before + 40);
 });
 
 test("a sheet uses the release position even when a fast swipe finishes before the next render", async ({ page }) => {
@@ -989,7 +977,7 @@ test("a verse's comment opens the note right where that passage is broken down",
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-7")).toBeVisible();
   await longPressVerse(page, 7);
-  await page.click('.bs-resourcetabs button >> text=Comments');
+  await page.click('.bs-resfooter button >> text=Comments');
   const card = page.locator(".bs-comment", { hasText: "The firmament is the sky" });
   await expect(card).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/comment-g17.png` });
@@ -1004,7 +992,7 @@ test("People: who is named in a verse, a page per person with family, the classe
   await page.goto(`/read/genesis/12${LAUNCH}`);
   await expect(page.locator("#verset-5")).toBeVisible();
   await openResources(page, 5);
-  await page.click('.bs-resourcetabs button >> text=People');
+  await page.click('.bs-resfooter button >> text=People');
   await expect(page.locator(".bs-resrow b")).toHaveText(["Abraham", "Lot", "Sarah"]);
   await page.locator(".bs-resrow", { hasText: "Abraham" }).click();
   await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
@@ -1052,7 +1040,7 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await page.fill("#people-q", "abraham");
     // Filtering is debounced; wait for its result before the list changes under a click.
     await expect(page.getByRole("heading", { name: "1 person", exact: true })).toBeVisible();
-    await page.locator(".row", { hasText: "Abraham" }).first().click();
+    await page.locator(".personrow", { hasText: "Abraham" }).first().click();
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
     // The summary card: what they are, the name, their Strong's number (to the word study), who they were.
     await expect(page.locator(".entity__summary .entity__eyebrow")).toHaveText("Man · Early Patriarch");
@@ -1077,7 +1065,7 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await expect(card.locator(".scard__text")).toHaveText(/\w{3,}/);
     const ref = await card.locator(".scard__ref").innerText();
     const [, c, v] = /(\d+):(\d+)$/.exec(ref)!;
-    const y = await page.evaluate(() => Math.round(scrollY));
+    const y = await personY(page);
     expect(y).toBeGreaterThan(200);
     await card.getByRole("link", { name: /^Go to verse/ }).click();
     await expect(page).toHaveURL(new RegExp(`/read/[a-z0-9-]+/${c}\\?v=${v}$`));
@@ -1088,14 +1076,14 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await press(page, "back");
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
     await expect(verses.locator(".scard")).toHaveCount(15);
-    await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeGreaterThan(y - 40);
-    expect(await page.evaluate(() => Math.round(scrollY))).toBeLessThan(y + 40);
+    await expect.poll(() => personY(page)).toBeGreaterThan(y - 40);
+    expect(await personY(page)).toBeLessThan(y + 40);
     // A relative's profile from the graph, and back again.
     await page.getByRole("region", { name: "Relationships" }).getByRole("button", { name: "Father, Terah" }).click();
     await page.getByRole("button", { name: "View Terah's profile" }).click();
     await expect(page).toHaveURL(/\/person\/terah-gen-11-24/);
     await expect(page.getByRole("heading", { level: 1, name: "Terah" })).toBeVisible();
-    await expect.poll(() => page.evaluate(() => Math.round(scrollY))).toBeLessThan(5);
+    await expect.poll(() => personY(page)).toBeLessThan(5);
     await press(page, "back");
     await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
     // Back to everyone: the search is as it was.
@@ -1196,25 +1184,6 @@ test("Case studies: a person's related case opens it, and the case links back; a
   await expect(page.getByRole("link", { name: "browse every case" })).toHaveAttribute("href", "/cases");
 });
 
-test("the collapsed bar keeps the section or Menu beside the fixed Search circle", async ({ page }) => {
-  await page.goto(`/cases/02-patriarchal/abraham${LAUNCH}`);
-  await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
-  const bar = page.locator("nav.tabs");
-  await page.mouse.move(195, 400);
-  for (let i = 0; i < 8 && !(await bar.getAttribute("data-mini")); i++) { await page.mouse.wheel(0, 300); await page.waitForTimeout(120); }
-  await expect(bar).toHaveAttribute("data-mini", "");
-  await expect.poll(() => bar.evaluate((n) => { const r = n.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })).toBe("105x48");
-  const kept = bar.locator(".tab[data-kept]");
-  await expect(kept).toHaveCount(1);
-  await expect(kept).toHaveAttribute("aria-label", "Menu");
-  const box = await kept.boundingBox(), outer = await bar.boundingBox();
-  expect(box!.width).toBeGreaterThanOrEqual(44);
-  expect(outer!.width).toBeGreaterThan(box!.width);
-  await expect(bar.getByRole("button", { name: "Search", exact: true })).toBeVisible();
-  await kept.click();
-  await expect(bar).not.toHaveAttribute("data-mini");
-});
-
 for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 }]) {
   test(`The Law: parts and sections, a section's laws with their scripture, its cases, and the way back (${viewport.width}px)`, async ({ page }) => {
     await page.setViewportSize(viewport);
@@ -1265,7 +1234,7 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
   });
 }
 
-test("The Law: a law found by its words opens in its section, brought into view; a part narrows the handbook and Reset clears it", async ({ page }) => {
+test("The Law: a law found by its words opens in its section, brought into view; a part from the filter panel narrows the handbook and Reset clears it", async ({ page }) => {
   await page.goto(`/law${LAUNCH}`);
   await page.fill("#law-q", "usury");
   const hits = page.getByRole("region", { name: "Laws that say this" });
@@ -1280,112 +1249,104 @@ test("The Law: a law found by its words opens in its section, brought into view;
   await expect(card).toBeInViewport();
   await press(page, "back");
   await expect(page.locator("#law-q")).toHaveValue("usury");
-  await page.getByRole("button", { name: "Reset" }).click();
-  await expect(page.locator("#law-q")).toHaveValue("");
-  // One part only.
-  await page.getByRole("button", { name: "Every part: choose a part" }).click();
-  await page.locator(".sheet__item", { hasText: "9. Feasts and observances" }).click();
+  await page.fill("#law-q", "");
+  // One part only, from Bible Strong's filter panel; its Reset clears it.
+  await page.getByRole("button", { name: "Filter", exact: true }).click();
+  await page.locator(".panel-filter", { hasText: "Part" }).click();
+  await page.getByRole("radio", { name: "9. Feasts and observances" }).click();
   await expect(page.locator(".laws__part")).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Feasts and observances" })).toBeVisible();
-  await page.getByRole("button", { name: "Reset" }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.getByRole("region", { name: "The Ten Commandments" })).toBeVisible();
 });
 
-test("Classes: a feed of posts with the series, filters and search, kept on the way back from a class", async ({ page }) => {
+// Bible Strong's FiltersHeader on Courses & videos: open the panel, then one filter's screen.
+async function classFilter(page: Page, name: string) {
+  await page.getByRole("button", { name: /^(Filter|\d+ filters?)$/ }).click();
+  await page.getByRole("dialog", { name: "Filters" }).getByRole("button", { name: new RegExp(`^${name}`) }).click();
+}
+
+test("Courses & videos: the latest class featured, a section per feed, filters and search kept on the way back from a class", async ({ page }) => {
   await page.goto(`/classes${LAUNCH}`);
-  const series = page.getByRole("group", { name: "Series" });
-  await expect(series.getByRole("button", { name: /^All\s?[\d,]+$/ })).toHaveAttribute("aria-pressed", "true");
-  await series.getByRole("button", { name: /^Captains\s?[\d,]+$/ }).click();
+  await expect(page.locator(".pml-card--featured .pml-card__label")).toHaveText("Latest class");
+  await expect(page.getByRole("region", { name: "Sabbath classes" }).locator(".pml-card").first()).toBeVisible();
+  await classFilter(page, "Collection");
+  await page.getByRole("radio", { name: /^Captains/ }).click();
+  await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/feed=captains/);
-  const post = page.locator("article.post").first();
-  await expect(post.locator(".post__who b")).toHaveText(/^Captain /);
-  await expect(post.locator(".post__who time")).toHaveAttribute("datetime", /^\d{4}-\d{2}-\d{2}$/);
-  await page.fill("#class-q", "passover");
-  // A series changed with a search typed keeps the search.
-  await series.getByRole("button", { name: /^All\s?[\d,]+$/ }).click();
+  await expect(page.locator(".pml-card--featured")).toHaveCount(0);
+  await expect(page.locator(".pml-card").first().locator(".pml-card__meta")).toContainText("Captain ");
+  await classFilter(page, "Search");
+  await page.getByRole("searchbox", { name: "Search" }).fill("passover");
+  await page.keyboard.press("Escape");
+  // A collection changed with a search typed keeps the search.
+  await classFilter(page, "Collection");
+  await page.getByRole("radio", { name: /^All/ }).click();
+  await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/feed=/);
-  await expect(page.locator("#class-q")).toHaveValue("passover");
-  const title = (await post.locator(".post__title").innerText()).trim();
-  await post.locator(".post__title a").click();
+  await expect(page.getByRole("button", { name: "1 filter", exact: true })).toBeVisible();
+  const card = page.locator(".pml-card").first();
+  const title = (await card.locator(".pml-card__title").innerText()).trim();
+  await card.click();
   await expect(page).toHaveURL(/\/note\//);
   await expect(page.getByText("Class notes", { exact: true }).first()).toBeVisible();
   await press(page, "back");
   await expect(page).toHaveURL(/\/classes(\?|$)/);
-  await expect(page.locator("#class-q")).toHaveValue("passover");
-  await expect(page.locator("article.post").first().locator(".post__title")).toHaveText(title);
-  await page.getByRole("button", { name: "Reset" }).click();
-  await expect(page.locator("#class-q")).toHaveValue("");
+  await expect(page.locator(".pml-card").first().locator(".pml-card__title")).toHaveText(title);
+  await page.getByRole("button", { name: "1 filter", exact: true }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".pml-card--featured")).toBeVisible();
 });
 
-test("Classes: a class in a series is labelled by it, and the series opens in order", async ({ page }) => {
+test("Courses & videos: a class in a series is labelled by it, and the series opens in order", async ({ page }) => {
   await page.goto(`/classes${LAUNCH}`);
-  await page.fill("#class-q", "Navigating Through Paul");
-  const post = page.locator("article.post").first();
-  const name = post.getByRole("button", { name: "Navigating Through Paul's Letters", exact: true });
-  await expect(name).toBeVisible();
-  await expect(post.locator(".post__who")).not.toContainText("Sabbath class");
-  await name.click();
+  await classFilter(page, "Search");
+  await page.getByRole("searchbox", { name: "Search" }).fill("Navigating Through Paul");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".pml-card").first().locator(".pml-card__label")).toContainText("Navigating Through Paul's Letters");
+  await classFilter(page, "Series");
+  await page.getByRole("radio", { name: "Navigating Through Paul's Letters", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/series=Navigating/);
-  const posts = page.locator("article.post");
-  await expect.poll(() => posts.count()).toBeGreaterThan(1);
-  // Oldest first, as the series was taught.
-  const dates = await page.locator("article.post .post__who time").evaluateAll((els) => els.map((e) => e.getAttribute("datetime") ?? ""));
-  expect(dates).toEqual([...dates].sort());
-  // Leaving the series shows every class again.
-  await page.getByRole("button", { name: /^Navigating.*: show every class$/ }).click();
+  const labels = page.locator(".pml-card .pml-card__label");
+  await expect.poll(() => labels.count()).toBeGreaterThan(1);
+  // In order, as the series was taught.
+  const parts = (await labels.allInnerTexts()).map((l) => Number(/Part (\d+)/.exec(l)?.[1] ?? 0));
+  expect(parts).toEqual([...parts].sort((x, y) => x - y));
+  // Every class leaves the series.
+  await classFilter(page, "Series");
+  await page.getByRole("radio", { name: "Every class", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/series=/);
 });
 
-test("Classes: one recording plays at a time, a preview reads on, the scripture opens, and a class is saved", async ({ page }) => {
-  // Exercise a written class, not whichever new upload the live channel currently puts first.
+test("Courses & videos: a section shows its first twelve, See all opens the feed, and more come as it scrolls", async ({ page }) => {
   const classes = Array.from({ length: 14 }, (_, i) => ({
-    title: `Class fixture ${i + 1}`, url: `/classes/fixture-${i + 1}`, date: "2026-01-01", year: "2026",
+    title: `Class fixture ${i + 1}`, url: `/classes/fixture-${i + 1}`, date: `2026-01-${String(28 - i).padStart(2, "0")}`, year: "2026",
     teacher: "Test teacher", thumb: "", books: ["Genesis"], videoId: String(i).padStart(11, "a"),
-    intro: "The class opens the Scriptures and reads the passage in its context. ".repeat(12),
-    opens: [{ label: "Genesis 1", slug: "genesis", chapter: 1 }],
   }));
   await page.route(`${DATA_ORIGIN}/search/classes.json`, r => r.fulfill({ json: classes }));
   await page.route(`${DATA_ORIGIN}/search/captains.json`, r => r.fulfill({ json: [] }));
   await page.route(`${DATA_ORIGIN}/api/history/index.json`, r => r.fulfill({ json: [] }));
   await page.route("**/api/recent", r => r.fulfill({ json: { videos: [] } }));
   await page.goto(`/classes${LAUNCH}`);
-  const posts = page.locator("article.post");
-  await expect(posts).toHaveCount(12);
-  const [a, b] = [posts.nth(0), posts.nth(1)];
-  // Nothing plays until asked; then only the one asked for.
-  await expect(page.locator("article.post iframe")).toHaveCount(0);
-  await a.getByRole("button", { name: "Watch" }).click();
-  await expect(a.locator("iframe")).toHaveCount(1);
-  // Bring the next control into view before click's stability checks run.
-  await b.getByRole("button", { name: "Watch" }).scrollIntoViewIfNeeded();
-  await b.getByRole("button", { name: "Watch" }).click();
-  await expect(b.locator("iframe")).toHaveCount(1);
-  await expect(a.locator("iframe")).toHaveCount(0);
-  await b.getByRole("button", { name: "Stop" }).click();
-  await expect(page.locator("article.post iframe")).toHaveCount(0);
-  // The preview is cut at three lines with Read more; read on, the full notes are a tap away. The
-  // newest class may not have its notes yet (they are written after it airs), so this uses the
-  // first class in the feed that has them.
-  const c = posts.filter({ has: page.locator(".post__intro") }).first();
-  const intro = c.locator(".post__intro");
-  const short = await intro.evaluate((e) => e.clientHeight);
-  await c.getByRole("button", { name: "Read more" }).click();
-  await expect(intro).toHaveAttribute("data-open", "");
-  expect(await intro.evaluate((e) => e.clientHeight)).toBeGreaterThan(short);
-  await expect(c.getByRole("link", { name: "Read the full notes" })).toHaveAttribute("href", /^\/note\//);
-  // The chapters the class opened, in order, each to the reader.
-  await c.getByRole("button", { name: /^Scripture/ }).click();
-  const ref = c.locator(".post__ref").first();
-  await expect(ref).toHaveAttribute("href", /^\/read\/[a-z0-9-]+\/\d+$/);
-  // Saved to the bookmarks, and unsaved.
-  await c.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(c.getByRole("button", { name: "Remove from saved" })).toHaveAttribute("aria-pressed", "true");
-  await c.getByRole("button", { name: "Remove from saved" }).click();
-  // More posts come as the feed nears its end, none twice.
+  const featured = page.locator(".pml-card--featured");
+  await expect(featured).toHaveAttribute("href", "/note/classes/fixture-1");
+  await expect(featured.locator(".pml-card__title")).toHaveText("Class fixture 1");
+  const sabbath = page.getByRole("region", { name: "Sabbath classes" });
+  await expect(sabbath.locator(".pml-card")).toHaveCount(12);
+  await expect(sabbath.locator(".pml-card").first()).toHaveAttribute("href", "/note/classes/fixture-2");
+  await expect(page.getByRole("region", { name: "15 Min w/ Captains" })).toHaveCount(0);
+  await sabbath.getByRole("button", { name: "See all 14" }).click();
+  await expect(page).toHaveURL(/feed=classes/);
+  // The whole feed, the featured class among them, as more come on the way down.
+  const cards = page.getByRole("region", { name: "Sabbath classes" }).locator(".pml-card");
   await page.locator(".cfeed__more").scrollIntoViewIfNeeded();
-  await expect.poll(() => posts.count()).toBeGreaterThan(12);
-  const urls = await page.locator("article.post .post__title a").evaluateAll((els) => els.map((e) => e.getAttribute("href")));
-  expect(new Set(urls).size).toBe(urls.length);
+  await expect(cards).toHaveCount(14);
+  await expect(page.locator(".pml-card--featured")).toHaveCount(0);
+  const urls = await cards.evaluateAll((els) => els.map((e) => e.getAttribute("href")));
+  expect(new Set(urls).size).toBe(14);
 });
 
 for (const width of [320, 390, 820, 1280]) {
@@ -1393,7 +1354,7 @@ for (const width of [320, 390, 820, 1280]) {
     await page.setViewportSize({ width, height: 860 });
     for (const path of ["/classes", "/law", "/law/02-relationship-to-god/2h"]) {
       await page.goto(`${path}${LAUNCH}`);
-      await expect(page.locator("article.post, .laws__part, .lawcard").first()).toBeVisible();
+      await expect(page.locator(".pml-card, .laws__part, .lawcard").first()).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), path).toBeLessThanOrEqual(0);
     }
     await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
@@ -1511,10 +1472,12 @@ test("Strong's: a verse's words open the Hebrew or Greek behind them, with every
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await longPressVerse(page, 1);
-  await expect(page.getByRole("tab", { name: "Words", exact: true })).toHaveAttribute("aria-selected", "true");
-  await expect(page.locator(".bs-words__w", { hasText: "God" }).first()).toContainText("H430");
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
+  // Bible Strong's Lexicon: the word's pill brings its card, and the card opens the word.
+  await page.getByRole("button", { name: "God", exact: true }).click();
+  await expect(page.getByRole("button", { name: "God", exact: true })).toHaveAttribute("aria-pressed", "true");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/strongs-words.png` });
-  await page.locator(".bs-words__w", { hasText: "God" }).first().click();
+  await page.getByRole("button", { name: "H430 · God", exact: true }).click();
   await expect(page.locator(".bs-word__lemma")).toHaveText("אֱלֹהִים");
   await expect(page.locator(".bs-word__meta b")).toHaveText("ʼĕlôhîym");
   await expect(page.locator(".bs-word__book").first()).toBeVisible();
@@ -1529,7 +1492,7 @@ test("a verse's Comments list every class that read it aloud, from the transcrip
   await page.goto(`/read/isaiah/61${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await longPressVerse(page, 1);
-  await page.click('.bs-resourcetabs button >> text=Comments');
+  await page.click('.bs-resfooter button >> text=Comments');
   await expect(page.locator(".bs-resources__sub", { hasText: /^Read in / })).toBeVisible();
   const rows = page.locator(".bs-readin__row");
   await expect(rows.first()).toBeVisible();
@@ -1596,7 +1559,7 @@ test("an Apocrypha verse shows its Greek from Swete's Septuagint where the 66 bo
   await page.goto(`/read/tobit/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await longPressVerse(page, 1);
-  await page.click('.bs-resourcetabs button >> text=Words');
+  await page.click('.bs-resfooter button >> text=Lexicon');
   await expect(page.locator(".bs-greek__text")).toContainText("ΒΙΒΛΟΣ");
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/greek.png` });
 });
@@ -1701,19 +1664,6 @@ test("Reader: a class read in the chapter without notes plays in place, and its 
   expect(asked[0].title).not.toBe("");
 });
 
-test("Ask is on the bottom bar: it opens Ask CyberJudah in its own tab", async ({ page }) => {
-  await page.goto(`/read/genesis/1${LAUNCH}`);
-  const ask = page.locator('.tab[aria-label="Ask"]');
-  await expect(ask).toBeVisible();
-  await ask.click();
-  await expect(page).toHaveURL(/\/ask/);
-  await expect(ask).toHaveAttribute("aria-current", "page");
-  if (process.env.SHOTS) { await page.waitForTimeout(400); await page.screenshot({ path: `${process.env.SHOTS}/ask-tab.png` }); }
-  // The Bible is still its own tab to go back to.
-  await page.click('.tab[aria-label="Bible"]');
-  await expect(page.locator(".bs-pill--book")).toContainText("Genesis 1");
-});
-
 test("an opened class keeps the tab bar, with its actions floating above it", async ({ page }) => {
   await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-keep-the-bar.json`, (r) => r.fulfill({
     contentType: "application/json",
@@ -1722,14 +1672,14 @@ test("an opened class keeps the tab bar, with its actions floating above it", as
   await page.goto(`/note/classes/2026/2026-09-26-keep-the-bar${LAUNCH}`);
   await expect(page.locator(".pageactions")).toBeVisible();
   await expect(page.locator(".tabs").first()).toBeVisible();
-  await expect(page.locator('.tabs .tab[aria-label="Ask"]')).toBeVisible();
+  await expect(page.locator('.tabs .tab[aria-label="Main menu"]')).toBeVisible();
   expect(await state(page)).toMatchObject({ main: null, second: null });
   const actions = await page.locator(".pageactions").boundingBox();
   const bar = await page.locator(".tabs").first().boundingBox();
   expect(actions!.y + actions!.height).toBeLessThanOrEqual(bar!.y + 1);
 });
 
-test("the bottom bar sits above the Bible, and each reader chooses its buttons", async ({ page }) => {
+test("the bottom bar sits above the Bible, with Bible Strong's buttons, Classes and Ask", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   // Nothing covers the bar: the topmost element at its top edge and at its middle is the bar.
@@ -1737,24 +1687,41 @@ test("the bottom bar sits above the Bible, and each reader chooses its buttons",
   for (const y of [bar.y + 2, bar.y + bar.height / 2]) {
     expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x, yy)?.closest(".tabs"), [bar.x + bar.width / 2, y])).toBe(true);
   }
-  await expect(page.locator('.tab[aria-label="Classes"]')).toBeVisible();
-  // A long press opens the editor.
-  const home = (await page.locator('.tab[aria-label="Home"]').boundingBox())!;
-  await page.mouse.move(home.x + home.width / 2, home.y + home.height / 2);
-  await page.mouse.down(); await page.waitForTimeout(750); await page.mouse.up();
-  await expect(page).toHaveURL(/\/settings\/bar/);
-  await expect(page.getByRole("button", { name: "Remove Search", exact: true })).toHaveCount(0);
-  await page.click('[aria-label="Add Library"]');
-  await page.click('[aria-label="Move Library up"]');
-  await expect(page.locator(".tabs .tab")).toHaveCount(8);
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Bible", "Classes", "Ask", "Library", expect.stringMatching(/Tabs open$/), "Menu", "Search"]);
-  // Scrolling the editor may have shrunk the bar to its capsule: a tap on it opens it first.
-  if (await page.locator("nav.tabs[data-mini]").count()) await page.locator("nav.tabs .tab[data-on]").click();
-  await page.click('.tab[aria-label="Library"]');
-  await expect(page).toHaveURL(/\/books/);
-  // The choice is kept with the reader's other settings, in Telegram's cloud.
-  expect(JSON.parse((await cloud(page)).nav)).toEqual(["home", "bible", "classes", "ask", "library", "tabs"]);
+  expect(labels).toEqual(["Home", "Search", "Bible", "Classes", "Ask", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
+  // The menu has no bar editor: Bible Strong's bar is the same for every reader.
+  await page.click('.tab[aria-label="Main menu"]');
+  await expect(page.locator(".drawer--more").getByRole("link", { name: "Bottom bar", exact: true })).toHaveCount(0);
+});
+
+test("Classes in the bar opens a Classes tab, then returns to it, as Search and the Bible do", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  const bar = page.getByRole("navigation", { name: "Sections" });
+  const paths = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: { id: string; tabs: { path: string }[] }[] }; return s.groups.find((g) => g.id === s.group)!.tabs.map((t) => t.path); });
+  await bar.getByRole("button", { name: "Classes", exact: true }).click();
+  await expect(page).toHaveURL(/\/classes$/);
+  await expect.poll(paths).toContain("/classes");
+  const count = (await paths()).length;
+  await bar.getByRole("button", { name: "Bible", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\//);
+  await bar.getByRole("button", { name: "Classes", exact: true }).click();
+  await expect(page).toHaveURL(/\/classes$/);
+  expect((await paths()).length).toBe(count);
+});
+
+test("Ask in the bar opens an Ask tab, then returns to it", async ({ page }) => {
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  const bar = page.getByRole("navigation", { name: "Sections" });
+  const paths = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: { id: string; tabs: { path: string }[] }[] }; return s.groups.find((g) => g.id === s.group)!.tabs.map((t) => t.path); });
+  await bar.getByRole("button", { name: "Ask", exact: true }).click();
+  await expect(page).toHaveURL(/\/ask$/);
+  await expect.poll(paths).toContain("/ask");
+  const count = (await paths()).length;
+  await bar.getByRole("button", { name: "Bible", exact: true }).click();
+  await expect(page).toHaveURL(/\/read\//);
+  await bar.getByRole("button", { name: "Ask", exact: true }).click();
+  await expect(page).toHaveURL(/\/ask$/);
+  expect((await paths()).length).toBe(count);
 });
 
 test("a back step from the first screen stays in the app instead of going to a blank page", async ({ page }) => {
@@ -2114,32 +2081,25 @@ test("Books opens on the book being read even when the book list arrives late", 
 });
 
 
-test("the bar follows the reading: a capsule while scrolling down, back on scroll up or a tap, the current section named", async ({ page }) => {
+test("the bar is Bible Strong's: icons only, it stays while a page scrolls and slides away while the Bible is full screen", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-3")).toBeVisible();
   const bar = page.locator("nav.tabs");
-  // The current section sits on the pill, with its name.
-  await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Bible");
-  await expect(bar.locator(".tab[data-on] .tab__label")).toBeVisible();
-  await expect(bar).not.toHaveAttribute("data-mini");
-  // Scrolling down into the chapter shrinks it to the Bible beside the fixed Search control.
-  await page.mouse.move(195, 400);
-  await page.mouse.wheel(0, 600);
-  await expect(bar).toHaveAttribute("data-mini", "");
-  await expect(bar.getByRole("button", { name: "Search" })).toBeVisible();
-  // Scrolling back up brings it back.
-  await page.mouse.wheel(0, -150);
-  await expect(bar).not.toHaveAttribute("data-mini");
-  // Down again, then a tap on the capsule opens it rather than navigating.
-  await page.mouse.wheel(0, 600);
-  await expect(bar).toHaveAttribute("data-mini", "");
-  await bar.locator(".tab[data-on]").click();
-  await expect(bar).not.toHaveAttribute("data-mini");
-  await expect(page).toHaveURL(/\/read\/genesis\/1/);
-  // Another section: the pill and the name move to it.
-  await bar.getByRole("button", { name: "Search" }).click();
+  await expect(bar.locator(".tab__label")).toHaveCount(0);
+  await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
+  // Scrolling down the chapter makes the Bible full screen: the header collapses and the bar slides out.
+  await page.waitForTimeout(800);
+  await page.locator(".bs-scroll").evaluate(async (el) => { for (const top of [40, 120, 600]) { el.scrollTop = top; await new Promise((r) => setTimeout(r, 30)); } });
+  await expect(page.locator(".bs-header__summary")).toBeVisible();
+  await expect(bar).toBeHidden();
+  // Scrolling back up brings both back.
+  await page.waitForTimeout(800);
+  await page.locator(".bs-scroll").evaluate(async (el) => { for (const top of [560, 480, 300]) { el.scrollTop = top; await new Promise((r) => setTimeout(r, 30)); } });
+  await expect(bar).toBeVisible();
+  // Another section: the bar stays where it is while that page scrolls.
+  await bar.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL(/\/search/);
-  await expect(bar.locator(".tab[data-on] .tab__label")).toHaveText("Search");
+  await expect(bar.getByRole("button", { name: "Search", exact: true })).not.toHaveAttribute("aria-current");
 });
 
 test("a class without notes says so on its page, and its notes can be requested", async ({ page }) => {

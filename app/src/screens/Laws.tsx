@@ -8,20 +8,22 @@ import { useKeptScroll, useVisitState } from "@/lib/place";
 import { share } from "@/lib/share";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
-import { useSheet } from "@/ui/sheet";
-import { Empty, Icon, Screen, SearchField } from "@/ui/ui";
+import { useHeaderOffset } from "@/ui/alphabet";
+import { FiltersButton } from "@/ui/panel";
+import { Empty, Screen, SearchField } from "@/ui/ui";
 import { CaseCard } from "./Cases";
 
 const LAW_HITS = 30;
 
 /**
- * The handbook of Bible law: its parts and their sections, searchable by a section's name or by
- * the words of any law in it, with a part picked to narrow it. A section opens its laws one by one.
+ * The handbook of Bible law as Bible Strong's CommentaryLibraryScreen: the title with the filter
+ * button (Bible Strong's FiltersHeader: the part), the search field under it as the Lexicon has,
+ * then a section per part, its name on a grey band held at the top, a row per section. A search
+ * of two letters or more also finds the laws whose words say it, in a section of their own.
  */
 export function LawIndex() {
   useBackButton();
   const { part } = useParams();
-  const sheet = useSheet();
   const laws = useQuery({ queryKey: ["laws"], queryFn: data.laws, staleTime: Infinity, retry: 1 });
   const [q, setQ] = useVisitState("q", "");
   const [pick, setPick] = useVisitState("part", 0);
@@ -29,6 +31,7 @@ export function LawIndex() {
   // The laws' own words load only once someone searches.
   const texts = useQuery({ queryKey: ["law-texts"], queryFn: data.lawTexts, staleTime: Infinity, retry: 1, enabled: query.length > 1 });
   useKeptScroll(!!laws.data);
+  const top = useHeaderOffset();
   const only = part ? laws.data?.find((p) => p.url.endsWith(`/${part}`)) : undefined;
   const partN = only?.n ?? pick;
   const parts = useMemo(() => (laws.data ?? [])
@@ -37,84 +40,55 @@ export function LawIndex() {
     .filter((p) => p.sections.length), [laws.data, partN, query]);
   const sectionOf = useMemo(() => new Map((laws.data ?? []).flatMap((p) => p.sections.map((s) => [s.id, { title: s.title, part: p.n }] as const))), [laws.data]);
   const hits = useMemo(() => query.length > 1 ? (texts.data ?? []).filter((l) => l.text.toLowerCase().includes(query) && (!partN || sectionOf.get(l.id.split(".")[0])?.part === partN)) : [], [texts.data, query, partN, sectionOf]);
-  const total = (laws.data ?? []).reduce((n, p) => n + p.sections.reduce((m, s) => m + s.laws, 0), 0);
   const chosen = laws.data?.find((p) => p.n === partN);
-  const choosePart = async () => {
-    haptic("select");
-    const a = await sheet.open({ title: "Part of the handbook", items: [{ id: "0", text: "Every part", hint: partN ? undefined : "Selected" }, ...(laws.data ?? []).map((p) => ({ id: String(p.n), text: `${p.n}. ${p.title}`, hint: p.n === partN ? "Selected" : `${p.sections.length} ${p.sections.length === 1 ? "section" : "sections"}` }))] });
-    if (a) setPick(+a.id);
-  };
-  const reset = () => { setQ(""); setPick(0); };
-  const filtered = !!(q.trim() || (!part && pick));
+  const filters = part ? undefined : (
+    <FiltersButton onReset={() => setPick(0)} filters={[
+      { key: "part", icon: "book-open", label: "Part", value: chosen ? `${chosen.n}. ${chosen.title}` : "Every part", active: !!pick, options: [
+        { key: "0", label: "Every part", selected: !pick, onSelect: () => setPick(0) },
+        ...(laws.data ?? []).map((p) => ({ key: String(p.n), label: `${p.n}. ${p.title}`, selected: p.n === pick, onSelect: () => setPick(p.n) })),
+      ] },
+    ]} />
+  );
 
   return (
-    <Screen className="laws" title={only ? only.title : "The Law"} kicker={only ? `Part ${only.n} of the handbook of Bible law` : laws.data ? `The handbook of Bible law · ${total.toLocaleString()} laws` : "The handbook of Bible law"}>
-      <div className="laws__tools">
-        <SearchField id="law-q" value={q} onChange={setQ} placeholder="Search the law: Sabbath, usury, idols" />
-        {!part ? (
-          <div className="cfeed__filters">
-            <button type="button" className="cfeed__pick" data-on={pick ? "" : undefined} disabled={!laws.data} aria-label={`${chosen ? `${chosen.n}. ${chosen.title}` : "Every part"}: choose a part`} title={`${chosen ? `${chosen.n}. ${chosen.title}` : "Every part"}: choose a part`} onClick={() => void choosePart()}><span>{chosen ? `${chosen.n}. ${chosen.title}` : "Every part"}</span><Icon name="chevron" size={14} /></button>
-            {filtered ? <button type="button" className="cfeed__reset" onClick={() => { haptic("select"); reset(); }}>Reset</button> : null}
-          </div>
-        ) : null}
-      </div>
-      {laws.isPending ? <LawListSkeleton /> : laws.isError ? (
-        <Empty title="The law did not load" action={{ label: "Try again", onClick: () => void laws.refetch() }}>Check your connection.</Empty>
+    <Screen className="laws" title={only ? only.title : "The Law"} kicker={only ? `Part ${only.n} of the handbook of Bible law` : undefined} action={filters}>
+      <SearchField id="law-q" value={q} onChange={setQ} placeholder="Search the law: Sabbath, usury, idols" />
+      {laws.isPending ? <p className="bs-list__loading">Loading...</p> : laws.isError ? (
+        <Empty title="The law did not load" action={{ label: "Retry", onClick: () => void laws.refetch() }} />
+      ) : !parts.length && !(query.length > 1 && (hits.length || texts.isPending || texts.isError)) ? (
+        <Empty title="No law found...">Try another word: Sabbath, marriage, idols.</Empty>
       ) : (
-        <>
+        <div className="laws__body" style={{ ["--section-top" as string]: `${top}px` }}>
           {query.length > 1 ? (
             <section className="laws__hits" aria-label="Laws that say this">
-              <h2 className="laws__head">Laws that say “{q.trim()}”{texts.data ? <span> · {hits.length}</span> : null}</h2>
-              {texts.isPending ? <div className="laws__wait" aria-busy="true" aria-label="Searching the laws"><span className="skel" /><span className="skel" /></div>
-                : texts.isError ? <p className="laws__note">The laws’ words did not load. <button type="button" className="link" onClick={() => void texts.refetch()}>Try again</button></p>
+              <h2 className="laws__band">Laws that say “{q.trim()}”{texts.data ? ` · ${hits.length}` : ""}</h2>
+              {texts.isPending ? <p className="laws__note">Loading...</p>
+                : texts.isError ? <p className="laws__note">The laws’ words did not load. <button type="button" className="link" onClick={() => void texts.refetch()}>Retry</button></p>
                 : !hits.length ? <p className="laws__note">No law uses those words{partN ? " in this part" : ""}.</p>
-                : (
-                  <ul className="laws__list">
-                    {hits.slice(0, LAW_HITS).map((l) => (
-                      <li key={l.id}>
-                        <Link to={l.url} className="lawlink" onClick={() => haptic("select")}>
-                          <span className="lawlink__code">{l.id}</span>
-                          <span className="lawlink__body"><span className="lawlink__law">{l.text}</span><small>{sectionOf.get(l.id.split(".")[0])?.title}</small></span>
-                          <Feather name="chevron-right" size={18} color="currentColor" />
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                : hits.slice(0, LAW_HITS).map((l) => (
+                  <Link key={l.id} to={l.url} className="lawlink" onClick={() => haptic("select")}>
+                    <b className="lawlink__title">{l.text}</b>
+                    <span className="lawlink__meta"><span className="lawlink__code">{l.id}</span> · {sectionOf.get(l.id.split(".")[0])?.title}</span>
+                  </Link>
+                ))}
               {hits.length > LAW_HITS ? <p className="laws__note">Showing the first {LAW_HITS} of {hits.length}. Add a word to narrow it.</p> : null}
             </section>
           ) : null}
-          {!parts.length ? (
-            query.length > 1 && hits.length ? null : <Empty title={`No section matches “${q.trim()}”`} action={{ label: "Reset the search", onClick: reset }}>Try another word: Sabbath, marriage, idols.</Empty>
-          ) : (
-            <>
-              {query.length > 1 ? <h2 className="laws__head">Sections</h2> : null}
-              {parts.map((p) => (
-                <section key={p.n} className="laws__part" aria-label={p.title}>
-                  <h2 className="laws__parthead"><span className="laws__n">{p.n}</span><span>{p.title}</span></h2>
-                  <ul className="laws__list">
-                    {p.sections.map((s) => (
-                      <li key={s.id}>
-                        <Link to={s.url} className="lawlink" onClick={() => haptic("select")}>
-                          <span className="lawlink__code">{s.id}</span>
-                          <span className="lawlink__body"><b>{s.title}</b><small>{s.laws} {s.laws === 1 ? "law" : "laws"}</small></span>
-                          <Feather name="chevron-right" size={18} color="currentColor" />
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+          {parts.map((p) => (
+            <section key={p.n} className="laws__part" aria-label={p.title}>
+              <h2 className="laws__band">{p.n}. {p.title}</h2>
+              {p.sections.map((s) => (
+                <Link key={s.id} to={s.url} className="lawlink" onClick={() => haptic("select")}>
+                  <b className="lawlink__title">{s.title}</b>
+                  <span className="lawlink__meta"><span className="lawlink__code">{s.id}</span> · {s.laws} {s.laws === 1 ? "law" : "laws"}</span>
+                </Link>
               ))}
-            </>
-          )}
-        </>
+            </section>
+          ))}
+        </div>
       )}
     </Screen>
   );
-}
-
-function LawListSkeleton() {
-  return <ul className="laws__list" aria-busy="true" aria-label="Loading">{Array.from({ length: 7 }, (_, i) => <li key={i}><div className="lawlink"><span className="skel" style={{ width: 34, height: 22, borderRadius: 7 }} /><span className="lawlink__body"><span className="skel" style={{ width: `${45 + ((i * 11) % 35)}%`, height: 15 }} /><span className="skel" style={{ width: 50, height: 10, marginTop: 6 }} /></span></div></li>)}</ul>;
 }
 
 const CASES_FIRST = 4;

@@ -51,7 +51,8 @@ jobs:
 
   stage:
     # CMS review branches require an owner workflow_dispatch to stage, even when ready.
-    if: ${{ !inputs.verify_only && !inputs.diagnose_login && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))) }}
+    # Dependabot's pull request runs get no repository secrets, so they cannot deploy to staging.
+    if: ${{ !inputs.verify_only && !inputs.diagnose_login && github.actor != 'dependabot[bot]' && github.event.pull_request.user.login != 'dependabot[bot]' && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))) }}
     needs: check
     runs-on: ubuntu-latest
     environment:
@@ -86,13 +87,6 @@ jobs:
           VITE_ACCOUNT_SYNC: "true"
           VITE_ACCOUNT_SYNC_SCOPE: staging
           CYBERJUDAH_APP_BASE: /app/
-      - name: Cache the Bible Strong fork's packages
-        uses: actions/cache@v6
-        with:
-          path: ~/.yarn/berry/cache
-          key: strong-yarn-${{ hashFiles('strong/yarn.lock') }}
-      - name: Build the Bible Strong fork (staged at /app/strong)
-        run: bash strong/build-web.sh
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
@@ -175,10 +169,6 @@ jobs:
           # The app shell serves at the root (SPA fallback).
           curl -sf -o /dev/null -w "app: %{http_code}\n" "$URL/"
           curl -sf "$URL/app/" | grep -q "/assets/"
-          # The Bible Strong fork at /app/strong, and a deep link inside it, get the fork's page.
-          curl -sf "$URL/app/strong/" | grep -q "/app/strong/_expo/static/js/web/entry-"
-          curl -sf "$URL/app/strong/bible/kjv/john/3" | grep -q "/app/strong/_expo/static/js/web/entry-"
-          echo "fork: ok"
       - name: Verify authenticated search and provider consent
         working-directory: bot
         env:

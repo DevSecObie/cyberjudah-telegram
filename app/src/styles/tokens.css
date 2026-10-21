@@ -125,8 +125,8 @@
   /* The device's insets outside Telegram; inside it, boot() sets Telegram's on the root, which wins. */
   --safe-top: env(safe-area-inset-top, 0px); --safe-left: env(safe-area-inset-left, 0px); --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --dock-h: max(60px, 3.75rem);
-  --dock-gap: 10px;
+  --dock-h: 48px;
+  --dock-gap: 0px;
   --dock-space: calc(var(--dock-h) + var(--dock-gap) + var(--safe-bottom));
   --header-h: 56px;
 }
@@ -188,7 +188,7 @@ html[data-theme="sepia"] {
   --scrim-soft: rgba(30, 20, 5, .2);
 }
 
-/* Regular glass protects the ink even over black/white content. The darker ink of Paper and
+/* Regular glass protects the ink even over black/white content. The darker ink of White and
    Sepia allows a lighter material; other reader palettes need more tint for small labels. */
 html[data-palette="default"], html[data-palette="sepia"] { --mat-density: 80%; }
 

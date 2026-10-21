@@ -104,7 +104,7 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
     await page.keyboard.press("Escape");
     await page.goto(`/read/genesis/4${LAUNCH}`);
     await page.locator(".bs-entities__stack").click();
-    await expect(page.getByRole("dialog", { name: "People in this chapter" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "In this chapter" })).toBeVisible();
     await expect(page.locator(".bs-people__text small").first()).toContainText("verse");
     await check();
     await page.keyboard.press("Escape");

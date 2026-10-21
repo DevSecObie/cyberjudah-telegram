@@ -1,0 +1,1 @@
+- Page headers now look like Bible Strong's: a 54 px bar on the page colour with a line under it, the title in small bold type, and a ← in a 54 px square on pages below the first. The large title that shrank into the bar on scroll is gone.

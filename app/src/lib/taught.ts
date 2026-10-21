@@ -16,7 +16,11 @@ export const teacherRank = (teacher?: string | null) => (/^bishop\b/i.test(teach
 
 export const slugOfUrl = (url: string) => /^\/bible\/([a-z0-9-]+)\/(\d+)/.exec(url);
 
-const concordance = (slug: string, ch: number) => ({ queryKey: ["taught", slug, ch], enabled: !!slug && ch > 0, staleTime: 3_600_000, queryFn: () => data.concordance(slug, ch).catch(() => null as Concordance | null) });
+const concordance = (slug: string, ch: number) => ({ queryKey: ["taught", slug, ch], enabled: !!slug && ch > 0, staleTime: 3_600_000, queryFn: () => data.concordance(slug, ch).catch((e: unknown) => {
+  // A chapter no class has cited has no file; any other failure stays an error, so the resources can say so and offer Retry.
+  if (e instanceof Error && e.message.startsWith("404 ")) return null as Concordance | null;
+  throw e;
+}) });
 export function useTaughtPrecepts(slug: string, ch: number) {
   return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.precepts ?? ([] as TaughtPrecept[]) });
 }
@@ -31,6 +35,10 @@ export function useReadings(slug: string, ch: number) {
 /** Who is named in each verse of this chapter (person ids). */
 export function usePeopleNamed(slug: string, ch: number) {
   return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.people ?? ({} as Record<string, string[]>) });
+}
+/** The places each verse of a chapter names, verse -> place ids. */
+export function usePlacesNamed(slug: string, ch: number) {
+  return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.places ?? ({} as Record<string, string[]>) });
 }
 /** YouTube at the second the class read it. */
 export const watchUrl = (m: ClassMoment) => `https://www.youtube.com/watch?v=${m.video}${m.t ? `&t=${m.t}s` : ""}`;

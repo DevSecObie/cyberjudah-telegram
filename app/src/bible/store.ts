@@ -67,9 +67,10 @@ export async function writeNote(slug: string, ch: number, key: string, note: Not
   await json.set(nKey(slug, ch), notes);
 }
 
-/** Every note and link across the library, for the notes list and the relation picker. */
-export function useAllNotes() {
+/** Every note and link across the library, for the notes list and the relation picker; read once `enabled`. */
+export function useAllNotes(enabled = true) {
   const [rows, setRows] = useState<{ slug: string; chapter: number; key: string; note: Note }[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const reload = useCallback(() => {
     void store.keys().then(async (keys) => {
       const out: { slug: string; chapter: number; key: string; note: Note }[] = [];
@@ -79,10 +80,10 @@ export function useAllNotes() {
         for (const [key, note] of Object.entries(notes)) out.push({ slug: m[1], chapter: +m[2], key, note });
       }
       setRows(out.sort((a, b) => b.note.date - a.note.date));
-    });
+    }).catch(() => undefined).finally(() => setLoaded(true));
   }, []);
-  useEffect(reload, [reload]);
-  return { rows, reload };
+  useEffect(() => { if (enabled) reload(); }, [enabled, reload]);
+  return { rows, loaded, reload };
 }
 
 /** Link types as Bible Strong detects them from the URL (helpers/linkTypeConfig). */

@@ -96,14 +96,18 @@ test("phone, computer and web share highlights while original marks remain intac
     expect(revisions).toEqual(expect.arrayContaining(["color2", "color5"]));
     await a.goto(`${origin}/studies${launch}`);
     await a.getByRole("button", { name: "New study", exact: true }).click();
-    await a.getByLabel("Study title", { exact: true }).fill("Synced personal study");
+    await a.getByRole("button", { name: "Edit study", exact: true }).click();
     await a.getByRole("textbox", { name: "Writing 1", exact: true }).fill("Words kept across devices.");
+    await a.getByRole("button", { name: "Done", exact: true }).click();
+    await a.getByRole("button", { name: "Untitled study", exact: true }).click();
+    await a.getByLabel("Study title", { exact: true }).fill("Synced personal study");
+    await a.getByRole("button", { name: "Save", exact: true }).click();
     await expect(a.getByRole("status").filter({ hasText: "Saved on this device" })).toBeVisible();
     const studyUrl = a.url().split("#")[0];
     await b.goto(`${studyUrl}${launch}`); await c.goto(studyUrl);
     for (const page of [b, c]) {
-      await expect(page.getByLabel("Study title", { exact: true })).toHaveValue("Synced personal study");
-      await expect(page.getByRole("textbox", { name: "Writing 1", exact: true })).toHaveValue("Words kept across devices.");
+      await expect(page.getByRole("heading", { name: "Synced personal study" })).toBeVisible();
+      await expect(page.locator(".study-prose")).toHaveText("Words kept across devices.");
     }
     // Download my data (docs/PRIVACY.md) reaches the same Firestore documents account sync writes.
     const exported = await c.evaluate(() => fetch("/api/privacy/export").then(r => r.json()));

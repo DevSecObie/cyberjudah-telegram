@@ -142,3 +142,42 @@
   .study-paper :is(h2, p, a, .study-prose, blockquote, sup, .study-eyebrow) { color: #000 !important; }
   .study-block { break-inside: avoid; border: 0; }
 }
+
+/* Bible Strong's EditStudyScreen: the study to read, its tags as chips, the 50 px pencil 30 px
+   in from the corner (FabButton); while writing, the 54 px bar with the green check
+   (EditStudyHeader) and the 50 px formatting bar along the bottom (StudyFooter). */
+#root .study-title { margin: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.study-doc { display: grid; gap: 16px; }
+.study-doc__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.study-doc__chips span { padding: 3px 10px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); font-size: 13px; }
+.personal-study[data-preview] .study-block { padding: 0; border: 0; background: none; }
+#root .study-fab { position: fixed; right: calc(30px + var(--safe-right)); bottom: calc(var(--dock-space) + 30px); z-index: var(--z-sticky); display: grid; place-items: center; width: 50px; height: 50px; padding: 0; border: 0; border-radius: 30px; background: var(--accent); box-shadow: 0 2px 7px rgba(0, 0, 0, .2); cursor: pointer; }
+.study-screen--editing { padding-bottom: calc(var(--dock-space) + 70px); }
+.study-edithead { position: sticky; top: 0; z-index: var(--z-sticky); display: flex; align-items: center; height: 54px; margin: calc(-1 * (var(--sp-3) + var(--safe-top))) calc(-1 * var(--gutter)) 0; padding: var(--safe-top) 15px 0; border-bottom: 1px solid var(--hairline); background: var(--canvas); }
+#root .study-edithead__done { display: grid; place-items: center; margin: 0 15px 0 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.study-footer { position: fixed; left: 0; right: 0; bottom: var(--dock-space); z-index: var(--z-sticky); height: 50px; background: var(--canvas); border-top: 1px solid var(--hairline); }
+.study-footer__catch { position: fixed; inset: 0; z-index: 1; }
+.study-footer__row { position: relative; z-index: 2; display: flex; align-items: center; height: 100%; max-width: 54rem; margin: 0 auto; padding: 0 10px; }
+.study-footer__anchor { position: relative; }
+#root .study-footer__heading { display: flex; align-items: center; margin: 0; padding: 4px 7px; border: 0; border-radius: 20px; background: var(--accent-soft); cursor: pointer; }
+.study-footer__heading b { font: 700 15px var(--font-ui); color: var(--accent); }
+.study-footer__heading span { display: grid; place-items: center; width: 18px; height: 18px; margin-left: 5px; border-radius: 20px; background: var(--accent); }
+#root .study-footer__format { display: grid; place-items: center; width: 25px; height: 25px; margin: 0 10px 0 0; padding: 0; border: 0; background: none; cursor: pointer; }
+#root .study-footer__row > .study-footer__format:first-of-type { margin-left: 10px; }
+#root .study-footer__more { display: grid; place-items: center; width: 44px; height: 50px; margin: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.study-footer__spacer { flex: 1; }
+#root .study-footer__add { display: grid; place-items: center; margin: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.study-footer__popover { position: absolute; z-index: 3; box-sizing: border-box; border: 1px solid var(--hairline); border-radius: 12px; background: var(--canvas); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); }
+#root .study-footer__item { display: flex; align-items: center; width: 100%; margin: 0; padding: 10px 14px; border: 0; background: none; font: 400 14px var(--font-ui); text-align: start; cursor: pointer; }
+.study-footer__item > span { display: grid; place-items: center; width: 20px; margin-right: 10px; }
+.study-footer__grid { padding: 10px; }
+.study-footer__grid > div { display: flex; align-items: center; justify-content: center; }
+.study-footer__grid > div .study-footer__format { margin: 0 10px; }
+.study-footer__grid hr { margin: 16px 0; border: 0; border-top: 1px solid var(--hairline); }
+.study-footer__quote { font: 700 22px/1 Georgia, serif; color: var(--accent); }
+#root .study-footer__history { margin: 0; padding: 5px 10px; border: 0; background: none; cursor: pointer; }
+/* In a route sheet the pencil and the bar sit on the sheet's own bottom, with no dock under them. */
+#root .screen--sheet .study-fab, .screen--sheet .study-fab { position: sticky; bottom: 30px; margin: 0 30px 30px auto; }
+.screen--sheet .study-footer { position: sticky; bottom: 0; margin: 0 calc(-1 * var(--gutter)); }
+.screen--sheet.study-screen--editing { padding-bottom: 0; }
+.screen--sheet .study-edithead { margin: 0 calc(-1 * var(--gutter)); padding-top: 0; }

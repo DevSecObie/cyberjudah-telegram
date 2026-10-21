@@ -182,12 +182,13 @@
 .bs-bmcount { text-align: center; font-size: 12px; color: var(--bs-grey); }
 .bs-bmform { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
 .bs-bmform__row { display: flex; align-items: center; gap: 10px; }
-.bs-tags { padding: 4px 12px 16px; }
+.bs-bmform__save { display: flex; justify-content: flex-end; padding-top: 8px; }
+.bs-tags { padding: 0; }
 .bs-search { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-radius: var(--r-sm); background: var(--bs-light-grey); margin-bottom: 6px; }
 .bs-search input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font-size: 0.9375rem; color: var(--bs-default); }
-.bs-tagrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border: 0; border-radius: var(--r-sm); background: none; text-align: left; cursor: pointer; font-size: 15px; }
+.bs-tagrow { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px; border: 0; border-bottom: 1px solid var(--bs-border); border-radius: 0; background: none; text-align: left; cursor: pointer; font-size: 16px; color: var(--bs-default); }
 .bs-tagrow[data-pressed] { background: var(--bs-light-grey); }
-.bs-tagrow--create { color: var(--bs-primary); font-weight: 600; }
+.bs-tagrow--create { gap: 10px; color: var(--bs-primary); font-weight: 700; }
 .bs-noteeditor { display: flex; flex-direction: column; gap: 10px; padding: 12px 20px; max-width: 600px; margin: 0 auto; height: 100%; box-sizing: border-box; }
 .bs-noteeditor__title { border: 0; border-bottom: 1px solid var(--bs-border); background: none; font-size: 20px; font-weight: 700; padding: 8px 0; outline: none; color: var(--bs-default); }
 .bs-noteeditor__desc { flex: 1; min-height: 220px; border: 0; background: none; font: 16px/1.55 inherit; font-family: inherit; padding: 8px 0; outline: none; resize: none; color: var(--bs-default); }
@@ -211,8 +212,54 @@
 .bs-link { border: 0; background: none; padding: 6px 0; color: var(--bs-primary); font-size: 13px; cursor: pointer; }
 .bs-resources__xrefs .xref__chip { background: var(--bs-light-grey); color: var(--bs-primary); }
 .bs-resources__xrefs .xref__text { background: var(--bs-light-grey); color: var(--bs-default); border-left-color: var(--bs-primary); font-family: inherit; }
-.bs-resourcetabs { display: flex; }
-.bs-resourcetabs button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; border: 0; background: none; font-size: .75rem; cursor: pointer; }
+/* Bible Strong's ResourcesModalFooter: a rounded bar of resources, the chosen one in its colour. */
+.bs-resources-sheet .bs-sheet__footer { padding: 0; }
+.bs-resfooter { margin: 0 20px; padding: 10px 0; border: 1px solid var(--bs-border); border-radius: 20px; background: var(--bs-reverse); overflow: hidden; }
+.bs-resfooter__scroll { display: flex; overflow-x: auto; scrollbar-width: none; }
+.bs-resfooter__scroll::-webkit-scrollbar { display: none; }
+#root .bs-resfooter__scroll button { flex: none; width: min(18vw, 74px); display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+#root .bs-resfooter__scroll button span { margin-top: 5px; font-size: 9px; line-height: 1.2; color: var(--bs-grey); white-space: nowrap; }
+/* Its header menu (more-vertical in 54 by 44). */
+.bs-resmenu { position: relative; }
+#root .bs-resmenu__btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 54px; margin: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.bs-resmenu__list { position: absolute; top: 46px; right: 8px; z-index: 61; min-width: 220px; padding: 6px 0; border-radius: 14px; background: var(--bs-reverse); box-shadow: 0 8px 30px rgba(0,0,0,.18); }
+#root .bs-resmenu__list button { display: block; width: 100%; margin: 0; padding: 11px 16px; border: 0; background: none; color: var(--bs-default); font-size: 16px; text-align: left; cursor: pointer; }
+/* Bible Strong's BibleVerseDetailCard: the verse with its Strong's words, then the cards. */
+.bs-vdetail { display: flex; flex-direction: column; height: 100%; min-height: 100%; overflow: hidden; }
+.bs-vdetail__top { position: relative; z-index: 1; flex: none; }
+.bs-vdetail__scroll { overflow-y: auto; scrollbar-width: none; padding-right: 20px; padding-top: 20px; }
+.bs-vdetail__scroll::-webkit-scrollbar { display: none; }
+.bs-vdetail__verse { display: flex; padding: 0 10px 0 0; margin-bottom: 5px; }
+.bs-vdetail__num { flex: none; width: 25px; margin-right: 5px; border-right: 3px solid transparent; box-sizing: border-box; display: flex; justify-content: flex-end; }
+.bs-vdetail__num span { margin-right: 3px; font-size: 9px; line-height: 1.5; color: var(--bs-default); }
+.bs-vdetail__text { flex: 1; display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; font-family: system-ui, -apple-system, sans-serif; color: var(--bs-default); }
+.bs-vdetail__chunk { white-space: pre; }
+#root .bs-strongref { margin: 0 0 5px; padding: 0 3px; border: 0; border-radius: 5px; background: var(--bs-light-primary); color: var(--bs-default); font: inherit; cursor: pointer; overflow: hidden; }
+#root .bs-strongref[aria-pressed="true"] { background: var(--bs-primary); color: var(--bs-reverse); }
+.bs-vdetail__align { padding: 10px 0 10px 30px; }
+.bs-vdetail__footer { display: flex; align-items: center; padding: 0 20px; margin-bottom: 20px; }
+#root .bs-vdetail__footer button { display: flex; align-items: center; margin: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.bs-vdetail__spacer { flex: 1; }
+.bs-vdetail__prev { padding-left: 10px; font-size: 12px; color: var(--bs-dark-grey); }
+.bs-vdetail__next { padding-right: 10px; font-size: 12px; color: var(--bs-dark-grey); }
+.bs-vdetail__corner { position: relative; z-index: 0; margin-top: -30px; background: var(--bs-light-grey); flex: none; }
+.bs-vdetail__corner div { height: 30px; background: var(--bs-reverse); border-bottom-left-radius: 30px; border-bottom-right-radius: 30px; }
+.bs-vdetail__cards { flex: 1; min-height: 0; display: flex; flex-direction: column; background: var(--bs-light-grey); }
+.bs-vdetail__strip { flex: 1; min-height: 0; display: flex; gap: 10px; overflow-x: auto; scroll-padding-left: 20px; padding: 0 20px 20px; scrollbar-width: none; }
+.bs-vdetail__strip::-webkit-scrollbar { display: none; }
+.bs-vdetail__item { flex: none; display: flex; flex-direction: column; scroll-snap-align: start; overflow: hidden; }
+/* StrongCard. */
+.bs-strongcard { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 20px; padding: 14px 15px; border-radius: 14px; background: var(--bs-reverse); }
+#root .bs-strongcard__open { display: flex; flex-direction: column; gap: 4px; width: 100%; margin: 0; padding: 0; border: 0; background: none; color: var(--bs-default); text-align: left; cursor: pointer; }
+.bs-strongcard__code { font-size: 12px; font-weight: 700; color: var(--bs-primary); }
+.bs-strongcard__gloss { font-size: 16px; font-weight: 500; }
+.bs-strongcard__line { font-size: 12px; color: var(--bs-tertiary); }
+.bs-strongcard__border { display: block; margin-top: 10px; width: 35px; height: 3px; background: var(--bs-primary); }
+.bs-strongcard__body { flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 15px; scrollbar-width: none; }
+.bs-strongcard__def { margin-top: 15px; }
+.bs-strongcard__def p { margin: 0 0 8px; font-size: 14px; line-height: 20px; color: var(--bs-default); }
+.bs-strongcard__def b { color: var(--bs-quart); }
+.bs-strongcard__def a { color: var(--bs-primary); }
 .bs-error { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 0 24px; text-align: center; }
 .bs-error__icon { width: 56px; height: 56px; border-radius: var(--r-pill); display: grid; place-items: center; background: var(--bs-light-grey); }
 .bs-error p { margin: 0; font-size: 16px; line-height: 1.35; max-width: 360px; }
@@ -289,8 +336,6 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-readin__what small { font-size: 12px; color: var(--bs-tertiary); }
 .bs-readin__more { align-self: flex-start; margin-top: 8px; padding: 6px 0; border: 0; background: none; font-size: 13px; font-weight: 600; color: var(--bs-primary); cursor: pointer; }
 .bs-comment__watch { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none; font-size: 13px; font-weight: 600; color: var(--bs-primary); cursor: pointer; }
-#root .bs-resourcetabs button { min-width: 0; }
-#root .bs-resourcetabs button span { max-width: 100%; font-size: .75rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .why__reason { white-space: pre-line; }
 .why__reason p { margin: 0 0 10px; }
 .why__reason p:last-of-type { margin-bottom: 0; }
@@ -299,11 +344,6 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* Closing a sheet: the ✕, and a swipe down by the handle or title that springs back if short. */
 
 /* Strong's: the verse as tappable words, and the word study */
-.bs-words__hint { margin: 4px 0 10px; font-size: 12px; color: var(--bs-tertiary); }
-.bs-words { display: flex; flex-wrap: wrap; gap: 6px 5px; line-height: 1.3; }
-#root .bs-words__w { display: inline-flex; flex-direction: column; align-items: flex-start; padding: 5px 9px 4px; border: 1px solid var(--bs-border); border-radius: var(--r-sm); background: color-mix(in srgb, var(--bs-primary) 9%, transparent); color: var(--bs-text); font: 500 15px/1.25 var(--bs-font, inherit); cursor: pointer; text-align: left; }
-#root .bs-words__w small { font-size: 10px; letter-spacing: .02em; color: var(--bs-primary); font-weight: 600; }
-.bs-words__plain { padding: 5px 4px; font-size: 15px; line-height: 1.25; color: var(--bs-tertiary); align-self: flex-start; }
 .bs-word { display: grid; gap: 18px; padding-bottom: 20px; }
 .bs-word__head { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding: 14px 16px; border-radius: var(--r-lg); background: linear-gradient(135deg, color-mix(in srgb, var(--bs-primary) 22%, transparent), color-mix(in srgb, var(--bs-primary) 6%, transparent)); border: 1px solid color-mix(in srgb, var(--bs-primary) 30%, transparent); }
 .bs-word__lemma { font-size: 34px; line-height: 1.1; font-weight: 600; letter-spacing: .01em; }
@@ -444,7 +484,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs[data-dark] { --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent); }
 .bs-header { isolation: isolate; background: none; border-bottom: .5px solid var(--mat-edge); }
 /* Header material and scroll edge are shared in materials.css. */
-.bs-dropdown, .bs-picker { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); border: .5px solid var(--mat-edge); border-radius: var(--r-lg); box-shadow: var(--mat-highlight), var(--shadow-3); }
+.bs-dropdown { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); border: .5px solid var(--mat-edge); border-radius: var(--r-lg); box-shadow: var(--mat-highlight), var(--shadow-3); }
 .bs-dropdown { top: calc(100% + 6px); }
 .bs-dropdown__item + .bs-dropdown__item { border-top: .5px solid color-mix(in srgb, var(--bs-default) 10%, transparent); }
 #root .bs-chapterbtn, .bs-chapterbtn, .bs-playpill { background: var(--mat-overlay) !important; border: .5px solid var(--mat-edge) !important; box-shadow: var(--mat-highlight), 0 6px 18px rgba(0, 0, 0, .18); }
@@ -457,17 +497,12 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-gallery[data-open] { background: var(--deck-bg); }
 
 /* Header selectors use the same glass material as the existing sheets. */
-.bs-picker-scrim { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; padding: calc(var(--safe-top, 0px) + 62px) 12px 12px; background: transparent; }
-.bs-picker { box-sizing: border-box; width: 100%; max-width: 400px; max-height: min(530px, calc(100dvh - var(--safe-top, 0px) - 86px)); display: flex; flex-direction: column; overflow: hidden; color: var(--bs-default); animation: bs-drop var(--dur-2) var(--ease); }
-.bs-picker__header { display: flex; align-items: center; padding: 4px 10px 4px 16px; min-height: 48px; flex: none; border-bottom: .5px solid var(--bs-border); }
-.bs-picker__header b { flex: 1; font-size: 16px; }
-.bs-picker__body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
-.bs-picker .bs-search { margin: 12px; }
-.bs-picker .bs-chaptergrid { padding-bottom: 16px; }
-.bs-picker .bs-versegrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
-.bs-picker .bs-versetile { width: 100%; height: 44px; background: none; }
-.bs-picker .bs-versetile[data-pressed] { background: var(--bs-light-grey); }
-.bs-picker :focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.bs-picker-sheet .bs-search { margin: 12px; }
+.bs-picker-sheet .bs-chaptergrid { padding-bottom: 16px; }
+.bs-picker-sheet .bs-versegrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.bs-picker-sheet .bs-versetile { width: 100%; height: 44px; background: none; }
+.bs-picker-sheet .bs-versetile[data-pressed] { background: var(--bs-light-grey); }
+.bs-picker-sheet :focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
 .bs-versions__language { margin: 4px 16px 10px; color: var(--bs-tertiary); font-size: 13px; }
 .bs-dropdown__title { display: block; padding: 10px 16px; font-size: 0.8125rem; color: var(--bs-tertiary); }
 .bs-dropdown__item > span { flex: 1; }
@@ -661,3 +696,16 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-annotbar__title { flex: 1; min-width: 0; text-align: center; font-size: 14px; font-weight: 700; color: var(--bs-reverse); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #root .bs-annotbar__done, .bs-annotbar__done { min-height: 40px; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; display: flex; align-items: center; }
 .bs-annotbar__done > span { display: flex; align-items: center; height: 28px; padding: 0 12px; border-radius: 8px; background: var(--bs-reverse); color: var(--bs-primary); font-size: 12px; font-weight: 700; }
+
+/* The selectors' sheets: BookSelectorSheet's header keeps its title centred between a 60 px space
+   (or the back arrow) and its filters (or a 54 px space). */
+.bs-picker-sheet__spacer { flex: none; width: 60px; }
+.bs-picker-sheet__spacer--right { width: 54px; }
+
+/* UnifiedTagsModal's header extras: the chosen tags as primary chips, and the first-tag prompt. */
+.bs-tagchosen { padding: 8px 16px; border-top: 1px solid var(--bs-border); }
+.bs-tagchosen small { display: block; margin-bottom: 6px; font-size: 12px; color: var(--bs-tertiary); }
+.bs-tagchosen > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.bs-tagchip { display: inline-flex; align-items: center; padding: 5px 12px; border-radius: 20px; background: var(--bs-primary); color: var(--bs-reverse); font-size: 14px; max-width: 224px; }
+.bs-tagchip button { display: grid; place-items: center; margin-left: 6px; padding: 0; border: 0; background: none; color: inherit; cursor: pointer; }
+.bs-tags__first { width: 200px; margin: 20px auto; text-align: center; font-weight: 700; color: color-mix(in srgb, var(--bs-primary) 60%, transparent); }

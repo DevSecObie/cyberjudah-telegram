@@ -131,7 +131,7 @@ export function VersionSheet({ open, onClose }: { open: boolean; onClose: () => 
   useEffect(() => { if (!open) { setQuery(""); setFilters(false); } }, [open]);
   const matches = "KJV King James Version English Apocrypha".toLowerCase().includes(query.trim().toLowerCase());
   return (
-    <HeaderPicker open={open} onClose={onClose} title="Version" right={<button type="button" className="bs-filterbtn" aria-label="Version filters" title="Version filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
+    <HeaderPicker open={open} onClose={onClose} snapPoints={[1]} reverse title="Version" right={<button type="button" className="bs-filterbtn" aria-label="Version filters" title="Version filters" aria-expanded={filters} onClick={() => setFilters(!filters)}><Feather name="sliders" size={18} color="var(--bs-primary)" /></button>}>
       <label className="bs-search"><Feather name="search" size={18} /><input aria-label="Search versions" placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
       {filters ? <p className="bs-tip">English · Public domain · Includes the Apocrypha</p> : null}
       <div className="bs-versions">

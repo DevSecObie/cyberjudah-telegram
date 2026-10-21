@@ -1,0 +1,1 @@
+- "Open in new tab" in the reader's menu and in the timeline's menu now works as in Bible Strong: the new tab is added and you stay where you are, with a "New tab created" message whose "Go to tab" button takes you to it.

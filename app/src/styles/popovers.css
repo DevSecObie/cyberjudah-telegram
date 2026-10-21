@@ -10,8 +10,7 @@
 .chat2__bar { column-gap: var(--toolbar-gap); }
 .sheet__item[data-destructive] :is(b, .sheet__icon), #root [data-destructive].btn { color: var(--danger); }
 .sheet__item[data-destructive] .sheet__icon { background: transparent; }
-.bs-dropdown[data-popover], .bs-picker[data-popover], .sheet[data-popover] { animation: none; }
-.bs-picker-scrim:has([data-popover]) { animation: none; }
+.bs-dropdown[data-popover], .sheet[data-popover] { animation: none; }
 
 /* Snapshot groups keep fixed geometry; only their transform and opacity animate. */
 :root { view-transition-name: none; }

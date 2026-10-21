@@ -572,7 +572,7 @@ function ModelSheet({ models: list, current, onClose, onPick, onRetry }: { model
     </button>
   );
   return (
-    <Sheet open onClose={onClose} height="full" title="Model" subTitle="What a typical answer costs on each, at the model's own price" className="chats-sheet">
+    <Sheet open onClose={onClose} height="full" background="reverse" title="Model" subTitle="What a typical answer costs on each, at the model's own price" className="chats-sheet">
       <div className="models" role="radiogroup" aria-label="Model">
         <input className="models__search" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search models or providers" aria-label="Search models" />
         {shown.filter((m) => m.free).map((m) => <div key="free" className="models__group"><h3>Free, Always</h3>{row(m)}</div>)}
@@ -659,7 +659,7 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
     finally { setBusy(null); }
   };
   return (
-    <Sheet open onClose={onClose} height="full" title="Balance" subTitle="Pay as you go" className="chats-sheet">
+    <Sheet open onClose={onClose} height="full" background="reverse" title="Balance" subTitle="Pay as you go" className="chats-sheet">
       <div className="credits">
         <section className="credits__balance" aria-label="Your balance">
           <small>Balance</small>
@@ -702,7 +702,7 @@ function UsageSheet({ models, onClose }: { models?: AskModel[]; onClose: () => v
   const load = () => { setFailed(false); void api<{ items: HistoryItem[] }>("/api/ask/history").then((r) => setItems(r.items ?? [])).catch(() => setFailed(true)); };
   useEffect(load, []);
   return (
-    <Sheet open onClose={onClose} height="full" title="Usage" subTitle="What each answer cost, and what was added" className="chats-sheet">
+    <Sheet open onClose={onClose} height="full" background="reverse" title="Usage" subTitle="What each answer cost, and what was added" className="chats-sheet">
       <div className="usage">
         {failed ? <p className="models__none">Your usage could not be loaded. <button type="button" className="msg__link" onClick={load}>Try again</button></p>
           : !items ? <p className="models__none" aria-busy="true">Loading…</p>
@@ -756,7 +756,7 @@ function ChatsSheet({ current, onClose, onOpen, onDeleted }: { current: string |
     } catch { haptic("error"); setRow({ id: c.id, state: "failed", why: "This chat was not deleted. Check the connection and try again." }); }
   };
   return (
-    <Sheet open onClose={onClose} height="full" title="Your chats" subTitle="Saved to your account" className="chats-sheet">
+    <Sheet open onClose={onClose} height="full" background="reverse" title="Your chats" subTitle="Saved to your account" className="chats-sheet">
       <div className="chats" aria-busy={!chats && !failed}>
         {failed ? (
           <div className="chats__state" role="alert"><p className="hint">Your chats could not be loaded. Check the connection and try again.</p><button type="button" className="msg__action" onClick={load}><Icon name="retry" size={16} />Try again</button></div>

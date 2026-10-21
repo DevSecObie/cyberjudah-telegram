@@ -1,0 +1,9 @@
+- The bottom bar works as Bible Strong's:
+  - Each button is 48 px, spread evenly, and its icon is drawn at Feather's own stroke.
+  - A pressed button dims and fades back, and no button buzzes.
+  - Holding a button no longer opens the bar editor; it is still in the Menu, under Bottom bar.
+  - Tapping the button for the page you are on leaves it where it is.
+  - The tab slides in from its side by its place among your tabs, not by the button's place in the bar.
+  - The tab count is a fixed 20 px box; on a coloured group its digits are black or white, whichever reads on the colour.
+  - Going to the tab switcher, the buttons rise and fade as its controls rise into place, over 300 ms, and back again.
+  - The bar reads "Main menu" and "Tabs, 3 open", and marks no button as current, as Bible Strong's does.

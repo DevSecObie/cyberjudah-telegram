@@ -17,6 +17,7 @@ import { Chapter, HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGH
 import { colorItems, DEFAULT_COLOR_KEYS, highlightInfo, paletteOf, resolveTheme, telegramScheme, useBibleSettings, useSchemeChange, type DefaultColorKey, type HighlightType } from "./settings";
 import { cssVars, isDarkTheme } from "./theme";
 import { useToast } from "@/ui/toast";
+import { useOpenInNewTab } from "@/ui/open-in-new-tab";
 import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { VerseJump } from "./ui/VerseJump";
@@ -82,19 +83,12 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     // Telegram's chrome takes the page colour while the tab is open, and gives it back after.
     if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(palette.reverse); app.setBackgroundColor(palette.reverse); }
     if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(palette.reverse);
-    // So does the dock: its glass takes the page's colour and ink, light or dark as the reader's theme is.
+    // So does the bottom bar: Bible Strong's takes the page colour, its border and its tertiary ink.
     const root = document.documentElement.style;
-    const dark = isDarkTheme(theme);
-    const dock: Record<string, string> = {
-      "--dock-base-override": palette.reverse,
-      "--dock-tint-override": `color-mix(in srgb, ${palette.reverse} var(--mat-density), transparent)`,
-      "--dock-ink-override": palette.default,
-      "--dock-selected-override": `color-mix(in srgb, ${palette.default} ${dark ? 14 : 9}%, transparent)`,
-      "--dock-edge-override": dark ? "color-mix(in srgb, #ffffff 12%, transparent)" : "color-mix(in srgb, #000000 9%, transparent)",
-    };
+    const dock: Record<string, string> = { "--dock-bg": palette.reverse, "--dock-line": palette.border, "--dock-ink": palette.tertiary };
     for (const [k, v] of Object.entries(dock)) root.setProperty(k, v);
     return () => { for (const k of Object.keys(dock)) root.removeProperty(k); const bg = getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim() || "#05070f"; if (app && app.isVersionAtLeast("6.1")) { app.setHeaderColor(bg); app.setBackgroundColor(bg); } if (app && app.isVersionAtLeast("7.10")) app.setBottomBarColor(bg); };
-  }, [palette.reverse, palette.default, theme]);
+  }, [palette.reverse, palette.border, palette.tertiary]);
 
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const list = books.data ?? [];
@@ -108,7 +102,9 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const loading = text.isFetching;
   const next = book && ch < book.chapters ? { slug, ch: ch + 1 } : list[idx + 1] ? { slug: list[idx + 1].slug, ch: 1 } : null;
   const prev = book && ch > 1 ? { slug, ch: ch - 1 } : idx > 0 ? { slug: list[idx - 1].slug, ch: list[idx - 1].chapters } : null;
-  const go = (t: { slug: string; ch: number } | null, verse?: number, replace = false) => { if (t) navigate(`/read/${t.slug}/${t.ch}${verse && verse > 1 ? `?v=${verse}` : ""}`, { replace }); };
+  // A verse picked (book picker, compare) opens the whole chapter at that verse, as Bible Strong's
+  // validateTempSelected sets selectedVerse only: `?at=` scrolls, `?v=` is a focused passage.
+  const go = (t: { slug: string; ch: number } | null, verse?: number, replace = false) => { if (t) navigate(`/read/${t.slug}/${t.ch}${verse && verse > 1 ? `?at=${verse}` : ""}`, { replace }); };
   // Bible Strong's previous/next, swipe and book picker change the tab's chapter in place (state/tabs.ts),
   // so Back returns to where reading began instead of stepping through every chapter read.
   const step = (t: { slug: string; ch: number } | null) => { if (t) navigate(`/read/${t.slug}/${t.ch}`, { replace: true }); };
@@ -132,8 +128,24 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const [contextMode, setContextMode] = useState(initial.contextMode);
   const [fullscreen, setFullscreen] = useState(readerFullscreen);
   useEffect(() => { saveReaderFullscreen(fullscreen); }, [fullscreen]);
-  const [verseToScroll, setVerseToScroll] = useState<number | undefined>(focus?.[0]);
+  const at = Number(params.get("at")) || undefined;
+  const [verseToScroll, setVerseToScroll] = useState<number | undefined>(focus?.[0] ?? at);
   const [navRequest, setNavRequest] = useState(0);
+  // Picking another verse in the same chapter replaces `at` in place: scroll to it again. Verse 1
+  // drops `at`, so a reader that was at another verse goes back to the top.
+  const lastAt = useRef(at);
+  useEffect(() => {
+    const before = lastAt.current; lastAt.current = at;
+    if (at) { setVerseToScroll(at); setNavRequest((n) => n + 1); }
+    else if (before && !focus) { setVerseToScroll(1); setNavRequest((n) => n + 1); }
+  }, [at]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The tab's last chapter stands in while the next one loads; once the real chapter replaces it,
+  // scroll to the verse again, as the first scroll may have run on the stand-in.
+  const wasPlaceholder = useRef(text.isPlaceholderData);
+  useEffect(() => {
+    if (wasPlaceholder.current && !text.isPlaceholderData && verseToScroll) setNavRequest((n) => n + 1);
+    wasPlaceholder.current = text.isPlaceholderData;
+  }, [text.isPlaceholderData]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { saveReaderSession(sessionKey, { selected, contextMode, fullscreen }); }, [sessionKey, selected, contextMode, fullscreen]);
 
   // Study data.
@@ -189,6 +201,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const [noteEdit, setNoteEdit] = useState<{ key: string; note: Note; relation?: Relation } | null>(null);
   const [tagsTarget, setTagsTarget] = useState<number[]>([]);
   const toast = useToast();
+  const openInNewTab = useOpenInNewTab();
   const say = (m: string) => toast(m, { ms: 2800 });
   const speech = useReaderSpeech(text.isPlaceholderData ? [] : verses, chapterLabel, { slug, chapter: ch });
   const player = useAudioPlayer();
@@ -292,7 +305,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     if (a === "bookmark") { setBookmarkTarget({ existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse) }); setSheet("bookmark"); }
     if (a === "export") void exportSel("chapter");
     if (a === "search") setSheet("search");
-    if (a === "newtab") navigate(newTab(`/read/${slug}/${ch}${focus ? `?v=${compressVerses(focus)}` : ""}`), { replace: true });
+    if (a === "newtab") openInNewTab(`/read/${slug}/${ch}${focus ? `?v=${compressVerses(focus)}` : ""}`);
   };
   const chapterBookmark = bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse);
   const formatBookmark = (b: Bookmark) => `${bookName(b.book)} ${b.chapter}${b.verse ? `:${b.verse}` : ""}`;
@@ -380,7 +393,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           onSwipe={(dir) => step(dir === "left" ? next : prev)} onFullscreen={setFullscreen}
           onOpenBookmark={(b) => { setBookmarkTarget({ verse: b.verse, existing: b }); setSheet("bookmark"); }}
           onOpenRelations={(v) => navigate(`/relations?endpoint=${verseKey(slug, ch, v)}`)} onOpenRelationItem={(it) => void openRelationItem(it)}
-          onOpenTags={(v) => { const group = Object.entries(highlights).filter(([, h]) => h.date === highlights[String(v)]?.date).map(([k]) => +k); setTagsTarget(group.length ? group : [v]); setSheet("tags"); }} onOpenTag={(id) => navigate(`/bookmarks?tag=${id}`)} />
+          onOpenTags={(v) => { const group = Object.entries(highlights).filter(([, h]) => h.date === highlights[String(v)]?.date).map(([k]) => +k); setTagsTarget(group.length ? group : [v]); setSheet("tags"); }} onOpenTag={(id) => navigate(`/highlights?tag=${id}`)} />
       )}
       <Footer hasPrev={!!prev && !loading} hasNext={!!next && !loading} onPrev={() => step(prev)} onNext={() => step(next)} speech={player.speech} fullscreen={fullscreen} hidden={contextMode === "focused" && !!focus} bottomBar={bottomBar} reference={chapterLabel} verseCount={verses.length} repeat={repeat} setRepeat={setRepeat} expanded={audioOpen} setExpanded={setAudioOpen} />
 
@@ -411,7 +424,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
 
       {sheet === "export" && book ? <PassageExportSheet book={book} chapter={ch} selected={exportSelection} reference={reference(exportSelection)} onClose={() => setSheet(null)} /> : null}
       {sheet === "study" ? <AddToStudy onClose={() => setSheet(null)} blocks={[{ id: crypto.randomUUID(), kind: "scripture", book: slug, chapter: ch, reference: selectedReference ?? chapterLabel, verses: selectedText() }]} /> : null}
-      <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v, true)} onLongSelect={(s, c, v) => navigate(newTab(`/read/${s}/${c}${v > 1 ? `?v=${v}` : ""}`), { replace: true })} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
+      <BookSelectorSheet open={sheet === "books"} onClose={() => setSheet(null)} books={list} current={{ slug, chapter: ch }} onSelect={(s, c, v) => go({ slug: s, ch: c }, v, true)} onLongSelect={(s, c, v) => navigate(newTab(`/read/${s}/${c}${v > 1 ? `?at=${v}` : ""}`), { replace: true })} loadVerseCount={(s, c) => data.chapter(s, c).then((r) => r.verses.length)} progress={progress} />
       <SearchSheet open={sheet === "search"} initial={searchSeed} onClose={() => { setSheet(null); setSearchSeed(""); }} books={list} onGo={(s, c, v, end) => navigate(`/read/${s}/${c}${v ? `?v=${v}${end ? `-${end}` : ""}` : ""}`)} />
       <VersionSheet open={sheet === "version"} onClose={() => setSheet(null)} />
       <VerseJump root={rootRef} label={chapterLabel} count={verses.length} onNavigate={(v) => { setVerseToScroll(v); setNavRequest((n) => n + 1); }} />
@@ -430,7 +443,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
           if (DEFAULT_COLOR_KEYS.includes(k as DefaultColorKey)) setSettings({ colors: { ...settings.colors, [k]: hex }, defaultColorNames: { ...settings.defaultColorNames, [k]: name }, defaultColorTypes: { ...settings.defaultColorTypes, [k]: type } });
           else setSettings({ customHighlightColors: settings.customHighlightColors.map((c) => (c.id === k ? { ...c, hex, name, type } : c)) });
         }} /> : null}
-      {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
+      {resource ? <ResourcesSheet open={sheet === "resources"} onClose={() => setSheet(null)} tab={resourceTab} setTab={setResourceTab} slug={slug} chapter={ch} verse={resource.verse} verses={verses[verses.length - 1]?.verse ?? 0} onVerse={setResourceVerse} text={resource.text} reference={reference([resource.verse])} books={list} /> : null}
     </main>
   );
 }

@@ -1,0 +1,7 @@
+- Tab groups work as in Bible Strong:
+  - Swipe across the tab switcher to move between groups; the pages follow your finger and spring into place, and each group keeps its own scroll.
+  - Swiping past the last group, or choosing New group, slides to a page where you type the group's name and pick its colour.
+  - The group's button opens a short menu: Close all tabs, Edit group, Delete group, New group and View my groups.
+  - View my groups shows each group with a preview of its tabs and when it was made.
+  - Edit group changes the name and colour in one place.
+  - Deleting a group asks you first, with Telegram's own confirmation.

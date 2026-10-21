@@ -5,7 +5,8 @@ import { APP_URL, share } from "@/lib/share";
 import { useBackButton } from "@/tg/hooks";
 import { addToHomeScreen, app, downloadFile, homeScreenStatus, openLink, user } from "@/tg/sdk";
 import { DATA_ORIGIN, SITE_URL } from "@/api/data";
-import { Icon, Screen, type IconName } from "@/ui/ui";
+import { Icon, NotificationDot, Screen, type IconName } from "@/ui/ui";
+import { useAvailableUpdatesIndicator } from "@/resources/updates";
 import { haptic } from "@/tg/sdk";
 
 const STUDY: [string, string, string, IconName][] = [
@@ -32,16 +33,16 @@ export function More() {
   return <Screen title="More"><MoreBody /></Screen>;
 }
 
-type Item = { icon: IconName; label: string; color: string; colored?: boolean; href?: string; onClick?: () => void };
+type Item = { icon: IconName; label: string; color: string; colored?: boolean; href?: string; onClick?: () => void; dot?: boolean; a11y?: string };
 /** Bible Strong's SectionCard: a rounded card with a small grey heading row and its links. */
 function Card({ icon, title, items }: { icon: IconName; title: string; items: (Item | null)[] }) {
   return (
     <section className="mcard">
       <h2 className="mcard__head"><Icon name={icon} size={16} />{title}</h2>
       {items.filter((i): i is Item => !!i).map((i) => {
-        const inner = <><span className="mcard__icon" style={{ color: i.color, background: `color-mix(in srgb, ${i.color} 12%, transparent)` }}><Icon name={i.icon} size={20} /></span><span className="mcard__label" style={i.colored ? { color: i.color } : undefined}>{i.label}</span><span className="mcard__chev"><Icon name="chevron" size={20} /></span></>;
+        const inner = <><span className="mcard__icon" style={{ color: i.color, background: `color-mix(in srgb, ${i.color} 12%, transparent)` }}><Icon name={i.icon} size={20} />{i.dot ? <NotificationDot size={12} style={{ top: -3, right: -3 }} /> : null}</span><span className="mcard__label" style={i.colored ? { color: i.color } : undefined}>{i.label}</span><span className="mcard__chev"><Icon name="chevron" size={20} /></span></>;
         return i.href
-          ? <Link key={i.label} className="mcard__row" to={i.href} onClick={() => haptic("select")}>{inner}</Link>
+          ? <Link key={i.label} className="mcard__row" to={i.href} aria-label={i.a11y} onClick={() => haptic("select")}>{inner}</Link>
           : <button key={i.label} type="button" className="mcard__row" onClick={() => { haptic("select"); i.onClick?.(); }}>{inner}</button>;
       })}
     </section>
@@ -53,6 +54,7 @@ const C = { blue: "var(--accent)", teal: "var(--accent)", violet: "var(--danger)
 /** The menu's content (Bible Strong's MoreScreen), on its own page or in the menu drawer. */
 export function MoreBody() {
   const [pin, setPin] = useState(false);
+  const { hasUpdates } = useAvailableUpdatesIndicator();
   useEffect(() => { void homeScreenStatus().then((s) => setPin(s === "missed" || s === "unknown")); }, []);
   return (
     <div className="more">
@@ -65,7 +67,9 @@ export function MoreBody() {
       <Card icon="bookmark" title="Yours" items={[
         { icon: "book", label: "My studies", color: C.blue, href: "/studies" },
         { icon: "check", label: "Reading plans", color: C.green, href: "/plans" },
-        { icon: "bookmark", label: "Bookmarks, highlights & notes", color: C.amber, href: "/bookmarks" },
+        { icon: "highlight", label: "Highlights", color: C.blue, href: "/highlights" },
+        { icon: "bookmark", label: "Bookmarks", color: C.amber, href: "/bookmarks" },
+        { icon: "note", label: "Notes", color: C.violet, href: "/notes" },
         { icon: "tag", label: "Tags", color: C.rose, href: "/tags" },
         { icon: "clock", label: "History", color: C.blue, href: "/history" },
         { icon: "sun", label: "Sabbath", color: C.amber, href: "/sabbath" },
@@ -78,8 +82,7 @@ export function MoreBody() {
       <Card icon="law" title="The Law" items={LAW.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.amber, C.teal, C.slate][k % 3] }))} />
       <Card icon="gear" title="Settings" items={[
         { icon: "gear", label: "Settings", color: C.slate, href: "/settings" },
-        { icon: "download", label: "Downloads", color: C.green, href: "/resources" },
-        { icon: "list", label: "Bottom bar", color: C.blue, href: "/settings/bar" },
+        { icon: "download", label: "Downloads", color: C.green, href: "/resources", dot: hasUpdates, a11y: hasUpdates ? "Downloads, updates available" : undefined },
         pin ? { icon: "star", label: "Add to Home Screen", color: C.amber, onClick: addToHomeScreen } : null,
         { icon: "download", label: "Download the vault", color: C.green, onClick: () => downloadFile(`${DATA_ORIGIN}/downloads/vault.zip`, "cyberjudah-vault.zip") },
       ]} />

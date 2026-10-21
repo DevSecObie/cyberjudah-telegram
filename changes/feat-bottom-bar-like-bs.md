@@ -1,0 +1,2 @@
+- The bottom bar is now Bible Strong's: a flat row of icons across the bottom of the screen on the page colour, with a line above it. Search sits second, after Home, and Menu ends the row. It stays put while a page scrolls, and slides down out of sight while the Bible is full screen.
+- The floating glass dock, its drag-to-choose pill, its shrinking to a capsule on scroll and the desktop side rail are gone; wide windows have the same bar along the bottom.
