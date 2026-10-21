@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import { compressVerses, data } from "@/api/data";
@@ -40,7 +40,7 @@ export function EntityChipList({ tags, relationCount = 0, onRelationPress }: { t
 }
 
 /** Bible Strong's highlight item (settings/Verse): the colour, the reference, how long ago, then the verses' text. */
-export function HighlightItem({ item, now }: { item: TaggedHighlight; now: number }) {
+export function HighlightItem({ item, now, options }: { item: TaggedHighlight; now: number; options?: ReactNode }) {
   const [settings] = useBibleSettings();
   const palette = paletteOf(resolveTheme(settings, telegramScheme()), settings);
   const bookName = useBookName();
@@ -59,12 +59,13 @@ export function HighlightItem({ item, now }: { item: TaggedHighlight; now: numbe
         <span className="tagd-item__text">{chapter.isPending ? "" : text ? truncate(text.replace(/\n/g, ""), 200) : "Text unavailable in the installed Bibles."}</span>
       </Link>
       <EntityChipList tags={item.tags} />
+      {options}
     </div>
   );
 }
 
 /** Bible Strong's AnnotationItem: the mark's colour and reference, how long ago, then "...the words...". */
-export function AnnotationItem({ item, now }: { item: TaggedMark; now: number }) {
+export function AnnotationItem({ item, now, options }: { item: TaggedMark; now: number; options?: ReactNode }) {
   const [settings] = useBibleSettings();
   const palette = paletteOf(resolveTheme(settings, telegramScheme()), settings);
   const bookName = useBookName();
@@ -81,6 +82,7 @@ export function AnnotationItem({ item, now }: { item: TaggedMark; now: number })
         <span className="tagd-item__quote">{`...${item.quote}...`}</span>
       </Link>
       <EntityChipList tags={item.tags} />
+      {options}
     </div>
   );
 }

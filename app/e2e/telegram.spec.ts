@@ -113,9 +113,9 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await fromMenu("Bookmarks");
   await expect(page.locator(".bmitem__text b").first()).toHaveText("Comfort");
   await fromMenu("Highlights");
-  await expect(page.locator(".row__title").first()).toHaveText("Psalms 23");
-  await page.click(".chip >> text=promises");
-  await expect(page.locator(".row__sub").first()).toContainText("Verses 1");
+  // One highlight over both verses, as Bible Strong groups them, with its tag.
+  await expect(page.locator(".tagd-item__ref").first()).toContainText("Psalms 23:1-2");
+  await expect(page.locator(".tagd-item").first().locator(".tagd-chip")).toContainText("promises");
   await fromMenu("Notes");
   await expect(page.locator(".row__title").first()).toHaveText("The shepherd psalm.");
 });

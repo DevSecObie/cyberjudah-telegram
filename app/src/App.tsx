@@ -56,7 +56,7 @@ const DictionaryEntry = lazy(() => import("@/screens/Dictionary").then((m) => ({
 const Person = lazy(() => import("@/screens/Person").then((m) => ({ default: m.Person })));
 const Relations = lazy(() => import("@/screens/Relations").then((m) => ({ default: m.Relations })));
 const Bookmarks = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Bookmarks })));
-const Highlights = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Highlights })));
+const Highlights = lazy(() => import("@/screens/Highlights").then((m) => ({ default: m.Highlights })));
 const Notes = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Notes })));
 const Sabbath = lazy(() => import("@/screens/Sabbath").then((m) => ({ default: m.Sabbath })));
 const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Books })));

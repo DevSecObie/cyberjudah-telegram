@@ -3,7 +3,7 @@ import { Icon, type IconName } from "@/ui/icons";
 
 /** Feather icons (the set Bible Strong draws from) as inline SVG; `ion` adds the few Ionicons it uses. */
 export type FeatherName =
-  | "music" | "alert-circle" | "feather"
+  | "music" | "alert-circle" | "feather" | "droplet"
   | "file-plus" | "file-text" | "tag" | "link" | "git-merge" | "precepts" | "bookmark" | "crosshair" | "edit-2" | "copy" | "share-2" | "download" | "check-square" | "layers"
   | "sun" | "moon" | "sunrise" | "type" | "align-left" | "align-justify" | "arrow-right" | "corner-down-right" | "chevron-right" | "chevron-down" | "chevron-up" | "chevron-left" | "chevrons-left" | "chevrons-right" | "chevrons-down"
   | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-left-circle" | "bold" | "italic" | "minus" | "rotate-cw" | "plus-square" | "list-ordered" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle" | "message-circle" | "watch" | "refresh-cw" | "home" | "more-horizontal" | "x-circle"
@@ -17,6 +17,7 @@ const P: Record<FeatherName, string> = {
   facebook: '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
   linkedin: '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>',
   github: '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>',
+  droplet: '<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>',
   feather: '<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/>',
   music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
   "alert-circle": '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',

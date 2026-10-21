@@ -216,3 +216,11 @@
 .bmitem__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; margin-left: 10px; }
 .bmitem__text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 16px/1.3 var(--font-ui); }
 .bmitem__text span { font: 400 14px/1.3 var(--font-ui); }
+
+/* Bible Strong's HighlightsScreen: its Verse and AnnotationItem rows, each with HighlightOptions'
+   28 px ⋮ at the top right; the colours of "Change color" spread in their row. */
+.screen.hlscreen { --gutter: 0px; gap: 0; }
+.hlscreen__list { padding-bottom: 70px; }
+.hlscreen .tagd-item--verse { position: relative; }
+.tagd-item__options { position: absolute; top: 0; right: 0; }
+.hlscreen__colors { padding: 10px 0; }
