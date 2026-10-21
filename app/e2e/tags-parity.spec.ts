@@ -99,7 +99,7 @@ test("rename and delete preserve content and remove the tag from links and group
   await page.getByRole("textbox", { name: "Tag name" }).fill("Trust");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Trust", exact: true })).toBeVisible();
-  const remove = async () => { await page.getByRole("button", { name: "Options for Trust" }).click(); await page.getByRole("button", { name: "Delete", exact: true }).click(); };
+  const remove = async () => { await page.getByRole("button", { name: "Options for Trust" }).click(); await page.getByRole("button", { name: "Remove", exact: true }).click(); };
   await remove();
   await page.getByRole("button", { name: "No", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Trust", exact: true })).toBeVisible();

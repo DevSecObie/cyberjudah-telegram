@@ -49,7 +49,7 @@ function useTagActions(onDeleted?: () => void) {
     haptic("success");
   };
   const options = async (tag: Tag) => {
-    const answer = await sheet.open({ title: tag.name, items: [{ id: "edit", text: "Edit", icon: <Feather name="edit-3" size={18} /> }, { id: "delete", text: "Delete", icon: <Feather name="trash-2" size={18} />, destructive: true }] });
+    const answer = await sheet.open({ title: tag.name, items: [{ id: "edit", text: "Edit", icon: <Feather name="edit-3" size={18} /> }, { id: "delete", text: "Remove", icon: <Feather name="trash-2" size={18} />, destructive: true }] });
     if (answer?.id === "edit") return edit(tag);
     if (answer?.id !== "delete") return;
     const confirmed = await sheet.open({ title: "Warning: Are you sure you want to delete this tag?", items: [{ id: "no", text: "No" }, { id: "yes", text: "Yes", destructive: true }] });
