@@ -1,6 +1,6 @@
 import { markId, type Annotation } from "@/studies/storage";
 import { AnnotatedText } from "@/studies/AnnotatedText";
-import { useState, type CSSProperties } from "react";
+import { Fragment, useState, type CSSProperties } from "react";
 
 import type { ClassMoment } from "@/api/data";
 import type { VerseRelationItem } from "@/lib/relations";
@@ -10,6 +10,7 @@ import { Feather, Ion } from "../icons";
 import { contrastText, convertHex, HIGHLIGHT_BACKGROUND_OPACITY, isDarkTheme, type Palette, type ThemeName } from "../theme";
 import { highlightInfo, webFontFamily, type BibleSettings } from "../settings";
 import { getBibleTextFontSize, scaleFontSize, scaleLineHeight } from "../typography";
+import { strongCode, type StrongReference } from "../strongMode";
 import type { Bookmark, Tag } from "../store";
 
 /**
@@ -31,6 +32,8 @@ export type VerseProps = {
   /** The classes that taught this verse, shown as pictures after it. */
   /** The classes that taught this verse, and where the deck's gallery says they are and comes back to. */
   moments?: ClassMoment[]; deck?: { reference: string; from: string };
+  /** Strong's mode: a highlight colours only the number; `strongRefs` (not while annotating) puts each word's Strong's numbers after it. */
+  strongMode?: boolean; strongRefs?: StrongReference[]; strongSelected?: string | null; onStrong?: (r: StrongReference) => void;
   onOpenBookmark: (b: Bookmark) => void; onOpenRelations: () => void; onOpenRelationItem: (it: VerseRelationItem) => void; onOpenTags: () => void; onOpenTag: (tagId: string) => void;
 };
 
@@ -40,7 +43,13 @@ export function Verse(p: VerseProps) {
   const block = s.textDisplay === "block";
   // Keep context readable with semantic ink; selection also has a dashed underline.
   let hl: CSSProperties = { background: "transparent", borderRadius: 0 };
-  if (p.highlightedColor) {
+  // Bible Strong's getNumberHighlight: in Strong's mode a background highlight moves to the verse number.
+  let numberHl: CSSProperties | undefined;
+  if (p.highlightedColor && p.strongMode) {
+    const { hex, type } = highlightInfo(p.highlightedColor, s, c);
+    if (type === "background" && hex !== "transparent") numberHl = { backgroundColor: convertHex(hex, HIGHLIGHT_BACKGROUND_OPACITY), borderRadius: 3, color: contrastText(hex, isDarkTheme(theme)) };
+  }
+  if (p.highlightedColor && !numberHl) {
     const { hex, type } = highlightInfo(p.highlightedColor, s, c);
     if (hex !== "transparent") {
       if (type === "background") hl = { background: convertHex(hex, HIGHLIGHT_BACKGROUND_OPACITY), borderRadius: 4, color: contrastText(hex, isDarkTheme(theme)) };
@@ -65,14 +74,17 @@ export function Verse(p: VerseProps) {
   };
   // The existing AnnotatedText character boundaries keep old marks on the same KJV words.
   const valid = p.wordMarks?.filter(a => a.end <= p.text.length && a.start >= 0 && p.text.slice(a.start, a.end) === a.quote);
-  const boundaries = [...new Set([0, p.text.length, ...(valid ?? []).flatMap(a => [a.start, a.end])])].sort((a, b) => a - b);
+  const refs = p.strongRefs ?? [];
+  const boundaries = [...new Set([0, p.text.length, ...(valid ?? []).flatMap(a => [a.start, a.end]), ...refs.map(r => r.offset)])].sort((a, b) => a - b);
   const words = valid ? boundaries.slice(0, -1).map((start, i) => {
     const end = boundaries[i + 1], records = valid.filter(a => a.start <= start && a.end >= end);
     const styles = [...new Set(records.map(a => a.style))];
     const color = records.find(a => a.color)?.color;
-    return <span key={start} className={styles.length ? `bs-word-mark ${styles.map(s => `phrase-${s}`).join(" ")}` : undefined}
+    const at = refs.filter(r => r.offset === end);
+    return <Fragment key={start}><span className={styles.length ? `bs-word-mark ${styles.map(s => `phrase-${s}`).join(" ")}` : undefined}
       data-mark={records.length ? markId(records[0]) : undefined}
-      data-coloured={color ? "" : undefined} style={color ? { "--word-ink": p.colorOf?.(color) ?? "var(--bs-primary)" } as CSSProperties : undefined}>{p.text.slice(start, end)}</span>;
+      data-coloured={color ? "" : undefined} style={color ? { "--word-ink": p.colorOf?.(color) ?? "var(--bs-primary)" } as CSSProperties : undefined}>{p.text.slice(start, end)}</span>
+      {at.map(r => <StrongRef key={r.occurrence} reference={r} settings={s} theme={theme} selected={!!p.strongSelected && r.numbers.includes(p.strongSelected)} onClick={() => p.onStrong?.(r)} />)}</Fragment>;
   }) : <AnnotatedText verseKey={p.verseKey} text={p.text} />;
   const deck = !!(p.moments?.length && p.deck);
   const tags = !!(p.tagGroup?.tags.length && s.tagsDisplay === "inline");
@@ -80,7 +92,7 @@ export function Verse(p: VerseProps) {
   return (
     <span id={`verset-${p.number}`} className="bs-verse" data-vk={p.verseKey} data-selected={p.isSelected ? "" : undefined} style={wrapper}>
       <span style={container}>
-        <span className={s.showVerseNumbers ? "bs-num" : "sr-only"} style={s.showVerseNumbers ? { fontSize: scaleFontSize(14, s.fontSizeScale) } : undefined}>{p.number} </span>
+        <span className={s.showVerseNumbers ? "bs-num" : "sr-only"} style={s.showVerseNumbers ? { fontSize: scaleFontSize(14, s.fontSizeScale), ...numberHl } : undefined}>{p.number} </span>
         {p.bookmark ? <BookmarkIcon color={p.bookmark.color} onClick={() => p.onOpenBookmark(p.bookmark!)} /> : null}
         {p.relationCount && s.relationsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.relationCount} onClick={p.onOpenRelations} label={`${p.relationCount} ${p.relationCount === 1 ? "precept" : "precepts"}`}><Feather name="precepts" size={16} color={"var(--bs-primary)"} /></CountBadge> : null}
         {p.taggedItemsCount && s.tagsDisplay !== "inline" ? <CountBadge palette={c} theme={theme} count={p.taggedItemsCount} onClick={p.onOpenTags} label={`${p.taggedItemsCount} tags`}><Feather name="tag" size={14} color={"var(--bs-primary)"} /></CountBadge> : null}
@@ -89,6 +101,17 @@ export function Verse(p: VerseProps) {
       </span>
       {tags ? <VerseTags tags={p.tagGroup!.tags} settings={s} palette={c} theme={theme} onOpenTags={p.onOpenTags} onOpenTag={p.onOpenTag} /> : null}
       {rels ? <span data-ignore-verse-touch=""><RelationsText items={p.relationItems!} onClick={p.onOpenRelationItem} /></span> : null}
+    </span>
+  );
+}
+
+/** BibleStrongRef: the word's Strong's numbers after it, joined by " · ", on a shadowed chip; filled in the accent while selected. */
+function StrongRef({ reference, settings: s, theme, selected, onClick }: { reference: StrongReference; settings: BibleSettings; theme: ThemeName; selected: boolean; onClick: () => void }) {
+  const open = (e: React.SyntheticEvent) => { e.stopPropagation(); onClick(); };
+  return (
+    <span data-ignore-verse-touch="" role="button" tabIndex={0} className="bs-strongref-inline" data-selected={selected ? "" : undefined} onClick={open} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") open(e); }}
+      style={{ fontFamily: webFontFamily(s.fontFamily), userSelect: "none", WebkitUserSelect: "none", color: selected ? "var(--bs-reverse)" : "var(--bs-primary)", backgroundColor: selected ? "var(--bs-primary)" : "inherit", fontSize: scaleFontSize(16, s.fontSizeScale), lineHeight: scaleLineHeight(30, s.lineHeight, s.fontSizeScale), boxShadow: isDarkTheme(theme) ? "0 0 10px 0 rgba(255, 255, 255, 0.1)" : "0 0 10px 0 rgba(0, 0, 0, 0.2)", borderRadius: 8, paddingInlineEnd: 4, paddingInlineStart: 4, paddingBlock: 4, wordBreak: "break-word", marginInline: 4, cursor: "pointer" }}>
+      {reference.numbers.map(strongCode).join(" · ")}
     </span>
   );
 }
