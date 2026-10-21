@@ -63,3 +63,14 @@ test('failed account sync reads original marks without refreshing or writing the
   assert.deepEqual(deviceWrites, []);
   assert.deepEqual(cloudWrites, []);
 });
+
+test('an account mismatch hides the preserved local marks and their keys', async t => {
+  const { store, connectPersonalStore, deviceWrites, cloudWrites } = await setup(t, { cloud: true, deviceStorage: true });
+  window.localStorage.setItem('cj:bs_h_genesis_1', 'previous owner');
+  connectPersonalStore(Promise.reject(Object.assign(new Error('Account changed'), { code: 'account_changed' })));
+  assert.equal(await store.get('bs_h_genesis_1'), null);
+  assert.equal((await store.keys()).includes('bs_h_genesis_1'), false);
+  assert.equal(window.localStorage.getItem('cj:bs_h_genesis_1'), 'previous owner');
+  assert.deepEqual(deviceWrites, []);
+  assert.deepEqual(cloudWrites, []);
+});

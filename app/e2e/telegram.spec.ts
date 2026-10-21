@@ -870,7 +870,7 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
   await expect(page.locator(".bs-search__count")).toHaveText("1 verse in the Apocrypha");
   await page.selectOption('select[aria-label="One book"]', "tobit");
   await expect(page.locator(".bs-search__hit")).toHaveCount(0);
-  await expect(page.locator(".bs-search__hint")).toContainText("No matching verses in Tobit.");
+  await expect(page.getByText('No results found for "light of men"')).toBeVisible();
   await page.click('.bs-search__filters .bs-chip:has-text("All")');
   await page.selectOption('select[aria-label="One book"]', "");
   await expect(page.locator(".bs-search__hit")).toHaveCount(2);
