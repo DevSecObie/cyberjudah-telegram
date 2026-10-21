@@ -66,12 +66,12 @@ export function Bookmarks() {
             </div>
           ))}
         </div>
-      ) : <EmptyState icon="bookmark" message="No bookmarks..." />}
+      ) : <EmptyState icon="bookmark" message="No bookmarks yet..." />}
     </Screen>
   );
 }
 
-/** Bible Strong's BookmarkOptionsPanel: View in the Bible, Edit (the name and colour, in the panel), Delete. */
+/** Bible Strong's BookmarkOptionsPanel: View in Bible, Edit (the name and colour, in the panel), Remove. */
 function BookmarkOptions({ bookmark, onNavigate, onSave, onRemove }: { bookmark: Bookmark; onNavigate: () => void; onSave: (patch: Partial<Bookmark>) => void; onRemove: () => void }) {
   const [name, setName] = useState(bookmark.name);
   const [color, setColor] = useState(bookmark.color);
@@ -82,9 +82,9 @@ function BookmarkOptions({ bookmark, onNavigate, onSave, onRemove }: { bookmark:
         title: "Bookmark",
         content: (nav) => (
           <>
-            <PanelAction icon="book-open" label="View in the Bible" onPress={() => { nav.close(); onNavigate(); }} />
+            <PanelAction icon="book-open" label="View in Bible" onPress={() => { nav.close(); onNavigate(); }} />
             <PanelAction nested icon="edit-2" label="Edit" onPress={() => { reset(); nav.open("edit"); }} />
-            <PanelAction icon="trash-2" destructive label="Delete" onPress={() => { nav.close(); void confirmDelete("Are you sure you want to delete this bookmark?", "Delete").then((ok) => { if (ok) onRemove(); }); }} />
+            <PanelAction icon="trash-2" destructive label="Remove" onPress={() => { nav.close(); void confirmDelete("Are you sure you want to delete this bookmark?", "Remove").then((ok) => { if (ok) onRemove(); }); }} />
           </>
         ),
       },

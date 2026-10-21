@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 // Bible Strong's BookmarksScreen: the filter button (Search, Order), a row per bookmark with its
-// colour, name and reference, and its options (View in the Bible, Edit, Delete). Kept's highlights
+// colour, name and reference, and its options (View in Bible, Edit, Remove). Kept's highlights
 // and notes are their own screens; the old addresses lead to them.
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const BOOKS = [
@@ -52,12 +52,12 @@ test("a row per bookmark, newest first: its colour, its name over its reference;
   await expect(page).toHaveURL(/\/read\/psalms\/23\?at=1$/);
 });
 
-test("a bookmark's options: View in the Bible, Edit its name and colour, Delete after asking", async ({ page }) => {
+test("a bookmark's options: View in Bible, Edit its name and colour, Remove after asking", async ({ page }) => {
   await setup(page);
   await page.goto("/bookmarks");
   const options = (name: string) => page.locator(".bmitem", { hasText: name }).getByRole("button", { name: "Options", exact: true });
   await options("The beginning").click();
-  await expect(page.locator(".panel-action")).toHaveText(["View in the Bible", "Edit", "Delete"]);
+  await expect(page.locator(".panel-action")).toHaveText(["View in Bible", "Edit", "Remove"]);
   await page.locator(".panel-action", { hasText: "Edit" }).click();
   await page.getByRole("textbox", { name: "Bookmark name" }).fill("In the beginning");
   await page.getByRole("radio", { name: "#00b894" }).click();
@@ -67,18 +67,18 @@ test("a bookmark's options: View in the Bible, Edit its name and colour, Delete 
 
   page.once("dialog", (d) => void d.accept());
   await options("Comfort").click();
-  await page.locator(".panel-action", { hasText: "Delete" }).click();
+  await page.locator(".panel-action", { hasText: "Remove" }).click();
   await expect(names(page)).toHaveText(["In the beginning"]);
 
   await options("In the beginning").click();
-  await page.locator(".panel-action", { hasText: "View in the Bible" }).click();
+  await page.locator(".panel-action", { hasText: "View in Bible" }).click();
   await expect(page).toHaveURL(/\/read\/genesis\/1$/);
 });
 
 test("no bookmarks says so; Kept's old addresses lead to the Highlights and Notes screens", async ({ page }) => {
   await setup(page, []);
   await page.goto("/bookmarks");
-  await expect(page.getByText("No bookmarks...")).toBeVisible();
+  await expect(page.getByText("No bookmarks yet...")).toBeVisible();
   await page.goto("/bookmarks?tab=notes");
   await expect(page).toHaveURL(/\/notes$/);
   await expect(page.locator(".head h1")).toHaveText("Notes");
