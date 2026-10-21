@@ -1,39 +1,54 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router";
-import { data, type Book } from "@/api/data";
-import { usePlan } from "@/lib/marks";
-import { startPlan } from "@/lib/plan";
+import { useNavigate, useSearchParams } from "react-router";
+import { data } from "@/api/data";
+import { usePlan, useProgress, type Plan } from "@/lib/marks";
+import { cataloguePlan, filterPlans, normalizePlanFilters, PLAN_CATALOGUE, planCompletion, planDays } from "@/lib/plan";
 import { useBackButton } from "@/tg/hooks";
-import { confirm } from "@/tg/sdk";
-import { Screen, Icon } from "@/ui/ui";
-import { Button } from "@/ui/Button";
-import { StudyNotice } from "@/studies/controls";
-import "@/studies/studies.css";
+import { Feather } from "@/bible/icons";
+import { Sheet } from "@/bible/ui/Sheet";
+import { Empty, Icon, List, Row, Screen, SearchField, Section, Skeleton } from "@/ui/ui";
+import { useSheet } from "@/ui/sheet";
+import "./reading-plans.css";
 
-const plans: { name: string; description: string; select: (b: Book) => boolean }[] = [
-  { name: "Whole Bible with Apocrypha", description: "Read every book in the library’s order.", select: () => true },
-  { name: "New Testament", description: "Matthew through Revelation, in book order.", select: b => b.testament === "New Testament" },
-  { name: "Apocrypha", description: "The books included in the King James Apocrypha.", select: b => b.testament === "Apocrypha" },
-  { name: "Psalms and Proverbs", description: "Read through these two books, a chapter at a time.", select: b => ["psalms", "proverbs"].includes(b.slug) },
-  { name: "The Law", description: "Genesis, Exodus, Leviticus, Numbers and Deuteronomy.", select: b => ["genesis", "exodus", "leviticus", "numbers", "deuteronomy"].includes(b.slug) },
-];
 export function ReadingPlans() {
   useBackButton();
-  const navigate = useNavigate(), [plan, setPlan] = usePlan(), [pace, setPace] = useState(1), [selectedBook, setSelectedBook] = useState("");
+  const navigate = useNavigate(), sheet = useSheet();
+  const [plan] = usePlan(), [progress] = useProgress();
+  const [params, setParams] = useSearchParams();
+  const filters = normalizePlanFilters(params.get("search"), params.get("language"));
+  const setFilters = (patch: Partial<typeof filters>) => { const next = { ...filters, ...patch }; setParams({ ...(next.query ? { search: next.query } : {}), ...(next.language === "all" ? { language: "all" } : {}) }, { replace: true }); };
+  const [pace, setPace] = useState(1), [selectedBook, setSelectedBook] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
-  const start = async (name: string, selected: Book[]) => {
-    if (!selected.length || (plan && !await confirm(`Switch to ${name}? Your completed chapters stay marked; this plan starts on day one.`))) return;
-    setPlan({ ...startPlan(pace), name, books: selected.map(b => b.slug) }); navigate("/plan");
+  const activeCount = Number(!!filters.query.trim()) + Number(filters.language !== "en");
+  const openFilters = async () => {
+    const answer = await sheet.open({ title: "Filters", items: [{ id: "search", text: "Search", hint: filters.query || undefined, icon: <Feather name="search" size={20} /> }, { id: "language", text: "Language", hint: filters.language === "en" ? "English" : "All languages", icon: <Feather name="globe" size={20} /> }, ...(activeCount ? [{ id: "reset", text: "Reset" }] : [])] });
+    if (answer?.id === "search") setSearchOpen(true);
+    if (answer?.id === "reset") setParams({}, { replace: true });
+    if (answer?.id === "language") {
+      const choice = await sheet.open({ title: "Language", items: [{ id: "all", text: "All languages" }, { id: "en", text: "English" }] });
+      if (choice?.id === "all" || choice?.id === "en") setFilters({ language: choice.id });
+    }
   };
-  return <Screen title="Reading plans" className="study-screen"><div className="personal-study">
-    <div className="study-intro"><span className="study-eyebrow">Make time for the Word</span><h2>A little, every day.</h2><p>Choose a collection and a pace that fits your day. Your completed chapters stay marked when you change plans.</p></div>
-    {plan && <div className="plan-current"><p><span className="study-eyebrow">Your current plan</span><strong>{plan.name ?? "Whole Bible with Apocrypha"}</strong></p><Link className="study-text-link" to="/plan">Continue reading<Icon name="chevron" size={16} /></Link></div>}
-    <div className="plan-pace"><div><strong>Set your daily pace</strong><p>You can choose a different pace for your next plan.</p></div><label><span className="sr-only">Chapters each day</span><select value={pace} onChange={e => setPace(Number(e.target.value))}>{[1, 2, 4, 6].map(n => <option key={n} value={n}>{n} {n === 1 ? "chapter" : "chapters"} / day</option>)}</select></label></div>
-    {books.isError && <StudyNotice error>The book list could not be loaded. <Button appearance="plain" onClick={() => void books.refetch()}>Retry</Button></StudyNotice>}
-    <div className="study-section-heading"><h2>Choose your path</h2><span>KJV + Apocrypha</span></div>
-    <div className="plan-grid">{plans.map((p, i) => { const selected = (books.data ?? []).filter(p.select), count = selected.reduce((n, b) => n + b.chapterIds.length, 0); return <section className="plan-card" key={p.name}><span className="plan-card__icon"><Icon name={i === 0 ? "book-open" : i === 3 ? "quote" : i === 4 ? "law" : "book"} size={22} /></span><h3>{p.name}</h3><p>{p.description}</p><p className="plan-card__length">{count ? `${count.toLocaleString()} ${count === 1 ? "chapter" : "chapters"} · ${Math.ceil(count / pace).toLocaleString()} ${Math.ceil(count / pace) === 1 ? "day" : "days"}` : books.isError ? "Book list unavailable" : books.isPending ? "Loading books…" : "No books available in this collection"}</p><Button appearance="plain" disabled={!count} onClick={() => void start(p.name, selected)} aria-label={`Start ${p.name}`}>Start reading<Icon name="chevron" size={16} /></Button></section>; })}
-      <section className="plan-single"><h3>Study a single book</h3><p>Spend time in one book, from its first chapter to its last.</p><label>Choose a book<select value={selectedBook} onChange={e => setSelectedBook(e.target.value)}><option value="" disabled>Select a book</option>{books.data?.map(b => <option key={b.slug} value={b.slug}>{b.book}</option>)}</select></label><div className="study-toolbar"><Button appearance="plain" disabled={!selectedBook} onClick={() => { const b = books.data?.find(b => b.slug === selectedBook); if (b) void start(b.book, [b]); }}>Start this book<Icon name="chevron" size={16} /></Button></div></section>
+  const results = filterPlans(PLAN_CATALOGUE, filters);
+  const card = (item: NonNullable<Plan>, active: boolean) => {
+    const days = planDays(item, books.data ?? [], progress), complete = planCompletion(days);
+    return <div className="reading-catalogue__card" key={item.catalogId ?? item.name}>
+      <Row href={active ? "/plan" : `/plan?catalog=${encodeURIComponent(item.catalogId!)}&pace=${pace}`} leading={<span className="reading-catalogue__image"><Feather name="book-open" size={28} color="var(--bs-primary)" /></span>} title={item.name} sub={<><span className="reading-catalogue__duration">{active ? <span className="reading-catalogue__progress"><i style={{ width: `${days.length ? complete.completed / days.length * 100 : 0}%` }} /></span> : null}{active ? complete.finished ? "Journey completed" : `Day ${Math.min(complete.resume + 1, days.length)} of ${days.length}` : `${days.length} ${days.length === 1 ? "day" : "days"}`}</span><b>{active ? complete.finished ? "Read again" : "Continue my journey" : "Explore this plan"}</b></>} trailing={<Feather name="chevron-right" size={20} color="var(--bs-primary)" />} />
+    </div>;
+  };
+  return <Screen title="Reading plans" className="reading-catalogue" action={<button type="button" className="icon-btn" aria-label={activeCount ? `${activeCount} active filters` : "Filter"} onClick={() => void openFilters()}>{activeCount ? <span className="reading-catalogue__badge">{activeCount}<Feather name="chevron-down" size={13} /></span> : <Icon name="filter" size={20} />}</button>}>
+    <div className="reading-catalogue__content">
+      {books.isPending ? <Skeleton rows={4} /> : books.isError ? <Empty title="The book list could not be loaded." action={{ label: "Retry", onClick: () => void books.refetch() }} /> : <>
+        {plan ? <Section title="Your journeys">{card(plan, true)}</Section> : null}
+        <Section title="Discover">
+          <label className="reading-catalogue__pace">Chapters each day<select aria-label="Chapters each day" value={pace} onChange={e => setPace(+e.target.value)}>{[1, 2, 4, 6].map(n => <option key={n} value={n}>{n} {n === 1 ? "chapter" : "chapters"} / day</option>)}</select></label>
+          {!results.length ? <Empty title="No reading plans match these filters." /> : <><h3 className="reading-catalogue__language">English</h3><List>{results.map(entry => { const item = cataloguePlan(entry.id, books.data, pace)!; const current = !!plan && (plan.catalogId === entry.id || plan.name === entry.name); return card(current ? plan : item, current); })}</List></>}
+        </Section>
+        <Section title="Study a single book"><p>Spend time in one book, from its first chapter to its last.</p><label className="reading-catalogue__pace">Choose a book<select aria-label="Choose a book" value={selectedBook} onChange={e => setSelectedBook(e.target.value)}><option value="" disabled>Select a book</option>{books.data.map(b => <option key={b.slug} value={b.slug}>{b.book}</option>)}</select></label><button type="button" className="reading-catalogue__single" disabled={!selectedBook} onClick={() => navigate(`/plan?catalog=${encodeURIComponent(`book:${selectedBook}`)}&pace=${pace}`)}>Explore this plan<Feather name="chevron-right" size={20} /></button></Section>
+      </>}
     </div>
-  </div></Screen>;
+    <Sheet open={searchOpen} onClose={() => setSearchOpen(false)} title="Search" headerChildren={<div className="reading-catalogue__search"><SearchField id="plans-search" value={filters.query} onChange={query => setFilters({ query })} placeholder="Search" onSubmit={() => setSearchOpen(false)} autoFocus /></div>}><></></Sheet>
+  </Screen>;
 }
