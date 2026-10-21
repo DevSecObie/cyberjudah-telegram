@@ -8,6 +8,12 @@
   // invocation logs: their URLs would carry search words (/api/search?q=, /api/similar?q=).
   "observability": { "enabled": true, "logs": { "enabled": true, "invocation_logs": false } },
   "workers_dev": true,
+  // Smart Placement: the API's uncached calls make several round trips to D1, Vectorize and the
+  // data origin, so Cloudflare may run the Worker near those instead of near the reader when its
+  // own measurements show requests finish sooner. Static assets are still served from the
+  // reader's nearest location. It keeps 1% of requests unplaced to compare, and undoes itself if
+  // placement is slower. Staging inherits it. See docs/OPERATIONS.md, "Placement".
+  "placement": { "mode": "smart" },
   // The Mini App lives at cyberjudah.io/app: the SPA under /app, the API it calls under
   // /api, and the verse-card images and frames under /card and /frames. The rest of the
   // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev.

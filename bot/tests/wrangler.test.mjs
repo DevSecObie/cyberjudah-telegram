@@ -57,3 +57,8 @@ test("only staging exempts the release check's synthetic reader from the search 
   assert.equal(config.vars.SEARCH_AI_QUOTA_EXEMPT, "");
   assert.equal(config.env.staging.vars.SEARCH_AI_QUOTA_EXEMPT, "1");
 });
+
+test("the Worker runs under Smart Placement, in staging too, so D1-bound API calls run near their data", () => {
+  assert.deepEqual(config.placement, { mode: "smart" });
+  assert.equal(config.env.staging.placement, undefined, "staging inherits the same setting");
+});

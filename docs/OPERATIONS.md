@@ -142,6 +142,26 @@ you do not have.
 - **Quotas**: `takeQuota()` in D1 is atomic per user/day; `rate_counts` rows for old days
   are swept on use, so the table stays small.
 
+## Placement
+
+The Worker runs under Smart Placement (`placement.mode = "smart"` in `bot/wrangler.jsonc`, inherited
+by staging). An uncached API call makes several round trips to D1, Vectorize, Workers AI or the data
+origin, so running the Worker near them can be faster than running it near the reader. Cloudflare
+decides from its own measurements after about 15 minutes of traffic from several locations:
+
+- It keeps 1% of requests unplaced as a baseline, and reverts placement if placed requests are slower.
+- Static assets (`/app`) are always served from the reader's nearest location. The `/app/strong`
+  pages, `/card`, `/frames` and the edge-cached API answers run in the Worker, so they are served
+  from wherever the Worker is placed. That location's cache is shared by every reader routed there.
+- The `cf-placement` response header shows each request's placement: `remote-XXX` (placed, near
+  airport XXX) or `local-XXX` (not placed). Cloudflare may remove this header later.
+- The placement status is on the dashboard (Workers & Pages → the Worker → Settings → General →
+  Placement) and in `GET /accounts/:account/workers/services/:name`: `SUCCESS`,
+  `INSUFFICIENT_INVOCATIONS` (staging, usually) or `UNSUPPORTED_APPLICATION` (reverted as slower).
+- Judge it on the Worker's request-duration percentiles (p50/p95) in Workers metrics, before and
+  after. If p95 for readers gets worse, remove the `placement` block and deploy; nothing else
+  depends on it.
+
 ## Incident priorities
 
 - P0: credential exposure, unauthorized data access, destructive corruption, or widespread payment abuse
