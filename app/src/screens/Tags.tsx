@@ -14,7 +14,7 @@ import { subscribeStudies } from "@/studies/storage";
 import { Empty, Icon, List, Row, Screen, SearchField, Section } from "@/ui/ui";
 import { useSheet } from "@/ui/sheet";
 import { DEFAULT_TAG_QUERY, TAG_SORTS, itemsForTag, normalizeTagQuery, queryTags, type TaggedItem } from "@/lib/tag-list";
-import { deleteTagEverywhere, readTagInventory } from "@/lib/tag-storage";
+import { deleteTagEverywhere, readTagInventory, saveTagDefinition } from "@/lib/tag-storage";
 import { parseVerseKey } from "@/lib/relations";
 import { timeAgo } from "./tab-groups";
 import "./tags.css";
@@ -37,7 +37,7 @@ function useTagInventory() {
 }
 
 function useTagActions(onDeleted?: () => void) {
-  const [tags, setTags] = useTags();
+  const [, , ready] = useTags();
   const sheet = useSheet();
   const client = useQueryClient();
   const [error, setError] = useState("");
@@ -45,8 +45,11 @@ function useTagActions(onDeleted?: () => void) {
     const answer = await sheet.open({ title: tag ? "Rename tag" : "New tag", text: { label: "Tag name", value: tag?.name, submit: "Save" } });
     if (answer?.id !== "text" || !answer.value?.trim()) return;
     const id = tag?.id ?? `t_${uuid()}`;
-    setTags({ ...tags, [id]: { id, name: answer.value.trim(), date: tag?.date ?? Date.now() } });
-    haptic("success");
+    try {
+      setError("");
+      await saveTagDefinition(id, answer.value.trim(), !tag);
+      haptic("success");
+    } catch { setError("This tag could not be saved. Try again."); }
   };
   const options = async (tag: Tag) => {
     const answer = await sheet.open({ title: tag.name, items: [{ id: "edit", text: "Edit", icon: <Feather name="edit-3" size={18} /> }, { id: "delete", text: "Remove", icon: <Feather name="trash-2" size={18} />, destructive: true }] });
@@ -61,7 +64,7 @@ function useTagActions(onDeleted?: () => void) {
       haptic("success"); onDeleted?.();
     } catch { setError("This tag could not be deleted. Try again."); }
   };
-  return { edit, options, error };
+  return { edit, options, error, ready };
 }
 
 /** 27.2.0 TagsScreen: search, name/count sorting and counts for supported tagged kinds. */
@@ -98,7 +101,7 @@ export function Tags() {
         <Row href={`/tags/${row.id}`} title={row.title} sub={<span className="tag-screen__chips">{Object.entries(row.counts).filter(([, count]) => count > 0).map(([kind, count]) => <span key={kind}>{count} {count === 1 ? kind.slice(0, -1) : kind}</span>)}</span>} trailing={<></>} />
         <button type="button" className="tag-screen__options" aria-label={`Options for ${row.title}`} onClick={() => void actions.options(row.tag)}><Feather name="more-vertical" size={18} /></button>
       </div>)}</List>}
-    <button type="button" className="tag-screen__add" aria-label="Add tag" title="Add tag" onClick={() => void actions.edit()}><Feather name="plus" size={24} /></button>
+    <button type="button" className="tag-screen__add" aria-label="Add tag" title="Add tag" disabled={!actions.ready} onClick={() => void actions.edit()}><Feather name="plus" size={24} /></button>
   </Screen>;
 }
 
