@@ -18,15 +18,17 @@ export function reportVitals() {
     metrics[m.name as VitalName] = m.name === "CLS" ? Math.round(m.value * 1000) / 1000 : Math.round(m.value);
     nav = m.navigationType;
   };
+  // A page brought back from the back-forward cache is measured again as a new visit.
+  addEventListener("pageshow", (e) => { if (e.persisted) sent.clear(); });
   for (const on of [onTTFB, onFCP, onLCP, onINP, onCLS]) on(keep);
   const flush = () => {
     if (document.visibilityState !== "hidden" || Object.keys(metrics).length === 0) return;
     const conn = (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType;
     const report: VitalsReport = { area: where, platform, nav, ...(conn && conn !== "unknown" ? { conn } : {}), metrics: { ...metrics } };
-    // text/plain keeps the beacon a simple request, so the native apps' cross-origin send needs no preflight.
-    if (navigator.sendBeacon?.(apiURL("/api/vitals"), new Blob([JSON.stringify(report)], { type: "text/plain" }))) {
-      for (const name of Object.keys(metrics)) { sent.add(name); delete metrics[name as VitalName]; }
-    }
+    // keepalive lets the report outlive the page as a beacon would, but without cookies. A string
+    // body is text/plain, a simple request, so the native apps' cross-origin send needs no preflight.
+    void fetch(apiURL("/api/vitals"), { method: "POST", body: JSON.stringify(report), keepalive: true, credentials: "omit" }).catch(() => undefined);
+    for (const name of Object.keys(metrics)) { sent.add(name); delete metrics[name as VitalName]; }
   };
   document.addEventListener("visibilitychange", flush);
   addEventListener("pagehide", flush);

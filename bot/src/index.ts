@@ -531,14 +531,18 @@ app.post("/api/share", async (c) => {
   }
 });
 
-// "Report this answer" (report.mjs): which answer and why, to the admins; never its text or who
-// reported it. A few a day per reader, so it cannot be used to flood the admins.
+const VITALS_MAX_BYTES = 2048;
+
 // Core Web Vitals from readers' devices (shared/vitals.mjs, docs/PRIVACY.md "Speed measurements").
 // The network address only feeds Cloudflare's rate limiter; it is not written anywhere.
 app.post("/api/vitals", async (c) => {
-  const text = await c.req.text();
+  // A report is a few hundred bytes; anything that does not say it is small is refused unread.
+  const size = Number(c.req.header("content-length"));
+  if (!Number.isInteger(size) || size > VITALS_MAX_BYTES) return c.body(null, 413);
+  const bytes = await c.req.arrayBuffer();
+  if (bytes.byteLength > VITALS_MAX_BYTES) return c.body(null, 413);
   let body: unknown = null;
-  try { body = text.length <= 2048 ? JSON.parse(text) : null; } catch { /* refused below */ }
+  try { body = JSON.parse(new TextDecoder().decode(bytes)); } catch { /* refused below */ }
   const points = vitalsPoints(body);
   if (!points) return c.body(null, 400);
   const limited = await c.env.VITALS_LIMIT?.limit({ key: c.req.header("cf-connecting-ip") ?? "unknown" }).then(r => !r.success, () => false);
@@ -547,6 +551,8 @@ app.post("/api/vitals", async (c) => {
   return c.body(null, 204);
 });
 
+// "Report this answer" (report.mjs): which answer and why, to the admins; never its text or who
+// reported it. A few a day per reader, so it cannot be used to flood the admins.
 app.post("/api/report", async (c) => {
   const text = reportMessage(await c.req.json().catch(() => null));
   if (!text) return c.json({ ok: false, error: "bad-request" }, 400);
