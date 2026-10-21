@@ -135,7 +135,7 @@ function useSections(scope: Scope, active: boolean, text: string, settled: strin
     case "strong": return one({ id: "strong", title: "Strong", ...strongs }, strongs.loading || text !== settled, strongs.failed);
     case "nave": return one({ id: "nave", title: "Nave", ...topics }, topics.loading || text !== settled, topics.failed);
     case "dictionary": return one({ id: "dictionary", title: "Dictionary", ...dictionary }, dictionary.loading || text !== settled, dictionary.failed);
-    case "study": return one({ id: "studies", title: "Studies", items: studies });
+    case "study": return one({ id: "studies", title: "Studies", items: studies.items }, studies.loading);
     case "notes": return one({ id: "notes", title: "Notes", items: notes.items }, notes.loading);
     case "timeline": return one({ id: "timeline", title: "Timeline", items: timeline });
   }
@@ -153,7 +153,7 @@ function usePassages(enabled: boolean, text: string, words: string, books: Book[
       if (!response.ok) throw new Error("Scripture search is unavailable.");
       return response.json() as Promise<{ results: { book: number; chapter: number; verse: number; text: string }[]; count: number }>;
     },
-    getNextPageParam: (last, pages) => { const loaded = pages.reduce((n, p) => n + p.results.length, 0); return last.results.length && loaded < last.count ? loaded : undefined; },
+    getNextPageParam: (last, pages) => { const loaded = pages.reduce((n, p) => n + p.results.length, 0); return last.results.length > 0 && loaded < last.count ? loaded : undefined; },
   });
   const items: Item[] = [];
   if (ref) items.push({ id: `reference:${ref.slug}:${ref.chapter}:${ref.verse ?? ""}`, kind: "passages", title: ref.label, path: `/read/${ref.slug}/${ref.chapter}${ref.verse ? `?v=${ref.verse}${ref.verseEnd ? `-${ref.verseEnd}` : ""}` : ""}` });
@@ -167,7 +167,7 @@ function usePassages(enabled: boolean, text: string, words: string, books: Book[
 
 /** Strong's words under the letter, by meaning, or found by number or word; twenty at a time. */
 function useStrongs(enabled: boolean, settled: string, letter: string) {
-  const idx = useStrongsIndex();
+  const idx = useStrongsIndex(enabled);
   const [limit, setLimit] = useState(PAGE);
   useEffect(() => setLimit(PAGE), [settled, letter]);
   const rows = useMemo(() => enabled ? findStrongs(idx.data ?? [], idx.data ?? [], settled, letter) : [], [enabled, idx.data, settled, letter]);
@@ -204,21 +204,21 @@ function useDictionary(enabled: boolean, settled: string, letter: string) {
 /** The reader's studies, last changed first, or those matching what is typed. */
 function useStudies(enabled: boolean, text: string) {
   const [studies, setStudies] = useState<Study[]>([]);
+  const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     if (!enabled) return;
-    const load = () => void listStudies().then(setStudies);
+    const load = () => void listStudies().then(setStudies).catch(() => undefined).finally(() => setLoaded(true));
     load();
     return subscribeStudies(load);
   }, [enabled]);
   const items: Item[] = studies.map((s) => ({ id: `study:${s.id}`, kind: "studies", title: s.title || "Untitled study", subtitle: "Study",
     description: s.blocks.map((b) => ("text" in b ? b.text : "reference" in b ? b.reference : "")).filter(Boolean).join(" ") || undefined, path: `/studies/${s.id}` }));
-  return text ? searchWithMatches(items, text) : items;
+  return { items: text ? searchWithMatches(items, text) : items, loading: !loaded };
 }
 
 /** The reader's verse notes, newest first, or those matching what is typed; each opens at its verse. */
 function useNotes(enabled: boolean, text: string) {
-  const all = useAllNotes();
-  useEffect(() => { if (enabled) all.reload(); }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  const all = useAllNotes(enabled);
   const items: Item[] = all.rows.map((n) => ({ id: `note:${n.slug}/${n.chapter}/${n.key}`, kind: "notes", title: n.note.title || "Untitled note", subtitle: "Note",
     description: n.note.description || undefined, path: `/read/${n.slug}/${n.chapter}?v=${n.key.split("/")[0]}` }));
   return { items: text ? searchWithMatches(items, text) : items, loading: !all.loaded };
