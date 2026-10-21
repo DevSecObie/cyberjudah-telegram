@@ -326,27 +326,26 @@ test("the book picker changes the chapter in place, so Back from it does not ste
   await expect(page).toHaveURL(/\/more$/);
 });
 
-test("search applies filters on the server, pages, sorts, and preserves a typed verse range", async ({ page }) => {
+test("search applies filters on the server, sorts, and preserves a typed verse range", async ({ page }) => {
   const queries: URLSearchParams[] = [];
   await page.route("**/bs/v1/bibles/KJV/search?*", r => {
     const q = new URL(r.request().url()).searchParams; queries.push(q);
-    const offset = Number(q.get("offset")), book = Number(q.get("book") || (q.get("section") === "apoc" ? 72 : 1));
-    return r.fulfill({ json: { count: 52, results: Array.from({ length: offset ? 2 : 50 }, (_, i) => ({ book, chapter: Math.floor((i + offset) / 31) + 1, verse: (i + offset) % 31 + 1, text: `God created ${offset + i}` })) } });
+    const offset = Number(q.get("offset")), limit = Number(q.get("limit")), book = Number(q.get("book") || (q.get("section") === "apoc" ? 72 : 1));
+    return r.fulfill({ json: { count: 52, results: Array.from({ length: Math.min(limit, 52 - offset) }, (_, i) => ({ book, chapter: Math.floor((i + offset) / 31) + 1, verse: (i + offset) % 31 + 1, text: `God created ${offset + i}` })) } });
   });
   await page.goto("/read/genesis/1"); await menu(page, "Search the Scriptures");
   const sheet = page.getByRole("dialog", { name: "Search the Scriptures", exact: true });
   await sheet.getByRole("searchbox").fill("God created");
-  await expect(sheet.locator(".bs-search__hit")).toHaveCount(50);
-  await sheet.getByRole("button", { name: "More verses" }).click();
-  await expect(sheet.locator(".bs-search__hit")).toHaveCount(52);
+  // Paging is Bible Strong's scroll-to-load, covered in reader-search.spec.ts.
+  await expect(sheet.locator(".bs-search__hit").first()).toBeVisible();
   await sheet.getByLabel("One book").selectOption("john");
   await expect(sheet.locator(".bs-search__hit").first()).toContainText("John");
-  expect(queries.at(-1)?.get("book")).toBe("43"); expect(queries.at(-1)?.get("offset")).toBe("0");
+  expect(queries.some((q) => q.get("book") === "43" && q.get("offset") === "0")).toBe(true);
   await sheet.getByRole("button", { name: "Apocrypha", exact: true }).click();
   await expect(sheet.locator(".bs-search__hit").first()).toContainText("Wisdom of Solomon");
-  expect(queries.at(-1)?.get("section")).toBe("apoc");
+  expect(queries.some((q) => q.get("section") === "apoc")).toBe(true);
   await sheet.getByLabel("Result order").selectOption("book");
-  await expect.poll(() => queries.at(-1)?.get("sortOrder")).toBe("book");
+  await expect.poll(() => queries.some((q) => q.get("sortOrder") === "book")).toBe(true);
   await sheet.getByRole("searchbox").fill("John 3:16-18");
   await sheet.getByRole("button", { name: /Go to John 3:16-18/ }).click();
   await expect(page).toHaveURL(/\/read\/john\/3\?v=16-18/);
