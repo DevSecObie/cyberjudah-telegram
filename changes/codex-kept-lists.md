@@ -1,0 +1,1 @@
+- Highlights now include word marks, with color, tag, type, testament and book filters and Bible ordering. Notes and highlights remember their filters. Bookmark options offer View in Bible, Edit and confirmed removal using the existing bookmark editor.

@@ -1,0 +1,26 @@
+.kept-screen { gap: 0; padding-bottom: 70px; }
+.kept-screen > .seg { margin: 10px 0; }
+.kept-screen > .list { margin-inline: calc(-1 * var(--gutter)); }
+#root .kept-screen .list { border-radius: 0; box-shadow: none; background: none; }
+.kept-screen__filter { display: flex; align-items: center; justify-content: center; width: 58px; height: 48px; padding: 0; border: 0; background: none; color: var(--bs-default); }
+.kept-screen__filter > span { display: flex; align-items: center; justify-content: center; min-width: 50px; height: 22px; border-radius: 13px; background: var(--bs-primary); color: var(--bs-reverse); font-size: 14px; font-weight: 700; }
+.kept-screen__filter > span > svg:last-child { margin-left: 6px; padding-left: 4px; box-sizing: content-box; border-left: 2px solid var(--bs-reverse); }
+.kept-screen__bookmark { display: flex; align-items: center; margin: 0 20px; border-bottom: 1px solid var(--bs-border); }
+#root .kept-screen .kept-screen__bookmark > .row { flex: 1; min-width: 0; padding: 10px 0; min-height: 54px; }
+.kept-screen__bookmark .row__title { font-weight: 700; }
+.kept-screen__bookmark .row__sub { font-size: 14px; margin-top: 4px; }
+.kept-screen__options { flex: none; display: grid; place-items: center; width: 54px; height: 54px; margin-right: -20px; padding: 0; border: 0; background: none; color: var(--bs-default); }
+.kept-screen__highlight { margin: 20px 20px 0; padding-bottom: 20px; border-bottom: 1px solid var(--bs-border); }
+#root .kept-screen .kept-screen__highlight > .row { padding: 0; min-height: 0; }
+.kept-screen__reference { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 400; margin-bottom: 10px; }
+.kept-screen__reference i { flex: none; width: 15px; height: 15px; border-radius: 3px; }
+.kept-screen__reference i[data-style="underline"] { border-bottom: 2px solid; border-radius: 0; }
+.kept-screen__reference i[data-style="circle"] { border: 2px solid; border-radius: 50%; background: transparent !important; }
+.kept-screen__reference small { margin-left: auto; font-size: 10px; color: var(--bs-tertiary); }
+.kept-screen__highlight .row__sub { font-size: 14px; color: var(--bs-default); }
+.kept-screen__tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 15px; }
+.kept-screen__tags > span { padding: 3px 7px; border-radius: 20px; background: var(--bs-border); font-size: 10px; }
+#root .kept-screen .kept-screen__note > .row { padding: 20px; border-bottom: 1px solid var(--bs-border); }
+.kept-screen__note .row__meta { font-size: 11px; font-weight: 700; color: var(--bs-dark-grey); }
+.kept-screen__note .row__title { font-size: 17px; }
+.kept-screen__search { padding: 10px 20px; }
