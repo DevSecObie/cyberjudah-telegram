@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router";
 import { app, features, haptic, has } from "./sdk";
 import { UnderSheetContext, sheetStep } from "@/ui/sheetRoute";
 import { json, store } from "./store";
+import { useTabFloor } from "@/lib/tabs";
 
 /**
  * React hooks over the SDK. Buttons are declared by the screen that owns them and cleaned up
@@ -60,7 +61,9 @@ export function useBackButton(onBack?: () => boolean | void, pending = false, hi
   const root = isRootPath(pathname);
   const handler = useRef(onBack);
   handler.current = onBack;
-  const canGoBack = (window.history.state?.idx ?? 0) > 0;
+  // Back stays in the current tab, as Bible Strong's: never below the page the tab was entered on.
+  const floor = useTabFloor();
+  const canGoBack = (window.history.state?.idx ?? 0) > floor;
   const sheets = useSheetsOpen();
   const underSheet = useContext(UnderSheetContext);
   useEffect(() => {

@@ -9,7 +9,7 @@ import { Route, Routes, useLocation, useNavigate, useNavigationType } from "reac
 import { RouteSheet, useSheetEntry } from "@/ui/routeSheet";
 import { UnderSheetContext } from "@/ui/sheetRoute";
 import { initialLaunchPath } from "@/tg/launch.mjs";
-import { isTabPath, keptPath, recordPath } from "@/lib/tabs";
+import { isTabPath, keptPath, recordPath, settleTabFloor } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -170,8 +170,9 @@ export function App() {
     const prev = prevPath.current, idx = historyIdx();
     if (navType === "PUSH" && !isOver(idx) && prev !== null && (!isTabPath(prev) || isOver(idx - 1))) markOver(idx);
     if (!isOver(idx)) recordPath(path);
+    settleTabFloor(idx, navType !== "PUSH");
     prevPath.current = path;
-  }, [location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.key, location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
   const navigate = useNavigate();
   useSettingsButton();
 

@@ -6,7 +6,7 @@ import { Cell, Chip as TgChip, Placeholder, Section as TgSection, SegmentedContr
 import { toAppPath } from "@shared/links.mjs";
 import { haptic } from "@/tg/sdk";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
-import { adjacentTab, askTabPath, bibleTabPath, classesTabPath, currentTab, kindTabIndex, searchTabPath, useTabs } from "@/lib/tabs";
+import { adjacentTab, askTabPath, bibleTabPath, classesTabPath, currentTab, kindTabIndex, searchTabPath, settleTabFloor, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { useReaderFullscreen } from "@/bible/session";
 import { contrastInk, SwitcherBar } from "@/screens/Tabs";
@@ -63,8 +63,10 @@ export function TabBar() {
     // A page over the tab is left for the tab even when its path is the same.
     const wasOver = isOver(historyIdx());
     moveTab(() => {
+      const before = currentTab()?.id;
       const target = typeof to === "function" ? to() : to;
-      if (target === pathname + search && !wasOver) return false;
+      // Another tab on the same page still starts its own Back here.
+      if (target === pathname + search && !wasOver) { settleTabFloor(historyIdx(), currentTab()?.id !== before); return false; }
       navigate(target, { replace: true });
     }, overview ? "overview" : "slide", undefined, dir);
   };
