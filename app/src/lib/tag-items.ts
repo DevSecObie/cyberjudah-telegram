@@ -9,10 +9,10 @@ import { parseVerseKey } from "./relations";
  * we have (highlights, notes, links and word marks). A highlight made at one moment over several
  * verses is one highlight, as Bible Strong counts them; a word mark over several verses is one mark.
  */
-export type TaggedHighlight = { date: number; verses: { slug: string; chapter: number; verse: number }[] };
+export type TaggedHighlight = { date: number; color: string; tags?: Record<string, true>; verses: { slug: string; chapter: number; verse: number }[] };
 export type TaggedNote = { slug: string; chapter: number; key: string; note: Note };
 export type TaggedLink = { slug: string; chapter: number; key: string; link: Link };
-export type TaggedMark = { id: string; verseKeys: string[]; quote: string };
+export type TaggedMark = { id: string; verseKeys: string[]; quote: string; date: number; color?: string; style: Annotation["style"]; tags?: Record<string, true> };
 export type TagData = { highlights: TaggedHighlight[]; notes: TaggedNote[]; links: TaggedLink[]; wordAnnotations: TaggedMark[] };
 /** Bible Strong's TagEntityCounts for the kinds we have, and its itemCount (every tagged verse, note, link and mark). */
 export type TagCounts = { highlights: number; notes: number; links: number; wordAnnotations: number; itemCount: number };
@@ -31,7 +31,7 @@ export async function loadTagData(): Promise<Record<string, TagData & { highligh
     if (h) {
       for (const [v, hl] of Object.entries(await json.get<Record<string, Highlight>>(k, {}))) for (const id of Object.keys(hl.tags ?? {})) {
         const at = `${id}:${hl.date}`;
-        if (!byDate.has(at)) { const item = { date: hl.date, verses: [] }; byDate.set(at, item); of(id).highlights.push(item); }
+        if (!byDate.has(at)) { const item: TaggedHighlight = { date: hl.date, color: hl.color, tags: hl.tags, verses: [] }; byDate.set(at, item); of(id).highlights.push(item); }
         byDate.get(at)!.verses.push({ ...h, verse: +v });
         of(id).highlightVerses++;
       }
@@ -46,7 +46,8 @@ export async function loadTagData(): Promise<Record<string, TagData & { highligh
   for (const a of await allAnnotations().catch(() => [] as Annotation[])) marks.set(markId(a), [...(marks.get(markId(a)) ?? []), a]);
   for (const [id, records] of marks) {
     const tags = new Set(records.flatMap((r) => Object.keys(r.tags ?? {})));
-    for (const t of tags) of(t).wordAnnotations.push({ id, verseKeys: records.map((r) => r.verseKey), quote: records.map((r) => r.quote).join(" ") });
+    const first = records[0];
+    for (const t of tags) of(t).wordAnnotations.push({ id, verseKeys: records.map((r) => r.verseKey), quote: records.map((r) => r.quote).join(" "), date: Date.parse(first.created) || 0, color: first.color, style: first.style, tags: Object.fromEntries([...tags].map((x) => [x, true as const])) });
   }
   for (const d of Object.values(out)) d.highlights.sort((a, b) => b.date - a.date);
   return out;

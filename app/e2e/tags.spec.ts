@@ -82,3 +82,42 @@ test("+ adds a tag, and an empty search says so", async ({ page }) => {
   await page.getByRole("searchbox", { name: "Search" }).fill("qqqq");
   await expect(page.getByText('No results found for "qqqq"')).toBeVisible();
 });
+
+test("a tag's page lists what it carries in sections that open when tapped", async ({ page }) => {
+  await seed(page);
+  await page.goto("/tags/t1");
+  const highlights = page.getByRole("button", { name: /^Highlights\s*1$/ });
+  const notes = page.getByRole("button", { name: /^Notes\s*1$/ });
+  await expect(highlights).toHaveAttribute("aria-expanded", "false");
+  await expect(notes).toBeVisible();
+  await expect(page.locator(".tagd-item")).toHaveCount(0);
+  await highlights.click();
+  const item = page.locator(".tagd-item--verse");
+  await expect(item.locator(".tagd-item__ref")).toContainText("1:1-2");
+  await expect(item.locator(".tagd-item__head small")).toContainText("ago");
+  await expect(item.locator(".tagd-chip")).toHaveText(["Light"]);
+  await notes.click();
+  await expect(page.locator(".tagd-item--note .tagd-item__title")).toHaveText("Light was the first");
+  await expect(page.locator(".tagd-item--note .tagd-item__meta")).toContainText("1:3 - ");
+  // A highlight opens the reader at its verses.
+  await item.locator(".tagd-item__open").click();
+  await expect(page).toHaveURL(/\/read\/genesis\/1\?v=1-2$/);
+
+  await page.goto("/tags/t2");
+  await page.getByRole("button", { name: /^Links\s*1$/ }).click();
+  await expect(page.locator(".tagd-item--link .tagd-link__title")).toHaveText("A link");
+  await expect(page.locator(".tagd-item--link .tagd-link__url")).toHaveText("https://example.com");
+  await page.goto("/tags/t3");
+  await expect(page.getByText("You have not recorded anything with this label ...")).toBeVisible();
+});
+
+test("a tag's page never shows the empty message while what it carries is read", async ({ page }) => {
+  await page.addInitScript(() => {
+    new MutationObserver(() => { if (document.body?.textContent?.includes("You have not recorded anything")) (window as unknown as { __emptySeen: boolean }).__emptySeen = true; })
+      .observe(document, { subtree: true, childList: true, characterData: true });
+  });
+  await seed(page);
+  await page.goto("/tags/t1");
+  await expect(page.getByRole("button", { name: /^Highlights/ })).toBeVisible();
+  expect(await page.evaluate(() => (window as unknown as { __emptySeen?: boolean }).__emptySeen ?? false)).toBe(false);
+});
