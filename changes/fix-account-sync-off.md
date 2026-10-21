@@ -1,0 +1,1 @@
+- Account sync stays off in the production app until the Firebase web API key is restricted (docs/PRODUCTION_CHECKLIST.md §2), as the privacy notice says. Staging keeps it on.
