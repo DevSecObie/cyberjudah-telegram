@@ -26,6 +26,7 @@ const ROUTES: [RegExp, Kind][] = [
   [/^\/timeline\/event\/[^/]+$/, EXPLORE],
   [/^\/lexicon\/[^/]+$/, STRONG],
   [/^\/person\/[^/]+$/, STRONG],
+  [/^\/place\/[^/]+$/, STRONG],
 ];
 export const sheetKind = (path: string) => ROUTES.find(([re]) => re.test(path))?.[1];
 

@@ -182,7 +182,7 @@ export function kindTabIndex(kind: keyof typeof KIND_PATH): number {
 /** A tab's name and kind from its path, for the switcher's cards. */
 const KINDS: [RegExp, string, string][] = [
   [/^\/new/, "New tab", "compose"], [/^\/(bible|read)/, "Bible", "book-open"], [/^\/search/, "Search", "search"], [/^\/lexicon/, "Strong", "spark"],
-  [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/(classes|note|watch)/, "Classes", "play"],
+  [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/place\//, "Places", "map-pin"], [/^\/(classes|note|watch)/, "Classes", "play"],
   [/^\/history/, "Recently viewed", "history"], [/^\/timeline/, "Bible timeline", "clock"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],
   [/^\/precepts/, "Precepts", "quote"], [/^\/cases/, "Case studies", "folder"], [/^\/plans/, "Reading plans", "check"], [/^\/plan/, "Reading plan", "check"], [/^\/studies/, "My studies", "compose"], [/^\/study/, "4 Chapters a Day", "book"],
   [/^\/(bookmarks|tags)/, "Kept", "bookmark"], [/^\/ask/, "Ask CyberJudah", "chat"], [/^\/relations/, "Your precepts", "precepts"], [/^\/sabbath/, "Sabbath", "sun"], [/^\/settings/, "Settings", "gear"],

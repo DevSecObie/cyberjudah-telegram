@@ -67,10 +67,13 @@ export type PersonRef = { id: string; name: string; image?: Person["image"] };
 export type Person = { image?: { src: string; caption: string; credit: string; license: string; sourceUrl: string }; id: string; name: string; names: string[]; description: string; type: string; tribe: string; father: PersonRef[]; mother: PersonRef[]; siblings: PersonRef[]; partners: PersonRef[]; children: PersonRef[]; verses: string[]; taught: { verse: string; url: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number }[]; source: { name: string; license: string; url: string }; cases?: PersonCase[] };
 /** A case study that names a person: its title says who, and they are named in its scripture. */
 export type PersonCase = { slug: string; name: string; url: string; era: string; kind: "judgment" | "blessing"; verdict: string; verdictLabel: string; charge: string; preview: string };
+/** A place of the Bible (STEPBible TIPNR): its KJV names, region, Strong's numbers and every verse naming it. */
+export type PlaceIndexRow = { id: string; name: string; names: string[]; region: string; verses: number; first: string };
+export type Place = { id: string; name: string; names: string[]; region: string; coords: [number, number] | null; strongs: string[]; verses: string[]; source: { name: string; license: string; url: string } };
 export type PersonIndexRow = { id: string; name: string; names: string[]; description: string; verses: number; first: string; type?: string };
 /** A moment a class read this verse aloud, found in its transcript: the recording at that second, and the note if the class has one. */
 export type Reading = { video: string; t: number; ts: string; title: string; date: string; teacher: string; url?: string };
-export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[]; commentary?: VerseComment[]; people?: Record<string, string[]>; read?: Record<string, Reading[]> };
+export type Concordance = { book: string; chapter: number; cited_by: Citation[]; precepts?: TaughtPrecept[]; notes?: VerseNote[]; moments?: ClassMoment[]; commentary?: VerseComment[]; people?: Record<string, string[]>; places?: Record<string, string[]>; read?: Record<string, Reading[]> };
 export type NoteRow = { kind: "study" | "class" | "captains" | "history" | "encyclopedia"; title: string; url: string; book?: string | null; chapters?: [number, number] | null; range?: string; date?: string | null; year?: string; series?: string; teacher?: string; topics?: string[]; summary?: string; videoId?: string | null };
 export type Note = NoteRow & { body: string; file?: string | null; books?: BookRead[] };
 /** A public-domain book the classes read from (data/library), and the moments they read it. */
@@ -119,6 +122,8 @@ export const data = {
   books: () => get<Book[]>("/api/kjv/books.json").then(orderApocrypha),
   person: (id: string) => get<Person>(`/api/people/${id}.json`),
   people: () => get<PersonIndexRow[]>("/api/people/index.json"),
+  place: (id: string) => get<Place>(`/api/places/${id}.json`),
+  places: () => get<PlaceIndexRow[]>("/api/places/index.json"),
   library: () => get<LibraryRow[]>("/api/library/index.json"),
   strongs: async (n: string, pinned?: string | null): Promise<StrongsEntry> => {
     const release = pinned === undefined ? await resourceRelease("strongs") : pinned;
