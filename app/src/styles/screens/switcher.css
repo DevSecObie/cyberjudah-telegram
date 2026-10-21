@@ -1,19 +1,48 @@
 /* ── Tabs: the New Tab page, the switcher and the dock's editor ────────────────────────────── */
-.newtab .shelf { font-family: var(--font-ui); font-weight: 700; }
-.nt-heading { margin: var(--sp-4) 0 4px; text-align: center; font: 700 var(--fs-title1)/1.25 var(--font-ui); letter-spacing: -.02em; color: var(--text-1); }
+/* Bible Strong's NewTabScreen: the light grey page, 24 px at the sides, the top inset and 44 above,
+   the bar and 40 below, the content at most 800 wide. NewTabContent switches on its own width:
+   compact under 660, cards side by side from 580. */
+html:has(.newtab) body { background: var(--surface-1); }
+#root .newtab { display: block; max-width: 800px; padding: calc(var(--safe-top) + 44px) calc(24px + var(--safe-right)) 16px calc(24px + var(--safe-left)); background: var(--surface-1); }
+.newtab__content { container: newtab / inline-size; }
+.nt-heading { margin: 0 0 28px; text-align: center; font: 700 28px/36px var(--font-ui); color: var(--bs-default, var(--text-1)); }
+.ntsection { position: relative; z-index: 1; display: flex; align-items: center; min-height: 32px; margin-bottom: 10px; }
+.ntsection[data-image] { padding-right: 102px; }
+.ntsection h2 { flex: 0 1 auto; min-width: 0; margin: 0; font: 700 23px/30px var(--font-ui); color: var(--bs-default, var(--text-1)); }
+.ntsection__art { position: absolute; right: 0; bottom: -22px; width: 90px; height: 110px; object-fit: contain; object-position: bottom; pointer-events: none; }
+/* NewTabItem: on the page colour with Bible Strong's blue shadow, dimmed to .7 while pressed. */
+#root .ntcard { position: relative; display: flex; align-items: center; gap: 14px; box-sizing: border-box; width: 100%; min-height: 92px; padding: 18px; border: 0; border-radius: 18px; background: var(--canvas); box-shadow: 0 2px 7px rgba(89, 131, 240, .1); color: var(--bs-default, var(--text-1)); text-align: left; cursor: pointer; transition: opacity .25s; }
+#root .ntcard:active { opacity: .7; transition-duration: .15s; }
+.ntcard__row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; }
+.ntcard__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.ntcard__body b { font: 500 16px var(--font-ui); }
+.ntcard__body small { font: 400 13px/19px var(--font-ui); color: var(--bs-tertiary, var(--text-3)); }
+.ntcard > svg { flex: none; position: relative; color: var(--bs-tertiary, var(--text-3)); }
+#root .ntcard--hero { overflow: hidden; gap: 0; min-height: 180px; padding: 24px; }
+.ntcard--hero .ntcard__row { position: relative; z-index: 1; align-items: flex-start; gap: 24px; padding-right: 82px; }
+.ntcard--hero .ntcard__body b { font-size: 36px; }
+.ntcard__art { position: absolute; right: 24px; bottom: 0; width: 125px; height: 108px; object-fit: contain; object-position: bottom; pointer-events: none; }
+.ntgrid { display: grid; gap: 14px; }
+.ntgrid--read { margin-top: 14px; }
+.newtab__more { display: grid; gap: 64px; margin-top: 64px; }
+@container newtab (min-width: 580px) { .ntgrid--personal, .ntgrid--library { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container newtab (min-width: 660px) {
+  .nt-heading { font-size: 36px; line-height: 46px; }
+  .ntgrid--read { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ntsection[data-image] { padding-right: 138px; }
+  .ntsection__art { width: 126px; }
+  #root .ntcard--hero { min-height: 218px; }
+  .ntcard--hero .ntcard__row { padding-right: 270px; }
+  .ntcard__art { right: 42px; width: 295px; height: 205px; }
+}
+/* The saved relations list (Relations) keeps the earlier card rows. */
 .nt-list { display: grid; gap: 10px; }
-#root .nt-search { display: flex; align-items: center; gap: 10px; width: 100%; min-height: var(--h-lg); margin: var(--sp-6) 0 var(--sp-2); padding: 0 var(--sp-4); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); color: var(--text-3); font: 400 15px var(--font-ui); text-align: left; cursor: pointer; }
-#root .nt-search:hover { background: var(--fill-2); }
-.nt-item, .nt-hero { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; width: 100%; padding: 14px; border: 0; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); color: var(--text-2); text-align: left; cursor: pointer; }
+.nt-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; width: 100%; padding: 14px; border: 0; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); color: var(--text-2); text-align: left; cursor: pointer; }
 .nt-item:hover { background: color-mix(in srgb, var(--text-1) 3%, var(--surface-1)); }
-.nt-item__icon, .nt-hero__icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
-.nt-item__body, .nt-hero__body { display: grid; gap: 3px; min-width: 0; }
+.nt-item__body { display: grid; gap: 3px; min-width: 0; }
 .nt-item__body b { font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); }
-.nt-item__body small, .nt-hero__body small { font: 400 var(--fs-footnote)/1.4 var(--font-ui); color: var(--text-3); }
-.nt-item > svg:last-child, .nt-hero > svg:last-child { color: var(--text-4); }
-.nt-hero { min-height: 180px; padding: 22px; background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 14%, var(--surface-1)), var(--surface-1) 70%); }
-.nt-hero__icon { width: 80px; height: 100px; background: none; }
-.nt-hero__body b { font: 700 var(--fs-title1)/1.1 var(--font-ui); color: var(--text-1); }
+.nt-item__body small { font: 400 var(--fs-footnote)/1.4 var(--font-ui); color: var(--text-3); }
+.nt-item > svg:last-child { color: var(--text-4); }
 
 /* The switcher (TabGroupPage, TabPreview): two cards a row on the light grey, each on the page
    colour with a soft shadow, its content faint under a fade, a round icon, the title bar and ✕. */

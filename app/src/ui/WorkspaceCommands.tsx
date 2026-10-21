@@ -52,7 +52,6 @@ export function WorkspaceCommands() {
     }, "slide");
   };
   const open = () => { setQuery(""); setIndex(0); setMode("search"); };
-  useEffect(() => { window.addEventListener("cj:commands", open); return () => window.removeEventListener("cj:commands", open); }, []);
   useEffect(() => { if (mode === "search") input.current?.focus(); else if (mode) box.current?.querySelector<HTMLElement>('[role="listbox"]')?.focus(); }, [mode]);
   useEffect(() => { box.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: "nearest" }); }, [selected]);
   useEffect(() => {

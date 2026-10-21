@@ -11,3 +11,7 @@ the icons its tab switcher shows for each kind of tab (getIconByTabType). GNU GP
 public/bs/new-group-tab.svg
 From Bible Strong (https://github.com/smontlouis/bible-strong), apps/expo/src/assets/images/new-group-tab.svg,
 the art behind its create-group page (CreateGroupPage). GNU GPL v3. The original notes it comes from SVG Repo.
+
+public/bs/new-tab/*.webp
+From Bible Strong (https://github.com/smontlouis/bible-strong), apps/expo/src/assets/images/new-tab/,
+the illustrations on its New Tab page (NewTabItem, NewTabContent). GNU GPL v3.
