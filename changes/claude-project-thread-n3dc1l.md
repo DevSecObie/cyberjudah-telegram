@@ -1,0 +1,1 @@
+- Episodes of The Truth Shall Make You Free are labelled with the show's name instead of "Sabbath class".
