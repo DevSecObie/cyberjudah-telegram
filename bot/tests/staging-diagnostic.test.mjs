@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { providerFailures } from "../scripts/diagnose-staging.mjs";
+import { providerFailures, loginResults } from "../scripts/diagnose-staging.mjs";
 test("staging diagnostics discard credentials and unrelated readers' logs", () => {
   const event = { event: { request: { headers: { authorization: "PRIVATE-LAUNCH-DATA", "x-release-check": "this-check" } } }, logs: [
     { message: [JSON.stringify({ event: "search_answer_failed", message: "Provider unavailable" })] },
@@ -9,4 +9,14 @@ test("staging diagnostics discard credentials and unrelated readers' logs", () =
   assert.deepEqual(providerFailures(event, "another-check"), []);
   assert.deepEqual(providerFailures(event, "this-check"), ["Provider unavailable"]);
   assert.deepEqual(providerFailures({}, "this-check"), []);
+});
+test("login diagnostics only return bounded stages and never callback data", () => {
+  const event = { event: { request: { url: "https://app.test/callback?code=PRIVATE", headers: { cookie: "PRIVATE" } } }, logs: [{ message: [
+    JSON.stringify({ event: "browser_login", result: "started", token: "PRIVATE" }),
+    JSON.stringify({ event: "browser_login", result: "claims-nonce", claims: { name: "PRIVATE" } }),
+    JSON.stringify({ event: "browser_login", result: "PRIVATE" }),
+    JSON.stringify({ event: "other", result: "completed" }), "PRIVATE",
+  ] }] };
+  assert.deepEqual(loginResults(event), ["started", "claims-nonce"]);
+  assert.deepEqual(loginResults({}), []);
 });
