@@ -1,3 +1,5 @@
+import type { ShowRow } from "@/api/data";
+
 /**
  * The series a class belongs to, read from its own title, so a class taught as one of a run is
  * labelled by that run rather than as a plain Sabbath class:
@@ -118,7 +120,7 @@ const SHOWS: [RegExp, string][] = [
   [/^itsr\b/, "ITSR"],
 ];
 /** The title as said, without the channel's leading tags ("#IUIC |", "IUIC l", "#IUICNEWORLEANS PRESENTS:"). */
-const spoken = (t: string) => t.replace(/[\u200b\u00a0]/g, " ").replace(/^(?:\s*#?\s*iuic\w*(?:\s+presents)?\s*(?:\||\bl\b|:)?\s*)+/i, "").replace(/^\(?re-?run\)?\s*/i, "").replace(/[’]/g, "'").trim().toLowerCase();
+export const spoken = (t: string) => t.replace(/[\u200b\u00a0]/g, " ").replace(/^(?:\s*#?\s*iuic\w*(?:\s+presents)?\s*(?:\|+|\bl\b|:)?\s*)+/i, "").replace(/^\(?re-?run\)?\s*/i, "").replace(/[’]/g, "'").trim().toLowerCase();
 
 /** The show a recording belongs to, read from its title, or null. */
 export function showOf(title: string): string | null {
@@ -126,3 +128,22 @@ export function showOf(title: string): string | null {
   for (const [re, name] of SHOWS) { const m = re.exec(t); if (m) return name.replace("$1", m[1] ?? ""); }
   return null;
 }
+
+/**
+ * The shows' own list (the data set's api/shows/index.json): the show a title names, by the
+ * list's patterns, tested in its order against the title as said.
+ */
+export function showMatcher(shows: ShowRow[]): (title: string) => ShowRow | null {
+  const compiled = shows.map((s) => ({ s, res: s.match.flatMap((m) => { try { return [new RegExp(m)]; } catch { return []; } }) }));
+  return (title) => { const t = spoken(title ?? ""); return compiled.find((c) => c.res.some((re) => re.test(t)))?.s ?? null; };
+}
+
+/** A teaching is in a show when its series is the show, or the show on another station ("… · Kente FM Radio"). */
+export const inShow = (name: string | undefined, show: Pick<ShowRow, "name">) => !!name && (name === show.name || name.startsWith(`${show.name} · `));
+
+/** "Radio show · 12 notes", or how many of its recordings are transcribed while it has none. */
+export const showLine = (s: ShowRow) => [
+  s.kind,
+  s.notes ? `${s.notes.toLocaleString()} ${s.notes === 1 ? "note" : "notes"}` : "No notes yet",
+  s.recordings ? `${s.recordings.toLocaleString()} transcribed` : "",
+].filter(Boolean).join(" · ");
