@@ -867,3 +867,119 @@ test("a saved relation between two non-verse items opens from the saved list", a
   await expect(page).toHaveURL(/endpoint=dictionary%3Aeden/);
   await expect(page.locator(".rel-row", { hasText: "A class" })).toBeVisible();
 });
+
+test("a reference in content opens a preview card of the passage, with Open and nested Back, and closing leaves the page", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1/2": { id: "n", title: "Creation", description: "Light came first (Genesis 1:3)", date: 1 } }));
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([
+      { id: "r1", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-20"], label: "Genesis 1:20" }, { type: "verse", verseKeys: ["john-3-16"], label: "John 3:16" }], createdAt: 1, updatedAt: 1 },
+      { id: "r2", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-20"], label: "Genesis 1:20" }, { type: "note", verseKey: "genesis-1-2", label: "Creation" }], createdAt: 1, updatedAt: 2 },
+    ]));
+  });
+  await page.goto("/read/genesis/1");
+  const john = page.locator("#verset-20 .rel-tag", { hasText: "John 3:16" });
+  await john.scrollIntoViewIfNeeded();
+  const top = () => page.locator("#verset-20").evaluate((el) => Math.round(el.getBoundingClientRect().top));
+  const before = await top();
+
+  await john.click();
+  const card = page.getByRole("dialog", { name: "John 3:16 · KJV" });
+  await expect(card).toContainText("Verse 16:");
+  await expect(card).not.toContainText("Verse 17:");
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await expect(card.getByRole("button", { name: "Back" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  expect(await top()).toBe(before);
+
+  // A tap outside only closes the card: it doesn't select the verse under it.
+  await page.clock.install();
+  await john.click();
+  await expect(card).toBeVisible();
+  const outside = (await page.locator("#verset-18 .bs-num").boundingBox())!;
+  await page.mouse.click(outside.x + outside.width / 2, outside.y + outside.height / 2);
+  await page.clock.runFor(300);
+  await expect(card).toBeHidden();
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  await expect(page.locator(".bs-action")).toHaveCount(0);
+  expect(await top()).toBe(before);
+
+  // A reference inside the card opens on top of it; Back returns.
+  await page.locator("#verset-20 .rel-tag", { hasText: "Creation" }).click();
+  const note = page.getByRole("dialog", { name: "Note" });
+  await expect(note).toContainText("Light came first");
+  await note.getByRole("link", { name: "Genesis 1:3" }).click();
+  const nested = page.getByRole("dialog", { name: "Genesis 1:3 · KJV" });
+  await expect(nested).toContainText("Verse 3:");
+  await nested.getByRole("button", { name: "Back" }).click();
+  await expect(page.getByRole("dialog", { name: "Note" })).toContainText("Light came first");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Note" })).toBeHidden();
+  expect(await top()).toBe(before);
+
+  await john.click();
+  await card.getByRole("button", { name: "Open" }).click();
+  await expect(page).toHaveURL(/\/read\/john\/3\?v=16/);
+});
+
+test("reference preview body includes its padding within the viewport cap and scrolls independently", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([
+      { id: "r", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-2"], label: "Genesis 1:2" }, { type: "verse", verseKeys: Array.from({ length: 21 }, (_, i) => `john-3-${i + 1}`), label: "John 3:1-21" }], createdAt: 1, updatedAt: 1 },
+    ]));
+  });
+  await page.goto("/read/genesis/1");
+  const readerScroll = () => page.locator(".bs-scroll").evaluate((el) => el.scrollTop);
+  const before = await readerScroll();
+  await page.locator("#verset-2 .rel-tag", { hasText: "John 3:1-21" }).click();
+  const card = page.getByRole("dialog", { name: "John 3:1-21 · KJV" });
+  const body = card.locator(".refpreview__body");
+  await expect(card).toContainText("Verse 21:");
+  await expect(card).not.toContainText("Verse 22:");
+  for (const height of [844, 600]) {
+    await page.setViewportSize({ width: 390, height });
+    const cap = Math.min(360, height * 0.55);
+    await expect.poll(() => body.evaluate((el) => el.clientHeight)).toBe(cap);
+    expect(await body.evaluate((el) => el.scrollHeight)).toBeGreaterThan(cap);
+  }
+  await body.hover();
+  await page.mouse.wheel(0, 800);
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+  expect(await readerScroll()).toBe(before);
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  expect(await readerScroll()).toBe(before);
+});
+
+test("mixed-chapter relations retain direct navigation instead of a single-chapter preview", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([
+      { id: "r", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-2"], label: "Genesis 1:2" }, { type: "verse", verseKeys: ["john-3-16", "genesis-1-3"], label: "Across chapters" }], createdAt: 1, updatedAt: 1 },
+    ]));
+  });
+  await page.goto("/read/genesis/1");
+  await page.locator("#verset-2 .rel-tag", { hasText: "Across chapters" }).click();
+  await expect(page).toHaveURL(/\/read\/john\/3\?/);
+  await expect(page.locator(".refpreview")).toHaveCount(0);
+});
+
+test("reference previews filter a very large verse range without expanding it", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1/2": { id: "n", title: "A large range", description: "Read (John 3:3-999999999999,1)", date: 1 } }));
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([
+      { id: "r", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-2"], label: "Genesis 1:2" }, { type: "note", verseKey: "genesis-1-2", label: "A large range" }], createdAt: 1, updatedAt: 1 },
+    ]));
+  });
+  await page.goto("/read/genesis/1");
+  await page.locator("#verset-2 .rel-tag", { hasText: "A large range" }).click();
+  await page.getByRole("dialog", { name: "Note", exact: true }).getByRole("link", { name: "John 3:3-999999999999,1" }).click();
+  const card = page.getByRole("dialog", { name: "John 3:3-999999999999,1 · KJV" });
+  await expect(card.locator(".refpreview__num")).toHaveText(Array.from({ length: 31 }, (_, i) => String(i + 1)).filter((v) => v !== "2"));
+  await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+  await page.keyboard.press("Escape");
+  await expect(card).toBeHidden();
+});
