@@ -264,7 +264,7 @@ function ResultRow({ item, onPress }: { item: Item; onPress: () => void }) {
 }
 
 /** Empty: Bible Strong's faint illustration with the kind's icon tilted on it, and the message. */
-function EmptyState({ icon, message }: { icon: string; message: string }) {
+export function EmptyState({ icon, message }: { icon: string; message: string }) {
   return (
     <div className="spick__empty">
       <div className="spick__art" aria-hidden="true">

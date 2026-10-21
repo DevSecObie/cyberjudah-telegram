@@ -1,92 +1,191 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
-import { useAllNotes, useTags, type Highlight, type Tag } from "@/bible/store";
-import { useBackButton } from "@/tg/hooks";
-import { confirm, haptic } from "@/tg/sdk";
-import { json, store } from "@/tg/store";
-import { Empty, Icon, List, Row, Screen, Section } from "@/ui/ui";
+import { Feather } from "@/bible/icons";
+import { useTags, type Tag } from "@/bible/store";
+import { queryTagList, TAG_LIST_SORTS, type TagListSort } from "@/lib/entity-list";
+import { loadTagData, removeTagEverywhere, tagCounts, tagTabPaths, type TagCounts, type TagData } from "@/lib/tag-items";
+import { groupsNow, groupWithTabs, MAX_GROUPS } from "@/lib/tabs";
+import { goBack, useBackButton } from "@/tg/hooks";
+import { features, haptic, popup } from "@/tg/sdk";
+import { ContextualPanel, FiltersButton, PanelAction, PanelSearch, PanelTextForm } from "@/ui/panel";
+import { useSheet } from "@/ui/sheet";
+import { moveTab } from "@/ui/tab-motion";
+import { useToast } from "@/ui/toast";
+import { List, Row, Screen, Section } from "@/ui/ui";
+import { EmptyState } from "./new-tab-search";
 
-/** How many highlights and notes carry each tag, read once from everything kept. */
-function useTagCounts() {
-  const { rows: notes } = useAllNotes();
-  const [hl, setHl] = useState<Record<string, number>>({});
-  useEffect(() => {
-    void store.keys().then(async (keys) => {
-      const out: Record<string, number> = {};
-      for (const k of keys.filter((x) => x.startsWith("bs_h_"))) for (const h of Object.values(await json.get<Record<string, Highlight>>(k, {}))) for (const t of Object.keys(h.tags ?? {})) out[t] = (out[t] ?? 0) + 1;
-      setHl(out);
-    }).catch(() => undefined);
-  }, []);
-  const nt = useMemo(() => { const out: Record<string, number> = {}; for (const r of notes) for (const t of Object.keys(r.note.tags ?? {})) out[t] = (out[t] ?? 0) + 1; return out; }, [notes]);
-  return { hl, nt };
+type Loaded = Record<string, TagData & { highlightVerses: number }>;
+/** Everything tagged, read once and again after a change. */
+function useTagData() {
+  const [data, setData] = useState<Loaded>({});
+  const reload = useCallback(() => { void loadTagData().then(setData).catch(() => undefined); }, []);
+  useEffect(reload, [reload]);
+  return { data, reload };
+}
+
+/** Bible Strong's tagListQueryAtom (`entityListFilters.tags.v1`): the search and the order, kept between visits. */
+const QUERY_KEY = "cj:entityListFilters.tags.v1";
+type TagQuery = { query: string; sort: TagListSort };
+const DEFAULT_QUERY: TagQuery = { query: "", sort: "name-asc" };
+function readQuery(): TagQuery {
+  try {
+    const v = JSON.parse(localStorage.getItem(QUERY_KEY) ?? "null") as Partial<TagQuery> | null;
+    if (!v || typeof v !== "object") return DEFAULT_QUERY;
+    return { query: typeof v.query === "string" ? v.query : "", sort: TAG_LIST_SORTS.some(([s]) => s === v.sort) ? v.sort as TagListSort : DEFAULT_QUERY.sort };
+  } catch { return DEFAULT_QUERY; }
+}
+function useTagQuery(): [TagQuery, (next: TagQuery) => void] {
+  const [q, setQ] = useState(readQuery);
+  return [q, (next) => { setQ(next); try { localStorage.setItem(QUERY_KEY, JSON.stringify(next)); } catch { /* private mode */ } }];
+}
+
+/** Bible Strong's useConfirmDelete: Warning, the question, No or the destructive answer. */
+async function confirmRemove(confirmLabel: string) {
+  const message = "Are you sure you want to delete this tag?";
+  return features.popups
+    ? await popup({ title: "Warning", message, buttons: [{ id: "no", type: "default", text: "No" }, { id: "yes", type: "destructive", text: confirmLabel }] }) === "yes"
+    : window.confirm(`Warning\n\n${message}`);
 }
 
 /**
- * Tags (Bible Strong's TagsScreen): every tag the reader made, with what carries it;
- * a tag opens to its highlights and notes, can be renamed, and can be deleted.
+ * Bible Strong's useCreateTabGroupFromTag: a new group named after the tag, a tab for each thing it
+ * carries (or one Bible tab when it carries nothing), then that group's first tab and a toast.
+ */
+export function useCreateTabGroupFromTag() {
+  const navigate = useNavigate();
+  const toast = useToast();
+  return (tag: Tag, data: TagData | undefined) => {
+    if (groupsNow().length >= MAX_GROUPS) { toast("Group limit reached", { tone: "error" }); return false; }
+    const paths = tagTabPaths(data);
+    if (!paths.length) paths.push("/read/genesis/1");
+    moveTab(() => {
+      const first = groupWithTabs(tag.name, paths);
+      if (!first) return false;
+      navigate(first, { replace: true });
+    }, "slide");
+    toast(`Group created with ${paths.length} tabs`, { tone: "success" });
+    return true;
+  };
+}
+
+/** Bible Strong's TagItem chips: what the tag carries, one small grey chip per kind. */
+function chips(c: TagCounts) {
+  const out: string[] = [];
+  const highlights = c.highlights + c.wordAnnotations;
+  if (highlights) out.push(`${highlights} ${highlights === 1 ? "highlight" : "highlights"}`);
+  if (c.notes) out.push(`${c.notes} ${c.notes === 1 ? "note" : "notes"}`);
+  if (c.links) out.push(`${c.links} ${c.links === 1 ? "link" : "links"}`);
+  return out;
+}
+
+/** Bible Strong's TagOptionsPanel: Edit (rename, in the panel), Create tab group, Remove. */
+function TagOptions({ tag, data, onRename, onRemove }: { tag: Tag; data: TagData | undefined; onRename: (name: string) => void; onRemove: () => void }) {
+  const createGroup = useCreateTabGroupFromTag();
+  return (
+    <ContextualPanel triggerSize={54} trigger={<Feather name="more-vertical" size={20} />} label="More options" initialScreen="actions" screens={{
+      actions: {
+        title: "Tags",
+        content: (nav) => (
+          <>
+            <PanelAction nested icon="edit-3" label="Edit" onPress={() => nav.open("rename")} />
+            <PanelAction icon="layers" label="Create tab group" onPress={() => { nav.close(); createGroup(tag, data); }} />
+            <PanelAction icon="trash-2" destructive label="Remove" onPress={() => { nav.close(); void confirmRemove("Remove").then((ok) => { if (ok) onRemove(); }); }} />
+          </>
+        ),
+      },
+      rename: { title: "Rename tag", content: (nav) => <PanelTextForm initialValue={tag.name} label="Tag name" onSave={(name) => { onRename(name); nav.close(); }} /> },
+    }} />
+  );
+}
+
+/**
+ * Tags (Bible Strong's TagsScreen): the filter button for Search and Order, a row per tag with
+ * what it carries and its options, and + for a new tag.
  */
 export function Tags() {
   useBackButton();
+  const sheet = useSheet();
   const [tags, setTags] = useTags();
-  const { hl, nt } = useTagCounts();
-  const [adding, setAdding] = useState("");
-  const all = Object.values(tags).filter((t): t is Tag => !!t && typeof t.name === "string").sort((a, b) => a.name.localeCompare(b.name));
-  const add = () => { const name = adding.trim(); if (!name) return; const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`; setTags({ ...tags, [id]: { id, name, date: Date.now() } }); setAdding(""); haptic("success"); };
+  const { data, reload } = useTagData();
+  const [q, setQ] = useTagQuery();
+  const rows = useMemo(() => Object.values(tags).filter((t): t is Tag => !!t?.id && typeof t.name === "string").map((tag) => {
+    const counts = tagCounts(data[tag.id]);
+    return { id: tag.id, title: tag.name, itemCount: counts.itemCount, counts, tag };
+  }), [tags, data]);
+  const shown = queryTagList(rows, q);
+  const rename = (tag: Tag, name: string) => setTags({ ...tags, [tag.id]: { ...tag, name } });
+  const remove = async (tag: Tag) => {
+    await removeTagEverywhere(tag.id);
+    const next = { ...tags }; delete next[tag.id]; setTags(next);
+    reload();
+  };
+  const add = async () => {
+    const a = await sheet.open({ title: "New tag", text: { label: "Tag name", placeholder: "Tag name", submit: "Save" } });
+    if (a?.id !== "text" || !a.value) return;
+    const id = `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    setTags({ ...tags, [id]: { id, name: a.value, date: Date.now() } });
+  };
+  const sortLabel = TAG_LIST_SORTS.find(([s]) => s === q.sort)?.[1] ?? "Name A–Z";
   return (
-    <Screen title="Tags" kicker={all.length ? `${all.length} ${all.length === 1 ? "tag" : "tags"}` : "Sort what you keep"}>
-      <form className="tagadd" onSubmit={(e) => { e.preventDefault(); add(); }}>
-        <input value={adding} onChange={(e) => setAdding(e.target.value)} placeholder="A new tag" aria-label="A new tag" />
-        <button type="submit" className="icon-btn" disabled={!adding.trim()} aria-label="Add" title="Add"><Icon name="check" size={18} /></button>
-      </form>
-      {!all.length ? <Empty title="No tags yet">Tag a highlight or a note from the verse menu, or add one here. A tag gathers everything you kept about one thing.</Empty> : (
-        <Section>
-          <List>{all.map((t) => { const n = (hl[t.id] ?? 0) + (nt[t.id] ?? 0); return <Row key={t.id} href={`/tags/${t.id}`} icon="tag" title={t.name} sub={n ? [hl[t.id] ? `${hl[t.id]} ${hl[t.id] === 1 ? "highlight" : "highlights"}` : "", nt[t.id] ? `${nt[t.id]} ${nt[t.id] === 1 ? "note" : "notes"}` : ""].filter(Boolean).join(" · ") : "Nothing tagged yet"} />; })}</List>
-        </Section>
-      )}
+    <Screen title="Tags" className="tagsscreen" action={<FiltersButton onReset={() => setQ(DEFAULT_QUERY)} filters={[
+      { key: "search", icon: "search", label: "Search", value: q.query.trim() || undefined, active: !!q.query.trim(), content: () => <PanelSearch value={q.query} onChange={(query) => setQ({ ...q, query })} placeholder="Search a tag" /> },
+      { key: "sort", icon: "list", label: "Order", value: sortLabel, active: q.sort !== DEFAULT_QUERY.sort, options: TAG_LIST_SORTS.map(([s, label]) => ({ key: s, label, selected: q.sort === s, onSelect: () => setQ({ ...q, sort: s }) })) },
+    ]} />}>
+      {shown.length ? (
+        <div className="tagsscreen__list">
+          {shown.map((r) => (
+            <div key={r.id} className="tagitem">
+              <div className="tagitem__row">
+                <Link to={`/tags/${r.id}`} className="tagitem__link" onClick={() => haptic("select")}>
+                  <b>{r.title}</b>
+                  <span className="tagitem__chips">{chips(r.counts).map((c) => <span key={c} className="tagitem__chip">{c}</span>)}</span>
+                </Link>
+                <TagOptions tag={r.tag} data={data[r.id]} onRename={(name) => rename(r.tag, name)} onRemove={() => void remove(r.tag)} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : <EmptyState icon="tag" message={rows.length ? `No results found for "${q.query}"` : "No Tag..."} />}
+      {/* Bible Strong's FabButton: 50 px, round, in the accent, 30 px in from the corner. */}
+      <button type="button" className="study-fab" aria-label="Add tag" title="Add tag" onClick={() => void add()}><Feather name="plus" size={18} color="#fff" /></button>
     </Screen>
   );
 }
 
-/** One tag: rename or delete it, and see what carries it. */
+/** One tag (Bible Strong's TagScreen): its name, and its menu: Edit, Create tab group, Remove. */
 export function TagScreen() {
   const { id = "" } = useParams();
-  const navigate = useNavigate();
   useBackButton();
+  const sheet = useSheet();
   const [tags, setTags] = useTags();
   const tag = tags[id];
-  const [name, setName] = useState(tag?.name ?? "");
-  useEffect(() => { if (tag) setName(tag.name); }, [tag]);
-  const { hl, nt } = useTagCounts();
-  const rename = () => { const n = name.trim(); if (!tag || !n || n === tag.name) return; setTags({ ...tags, [id]: { ...tag, name: n } }); haptic("success"); };
-  const remove = async () => {
-    if (!tag || !(await confirm(`Delete the tag “${tag.name}”? What it marks stays; only the tag goes.`))) return;
-    const next = { ...tags }; delete next[id]; setTags(next);
-    // Take the tag off every highlight and note that carried it.
-    const keys = await store.keys();
-    for (const k of keys.filter((x) => x.startsWith("bs_h_") || x.startsWith("bs_n_"))) {
-      const map = await json.get<Record<string, { tags?: Record<string, true> }>>(k, {});
-      let changed = false;
-      for (const v of Object.values(map)) if (v.tags?.[id]) { delete v.tags[id]; changed = true; }
-      if (changed) await json.set(k, map);
+  const { data } = useTagData();
+  const createGroup = useCreateTabGroupFromTag();
+  const counts = tagCounts(data[id]);
+  const menu = async () => {
+    if (!tag) return;
+    const a = await sheet.open({ title: tag.name, items: [{ id: "edit", text: "Edit", icon: <Feather name="edit-3" size={18} /> }, { id: "create-group", text: "Create tab group", icon: <Feather name="layers" size={18} /> }, { id: "delete", text: "Remove", destructive: true }] });
+    if (a?.id === "edit") {
+      const r = await sheet.open({ title: "Rename tag", text: { label: "Tag name", value: tag.name, placeholder: "Tag name", submit: "Save" } });
+      if (r?.id === "text" && r.value) setTags({ ...tags, [id]: { ...tag, name: r.value } });
     }
-    haptic("success"); navigate("/tags", { replace: true });
+    if (a?.id === "create-group") createGroup(tag, data[id]);
+    if (a?.id === "delete" && await confirmRemove("Yes")) {
+      await removeTagEverywhere(id);
+      const next = { ...tags }; delete next[id]; setTags(next);
+      goBack();
+    }
   };
-  if (!tag) return <Screen title="Tag"><Empty title="This tag is gone" action={{ label: "All tags", href: "/tags" }} /></Screen>;
+  if (!tag) return <Screen title=""><EmptyState icon="tag" message="This tag doesn't exist..." /></Screen>;
   return (
-    <Screen title={tag.name} kicker="Tag">
-      <form className="tagadd" onSubmit={(e) => { e.preventDefault(); rename(); }}>
-        <input value={name} onChange={(e) => setName(e.target.value)} aria-label="Tag name" />
-        <button type="submit" className="icon-btn" disabled={!name.trim() || name.trim() === tag.name} aria-label="Rename" title="Rename"><Icon name="check" size={18} /></button>
-        <button type="button" className="icon-btn" onClick={() => void remove()} aria-label="Delete tag" title="Delete tag"><Icon name="trash" size={18} /></button>
-      </form>
+    <Screen title={tag.name} action={<button type="button" className="panel-trigger" style={{ width: 54, height: 54 }} aria-label="More options" title="More options" onClick={() => void menu()}><Feather name="more-vertical" size={18} /></button>}>
       <Section title="Carries This Tag">
         <List>
-          <Row href={`/bookmarks?tab=highlights&tag=${id}`} icon="bookmark" title="Highlights" meta={<small>{hl[id] ?? 0}</small>} />
-          <Row href={`/bookmarks?tab=notes&tag=${id}`} icon="note" title="Notes" meta={<small>{nt[id] ?? 0}</small>} />
+          <Row href={`/bookmarks?tab=highlights&tag=${id}`} icon="bookmark" title="Highlights" meta={<small>{counts.highlights + counts.wordAnnotations}</small>} />
+          <Row href={`/bookmarks?tab=notes&tag=${id}`} icon="note" title="Notes" meta={<small>{counts.notes}</small>} />
         </List>
       </Section>
-      <p className="hint">Tag a verse from the verse menu: select it, then Tag. <Link to="/bookmarks">Everything you kept</Link>.</p>
     </Screen>
   );
 }
