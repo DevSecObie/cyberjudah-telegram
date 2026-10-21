@@ -45,12 +45,12 @@ const LIBRARY: Item[] = [
   ["/cases", "Case studies", "Judgments, and those who were blessed"],
 ];
 
-/** Bible Strong's SectionHeading: 23 px, with its illustration standing on the cards below. */
+/** Bible Strong's SectionHeading: 23 px, with our picture standing on the cards below. */
 function SectionHeading({ title, image }: { title: string; image?: string }) {
   return (
     <div className="ntsection" data-image={image ? "" : undefined}>
       <h2>{title}</h2>
-      {image ? <img className="ntsection__art" src={assetUrl(`bs/new-tab/${image}.webp`)} alt="" aria-hidden="true" /> : null}
+      {image ? <img className="ntsection__art" src={assetUrl(`art/new-tab/${image}.svg`)} alt="" aria-hidden="true" /> : null}
     </div>
   );
 }
@@ -82,17 +82,17 @@ export function NewTab() {
             <TabIcon path="/bible" size={40} />
             <span className="ntcard__body"><b>Bible</b><small>Open the Bible and start reading</small></span>
           </span>
-          <img className="ntcard__art" src={assetUrl("bs/new-tab/bible-reader.webp")} alt="" aria-hidden="true" />
+          <img className="ntcard__art" src={assetUrl("art/new-tab/bible.svg")} alt="" aria-hidden="true" />
           <Feather name="chevron-right" size={22} raw />
         </button>
         <div className="ntgrid ntgrid--read">{READ.map((i) => <Card key={i[0]} item={i} />)}</div>
         <div className="newtab__more">
           <section>
-            <SectionHeading title="Studies and notes" image="notes-writer" />
+            <SectionHeading title="Studies and notes" image="notes" />
             <div className="ntgrid ntgrid--personal">{PERSONAL.map((i) => <Card key={i[0]} item={i} />)}</div>
           </section>
           <section>
-            <SectionHeading title="Library" image="library-reader" />
+            <SectionHeading title="Library" image="library" />
             <div className="ntgrid ntgrid--library">{LIBRARY.map((i) => <Card key={i[0]} item={i} library />)}</div>
           </section>
         </div>
@@ -320,12 +320,12 @@ function GroupHeader({ group, width }: { group: Group; width: number }) {
 }
 
 /**
- * Bible Strong's tab icons (getIconByTabType) for the kinds we share, in their universe's colour
- * (themes/universeColors); our other kinds keep their own icon, in the tertiary colour.
+ * Our tab icons for the kinds Bible Strong draws one for (getIconByTabType), in their universe's
+ * colour (themes/universeColors); our other kinds keep their own icon, in the tertiary colour.
  */
-const BS_ICONS: [RegExp, string, string][] = [
-  [/^\/new/, "plus", "grey"], [/^\/(bible|read)/, "book-open", "tertiary"], [/^\/search/, "search", "tertiary"], [/^\/lexicon/, "lexique", "primary"],
-  [/^\/dictionary/, "dictionary", "secondary"], [/^\/topics/, "nave", "quint"], [/^\/studies/, "feather", "tertiary"], [/^\/(bookmarks|tags)/, "file-text", "color2"],
+const TAB_ART: [RegExp, string, string][] = [
+  [/^\/new/, "plus", "grey"], [/^\/(bible|read)/, "bible", "tertiary"], [/^\/search/, "search", "tertiary"], [/^\/lexicon/, "lexicon", "primary"],
+  [/^\/dictionary/, "dictionary", "secondary"], [/^\/topics/, "topics", "quint"], [/^\/studies/, "study", "tertiary"], [/^\/(bookmarks|tags)/, "note", "color2"],
 ];
 const MATERIAL: [RegExp, string][] = [
   [/^\/(plans?|study)(\/|\?|$)/, "M14 10H2v2h12v-2zm0-4H2v2h12V6zM2 16h8v-2H2v2zm19.5-4.5L23 13l-6.99 7-4.51-4.5L13 14l3.01 3 5.49-5.5z"],
@@ -333,8 +333,8 @@ const MATERIAL: [RegExp, string][] = [
 ];
 /** `plain`: in the theme's own ink, as View my groups shows them. */
 export function TabIcon({ path, size, plain }: { path: string; size: number; plain?: boolean }) {
-  const art = BS_ICONS.find(([re]) => re.test(path));
-  if (art) return <span className={`tabicon tabicon--${plain ? "default" : art[2]}`} aria-hidden="true" style={{ width: size, height: size, ["--icon" as string]: `url("${assetUrl(`bs/tab-icons/${art[1]}.svg`)}")` }} />;
+  const art = TAB_ART.find(([re]) => re.test(path));
+  if (art) return <span className={`tabicon tabicon--${plain ? "default" : art[2]}`} aria-hidden="true" style={{ width: size, height: size, ["--icon" as string]: `url("${assetUrl(`art/tab/${art[1]}.svg`)}")` }} />;
   const material = MATERIAL.find(([re]) => re.test(path));
   if (material) return <svg className={plain ? "tabicon--default" : "tabicon--tertiary"} width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={material[1]} /></svg>;
   return <span className={plain ? "tabicon--default" : "tabicon--tertiary"} style={{ display: "contents" }}><Icon name={tabKind(path).icon as IconName} size={size} /></span>;
@@ -363,7 +363,7 @@ function EmptyGroup() {
   const add = useAddTab();
   return (
     <div className="switcher__empty">
-      <span className="switcher__empty-art" aria-hidden="true" style={{ ["--art" as string]: `url("${assetUrl("bs/tabs.svg")}")` }} />
+      <span className="switcher__empty-art" aria-hidden="true" style={{ ["--art" as string]: `url("${assetUrl("art/tabs.svg")}")` }} />
       <button type="button" className="switcher__create" onClick={add}><Icon name="plus" size={20} /><b>Create a tab</b></button>
     </div>
   );

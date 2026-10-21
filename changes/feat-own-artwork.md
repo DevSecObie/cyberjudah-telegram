@@ -1,0 +1,1 @@
+- The pictures and icons are CyberJudah's own: the empty-state pictures and icons, the tab icons, the switcher's and new group's pictures, the New Tab pictures, and the Lexicon, Dictionary, Topics, References and Commentary tiles. None of Bible Strong's artwork is left in the app.
