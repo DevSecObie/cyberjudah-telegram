@@ -16,7 +16,7 @@ for (const saved of [["search", "home", "bible"], ["home", "bible", "classes", "
     await setup(page, saved);
     await page.goto(`/settings/bar${LAUNCH}`);
     const nav = page.getByRole("navigation", { name: "Sections" });
-    await expect(nav.locator(".tab").last()).toHaveAttribute("aria-label", "Menu");
+    await expect(nav.locator(".tab").last()).toHaveAttribute("aria-label", "Main menu");
     await expect(nav.getByRole("button", { name: "Search", exact: true })).toHaveCount(1);
     // Where the reader put Search, or second, where Bible Strong has it; Menu ends the row.
     const row = saved.includes("search") ? saved : [saved[0], "search", ...saved.slice(1)];
@@ -40,7 +40,7 @@ for (const saved of [["search", "home", "bible"], ["home", "bible", "classes", "
   });
 }
 
-test("search placement: Search stays in the bar while the page scrolls, and in the tab switcher", async ({ page }) => {
+test("search placement: Search stays in the bar while the page scrolls, and is not in the tab switcher's bar", async ({ page }) => {
   await setup(page);
   await page.goto(`/settings${LAUNCH}`);
   const nav = page.getByRole("navigation", { name: "Sections" });
@@ -51,17 +51,17 @@ test("search placement: Search stays in the bar while the page scrolls, and in t
   await expect(page).toHaveURL(/\/search/);
   await expect(page.getByRole("searchbox", { name: "Search CyberJudah" })).toBeVisible();
   await page.goto(`/tabs${LAUNCH}`);
+  // Bible Strong's list-mode row is +, the group and OK (BottomTabBar).
   const switcher = page.getByRole("navigation", { name: "Tabs", exact: true });
-  await expect(switcher.getByRole("button").last()).toHaveAttribute("aria-label", "Search");
-  await switcher.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page).toHaveURL(/\/search/);
+  await expect(switcher.getByRole("button").last()).toHaveAttribute("aria-label", "Open selected tab");
+  await expect(switcher.getByRole("button", { name: "Search", exact: true })).toHaveCount(0);
 });
 
 test("search placement: touch opens Menu once per tap", async ({ page, browserName }) => {
   test.skip(browserName !== "chromium", "Real touch dispatch uses Chromium's device input protocol.");
   await setup(page);
   await page.goto(`/classes${LAUNCH}`);
-  const menu = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Menu", exact: true });
+  const menu = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true });
   const session = await page.context().newCDPSession(page);
   for (let i = 0; i < 3; i++) {
     await menu.click({ trial: true });

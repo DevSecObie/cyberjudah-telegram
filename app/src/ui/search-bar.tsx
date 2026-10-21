@@ -21,7 +21,7 @@ export function SearchBar({ id, value, onChange, onSubmit, onCancel, placeholder
   useEffect(() => {
     // A lazy screen can arrive after the reader has focused another control.
     const active = document.activeElement;
-    if (focusOnMount.current && (active === document.body || active?.matches('nav.tabs [aria-current="page"]'))) field.current?.focus({ preventScroll: true });
+    if (focusOnMount.current && (active === document.body || active?.matches('nav.tabs [data-nav="search"]'))) field.current?.focus({ preventScroll: true });
   }, []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

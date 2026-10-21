@@ -66,7 +66,7 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     expect(box.y + box.height).toBe(page.viewportSize()!.height); expect(box.height).toBe(48);
     // Home, Search, Bible, the reader's own buttons, Tabs and then Menu, as Bible Strong orders them.
     expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "ask", "tabs", "more"]);
-    await expect(bar.getByRole("button", { name: "Bible", exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
     await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
     const minimumContrast = await bar.evaluate(nav => {
       const canvas = document.createElement("canvas"); canvas.width = canvas.height = 1;
@@ -87,11 +87,11 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
   });
 }
 
-test("glass: the selected Menu still responds to an ordinary tap", async ({ page }) => {
+test("glass: Main menu responds to an ordinary tap on its own page", async ({ page }) => {
   await setup(page);
   await page.goto(`/settings${LAUNCH}`);
-  const menu = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Menu", exact: true });
-  await expect(menu).toHaveAttribute("aria-current", "page");
+  const menu = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true });
+  await expect(menu).not.toHaveAttribute("aria-current");
   await menu.click();
   await expect(page.locator(".drawer--more")).toHaveAttribute("data-open", "");
   // The drawer pushes the bar offscreen; Escape closes it and returns to its trigger.
@@ -122,7 +122,7 @@ test("bar: wide windows keep Bible Strong's bar along the bottom, and its button
   expect(box.x).toBe(0); expect(box.width).toBe(1280); expect(box.y + box.height).toBe(900);
   await bar.getByRole("button", { name: "Classes", exact: true }).click();
   await expect(page).toHaveURL(/\/classes/);
-  await expect(bar.getByRole("button", { name: "Classes", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(bar.getByRole("button", { name: "Classes", exact: true })).not.toHaveAttribute("aria-current");
   await bar.getByRole("button", { name: "Search", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/search/);
@@ -640,7 +640,7 @@ for (const reduced of [false, true]) {
   test(`menus: navigation and group actions share one elevated surface (${reduced ? "solid" : "glass"})`, async ({ page }) => {
     await setup(page, "dark", reduced);
     await page.goto(`/settings${LAUNCH}`);
-    await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Menu", exact: true }).click();
+    await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true }).click();
     const drawer = page.getByRole("dialog", { name: "More", exact: true });
     await expect(drawer).toBeVisible();
     const more = (await materials(page, [[".drawer--more"]]))[0];
@@ -649,23 +649,21 @@ for (const reduced of [false, true]) {
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
     await page.keyboard.press("Escape");
     await page.goto(`/tabs${LAUNCH}`);
-    const groups = page.getByRole("button", { name: /\. Groups$/ });
+    const groups = page.locator(".switcherbar__group");
     await groups.click();
-    const menu = page.getByRole("dialog", { name: "Groups", exact: true });
+    // Bible Strong's GroupActionsPopover: a floating sheet that opens on Close all tabs, which asks nothing.
+    const menu = page.getByRole("dialog", { name: "Group actions", exact: true });
     await expect(menu).toBeVisible();
-    const actions = (await materials(page, [[".sheet[data-actions]"]]))[0];
+    const actions = (await materials(page, [[".bs-sheet"]]))[0];
     if (reduced) expect(actions).toMatchObject({ filter: "none", alpha: 255 });
     else expect(actions.filter).toContain("blur(");
-    // Bible Strong's GroupActionsPopover opens on Close all tabs, which asks nothing and is not destructive.
-    await expect(menu.locator(".sheet__item").first()).toHaveText("Close all tabs");
-    await expect(menu.locator(".sheet__item").first()).not.toHaveAttribute("data-destructive", "");
+    await expect(menu.locator(".gaction").first()).toHaveText("Close all tabs");
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
+    // New group slides the switcher to Bible Strong's create page, whose ✕ goes back.
     await menu.getByRole("button", { name: "New group", exact: true }).click();
-    await expect(page.getByRole("dialog", { name: "New group", exact: true }).getByRole("textbox", { name: "Name" })).toBeFocused();
-    // Bible Strong's RenameModal has no Cancel: Escape (a swipe or a tap outside on a phone) closes it.
-    await page.keyboard.press("Escape");
-    await expect(page.locator(".sheet[data-popover], .action-sheet")).toHaveCount(0);
-    await expect(groups).toBeFocused();
+    await expect(page.getByRole("textbox", { name: "Group name" })).toBeFocused();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.locator(".bs-sheet")).toHaveCount(0);
   });
 }
 
@@ -785,32 +783,19 @@ for (const reduced of [false, true]) {
 }
 
 for (const width of [390, 768, 1280]) {
-  test(`sheets: actions at ${width} anchor to their control and keep the page usable`, async ({ page }) => {
+  test(`sheets: group actions at ${width} open Bible Strong's sheet and give the focus back`, async ({ page }) => {
     await setup(page); await page.setViewportSize({ width, height: 844 });
     await page.goto(`/tabs${LAUNCH}`);
-    const trigger = page.getByRole("button", { name: /\. Groups$/ }); await trigger.click();
-    const menu = page.getByRole("dialog", { name: "Groups", exact: true });
-    await expect(menu).toBeVisible(); await expect(menu).toHaveAttribute("aria-modal", "false");
-    // iOS 26: tapping outside closes an anchored menu, so it has no Cancel row.
-    await expect(menu.getByRole("button", { name: "Cancel", exact: true })).toHaveCount(0);
-    await expect(page.locator("html")).not.toHaveAttribute("data-modal");
-    const from = (await trigger.boundingBox())!;
-    // This trigger is at the bottom, so the anchored menu opens immediately above it.
-    await expect.poll(async () => { const r = (await menu.boundingBox())!; return Math.abs(from.y - r.y - r.height - 8); }).toBeLessThanOrEqual(1);
-    await page.getByRole("button", { name: "Add a tab", exact: true }).click();
-    await expect(menu).toHaveCount(0); await expect(page).toHaveURL(/\/new/);
-    await expect(page.getByRole("heading", { name: "What would you like to explore?" })).toBeVisible();
-    await page.goto(`/tabs${LAUNCH}`);
-    await trigger.click(); await expect(menu).toBeVisible();
-    const outside = page.getByRole("button", { name: "Add a tab", exact: true });
-    await outside.focus(); await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0);
-    await expect(outside).toBeFocused();
-    await trigger.click(); await expect(menu).toBeVisible();
-    await page.setViewportSize({ width: width < 768 ? 1280 : 390, height: 844 });
-    await expect(menu).toHaveAttribute("aria-modal", "false");
-    await expect(page.locator("html")).not.toHaveAttribute("data-modal");
-    await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0);
-    await expect(page.locator("html")).not.toHaveAttribute("data-modal"); await expect(trigger).toBeFocused();
+    const trigger = page.locator(".switcherbar__group"); await trigger.click();
+    const sheet = page.getByRole("dialog", { name: "Group actions", exact: true });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("button")).toContainText(["Close all tabs", "New group", "View my groups"]);
+    await page.keyboard.press("Escape"); await expect(sheet).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await trigger.click(); await expect(sheet).toBeVisible();
+    await sheet.getByRole("button", { name: "New group", exact: true }).click();
+    await expect(sheet).toHaveCount(0);
+    await expect(page.getByRole("textbox", { name: "Group name" })).toBeFocused();
   });
 }
 

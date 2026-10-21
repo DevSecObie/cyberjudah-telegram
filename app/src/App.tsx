@@ -1,3 +1,4 @@
+import { historyIdx, isOver, markOver } from "@/lib/over-page";
 import { NativeLifecycle } from "@/native/NativeLifecycle";
 import { WorkspaceCommands } from "@/ui/WorkspaceCommands";
 import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
@@ -162,15 +163,17 @@ export function App() {
   const sheet = useSheetEntry(location, navType);
   const page = sheet?.background ?? location;
   // Bible Strong's tabs: where the app is becomes the current tab's place (lib/tabs.ts); a sheet
-  // over it does not move the tab.
+  // over it does not move the tab, nor does a page over the workspace (lib/over-page.ts): one
+  // opened from Home or the menu (a drawer, or the Home and menu pages), or further in from one.
   const prevPath = useRef<string | null>(null);
   useEffect(() => {
     if (sheet) return;
     const path = location.pathname + location.search;
-    const prev = prevPath.current;
-    recordPath(path, prev !== null && !isTabPath(prev));
+    const prev = prevPath.current, idx = historyIdx();
+    if (navType === "PUSH" && !isOver(idx) && prev !== null && (!isTabPath(prev) || isOver(idx - 1))) markOver(idx);
+    if (!isOver(idx)) recordPath(path);
     prevPath.current = path;
-  }, [location.pathname, location.search, sheet]);
+  }, [location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
   const navigate = useNavigate();
   useSettingsButton();
 

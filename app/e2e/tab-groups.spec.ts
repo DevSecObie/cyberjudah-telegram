@@ -1,0 +1,189 @@
+import { expect, test, type Page } from "@playwright/test";
+import fs from "node:fs";
+
+// Bible Strong's groups: GroupActionsPopover, CreateGroupPage, TabGroupPager, ViewGroupsModal, EditGroupModal.
+const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
+const LAUNCH = "#tgWebAppData=query_id%3Dtab-groups&tgWebAppVersion=9.1&tgWebAppPlatform=ios";
+type Group = { id: string; name: string; color: string; current: string; tabs: { id: string; path: string }[]; isDefault?: boolean; createdAt?: number };
+const main: Group = { id: "default-group", name: "My tabs", color: "", isDefault: true, current: "a", tabs: [{ id: "a", path: "/settings" }, { id: "b", path: "/search" }] };
+const psalms: Group = { id: "g2", name: "Psalms", color: "#74b9ff", current: "c", tabs: [{ id: "c", path: "/lexicon" }], createdAt: Date.now() - 5 * 60_000 };
+
+async function setup(page: Page, groups: Group[], group = groups[0].id, launch = LAUNCH) {
+  await page.addInitScript((seed) => {
+    if (sessionStorage.getItem("seeded")) return;
+    sessionStorage.setItem("seeded", "1");
+    localStorage.setItem("cj:tabgroups", seed);
+  }, JSON.stringify({ group, groups }));
+  await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
+  await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
+  await page.goto(`/tabs${launch}`);
+  await expect(page.locator(".switcher__page[data-active]")).toBeVisible();
+}
+const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: Group[] });
+const pill = (page: Page) => page.getByRole("toolbar", { name: "Tabs" }).locator(".switcherbar__group");
+const menu = (page: Page) => page.getByRole("dialog", { name: "Group actions" });
+async function swipe(page: Page, dx: number) {
+  const box = (await page.locator(".switcher").boundingBox())!;
+  const y = box.y + 300, x = dx < 0 ? box.x + box.width - 40 : box.x + 40;
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x + dx / 2, y, { steps: 6 }); await page.mouse.move(x + dx, y, { steps: 6 });
+  await page.waitForTimeout(150);
+  await page.mouse.up();
+}
+
+test("the group menu: Close all tabs, Edit and Delete for a named group, then New group and View my groups", async ({ page }) => {
+  await setup(page, [main, psalms]);
+  await pill(page).click();
+  await expect(menu(page).locator(".gaction")).toHaveText(["Close all tabs", "New group", "View my groups"]);
+  await page.keyboard.press("Escape");
+  await expect(menu(page)).toBeHidden();
+  await swipe(page, -300);
+  await expect.poll(async () => (await saved(page)).group).toBe("g2");
+  await pill(page).click();
+  await expect(menu(page).locator(".gaction")).toHaveText(["Close all tabs", "Edit group", "Delete group", "New group", "View my groups"]);
+  await expect(menu(page).getByRole("button", { name: "Delete group" })).toHaveCSS("color", "rgb(194, 40, 57)");
+});
+
+test("New group slides to the create page: a name, a colour and ✓ make an empty group", async ({ page }) => {
+  await setup(page, [main]);
+  await pill(page).click();
+  await menu(page).getByRole("button", { name: "New group" }).click();
+  const name = page.getByRole("textbox", { name: "Group name" });
+  await expect(name).toBeFocused();
+  await expect(page.getByRole("button", { name: "Create group" })).toBeDisabled();
+  await name.fill("Revelation");
+  await page.getByRole("radio", { name: "Color 3" }).click();
+  await page.getByRole("button", { name: "Create group" }).click();
+  await expect.poll(async () => (await saved(page)).groups.map((g) => [g.name, g.color, g.tabs.length])).toEqual([["My tabs", "", 2], ["Revelation", "#74b9ff", 0]]);
+  await expect(pill(page)).toHaveText("Revelation");
+  await expect(page.locator(".switcher__page[data-active]").getByRole("button", { name: "Create a tab" })).toBeVisible();
+});
+
+test("swiping past the last group reveals the create page, and ✕ goes back", async ({ page }) => {
+  await setup(page, [main]);
+  await swipe(page, -300);
+  await expect(page.getByRole("textbox", { name: "Group name" })).toBeFocused();
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByRole("textbox", { name: "Group name" })).not.toBeFocused();
+  await expect(pill(page)).toHaveText("2 tabs");
+  // A short drag springs back to the same group.
+  await swipe(page, -60);
+  await expect(pill(page)).toHaveText("2 tabs");
+});
+
+test("View my groups: a card per group, the main one and when the others were made; a tap goes to it", async ({ page }) => {
+  await setup(page, [main, psalms]);
+  await pill(page).click();
+  await menu(page).getByRole("button", { name: "View my groups" }).click();
+  const view = page.getByRole("dialog", { name: "View my groups" });
+  await expect(view.locator(".gcard")).toHaveCount(2);
+  await expect(view.locator(".gcard").first()).toContainText("2 tabsMain group");
+  await expect(view.locator(".gcard").nth(1)).toContainText("PsalmsCreated 5 minutes ago");
+  await expect(view.locator(".gcard").first()).toHaveCSS("border-top-width", "2px");
+  await view.locator(".gcard").nth(1).click();
+  await expect.poll(async () => (await saved(page)).group).toBe("g2");
+  await expect(pill(page)).toHaveText("Psalms");
+});
+
+test("Edit group renames and recolours in one sheet; Delete asks Telegram, then goes to the group before", async ({ page }) => {
+  await setup(page, [main, psalms], "g2");
+  await pill(page).click();
+  await menu(page).getByRole("button", { name: "Edit group" }).click();
+  const edit = page.getByRole("dialog", { name: "Edit group" });
+  await expect(edit.getByRole("textbox")).toHaveValue("Psalms");
+  await edit.getByRole("textbox").fill("Psalms and Hymns");
+  await edit.getByRole("radio", { name: "Color 5" }).click();
+  await edit.getByRole("button", { name: "Save" }).click();
+  await expect(pill(page)).toHaveText("Psalms and Hymns");
+  expect((await saved(page)).groups[1]).toMatchObject({ name: "Psalms and Hymns", color: "#fd79a8" });
+  await pill(page).click();
+  await menu(page).getByRole("button", { name: "Delete group" }).click();
+  await page.evaluate(() => (window as unknown as { __tg: { answerPopup: (id: string) => void } }).__tg.answerPopup("delete"));
+  await expect.poll(async () => (await saved(page)).groups.map((g) => g.id)).toEqual(["default-group"]);
+  await expect(pill(page)).toHaveText("2 tabs");
+});
+
+test("without Telegram's popups, Delete asks the browser and deletes on OK", async ({ page }) => {
+  await setup(page, [main, psalms], "g2", LAUNCH.replace("9.1", "6.0"));
+  const asked: string[] = [];
+  page.on("dialog", (d) => { asked.push(d.message()); void d.accept(); });
+  await pill(page).click();
+  await menu(page).getByRole("button", { name: "Delete group" }).click();
+  await expect.poll(async () => (await saved(page)).groups.map((g) => g.id)).toEqual(["default-group"]);
+  expect(asked).toEqual(["Delete group?\n\nAll tabs in this group will be closed."]);
+});
+
+test("a card closed in a group after the first shrinks away where it was", async ({ page }) => {
+  await setup(page, [main, { ...psalms, tabs: [...psalms.tabs, { id: "d", path: "/people" }] }], "g2");
+  const card = page.locator(".switcher__page[data-active] .tabcard[data-tab-id='d']");
+  const before = (await card.boundingBox())!;
+  // Where the ghost is when it is added, so a slow run cannot miss its 500 ms.
+  await page.evaluate(() => {
+    new MutationObserver((records) => {
+      for (const r of records) for (const n of r.addedNodes) if (n instanceof HTMLElement && n.matches(".tabcard[aria-hidden='true']")) {
+        const box = n.getBoundingClientRect(); (window as unknown as { __ghost: { x: number; y: number } }).__ghost = { x: box.x, y: box.y };
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await card.getByRole("button", { name: /^Close / }).click();
+  await expect.poll(() => page.evaluate(() => !!(window as unknown as { __ghost?: object }).__ghost)).toBe(true);
+  const ghost = await page.evaluate(() => (window as unknown as { __ghost: { x: number; y: number } }).__ghost);
+  expect(Math.abs(ghost!.x - before.x)).toBeLessThan(2);
+  expect(Math.abs(ghost!.y - before.y)).toBeLessThan(2);
+});
+
+test("a mouse let go outside the switcher before its drag began does not stop the next swipe", async ({ page }) => {
+  await setup(page, [main, psalms]);
+  const box = (await page.locator(".switcher").boundingBox())!;
+  // Down in the switcher, up and down past the drag's start, then let go over the bar outside it.
+  await page.mouse.move(box.x + 200, box.y + 300); await page.mouse.down();
+  await page.mouse.move(box.x + 200, box.y + 330, { steps: 4 });
+  await page.mouse.move(box.x + 200, box.y + box.height + 30, { steps: 4 });
+  await page.mouse.up();
+  await swipe(page, -300);
+  await expect.poll(async () => (await saved(page)).group).toBe("g2");
+});
+
+test("a new tab closed before it opens stays closed, and the switcher stays", async ({ page }) => {
+  await setup(page, [main]);
+  const add = page.getByRole("button", { name: "Add a tab" });
+  await add.waitFor();
+  // Both inside Bible Strong's 300 ms before the new card opens.
+  await add.evaluate((button) => {
+    (button as HTMLButtonElement).click();
+    const added = (JSON.parse(localStorage.getItem("cj:tabgroups")!).groups[0] as { current: string }).current;
+    document.querySelector<HTMLButtonElement>(`.tabcard[data-tab-id="${added}"] button[aria-label^="Close"]`)!.click();
+  });
+  await page.waitForTimeout(700);
+  await expect(page).toHaveURL(/\/tabs/);
+  expect((await saved(page)).groups[0].tabs.map((t) => t.id)).toEqual(["a", "b"]);
+});
+
+test("a mouse let go over the bar before its drag began does not move the pager when it comes back", async ({ page }) => {
+  await setup(page, [main, psalms]);
+  const box = (await page.locator(".switcher").boundingBox())!;
+  const bar = (await page.getByRole("navigation", { name: "Tabs" }).boundingBox())!;
+  // Down 5 px above the bar, onto it (within the 10 px a drag allows), and up there.
+  await page.mouse.move(box.x + 200, bar.y - 5); await page.mouse.down();
+  await page.mouse.move(box.x + 200, bar.y + 4, { steps: 3 });
+  await page.mouse.up();
+  // Back over the switcher at the same height with no button down, then sideways: the pager stays.
+  await page.mouse.move(box.x + 200, bar.y - 5, { steps: 3 });
+  await page.mouse.move(box.x + 40, bar.y - 5, { steps: 8 });
+  await expect(page.locator(".switcher__track")).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+  expect((await saved(page)).group).toBe("default-group");
+});
+
+test("the create page stays on its edge when the width changes", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page, [main, psalms]);
+  await pill(page).click();
+  await menu(page).getByRole("button", { name: "New group" }).click();
+  await expect(page.getByRole("textbox", { name: "Group name" })).toBeFocused();
+  const left = async () => (await page.getByRole("region", { name: "New group" }).boundingBox())!.x;
+  await page.waitForTimeout(800);
+  const at = await left();
+  await page.setViewportSize({ width: 600, height: 844 });
+  await page.waitForTimeout(300);
+  expect(await left()).toBeCloseTo(at, 0);
+});

@@ -83,20 +83,18 @@ export const currentTab = (): Tab | undefined => { const g = group(); return g.t
 /** Where to reopen at launch: the current tab if tabs were kept, or the switcher when its group is empty (Bible Strong's useBottomTabBar). */
 export const keptPath = () => (kept ? currentTab()?.path ?? "/tabs" : undefined);
 export const isDefaultGroup = (g: Group) => !!g.isDefault;
+/** The current group and every group as they are now, outside React. */
+export const currentGroup = () => group();
+export const groupsNow = () => state.groups;
 
 export const isTabPath = (path: string) => !NOT_TABS.test(path);
-/**
- * Where the app is now becomes the current tab's place. Coming from Home or the menu (which
- * are not tabs) to somewhere new opens it in a new tab, as Bible Strong's Home does, unless the
- * current tab is still an empty New Tab page.
- */
-export function recordPath(path: string, fromOutside: boolean) {
+/** Where the app is now becomes the current tab's place. */
+export function recordPath(path: string) {
   if (!isTabPath(path)) return;
   const g = group(), cur = currentTab();
   // A group left with no tabs takes the place it is shown in as its first.
   if (!cur) { newTab(path); return; }
   if (cur.path === path) return;
-  if (fromOutside && !cur.path.startsWith("/new")) { const found = g.tabs.find((t) => t.path === path); if (found) selectTab(found.id); else newTab(path); return; }
   setGroup({ ...g, tabs: g.tabs.map((t) => (t.id === cur.id ? { ...t, path } : t)) });
 }
 /** A new tab in the current group, on the New Tab page by default; returns its path. */
@@ -170,10 +168,16 @@ function tabOfKind(test: (p: string) => boolean, fresh: string): string {
   return t ? selectTab(t.id) : newTab(fresh);
 }
 /** A new Bible tab opens at Genesis 1:1 (Bible Strong's getDefaultBibleTab). */
-export const bibleTabPath = () => tabOfKind((p) => /^\/(bible|read)(\/|$)/.test(p), "/read/genesis/1");
-export const searchTabPath = () => tabOfKind((p) => /^\/search(\?|$)/.test(p), "/search");
+const KIND_PATH = { bible: /^\/(bible|read)(\/|$)/, search: /^\/search(\?|$)/, ask: /^\/ask(\/|\?|$)/ };
+export const bibleTabPath = () => tabOfKind((p) => KIND_PATH.bible.test(p), "/read/genesis/1");
+export const searchTabPath = () => tabOfKind((p) => KIND_PATH.search.test(p), "/search");
 /** Ask CyberJudah, the same way: its tab if one is open, else a new one. */
-export const askTabPath = () => tabOfKind((p) => /^\/ask(\/|\?|$)/.test(p), "/ask");
+export const askTabPath = () => tabOfKind((p) => KIND_PATH.ask.test(p), "/ask");
+/** Where the bar's button for a kind will land in the group: its first tab, or the end for a new one. */
+export function kindTabIndex(kind: keyof typeof KIND_PATH): number {
+  const tabs = group().tabs, at = tabs.findIndex((t) => KIND_PATH[kind].test(t.path));
+  return at < 0 ? tabs.length : at;
+}
 
 /** A tab's name and kind from its path, for the switcher's cards. */
 const KINDS: [RegExp, string, string][] = [

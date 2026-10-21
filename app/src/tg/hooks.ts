@@ -53,7 +53,8 @@ export const goBack = () => backNow?.();
  * Telegram's back button walks the app's own history. On a main place it hides, unless a sheet is
  * open or the screen has something of its own for Back to undo (pending: a search query to clear).
  */
-export function useBackButton(onBack?: () => boolean | void, pending = false) {
+/** `hidden`: a screen with no Back of its own, which shows Telegram's only to close its sheets. */
+export function useBackButton(onBack?: () => boolean | void, pending = false, hidden = false) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const root = isRootPath(pathname);
@@ -82,11 +83,11 @@ export function useBackButton(onBack?: () => boolean | void, pending = false) {
     };
     backNow = cb;
     if (has("6.1")) {
-      const show = !root || canGoBack || sheets > 0 || pending;
+      const show = sheets > 0 || (!hidden && (!root || canGoBack || pending));
       if (show) { app!.BackButton.onClick(cb); app!.BackButton.show(); } else app!.BackButton.hide();
     }
     return () => { if (backNow === cb) backNow = null; if (has("6.1")) app!.BackButton.offClick(cb); };
-  }, [root, canGoBack, navigate, sheets, pathname, pending, underSheet]);
+  }, [root, canGoBack, navigate, sheets, pathname, pending, underSheet, hidden]);
 }
 
 export type Action = { text: string; onClick: () => void; quiet?: boolean; progress?: boolean; disabled?: boolean; shine?: boolean };
