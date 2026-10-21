@@ -1,0 +1,1 @@
+- Home and the Bible open with the last verse of the day, chapters and class lists already on screen, then refresh in the background. They still open when the network is slow or down.

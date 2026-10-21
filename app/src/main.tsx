@@ -15,6 +15,7 @@ import { routerBasename } from "@shared/basename.mjs";
 import { registerOfflineShell } from "./resources/offline-shell";
 import { installGlassLight } from "./ui/glass-light";
 import { installPress } from "./ui/press";
+import { persistQueries, restoreQueries } from "./lib/query-cache";
 import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./styles.css";
 
@@ -36,8 +37,9 @@ installPress();
 if (import.meta.env.VITE_ACCOUNT_SYNC === "true") connectPersonalStore(import("./sync/account").then(m => m.startAccountSync()));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 5 * 60_000, retry: 1, refetchOnWindowFocus: false } } });
+persistQueries(queryClient);
 
-createRoot(document.getElementById("root")!).render(
+const render = () => createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter basename={basename}>
@@ -50,3 +52,6 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+// The saved public data goes in before the first paint, so Home and the reader open with it; a
+// slow device database never holds the app back more than a moment.
+void Promise.race([restoreQueries(queryClient), new Promise((done) => setTimeout(done, 300))]).then(render);
