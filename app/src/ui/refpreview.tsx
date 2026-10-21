@@ -119,18 +119,6 @@ export function ReferencePreviewProvider({ children }: { children: ReactNode }) 
     return () => { cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener("scroll", schedule, true); window.removeEventListener("resize", schedule); };
   }, [present, request]);
 
-  // A tap outside closes it without consuming the tap, as the anchored menus do.
-  useEffect(() => {
-    if (!open) return;
-    const outside = (e: MouseEvent) => {
-      const t = e.target as Element;
-      if (box.current?.contains(t) || t.closest?.("a.reflink, a[data-ref-preview]")) return;
-      close();
-    };
-    document.addEventListener("click", outside, true);
-    return () => document.removeEventListener("click", outside, true);
-  }, [open, close]);
-
   const openFull = () => { const r = request; if (!r) return; close(); r.open(); };
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const current = shown.current;
@@ -145,7 +133,7 @@ export function ReferencePreviewProvider({ children }: { children: ReactNode }) 
     <PreviewContext.Provider value={preview}>
       {children}
       {present && current ? (
-        <div className="sheet__scrim" data-anchored="">
+        <div className="sheet__scrim" data-anchored="" data-modal={open ? "" : undefined} onClick={(e) => { if (e.target === e.currentTarget) close(); }}>
           <div ref={box} className="sheet refpreview" data-popover="" inert={!open} aria-hidden={!open} role="dialog" aria-modal={false} aria-label={title} data-sheet-open="">
             <div className="refpreview__head">
               {history.length > 1

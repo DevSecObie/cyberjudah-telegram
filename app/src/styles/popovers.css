@@ -38,6 +38,7 @@
 
 /* Bible Strong's reference preview (ReferencePreviewHost): 440 wide, a one-line header with Back
    and Open, the passage scrolling on its own under min(360px, 55% of the viewport) at 16/24. */
+.sheet__scrim[data-anchored][data-modal] { pointer-events: auto; }
 .sheet__scrim[data-anchored] .refpreview { width: min(440px, calc(100% - 16px)); padding: 0; display: flex; flex-direction: column; overflow: hidden; }
 .refpreview__head { display: flex; align-items: center; gap: 4px; min-height: 44px; padding: 0 4px; border-bottom: 1px solid var(--hairline); }
 .refpreview__title { flex: 1; min-width: 0; text-align: center; font: 600 var(--fs-body) var(--font-ui); color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

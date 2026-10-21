@@ -895,6 +895,18 @@ test("a reference in content opens a preview card of the passage, with Open and 
   await expect(page).toHaveURL(/\/read\/genesis\/1$/);
   expect(await top()).toBe(before);
 
+  // A tap outside only closes the card: it doesn't select the verse under it.
+  await page.clock.install();
+  await john.click();
+  await expect(card).toBeVisible();
+  const outside = (await page.locator("#verset-18 .bs-num").boundingBox())!;
+  await page.mouse.click(outside.x + outside.width / 2, outside.y + outside.height / 2);
+  await page.clock.runFor(300);
+  await expect(card).toBeHidden();
+  await expect(page.locator(".bs-verse[data-selected]")).toHaveCount(0);
+  await expect(page.locator(".bs-action")).toHaveCount(0);
+  expect(await top()).toBe(before);
+
   // A reference inside the card opens on top of it; Back returns.
   await page.locator("#verset-20 .rel-tag", { hasText: "Creation" }).click();
   const note = page.getByRole("dialog", { name: "Note" });
