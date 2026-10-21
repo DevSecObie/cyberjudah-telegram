@@ -1,2 +1,5 @@
-.reader-search__field { padding: 11px 20px 4px; }
+/* Keep the established search-field selector while the shared 27.2.0 input owns its layout. */
+#root .reader-search__field { display: block; margin: 0; padding: 11px 20px 4px; min-height: 0; border-radius: 0; background: none; }
+#root .reader-search__field:focus-within { box-shadow: none; }
+#root .reader-search__field input { height: 100%; font: 400 .9375rem var(--font-ui); color: var(--text-1); }
 .reader-search__limit { margin: 0; padding: 12px 20px; background: var(--bs-light-grey); color: var(--bs-grey); font-size: 13px; }

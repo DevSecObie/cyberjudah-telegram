@@ -87,7 +87,7 @@ export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open
 
   return (
     <Sheet open={open} onClose={onClose} height="full" title="Search the Scriptures" className="bs-versesearch" headerChildren={
-      <div ref={field} className="reader-search__field">
+      <div ref={field} className="reader-search__field bs-search__field">
         <SearchField id="reader-search" value={q} onChange={value => { setQ(value); if (!value) setText(""); }} onSubmit={() => { setQ(q.trim()); setText(q.trim()); }} placeholder="Search" />
       </div>
     }>

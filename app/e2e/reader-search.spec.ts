@@ -50,6 +50,7 @@ test("reader search waits 800 ms, keeps previous verses, and Search submits with
     await r.fulfill({ json: { results: results(0, 20, "mercy"), count: 45 } });
   });
   const input = page.getByRole("searchbox", { name: "Search", exact: true });
+  await expect(page.locator(".bs-search__field input")).toBeVisible();
   await input.fill("mercy");
   await page.clock.runFor(799);
   expect(requests.map(u => u.searchParams.get("q"))).toEqual(["light"]);
