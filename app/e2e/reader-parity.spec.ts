@@ -955,6 +955,18 @@ test("reference preview body includes its padding within the viewport cap and sc
   expect(await readerScroll()).toBe(before);
 });
 
+test("mixed-chapter relations retain direct navigation instead of a single-chapter preview", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([
+      { id: "r", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-2"], label: "Genesis 1:2" }, { type: "verse", verseKeys: ["john-3-16", "genesis-1-3"], label: "Across chapters" }], createdAt: 1, updatedAt: 1 },
+    ]));
+  });
+  await page.goto("/read/genesis/1");
+  await page.locator("#verset-2 .rel-tag", { hasText: "Across chapters" }).click();
+  await expect(page).toHaveURL(/\/read\/john\/3\?/);
+  await expect(page.locator(".refpreview")).toHaveCount(0);
+});
+
 test("reference previews filter a very large verse range without expanding it", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1/2": { id: "n", title: "A large range", description: "Read (John 3:3-999999999999,1)", date: 1 } }));

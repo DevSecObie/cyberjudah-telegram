@@ -292,8 +292,9 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       return;
     }
     if (t.type === "link") { openLink(endpointHref(t)); return; }
-    const p = t.type === "verse" ? parseVerseKey(t.verseKeys[0]) : null;
-    if (t.type === "verse" && p && preview({ kind: "bible", slug: p.slug, chapter: p.chapter, verses: verseSpec(t.verseKeys.map((k) => parseVerseKey(k)!.verse)), open: () => navigate(endpointHref(t)) })) return;
+    const keys = t.type === "verse" ? t.verseKeys.map(parseVerseKey) : [];
+    const p = keys[0];
+    if (p && keys.every((k) => k && k.slug === p.slug && k.chapter === p.chapter) && preview({ kind: "bible", slug: p.slug, chapter: p.chapter, verses: verseSpec(keys.map((k) => k!.verse)), open: () => navigate(endpointHref(t)) })) return;
     navigate(endpointHref(t));
   };
 
