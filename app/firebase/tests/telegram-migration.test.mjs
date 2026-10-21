@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { build } from 'esbuild'
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { collection, doc, getDoc, getDocs, updateDoc, deleteDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, updateDoc, deleteDoc, setDoc } from 'firebase/firestore'
 
 const output = new URL('../../tests/.build/telegram-migration.mjs', import.meta.url).pathname
 await build({ entryPoints: [new URL('../../src/sync/migration.ts', import.meta.url).pathname], bundle: true, platform: 'node', format: 'esm', packages: 'external', outfile: output, logLevel: 'error' })
@@ -38,7 +38,7 @@ test('interruption resumes with one initial snapshot per note and preserves subs
     assert.equal(revisions.size, 1)
     assert.equal(revisions.docs[0].data().snapshot.description, 'Preserved source text')
   }
-  assert.equal((await getDoc(doc(setup.db, 'users', uid))).data().telegramMigration.cloudStorage.migrationVersion, 1)
+  assert.equal((await getDoc(doc(setup.db, 'users', uid))).data().telegramMigration.cloudStorageBySource.app.migrationVersion, 1)
   assert.equal((await migrateTelegramSource(setup)).alreadyComplete, true)
 })
 
@@ -53,7 +53,7 @@ test('a completed CloudStorage pass never skips a second device IndexedDB pass; 
   await migrateTelegramSource(second)
   assert.equal((await getDocs(collection(cloud.db, 'users', uid, 'notes'))).size, 3)
   for (const device of [first, second]) assert.equal(JSON.parse(device.deviceStore.getItem(deviceMigrationKey(uid))).migrationVersion, 1)
-  assert.deepEqual(Object.keys((await getDoc(doc(cloud.db, 'users', uid))).data().telegramMigration), ['cloudStorage'])
+  assert.deepEqual(Object.keys((await getDoc(doc(cloud.db, 'users', uid))).data().telegramMigration), ['cloudStorageBySource'])
   assert.equal(first.deviceStore.getItem(deviceMigrationKey('tg_103')), null)
 })
 
@@ -109,4 +109,21 @@ test('private study and other converted document shapes are accepted by the exac
   await migrateTelegramSource(setup)
   for (const record of records) assert.equal((await getDoc(doc(setup.db, 'users', uid, record.collection, record.id))).exists(), true)
   assert.equal((await getDocs(collection(setup.db, 'users', uid, 'studies', 'shape-studies', 'revisions'))).size, 1)
+})
+
+test('the staging bot and an earlier unscoped marker cannot skip the production bot import', async () => {
+  const setup = options('tg_109', [await note('production-cloud-note')])
+  const root = doc(setup.db, 'users', setup.uid)
+  // A prior preview used an unscoped marker. Keep it intact, but never treat it as proof
+  // that a different bot's CloudStorage has been imported.
+  await setDoc(root, { telegramMigration: { cloudStorage: { migrationVersion: 1 } } })
+  await migrateTelegramSource({ ...setup, cloudStorageScope: 'staging', readAndConvert: async () => [] })
+  assert.equal((await getDocs(collection(setup.db, 'users', setup.uid, 'notes'))).size, 0)
+  assert.equal((await migrateTelegramSource(setup)).imported, 1)
+  assert.equal((await getDocs(collection(setup.db, 'users', setup.uid, 'notes'))).size, 1)
+  assert.deepEqual((await getDoc(root)).data().telegramMigration, {
+    cloudStorage: { migrationVersion: 1 },
+    cloudStorageBySource: { app: { migrationVersion: 1 }, staging: { migrationVersion: 1 } },
+  })
+  assert.equal((await migrateTelegramSource(setup)).alreadyComplete, true)
 })
