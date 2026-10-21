@@ -17,7 +17,7 @@ export function Help() {
       <p><Link to="/studies">My studies</Link> keeps your own writing, scripture and Strong’s entries. A study opens to read; the pencil lets you write in it, and export keeps a file you can take elsewhere.</p>
     </Card></Section>
     <Section title="Search and translations"><Card>
-      <p>Scripture options → Search the Scriptures accepts a reference, a name or words from the text. Put a phrase in quotes to keep it together. Filter by testament or book, change the result order, and use More verses to continue.</p>
+      <p>Scripture options → Search the Scriptures accepts a reference, a name or words from the text. Put a phrase in quotes to keep it together. Filter by testament or book, and change the result order.</p>
       <p>The reader uses the King James Version with the Apocrypha. Precepts side by side compares related scripture; it does not substitute another translation. Word-aligned Strong’s entries are available where the source provides them. A Greek parallel is labeled separately from word alignment.</p>
     </Card></Section>
     <Section title="Audio and offline reading"><Card>
