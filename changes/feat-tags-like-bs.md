@@ -1,0 +1,1 @@
+- Tags work as in Bible Strong: the list shows what each tag carries (highlights, notes, links), a filter button sorts it by name or by how much each tag holds and searches it, each tag's ⋮ edits its name, makes a tab group of everything it carries, or removes it, and + adds a new tag. Removing a tag now takes it off word marks and links too, not only highlights and notes.

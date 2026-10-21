@@ -9,7 +9,7 @@ import { Route, Routes, useLocation, useNavigate, useNavigationType } from "reac
 import { RouteSheet, useSheetEntry } from "@/ui/routeSheet";
 import { UnderSheetContext } from "@/ui/sheetRoute";
 import { initialLaunchPath } from "@/tg/launch.mjs";
-import { isTabPath, keptPath, recordPath } from "@/lib/tabs";
+import { isTabPath, keptPath, recordPath, settleTabFloor } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -34,7 +34,6 @@ const More = lazy(() => import("@/screens/More").then((m) => ({ default: m.More 
 const ResourceInstaller = lazy(() => import("@/screens/ResourceInstaller").then((m) => ({ default: m.ResourceInstaller })));
 const ResourceReader = lazy(() => import("@/screens/ResourceReader").then((m) => ({ default: m.ResourceReader })));
 const AdminGate = lazy(() => import("@/admin/AdminGate").then((m) => ({ default: m.AdminGate })));
-const NavEditor = lazy(() => import("@/screens/NavEditor").then((m) => ({ default: m.NavEditor })));
 const Account = lazy(() => import("@/screens/Account").then(m => ({ default: m.Account })));
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
 const Help = lazy(() => import("@/screens/Help").then(m => ({ default: m.Help })));
@@ -55,8 +54,11 @@ const History = lazy(() => import("@/screens/History").then((m) => ({ default: m
 const Dictionary = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.Dictionary })));
 const DictionaryEntry = lazy(() => import("@/screens/Dictionary").then((m) => ({ default: m.DictionaryEntry })));
 const Person = lazy(() => import("@/screens/Person").then((m) => ({ default: m.Person })));
+const Place = lazy(() => import("@/screens/Place").then((m) => ({ default: m.Place })));
 const Relations = lazy(() => import("@/screens/Relations").then((m) => ({ default: m.Relations })));
 const Bookmarks = lazy(() => import("@/screens/Bookmarks").then((m) => ({ default: m.Bookmarks })));
+const Highlights = lazy(() => import("@/screens/Highlights").then((m) => ({ default: m.Highlights })));
+const Notes = lazy(() => import("@/screens/Notes").then((m) => ({ default: m.Notes })));
 const Sabbath = lazy(() => import("@/screens/Sabbath").then((m) => ({ default: m.Sabbath })));
 const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Books })));
 const BookScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookScreen })));
@@ -109,7 +111,6 @@ const routes = (
     <Route path="/settings" element={<Settings />} />
     <Route path="/settings/help" element={<Help />} />
     <Route path="/settings/audio" element={<AudioSettings />} />
-    <Route path="/settings/bar" element={<NavEditor />} />
     <Route path="/settings/requests" element={<NoteRequests />} />
     <Route path="/plans" element={<ReadingPlans />} />
     <Route path="/plan" element={<Plan />} />
@@ -123,6 +124,7 @@ const routes = (
     <Route path="/lexicon/:number" element={<LexiconEntry />} />
     <Route path="/people" element={<People />} />
     <Route path="/person/:id" element={<Person />} />
+    <Route path="/place/:id" element={<Place />} />
     <Route path="/tags" element={<Tags />} />
     <Route path="/tags/:id" element={<TagScreen />} />
     <Route path="/books" element={<Books />} />
@@ -130,6 +132,8 @@ const routes = (
     <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
     <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
     <Route path="/bookmarks" element={<Bookmarks />} />
+    <Route path="/highlights" element={<Highlights />} />
+    <Route path="/notes" element={<Notes />} />
     <Route path="/sabbath" element={<Sabbath />} />
     <Route path="/studies" element={<PersonalStudies />} />
     <Route path="/studies/:id" element={<PersonalStudies />} />
@@ -172,8 +176,9 @@ export function App() {
     const prev = prevPath.current, idx = historyIdx();
     if (navType === "PUSH" && !isOver(idx) && prev !== null && (!isTabPath(prev) || isOver(idx - 1))) markOver(idx);
     if (!isOver(idx)) recordPath(path);
+    settleTabFloor(idx, navType !== "PUSH");
     prevPath.current = path;
-  }, [location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.key, location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
   const navigate = useNavigate();
   useSettingsButton();
 

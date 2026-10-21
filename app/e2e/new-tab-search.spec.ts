@@ -78,6 +78,22 @@ test("closing Search leaves the New Tab as it was", async ({ page }) => {
   expect(await tabs(page)).toEqual(["b:/read/exodus/2", "n:/new"]);
 });
 
+test("a card's Search loads only what its kind needs, and the card itself stays on the page", async ({ page }) => {
+  let strongs = 0;
+  page.on("request", (r) => { if (r.url().includes("/api/strongs/index.json")) strongs++; });
+  await setup(page);
+  const studies = page.getByRole("button", { name: "Studies", exact: true });
+  await studies.evaluate((el) => { (window as unknown as { __card: Element }).__card = el; });
+  await studies.click();
+  await expect(sheet(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(sheet(page)).toHaveCount(0);
+  expect(await page.evaluate(() => (window as unknown as { __card: Element }).__card.isConnected)).toBe(true);
+  expect(strongs).toBe(0);
+  await page.getByRole("button", { name: "Strong", exact: true }).click();
+  await expect.poll(() => strongs).toBeGreaterThan(0);
+});
+
 test("Strong browses by letter with the alphabet; a code typed finds the word and the tab becomes it", async ({ page }) => {
   await setup(page);
   await page.getByRole("button", { name: "Strong", exact: true }).click();

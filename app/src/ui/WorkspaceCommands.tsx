@@ -11,7 +11,7 @@ import "./workspace-commands.css";
 
 const destinations = [
   ["Bible", "/bible"], ["Search", "/search"], ["My studies", "/studies", "study writing"], ["Reading plans", "/plans"],
-  ["Classes", "/classes"], ["Highlights, notes and bookmarks", "/bookmarks"], ["Strong’s lexicon", "/lexicon"],
+  ["Classes", "/classes"], ["Highlights", "/highlights"], ["Bookmarks", "/bookmarks"], ["Notes", "/notes"], ["Strong’s lexicon", "/lexicon"],
   ["Dictionary", "/dictionary"], ["People", "/people"], ["Precepts", "/precepts"], ["Your precepts", "/relations"],
   ["Tags", "/tags"], ["Bible timeline", "/timeline"], ["Library", "/books"], ["The Law", "/law"],
   ["Topics", "/topics"], ["Concordance", "/concordance"], ["Ask CyberJudah", "/ask"], ["Downloads and resources", "/resources"],

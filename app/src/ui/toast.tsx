@@ -9,8 +9,9 @@ import { Icon } from "./ui";
  * or at once for an error.
  */
 type Tone = "info" | "success" | "error";
-type Toast = { id: number; text: string; tone: Tone; ms: number };
-type Ctx = { show(text: string, opts?: { tone?: Tone; ms?: number }): void };
+type Action = { label: string; onClick: () => void };
+type Toast = { id: number; text: string; tone: Tone; ms: number; action?: Action };
+type Ctx = { show(text: string, opts?: { tone?: Tone; ms?: number; action?: Action }): void };
 const ToastContext = createContext<Ctx>({ show: () => {} });
 export const useToast = () => useContext(ToastContext).show;
 
@@ -20,11 +21,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [list, setList] = useState<Toast[]>([]);
   const next = useRef(1);
   const dismiss = useCallback((id: number) => setList((l) => l.filter((t) => t.id !== id)), []);
-  const show = useCallback((text: string, opts?: { tone?: Tone; ms?: number }) => {
+  const show = useCallback((text: string, opts?: { tone?: Tone; ms?: number; action?: Action }) => {
     const tone = opts?.tone ?? "info";
     // An error waits for the reader; anything else times out.
     const ms = tone === "error" ? 0 : opts?.ms ?? 3500;
-    setList((l) => [...l.filter((t) => t.text !== text), { id: next.current++, text, tone, ms }].slice(-MAX));
+    setList((l) => [...l.filter((t) => t.text !== text), { id: next.current++, text, tone, ms, action: opts?.action }].slice(-MAX));
   }, []);
   useEffect(() => {
     const syncError = (event: Event) => show((event as CustomEvent<string>).detail, { tone: "error" });
@@ -58,7 +59,7 @@ function ToastView({ toast, onDone }: { toast: Toast; onDone: () => void }) {
     <div className="toast" data-tone={toast.tone} role={toast.tone === "error" ? "alert" : "status"}
       onMouseEnter={hold} onMouseLeave={go} onFocus={hold} onBlur={go}>
       <span className="toast__icon" aria-hidden="true"><Icon name={icon} size={18} /></span>
-      <span className="toast__text">{toast.text}</span>
+      <span className="toast__text">{toast.text}{toast.action ? <button type="button" className="toast__action" onClick={() => { toast.action!.onClick(); onDone(); }}>{toast.action.label}</button> : null}</span>
       <button type="button" className="toast__close" aria-label="Dismiss" title="Dismiss" onClick={onDone}><Icon name="close" size={16} /></button>
       {toast.ms ? <span className="toast__timer" aria-hidden="true" style={{ ["--toast-ms" as string]: `${toast.ms}ms`, animationPlayState: paused ? "paused" : "running" }} /> : null}
     </div>

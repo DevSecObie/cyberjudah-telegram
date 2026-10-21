@@ -28,3 +28,20 @@ export function queryEntityList<T extends EntityListRow>(rows: readonly T[], sta
     }
   });
 }
+
+/** Bible Strong's tagListQuery: the tag list's sorts, by name or by how much each tag carries. */
+export type TagListSort = "name-asc" | "name-desc" | "count-asc" | "count-desc";
+export const TAG_LIST_SORTS: [TagListSort, string][] = [["name-asc", "Name A–Z"], ["name-desc", "Name Z–A"], ["count-asc", "Item count ascending"], ["count-desc", "Item count descending"]];
+export type TagListRow = { id: string; title: string; itemCount: number };
+export function queryTagList<T extends TagListRow>(rows: readonly T[], state: { query: string; sort: TagListSort }): T[] {
+  const matching = state.query.trim() ? searchWithMatches([...rows], state.query) : [...rows];
+  return matching.sort((left, right) => {
+    switch (state.sort) {
+      case "name-desc": return -left.title.localeCompare(right.title, undefined, { sensitivity: "base" }) || left.id.localeCompare(right.id);
+      case "count-asc": return left.itemCount - right.itemCount || left.id.localeCompare(right.id);
+      case "count-desc": return right.itemCount - left.itemCount || left.id.localeCompare(right.id);
+      case "name-asc":
+      default: return left.title.localeCompare(right.title, undefined, { sensitivity: "base" }) || left.id.localeCompare(right.id);
+    }
+  });
+}

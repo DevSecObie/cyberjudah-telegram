@@ -2,7 +2,8 @@
 /**
  * Builds app/src/data/timeline.json, the Timeline's data, from two sources:
  *
- *  - Bible Strong's timeline (strong/apps/expo/src/assets/timeline/events.txt): its periods and
+ *  - Bible Strong's timeline (app/scripts/timeline/bible-strong-events.txt, from its
+ *    apps/expo/src/assets/timeline/events.txt, GPL-3.0: app/scripts/timeline/bible-strong-LICENSE): its periods and
  *    events with their years and rows, which the Timeline lays out exactly as Bible Strong does.
  *    Only the history is kept (titles, years, rows, colours). Their descriptions, articles,
  *    pictures and French fields are left out, and so is their prophetic teaching: the last
@@ -21,7 +22,7 @@ import { fileURLToPath } from "node:url";
 import { writeFinalCaptivity } from "./final-captivity/build.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const SOURCE = path.join(ROOT, "strong/apps/expo/src/assets/timeline/events.txt");
+const SOURCE = path.join(ROOT, "app/scripts/timeline/bible-strong-events.txt");
 const OUT = path.join(ROOT, "app/src/data/timeline.json");
 /** People with an approved portrait that the timeline may show (app/public/people/<id>-<size>.webp). */
 const PORTRAITS = path.join(ROOT, "app/scripts/timeline-portraits.json");

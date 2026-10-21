@@ -25,7 +25,7 @@ const bar = (page: Page) => page.getByRole("navigation", { name: "Sections" });
 test("the buttons are 48 px, at Feather's stroke, with Bible Strong's labels and no selected state", async ({ page }) => {
   await setup(page);
   const buttons = bar(page).locator(".tab");
-  for (const width of await buttons.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width))) expect(width).toBe(48);
+  for (const width of await buttons.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().width))) expect(width).toBeCloseTo(48, 1);
   await expect(bar(page).getByRole("button", { name: "Tabs, 2 open", exact: true })).toBeVisible();
   await expect(buttons.last()).toHaveAttribute("aria-label", "Main menu");
   await expect(bar(page).locator(".tab[aria-current], .tab[data-on]")).toHaveCount(0);

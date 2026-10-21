@@ -1,0 +1,4 @@
+- The bottom bar has Bible Strong's buttons, with Classes and Ask kept: Home, Search, Bible, Classes, Ask, Tabs and Menu.
+  - Classes and Ask go to your Classes or Ask tab, or open one, the way Search and Bible do.
+  - On the narrowest phones the bar gives up its side margins first, so the seven buttons still fit.
+  - The Bottom bar editor is gone from the Menu, so every reader has the same bar.

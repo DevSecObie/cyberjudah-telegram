@@ -1,0 +1,1 @@
+- The people in the app's pictures are our own: a Black man reading the Bible on New Tab's Bible card, a Hispanic woman writing notes over Studies and notes, a Native American man holding books over Library, and a Black woman opening an empty box in the empty states. Bible Strong's people are gone.

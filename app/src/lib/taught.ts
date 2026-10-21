@@ -36,6 +36,10 @@ export function useReadings(slug: string, ch: number) {
 export function usePeopleNamed(slug: string, ch: number) {
   return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.people ?? ({} as Record<string, string[]>) });
 }
+/** The places each verse of a chapter names, verse -> place ids. */
+export function usePlacesNamed(slug: string, ch: number) {
+  return useQuery({ ...concordance(slug, ch), select: (c: Concordance | null) => c?.places ?? ({} as Record<string, string[]>) });
+}
 /** YouTube at the second the class read it. */
 export const watchUrl = (m: ClassMoment) => `https://www.youtube.com/watch?v=${m.video}${m.t ? `&t=${m.t}s` : ""}`;
 

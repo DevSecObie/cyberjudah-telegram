@@ -12,12 +12,13 @@ import { countdown, sabbath } from "@/lib/sun";
 import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { api } from "@/tg/sdk";
 import { haptic, user } from "@/tg/sdk";
-import { Card, Icon, Img, Screen, Section, Skeleton, thumbOf, type IconName } from "@/ui/ui";
+import { Feather } from "@/bible/icons";
+import { Card, Icon, Img, Screen, Section, thumbOf, type IconName } from "@/ui/ui";
 import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
 import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
 
-import { seriesLabel, seriesOf, showOf, type Series } from "@/lib/series";
+import { seriesLabel, seriesOf, showMatcher, showOf, type Series } from "@/lib/series";
 import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
 export type LiveNow = { live: boolean; upcoming: boolean; video: string | null; title: string | null; starts: string | null };
 /** Whether a class is on the air, asked again every minute while Home is open. */
@@ -30,24 +31,6 @@ const videoOfThumb = (thumb: string) => /(?:\/vi(?:_webp)?\/|\/img\/[a-z]+\/)([A
 export const teachingTo = (t: Teaching) => (t.pending && t.video ? `/watch/${encodeURIComponent(t.video)}` : `/note${t.url}`);
 /** The channel's newest uploads, so a class is in the app before its notes are written. `feedOk` reports RSS health; a channel fallback may still supply recordings. */
 export const useRecent = () => useQuery({ queryKey: ["recent"], queryFn: () => api<{ videos: RecentVideo[]; feedOk?: boolean }>("/api/recent"), staleTime: 10 * 60_000, refetchInterval: (q) => q.state.data?.feedOk === false ? 60_000 : 10 * 60_000, retry: false });
-// Weeks start on the Sabbath (Saturday). The featured class is labeled by the
-// calendar week its date falls in, so a stale feed never claims "this week".
-const weekLabel = (dateStr: string): string => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr);
-  if (!m) return "";
-  const d = new Date(+m[1], +m[2] - 1, +m[3]);
-  const weekStart = (x: Date) => {
-    const t = new Date(x.getFullYear(), x.getMonth(), x.getDate());
-    t.setDate(t.getDate() - ((t.getDay() + 1) % 7)); // back to Saturday
-    return t;
-  };
-  const thisSat = weekStart(new Date());
-  const lastSat = new Date(thisSat);
-  lastSat.setDate(lastSat.getDate() - 7);
-  if (d >= thisSat) return "This week's class";
-  if (d >= lastSat) return "Last week's class";
-  return "";
-};
 export const KIND_NAME: Record<Teaching["kind"], string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
 /** What a teaching is shown as: the series its title names, else its collection. */
 export const teachingLabel = (t: Pick<Teaching, "kind" | "series">) => (t.series ? seriesLabel(t.series) : KIND_NAME[t.kind]);
@@ -66,10 +49,14 @@ function useNotedTeachings() {
   });
 }
 
+/** The shows and series besides the Sabbath classes, each with its own section. */
+export const useShows = () => useQuery({ queryKey: ["shows"], queryFn: () => data.shows(), staleTime: 60 * 60_000, retry: 1 });
+
 /** In the order the classes went live, newest first, including pending notes. */
 export function useTeachings() {
   const notes = useNotedTeachings();
   const recent = useRecent();
+  const shows = useShows();
   const broadcasts = useQuery({ queryKey: ["class-broadcasts"], queryFn: () => data.broadcasts(), staleTime: 10 * 60_000, retry: false });
   const teachings = useMemo(() => {
     if (!notes.data) return notes.data;
@@ -78,13 +65,17 @@ export function useTeachings() {
     const all = orderTeachings([...notes.data, ...extra], broadcasts.data, undefined, (recent.data?.videos ?? []).map((v) => v.video));
     // A class taught as one of a run, or on one of the shows, carries that name: the show its note
     // names as its collection ("The Truth Shall Make You Free"), else the name read from the titles.
+    // A recording of one of the shows is shown as that show, by the shows' own list where it has loaded.
     const series = seriesOf(all.filter((t) => t.kind === "class").map((t) => t.title));
+    const showFor = showMatcher(shows.data ?? []);
     return all.map((t) => {
-      if (t.kind !== "class") return t;
-      const s = (t.collection ? { name: t.collection } : undefined) ?? series.get(t.title) ?? (showOf(t.title) ? { name: showOf(t.title)! } : undefined);
+      if (t.kind === "history") return t;
+      const show = t.collection || showFor(t.title)?.name;
+      if (t.kind === "captains") return show ? { ...t, series: { name: show } } : t;
+      const s = (show ? { name: show } : undefined) ?? series.get(t.title) ?? (showOf(t.title) ? { name: showOf(t.title)! } : undefined);
       return s ? { ...t, series: s } : t;
     });
-  }, [notes.data, recent.data, broadcasts.data]);
+  }, [notes.data, recent.data, broadcasts.data, shows.data]);
   return { ...notes, data: teachings, feedOk: recent.data?.feedOk };
 }
 
@@ -204,7 +195,7 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
 
   const random = useRandomVerse();
   const latestClass = feed.data?.find((t) => t.kind === "class");
-  const rows = useMemo(() => (feed.data ?? []).filter((t) => t.url !== latestClass?.url).slice(0, 8), [feed.data, latestClass]);
+  const rows = useMemo(() => (feed.data ?? []).slice(0, 8), [feed.data]);
   // In Bible Strong's Meditations place: the newest class series, to be followed part by part.
   const series = useMemo(() => {
     const newest = (feed.data ?? []).find((t) => t.series);
@@ -220,12 +211,15 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
       <TodayCard verse={verse.data} failed={verse.isError} stacked={drawer} />
       <StudyStats expanded={drawer} active={active} />
       <h2 className="shelf">Learn</h2>
-      {feed.isPending ? <Skeleton rows={1} thumb /> : latestClass ? (
-        <Link to={teachingTo(latestClass)} className="feature">
-          <span className="feature__img"><Img src={latestClass.thumb} eager /></span>
-          <span className="feature__body"><small>{[weekLabel(latestClass.date), fmtDate(latestClass.date), latestClass.teacher].filter(Boolean).join(" · ")}{latestClass.pending ? <span className="soon">Notes coming soon</span> : null}</small><b>{latestClass.title}</b>{latestClass.books.length ? <span className="feed__books">{latestClass.books.slice(0, 4).map((b) => <em key={b}>{b}</em>)}</span> : null}</span>
-        </Link>
-      ) : null}
+      {/* Bible Strong's PassageMediaLibraryWidget: Courses & videos, the latest class's picture and title. */}
+      <Link to="/classes" className="pml-widget" aria-label="Open courses and videos" onClick={() => haptic("select")}>
+        <span className="pml-widget__img">{latestClass?.thumb ? <Img src={latestClass.thumb} eager /> : null}</span>
+        <span className="pml-widget__body">
+          <b>Courses & videos</b>
+          {feed.isPending ? <span className="skel" style={{ width: "80%", height: 12 }} /> : latestClass ? <span>{latestClass.title}</span> : null}
+          <span className="pml-widget__go"><Feather name="chevron-right" size={20} /></span>
+        </span>
+      </Link>
       {/* Bible Strong's pair of tall cards (The Bible Project's plan and the timeline): the daily
           reading in the plan's place, and the timeline. */}
       <div className="duo">

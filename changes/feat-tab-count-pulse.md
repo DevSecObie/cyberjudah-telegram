@@ -1,0 +1,1 @@
+- The number of open tabs on the bottom bar now briefly grows and settles whenever a tab is opened or closed, as in Bible Strong.

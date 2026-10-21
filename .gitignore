@@ -9,10 +9,6 @@ playwright-report
 .DS_Store
 app/e2e/.shots/
 .expo
-strong/.yarn/cache/
-strong/.yarn/install-state.gz
-strong/.yarn/unplugged/
-strong/dist/
 # Playwright CLI page snapshots, written wherever it runs
 .playwright-cli/
 

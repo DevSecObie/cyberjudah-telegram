@@ -130,42 +130,9 @@ html[data-theme="dark"] .tabicon--quint { color: rgb(253, 121, 168); }
 
 /* A tab contracts into its actual card and expands back; the glass controls stay separate. */
 html[data-tab-motion] .route, .route[data-tab-animated] { animation: none; }
-::view-transition-group(tab-surface) { transform-origin: 0 0; animation: tab-morph var(--dur-4) var(--ease-tab) both; }
-::view-transition-old(tab-surface), ::view-transition-new(tab-surface) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
-::view-transition-old(tab-surface) { animation: tab-fade-out var(--dur-4) ease both; }
-::view-transition-new(tab-surface) { animation: fade-in var(--dur-4) ease both; }
-::view-transition-group(tab-controls) { animation: none; }
-/* Bible Strong's bar swaps its rows in 300 ms: going to the switcher, the buttons rise 30 px and
-   fade as its controls rise into place from 30 px below; coming back, the reverse. */
-::view-transition-old(tab-controls) { animation: bar-out-up 300ms cubic-bezier(0.455, 0.03, 0.515, 0.955) both; }
-::view-transition-new(tab-controls) { animation: bar-in-up 300ms cubic-bezier(0.455, 0.03, 0.515, 0.955) both; }
-html[data-tab-motion="expand"]::view-transition-old(tab-controls) { animation-name: bar-out-down; }
-html[data-tab-motion="expand"]::view-transition-new(tab-controls) { animation-name: bar-in-down; }
-@keyframes bar-out-up { to { transform: translateY(-30px); opacity: 0; } }
-@keyframes bar-in-up { from { transform: translateY(30px); opacity: 0; } }
-@keyframes bar-out-down { to { transform: translateY(30px); opacity: 0; } }
-@keyframes bar-in-down { from { transform: translateY(-30px); opacity: 0; } }
-@keyframes tab-morph { from { transform: var(--tab-from); } to { transform: var(--tab-to); } }
-@keyframes tab-fade-out { to { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(tab-surface) { animation: none; }
 }
-
-/* The dock's editor. */
-.naved__preview { display: flex; justify-content: space-around; align-items: center; height: 52px; margin: 4px 0 18px; padding: 0 var(--sp-3); border-radius: var(--r-pill); background: var(--surface-1); box-shadow: var(--card-edge), inset 0 1px 0 var(--rim-highlight); color: var(--text-2); }
-.naved__preview > span { display: grid; place-items: center; width: 40px; }
-.naved { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge); }
-.naved__row { display: flex; align-items: center; gap: var(--sp-3); min-height: var(--h-lg); padding: 0 var(--sp-2) 0 var(--sp-4); border-top: .5px solid var(--hairline); }
-.naved__row:first-child { border-top: 0; }
-.naved__icon { display: grid; place-items: center; min-width: 26px; color: var(--text-1); }
-.naved__label { flex: 1; font: 500 15px var(--font-ui); color: var(--text-2); }
-.naved__btn { display: grid; place-items: center; width: var(--touch); height: var(--touch); border: 0; border-radius: 50%; background: none; color: var(--text-1); cursor: pointer; }
-.naved__btn--down svg { transform: rotate(180deg); }
-.naved__btn--add { color: var(--accent); }
-.naved__btn:disabled { opacity: .3; cursor: default; }
-.naved__btn:not(:disabled):hover { background: var(--state-hover); }
-.naved__btn:not(:disabled)[data-pressed] { background: var(--state-press); }
-.naved__reset { display: block; min-height: var(--touch); margin: 18px auto 0; border: 0; background: none; font: 500 15px var(--font-ui); color: var(--accent); cursor: pointer; }
 
 /* Bible Strong's GroupActionsPopover rows (common/ActionMenu): 20 px all round, a 15 px icon in a
    20 px column, the 16 px label 10 px after it, a line under each; Delete in quart. */
