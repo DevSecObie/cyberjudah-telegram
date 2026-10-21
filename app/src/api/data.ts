@@ -88,6 +88,8 @@ export type LibraryChapter = BookChapterRow & { item: string | null; pages: Book
 export type Opened = { label: string; slug: string; chapter: number };
 export type FeedRow = { title: string; url: string; date: string; year: string; teacher: string; collection?: string; thumb: string; books: string[]; topics?: string[]; videoId?: string | null; /** The note's opening, plain text, cut near 600 characters. */ intro?: string; opens?: Opened[] };
 export type HistoryRow = { slug: string; title: string; url: string; episode: number | null; date: string | null; year: string; duration: number | null; videoId: string; thumb: string; teacher: string; topics: string[]; summary: string; noted?: boolean; intro?: string };
+/** A show or series besides the Sabbath classes (cyberjudah data/shows.json): what it is, its notes, and its transcribed recordings (null where not counted). */
+export type ShowRow = { slug: string; name: string; kind: string; url: string; page?: string; feed?: "captains"; match: string[]; notes: number; recordings: number | null };
 export type HistoryEpisode = HistoryRow & { start: number; body: string | null; turns: { t: number; text: string }[] };
 export type WhatsNew = { kind: "pass" | "book" | "class" | "captains"; title: string; url: string; date: string; teacher: string; sub: string };
 export type Stats = { chapters: number; books: number; verses: number; studies: number; classes: number; captains: number; laws: number; precepts: number; cases: number; recent: { kind: string; title: string; url: string; date: string; teacher: string; thumb: string; books: string[] }[]; whatsNew?: WhatsNew[] };
@@ -148,6 +150,7 @@ export const data = {
   broadcasts: () => get<Record<string, { date: string; broadcastAt: string }>>("/api/classes/broadcasts.json"),
   captains: () => get<FeedRow[]>("/search/captains.json").then(abs),
   history: () => get<HistoryRow[]>("/api/history/index.json").then(abs),
+  shows: () => get<{ shows: ShowRow[] }>("/api/shows/index.json").then((d) => d.shows),
   episode: (slug: string) => get<HistoryEpisode>(`/api/history/${slug}.json`),
   stats: () => get<Stats>("/api/stats.json").then((s) => ({ ...s, recent: abs(s.recent) })),
   laws: () => get<LawPart[]>("/api/laws/index.json"),
