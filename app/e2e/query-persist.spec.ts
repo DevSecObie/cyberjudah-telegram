@@ -34,4 +34,10 @@ test("public data saved on the device opens Home and the reader at once, without
   const home = page.locator(".drawer--home");
   if (!(await home.isVisible())) await page.getByRole("button", { name: "Home", exact: true }).click();
   await expect(home.locator(".today-card[data-active]")).toContainText("Genesis 1:1");
+
+  // The chapter's refresh failed, and other public data loaded and was saved since: the chapter is still kept.
+  await page.waitForTimeout(3000);
+  await page.reload();
+  await expect(page.locator("#verset-1")).toContainText("In the beginning");
+  expect(await savedKeys(page)).toEqual(expect.arrayContaining(["books", "chapter", "votd"]));
 });

@@ -1,6 +1,6 @@
 import { dehydrate, hydrate, type DehydratedState, type QueryClient } from "@tanstack/react-query";
 import { openDB } from "idb";
-import { persistable, trim } from "./query-persist.mjs";
+import { merge, persistable, settle, trim } from "./query-persist.mjs";
 
 const STORE = "state", KEY = "queries", VERSION = 1;
 type Saved = { version: number; queries: DehydratedState["queries"] };
@@ -22,9 +22,14 @@ export function persistQueries(client: QueryClient) {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const save = () => {
     clearTimeout(timer); timer = undefined;
-    const { queries } = dehydrate(client, { shouldDehydrateQuery: (q) => q.state.status === "success" && persistable(q.queryKey) });
-    const saved: Saved = { version: VERSION, queries: trim(queries) };
-    database().then((d) => d.put(STORE, saved, KEY)).catch(() => undefined);
+    // Any query holding loaded data, including one whose last refresh failed.
+    const fresh = dehydrate(client, { shouldDehydrateQuery: (q) => persistable(q.queryKey) && q.state.data !== undefined && q.state.dataUpdatedAt > 0 }).queries.map(settle);
+    void (async () => {
+      const d = await database();
+      const stored = await d.get(STORE, KEY) as Saved | undefined;
+      const saved: Saved = { version: VERSION, queries: trim(merge(stored?.version === VERSION ? stored.queries : [], fresh)) };
+      await d.put(STORE, saved, KEY);
+    })().catch(() => undefined);
   };
   client.getQueryCache().subscribe((e) => {
     if (e.type === "updated" && e.action.type === "success" && persistable(e.query.queryKey)) timer ??= setTimeout(save, 2000);
