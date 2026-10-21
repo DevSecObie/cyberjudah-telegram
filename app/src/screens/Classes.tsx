@@ -77,7 +77,7 @@ export function Classes() {
     const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) setShown((s) => (s < rows.length ? s + PAGE : s)); }, { rootMargin: "800px 0px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [rows.length, setShown, res.data, filtered]);
+  }, [rows.length, shown, setShown, res.data, filtered]);
 
   const choices = (current: string, options: string[], every: string, key: "teacher" | "year" | "series") =>
     [{ key: "", label: every, selected: !current, onSelect: () => set({ [key]: undefined }) }, ...options.map((o) => ({ key: o, label: o, selected: o === current, onSelect: () => set({ [key]: o }) }))];
