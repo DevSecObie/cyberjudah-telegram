@@ -45,12 +45,12 @@ const LIBRARY: Item[] = [
   ["/cases", "Case studies", "Judgments, and those who were blessed"],
 ];
 
-/** Bible Strong's SectionHeading: 23 px, with its illustration standing on the cards below. */
+/** Bible Strong's SectionHeading: 23 px, with our illustration standing on the cards below. */
 function SectionHeading({ title, image }: { title: string; image?: string }) {
   return (
     <div className="ntsection" data-image={image ? "" : undefined}>
       <h2>{title}</h2>
-      {image ? <img className="ntsection__art" src={assetUrl(`bs/new-tab/${image}.webp`)} alt="" aria-hidden="true" /> : null}
+      {image ? <img className="ntsection__art" src={assetUrl(`art/new-tab/${image}.webp`)} alt="" aria-hidden="true" /> : null}
     </div>
   );
 }
@@ -85,7 +85,7 @@ export function NewTab() {
             <TabIcon path="/bible" size={40} />
             <span className="ntcard__body"><b>Bible</b><small>Open the Bible and start reading</small></span>
           </span>
-          <img className="ntcard__art" src={assetUrl("bs/new-tab/bible-reader.webp")} alt="" aria-hidden="true" />
+          <img className="ntcard__art" src={assetUrl("art/new-tab/bible-reader.webp")} alt="" aria-hidden="true" />
           <Feather name="chevron-right" size={22} raw />
         </button>
         <div className="ntgrid ntgrid--read">{READ.map((i) => <Card open={open} key={i[0]} item={i} />)}</div>

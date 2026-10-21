@@ -268,7 +268,7 @@ export function EmptyState({ icon, message }: { icon: string; message: string })
   return (
     <div className="spick__empty">
       <div className="spick__art" aria-hidden="true">
-        <img src={assetUrl("bs/empty-state-illustration.png")} alt="" />
+        <img src={assetUrl("art/empty-state-illustration.webp")} alt="" />
         <span style={{ ["--icon" as string]: `url("${assetUrl(`bs/empty-state-icons/${icon}.svg`)}")` }} />
       </div>
       <p>{message}</p>
