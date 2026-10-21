@@ -445,20 +445,23 @@ test("Home is Bible Strong's drawer: it slides the app aside and closes with a s
 
 test("the reading plan ticks today's chapters and keeps a streak", async ({ page }) => {
   await page.goto(`/plan${LAUNCH}`);
-  // Before a plan is started, its one action sits with the words it answers, not in Telegram's bottom buttons.
-  const start = page.locator(".empty__act", { hasText: "Start the plan" });
-  await expect(start).toBeVisible();
+  // Before a plan is started, the screen points to the catalogue, and Telegram's bottom buttons stay off.
+  await expect(page.getByText("No journeys started yet. Discover a reading plan to begin.")).toBeVisible();
   expect((await state(page)).main).toBeNull();
-  await start.click();
-  await page.click(".sheet__item >> text=4 chapters a day");
-  await expect(page.locator(".card__label")).toHaveText("Today");
-  await expect(page.locator(".plan-row")).toHaveCount(4);
-  for (let i = 0; i < 4; i++) await page.locator(".plan-row__check").nth(i).click();
-  await expect(page.locator(".plan-row[data-read]")).toHaveCount(4);
-  await expect(page.locator(".pageaction").last()).toHaveText("Tomorrow's reading");
-  await page.locator(".pageaction").last().click();
-  await expect(page.locator(".kicker")).toContainText("Day 2");
-  await expect(page.locator(".card__ref")).toContainText("1 day streak");
+  await page.getByRole("link", { name: "Explore reading plans" }).click();
+  await page.getByRole("combobox", { name: "Chapters each day" }).selectOption("4");
+  await page.getByRole("link", { name: /^Whole Bible with Apocrypha/ }).click();
+  await page.getByRole("button", { name: "Start this plan", exact: true }).click();
+  // Starting opens the first reading, and opening it marks it read.
+  await expect(page).toHaveURL(/\/read\/genesis\/1/);
+  await goInApp(page, "/plan");
+  await expect(page.getByRole("heading", { name: /^Day 1 of / })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "Genesis 1", exact: true })).toHaveAttribute("aria-checked", "true");
+  for (const c of [2, 3, 4]) await page.getByRole("checkbox", { name: `Genesis ${c}`, exact: true }).click();
+  await page.getByRole("dialog", { name: "Congratulations" }).getByRole("button", { name: "Continue", exact: true }).click();
+  // The finished day stays in view, as Bible Strong's does; the plan resumes on day two with a one-day streak.
+  await expect(page.getByRole("button", { name: "Read again", exact: true })).toBeVisible();
+  await expect.poll(async () => JSON.parse((await cloud(page)).plan)).toMatchObject({ day: 1, streak: 1 });
 });
 
 test("one theme: the Bible's day and night colours are the whole app's", async ({ page }) => {
@@ -808,17 +811,14 @@ test("reading progress: read chapters in the book picker, the day strip and catc
   await page.addInitScript((s) => { (window as unknown as { __cloud: unknown }).__cloud = s; }, seed);
   const shot = (n: string) => (process.env.SHOTS ? page.screenshot({ path: `${process.env.SHOTS}/${n}.png` }) : Promise.resolve());
 
-  // The plan: two days behind, a strip of days, a chip to catch up.
+  // The plan: two days behind, the days in a row, and the readings to revisit.
   await page.goto(`/plan${LAUNCH}`);
-  await expect(page.locator(".daystrip__day[aria-current]")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator(".daystrip__day[data-done]")).toHaveCount(1);
-  await expect(page.locator(".catchup")).toHaveText("Catch up · 11 chapters");
+  await expect(page.getByRole("heading", { name: /^Day 2 of / })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Day 1, Day completed", exact: true })).toBeVisible();
+  await expect(page.locator(".reading-plan__missed")).toHaveText("2 readings to revisit");
   await shot("tracker-plan");
-  await page.locator(".daystrip__day").nth(2).click();
-  await expect(page.locator(".section__head h2").first()).toContainText("Day 3 · ");
-  await page.click(".catchup");
-  await page.click(".sheet__item >> text=Start the schedule from today");
-  await expect(page.locator(".catchup")).toHaveCount(0);
+  await page.getByRole("button", { name: "Day 3", exact: true }).click();
+  await expect(page.getByRole("heading", { name: /^Day 3 of / })).toBeVisible();
 
   // The book picker: Genesis 5 of 50, chapters read filled.
   await goInApp(page, "/read/genesis/5");
