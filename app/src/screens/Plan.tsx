@@ -89,10 +89,13 @@ export function Plan() {
       ...(active ? [{ id: "date", text: "Change start date", icon: <Feather name="clock" size={20} /> }, { id: "reset", text: "Reset", icon: <Feather name="rotate-ccw" size={20} /> }, { id: "stop", text: "Stop this plan", icon: <Feather name="trash-2" size={20} />, destructive: true }] : []),
     ] });
     if (answer?.id === "date") setDateOpen(true);
-    // Bible Strong's Reset restarts the plan from today. The chapters stay marked read: the bot shares them.
+    // Bible Strong's Reset: the plan's chapters are unmarked and it starts again on day one, from today.
     if (answer?.id === "reset" && stored) {
-      const confirmed = await sheet.open({ title: `Warning: Restart ${plan.name ?? "Whole Bible with Apocrypha"}? Your completed chapters stay marked.`, items: [{ id: "cancel", text: "Cancel" }, { id: "reset", text: "Reset", destructive: true }] });
-      if (confirmed?.id === "reset") { setPlan({ ...stored, startedAt: dayKey(), streak: 0, lastDone: undefined }); setChosen(null); }
+      const confirmed = await sheet.open({ title: "Warning: Are you really sure to reset your plan? You will lose all your progress.", items: [{ id: "cancel", text: "Cancel" }, { id: "reset", text: "Reset", destructive: true }] });
+      if (confirmed?.id === "reset") {
+        setProgress(days.flatMap(d => d.chapters).reduce((next, c) => unmarkRead(next, c.slug, c.chapter), progress));
+        setPlan({ ...stored, startedAt: dayKey(), day: 0, streak: 0, lastDone: undefined, seenCompleted: 0 }); setChosen(null);
+      }
     }
     if (answer?.id === "stop") {
       const confirmed = await sheet.open({ title: "Warning: Are you sure you want to stop this plan?", items: [{ id: "cancel", text: "Cancel" }, { id: "remove", text: "Remove", destructive: true }] });

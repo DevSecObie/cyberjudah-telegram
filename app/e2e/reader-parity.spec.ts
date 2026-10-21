@@ -504,17 +504,24 @@ test("plan completion can be corrected by keyboard and its read action stays ins
   await expect(page.locator("#verset-1")).toBeVisible();
 });
 
-test("resetting a selected plan keeps its books and resets its start and streak dates", async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem("cj:plan", JSON.stringify({ startedAt: "2026-10-01", day: 1, streak: 3, lastDone: "2026-10-07", perDay: 1, books: ["john"], name: "John" })));
+test("resetting a selected plan starts it again on day one and unmarks only its own chapters", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("seeded")) return; sessionStorage.setItem("seeded", "1");
+    localStorage.setItem("cj:plan", JSON.stringify({ startedAt: "2026-10-01", day: 1, streak: 3, lastDone: "2026-10-07", perDay: 1, books: ["john"], name: "John", seenCompleted: 1 }));
+    localStorage.setItem("cj:read", JSON.stringify({ john: "1", genesis: "1-2" }));
+  });
   await page.goto("/plan");
-  // Bible Strong's Reset, from the plan menu, after a confirmation.
+  await expect(page.getByRole("heading", { name: "Day 2 of 3" })).toBeVisible();
+  // Bible Strong's Reset, from the plan menu, after its warning.
   await page.getByRole("button", { name: "Plan options", exact: true }).click();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
-  await expect(page.getByRole("link", { name: "John 1", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Day 1 of 3" })).toBeVisible();
+  await expect(page.getByRole("checkbox", { name: "John 1", exact: true })).toHaveAttribute("aria-checked", "false");
   const today = await page.evaluate(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; });
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!))).toMatchObject({ startedAt: today, day: 0, streak: 0, books: ["john"], name: "John" });
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cj:plan")!).lastDone)).toBeUndefined();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cj:read")!))).toEqual({ genesis: "1-2" });
 });
 
 test("the reading guide is reachable from Settings and has usable tab shortcuts", async ({ page }) => {
