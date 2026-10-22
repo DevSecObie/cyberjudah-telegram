@@ -194,8 +194,9 @@ export function App() {
     if (now === undefined || now === last.key || idx < last.idx) return;
     const push = idx > last.idx;
     const at = window.location.pathname;
-    const path = (base !== "/" && (at === base || at.startsWith(`${base}/`)) ? at.slice(base.length) || "/" : at) + window.location.search;
-    const sheet = !!sheetKind(path) && (push || last.sheet);
+    const pathname = base !== "/" && (at === base || at.startsWith(`${base}/`)) ? at.slice(base.length) || "/" : at;
+    const path = pathname + window.location.search;
+    const sheet = !!sheetKind(pathname) && (push || last.sheet);
     tracked.current = { key: now, idx, sheet };
     if (sheet) return;
     const prev = prevPath.current;
