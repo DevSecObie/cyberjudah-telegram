@@ -11,7 +11,7 @@ import { NoteBody, noteLede } from "@/ui/note-body";
 import { Frame } from "@/lib/frames";
 import { showOf } from "@/lib/series";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
-import { Empty, Skeleton, timestamp, youtube } from "@/ui/ui";
+import { Empty, Loading, timestamp, youtube } from "@/ui/ui";
 import { KIND_NAME, teachingLabel, useLive, useRecent, useTeachings } from "./Home";
 
 export type TranscriptWindow = { ok: true; video: string; kind: string; title: string; url: string; date: string; duration: number | null; t: number; chunks: { t: number; text: string }[] } | { ok: false; reason: string };
@@ -52,7 +52,7 @@ export function Watch() {
       <p className="hint">The class is streaming from YouTube. Its captions, the search and the notes follow once the stream has ended.</p>
     </main>
   );
-  if (res.isPending) return <main className="screen"><Skeleton rows={5} /></main>;
+  if (res.isPending) return <main className="screen"><Loading /></main>;
   if (!r || !r.ok) return (
     <main className="screen screen--player">
       <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={meta?.title || "Class recording"} />
@@ -74,7 +74,7 @@ export function Watch() {
       </header>
       {r.url ? <NotesOpener lede={note.data ? noteLede(note.data.body) : undefined} onOpen={() => setNotes(true)} /> : <NotesWanted video={video} title={r.title} />}
       <TranscriptExcerpt video={video} t={t} chunks={r.chunks} onSeek={seek} />
-      {r.url ? <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={note.data?.title ?? r.title}>{note.data ? <NoteBody md={note.data.body} video={video} onSeek={seek} /> : note.isError ? <Empty title="The notes did not load">Try again in a moment.</Empty> : <Skeleton rows={6} />}</NotesSheet> : null}
+      {r.url ? <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={note.data?.title ?? r.title}>{note.data ? <NoteBody md={note.data.body} video={video} onSeek={seek} /> : note.isError ? <Empty title="The notes did not load">Try again in a moment.</Empty> : <Loading />}</NotesSheet> : null}
     </main>
   );
 }

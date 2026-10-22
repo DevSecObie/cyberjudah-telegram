@@ -8,7 +8,7 @@ import { inShow, seriesLabel, showLine } from "@/lib/series";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { FiltersButton, PanelSearch, type FiltersHeaderItem } from "@/ui/panel";
-import { Empty, Icon, Img, List, Row, Screen, Skeleton } from "@/ui/ui";
+import { Empty, Icon, Img, List, Row, Screen, Loading } from "@/ui/ui";
 import { KIND_NAME, teachingTo, useShows, useTeachings, type Teaching } from "./Home";
 
 type Feed = "all" | "classes" | "captains" | "history" | "sense" | "truth" | "shows";
@@ -117,7 +117,7 @@ export function Classes() {
         </header>
       ) : null}
       {directory ? (
-        showsRes.isPending ? <Skeleton rows={8} /> : showsRes.isError ? (
+        showsRes.isPending ? <Loading /> : showsRes.isError ? (
           <Empty title="The shows did not load" action={{ label: "Try again", onClick: () => void showsRes.refetch() }}>Check your connection.</Empty>
         ) : !listed.length ? (
           <Empty title="No show matches that" action={{ label: "Clear the search", onClick: () => setQ("") }}>Try a name like “Patient Saints”.</Empty>
