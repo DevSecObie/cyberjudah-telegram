@@ -20,7 +20,7 @@
 .card__label { margin: 0 0 var(--sp-2); font: 600 var(--fs-footnote)/1.2 var(--font-ui); color: var(--text-3); }
 .card__ref { margin: 10px 0 0; font: 500 var(--fs-footnote) var(--font-ui); color: var(--text-3); }
 
-/* ── Grouped lists (TelegramUI's Section and Cell) ───────────────────────────────────────── */
+/* ── Grouped lists (List and Row, drawn on the cell in blocks.css) ────────────────────────── */
 #root .list { --r-outer: var(--group-radius); --inset: var(--group-inset); --r-inner: max(var(--r-min), calc(var(--r-outer) - var(--inset))); overflow: hidden; border-radius: var(--r-outer); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
 #root .list > * { background: transparent; }
 #root .list .row { min-height: var(--group-row-height); padding: var(--group-row-padding); }
@@ -44,7 +44,7 @@
 .skel { display: block; height: 12px; border-radius: 6px; background: var(--fill-2); animation: pulse 1.4s ease-in-out infinite; }
 
 /* ── Empty, failed, crashed ──────────────────────────────────────────────────────────────── */
-.empty { display: grid; justify-items: center; gap: 4px; padding: var(--sp-7) var(--sp-3); text-align: center; color: var(--text-3); }
+.empty { display: grid; justify-items: center; justify-content: center; align-items: center; gap: 4px; overflow: hidden; padding: var(--sp-7) var(--sp-3); text-align: center; color: var(--text-3); }
 .empty__title { margin: 0 0 2px; font: 600 var(--fs-callout) var(--font-ui); color: var(--text-1); }
 .empty__body { max-width: 36ch; font: 400 var(--fs-sub)/var(--lh-body) var(--font-ui); text-wrap: pretty; }
 .trouble { display: grid; gap: 10px; padding: 14px; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), inset 3px 0 0 color-mix(in srgb, var(--danger) 70%, transparent); }

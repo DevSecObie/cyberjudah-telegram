@@ -16,7 +16,6 @@ import { routerBasename } from "@shared/basename.mjs";
 import { registerOfflineShell } from "./resources/offline-shell";
 import { installGlassLight } from "./ui/glass-light";
 import { installPress } from "./ui/press";
-import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./styles.css";
 
 // "/app" or "/" for the page being opened: see shared/basename.mjs (a blank app otherwise).

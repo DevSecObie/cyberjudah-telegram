@@ -1,0 +1,71 @@
+/* ─────────────────────────────────────────────────────────────────────────────────────────────
+   Blocks: the shell, press feedback, the grouped list and its cells, the segmented control, the
+   filter chip, the empty state's text and the loading cover (ui.tsx). This is the layout and type
+   Telegram's kit gave them; controls.css and content.css style on top of it, so it comes first.
+   A `--ios` class is Telegram's iOS look, on iOS and macOS; elsewhere it is the Android one.
+   ───────────────────────────────────────────────────────────────────────────────────────────── */
+
+/* The shell's ink. Row and empty-state hints take the shell's grey even where a page redefines it (the Bible's). */
+.cj { --cj-hint: var(--text-3); color: var(--text-1); -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; }
+
+/* Press feedback: iOS and the chips fade under the finger; elsewhere a wave spreads from it. */
+.tap { position: relative; isolation: isolate; cursor: pointer; transition: opacity .15s ease-out; }
+.tap--ios:active, .tap--fade:active { opacity: .65; }
+@media (hover: hover) and (pointer: fine) { .tap--ios:hover, .tap--fade:hover { opacity: .85; } }
+.tap__ripple { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; transition: background-color .15s ease-out; }
+.tap__wave { position: absolute; width: 24px; height: 24px; margin: -12px 0; border-radius: 50%; background: var(--control-edge); opacity: 0; animation: tap-wave .3s cubic-bezier(.3, .3, .5, 1); }
+@keyframes tap-wave { 0% { opacity: 1; transform: scale(1); } 30% { opacity: 1; } to { opacity: 0; transform: scale(8); } }
+
+/* A cell: before, the stacked middle (subhead, title, subtitle), after. */
+.cell { --cell-pad: 16px 0; display: flex; align-items: center; gap: 24px; padding: 0 24px; }
+.cell--ios { --cell-pad: 12px 0; gap: 16px; padding: 0 16px; }
+@media (hover: hover) and (pointer: fine) { .cell:hover { background: var(--surface-2); } }
+.cell__before, .cell__after { display: flex; align-items: center; justify-content: center; }
+.cell__middle { display: flex; flex-direction: column; flex-grow: 1; gap: 2px; min-width: 0; max-width: 100%; padding: var(--cell-pad); }
+.cell__middle > *, .cell__text { overflow: hidden; text-overflow: ellipsis; }
+.cell__subhead, .cell__title, .cell__subtitle { display: block; margin: 0; font-family: var(--font-ui); font-weight: 400; }
+.cell__subhead, .cell__subtitle { font-size: 15px; line-height: 22px; color: var(--cj-hint); }
+.cell__title { align-items: center; gap: 4px; font-size: 16px; line-height: 24px; }
+.cell--ios .cell__subhead, .cell--ios .cell__subtitle { line-height: 20px; }
+.cell--ios .cell__title { display: inline-flex; font-size: 17px; line-height: 22px; }
+
+/* A grouped list: a hairline between cells. */
+.list__box { background: var(--surface-1); box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .1); }
+.list--ios .list__box { background: none; box-shadow: none; }
+.list--ios .list__body { background: var(--surface-1); border-radius: 12px; }
+.list--ios .list__body > :first-child { border-radius: 12px 12px 0 0; }
+.list--ios .list__body > :last-child { border-radius: 0 0 12px 12px; }
+.list--ios .list__body > :only-child { border-radius: 12px; }
+.list__divider { margin: 0; border-top: none; border-color: var(--control-edge); border-width: 1px; }
+
+/* The loading cover: the page colour over a cell, breathing. */
+.skeleton { position: relative; }
+.skeleton::before, .skeleton::after { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--canvas); }
+.skeleton::after { z-index: 2; animation: skeleton-breathe 1.8s linear infinite; }
+@keyframes skeleton-breathe { 0%, to { opacity: .4; } 50% { opacity: .7; } }
+
+/* The segmented control: a track of equal options over a sliding thumb. */
+.seg { box-sizing: border-box; width: 100%; height: 100%; overflow: hidden; padding: 2px; border-radius: 44px; background: var(--surface-2); }
+.seg--ios { border-radius: 9px; }
+.seg__track { position: relative; display: flex; align-items: center; align-content: stretch; box-sizing: border-box; width: 100%; height: 100%; border-radius: inherit; }
+.seg__thumb { position: absolute; inset: 0; z-index: 1; box-sizing: border-box; border-radius: 40px; background: var(--seg-active); transition: transform .15s; }
+.seg--ios .seg__thumb { border: 1px solid rgba(0, 0, 0, .04); border-radius: inherit; box-shadow: 0 3px 1px 0 rgba(0, 0, 0, .04), 0 3px 8px 0 rgba(0, 0, 0, .12); }
+.seg__item { z-index: 1; flex: 1 1 0; max-width: 100%; overflow: hidden; padding: 10px 24px; border: none; border-radius: inherit; background: transparent; color: var(--text-1); text-overflow: ellipsis; white-space: nowrap; }
+.seg__item--ios { padding: 6px 24px; }
+
+/* A filter chip: its label centred, never selected as text. */
+.chip--toggle { box-sizing: border-box; justify-content: center; gap: 8px; -webkit-user-select: none; user-select: none; }
+.chip__label { display: block; flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; margin: 0; font-family: var(--font-ui); font-weight: 600; font-size: 16px; line-height: 24px; }
+.chip__label--ios { font-size: 15px; line-height: 20px; }
+
+/* The empty state's title and description. */
+.empty__text { margin: 0; overflow-wrap: anywhere; text-align: center; }
+.empty__head, .empty__desc { margin: 0; font-family: var(--font-ui); }
+.empty__head { font-weight: 600; font-size: 20px; line-height: 24px; }
+.empty__desc { font-weight: 400; font-size: 17px; line-height: 26px; color: var(--cj-hint); }
+.empty__desc:not(:first-child) { margin-top: 8px; }
+.empty--ios .empty__head { line-height: 25px; }
+.empty--ios .empty__desc { line-height: 22px; }
+
+/* Hairlines are half a pixel on a dense screen. */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) { .list__divider, .seg--ios .seg__thumb { border-width: .5px; } }

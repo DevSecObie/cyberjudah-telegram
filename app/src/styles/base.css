@@ -23,28 +23,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 60vh; z-
 #root [data-tabs] { padding-bottom: calc(var(--dock-space) + var(--sp-6)); }
 #root a { color: inherit; text-decoration: none; }
 /* The plainest of resets, at the lowest weight (:where), so every #root .component rule for a button wins over it. */
-#root :where(button:not([class*="tgui-"])) { font: inherit; color: inherit; }
+#root :where(button:not(.tap)) { font: inherit; color: inherit; }
 #root img { max-width: 100%; }
 ::selection { background: color-mix(in srgb, var(--accent) 30%, transparent); }
 
-/* TelegramUI (Telegram's own kit) reads these; they follow the app's tokens, not the chat's. */
-#root .cj {
-  --tgui--font-family: var(--font-ui);
-  --tgui--bg_color: var(--canvas); --tgui--secondary_bg_color: var(--canvas); --tgui--header_bg_color: var(--canvas);
-  --tgui--section_bg_color: var(--surface-1); --tgui--card_bg_color: var(--surface-1); --tgui--segmented_control_active_bg: var(--surface-1);
-  --tgui--tertiary_bg_color: var(--surface-2); --tgui--quartenary_bg_color: var(--surface-2);
-  --tgui--text_color: var(--text-1); --tgui--hint_color: var(--text-3); --tgui--subtitle_text_color: var(--text-3); --tgui--section_header_text_color: var(--text-3); --tgui--secondary_hint_color: var(--text-3);
-  --tgui--link_color: var(--accent); --tgui--accent_text_color: var(--accent); --tgui--button_color: var(--accent); --tgui--button_text_color: var(--on-accent);
-  --tgui--destructive_text_color: var(--danger);
-  --tgui--divider: var(--hairline); --tgui--outline: var(--control-edge);
-  /* Chip uses this fallback. Our dock does not use TelegramUI's Tabbar. */
-  --tgui--surface_primary: var(--surface-1);
-  --tgui--plain_background: var(--surface-2); --tgui--plain_foreground: var(--text-2);
-  --tgui--skeleton: var(--fill-1);
-  --tgui--secondary_fill: var(--accent-soft);
-  --tgui--base--section--box_shadow: none;
-  min-height: 100dvh;
-}
+#root .cj { min-height: 100dvh; }
 
 /* Focus: one ring everywhere, visible on every surface (a canvas gap, then the accent). */
 #root :focus { outline: none; }
@@ -83,6 +66,3 @@ mark { background: color-mix(in srgb, var(--accent) 24%, transparent); color: in
   .glass, .card, .tabs, .sheet, .drawer, .scard, .lawcard, .post__scripture, .srch__list { border: 1px solid CanvasText !important; }
   #root :focus-visible { outline: 2px solid Highlight; }
 }
-
-/* telegram-ui's Subheadline renders a <span> here (vite.config.ts), not an <h6>; it keeps the block layout the heading had. */
-span.tgui-266b6ffdbad2b90e { display: block; }

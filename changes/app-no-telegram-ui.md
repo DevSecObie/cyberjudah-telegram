@@ -1,0 +1,1 @@
+- Lists, rows, chips, the segmented control, empty states and loading placeholders are drawn by the app itself; nothing changes on screen.
