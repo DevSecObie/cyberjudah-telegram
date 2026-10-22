@@ -14,7 +14,6 @@ import { connectPersonalStore } from "./tg/store";
 import { installBackGuard } from "./lib/backguard";
 import { routerBasename } from "@shared/basename.mjs";
 import { registerOfflineShell } from "./resources/offline-shell";
-import { installGlassLight } from "./ui/glass-light";
 import { installPress } from "./ui/press";
 import "@telegram-apps/telegram-ui/dist/styles.css";
 import "./styles.css";
@@ -30,7 +29,6 @@ boot({ bg: canvas, header: canvas, bottomBar: canvas });
 // Only inside Telegram: in a plain browser, Back must be free to leave the site.
 if (app) installBackGuard();
 if (!native) registerOfflineShell(basename);
-installGlassLight();
 installPress();
 
 // Use the existing account UI. The reader keeps the same components and stored value shapes.

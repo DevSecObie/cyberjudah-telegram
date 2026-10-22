@@ -155,7 +155,11 @@ html[data-typing] .pageactions { display: none; }
 :root { --drawer-w: min(95vw, 450px); --drawer-dur: 600ms;
   --drawer-ease: linear(0, .055 4.2%, .1734 8.3%, .3101 12.5%, .4422 16.7%, .5591 20.8%, .6575 25%, .7374 29.2%, .8009 33.3%, .8503 37.5%, .8883 41.7%, .9172 45.8%, .9389 50%, .9551 54.2%, .9672 58.3%, .9761 62.5%, .9826 66.7%, .9874 70.8%, .9909 75%, .9935 79.2%, .9953 83.3%, .9966 87.5%, .9976 91.7%, .9983 95.8%, 1); }
 #shell .route { transition: transform var(--drawer-dur) var(--drawer-ease); }
-html[data-drawer-pin] #shell .route { position: fixed; top: var(--drawer-y, 0); left: 0; right: 0; min-height: 100dvh; }
+/* Pinned for the slide, the page is exactly the screen: its fixed parts (Ask's composer) stay on
+   the screen's bottom edge while the moving page holds them, instead of jumping to the page's. */
+html[data-drawer-pin] #shell .route { position: fixed; top: var(--drawer-y, 0); left: 0; right: 0; height: calc(100% - var(--drawer-y, 0px)); overflow: hidden; }
+/* The bottom bar slides with the page, on the drawer's timing, both ways. */
+html[data-drawer-pin] .tabs { transition: transform var(--drawer-dur) var(--drawer-ease); }
 html[data-drawer="home"] #shell .route, html[data-drawer="home"] .tabs, html[data-drawer="home"] .pageactions { transform: translateX(var(--drawer-w)); }
 html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[data-drawer="more"] .pageactions { transform: translateX(calc(-1 * var(--drawer-w))); }
 .drawer { position: fixed; top: 0; bottom: 0; z-index: var(--z-drawer); width: var(--drawer-w); display: flex; flex-direction: column;
@@ -255,7 +259,7 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 
 /* Off-screen panels keep no filter running. */
 .drawer:not([data-open]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
-@media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .tabs[data-hidden], .pageactions, .drawer, .drawer-scrim, .nsheet { transition: none; } .sheet, .sheet__scrim { animation: none; } }
+@media (prefers-reduced-motion: reduce) { #shell .route, .tabs, .tabs[data-hidden], html[data-drawer-pin] .tabs, .pageactions, .drawer, .drawer-scrim, .nsheet { transition: none; } .sheet, .sheet__scrim { animation: none; } }
 
 
 .screen, .screen * { overflow-anchor: none; }
@@ -263,19 +267,3 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 /* Panels grow into place as they fade in; no blur is animated. */
 @keyframes materialize { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { @keyframes materialize { from { opacity: 0; } to { opacity: 1; } } }
-
-/* ── Interactive glass (iOS 26) ──────────────────────────────────────────────────────────────
-   The light under the finger (ui/glass-light.ts): drawn over the touched glass surface, clipped
-   to its shape, following the finger and fading out when it lifts. */
-.glass-light {
-  position: fixed; z-index: 2147483000; pointer-events: none; overflow: hidden; opacity: 0; transition: opacity .35s ease-out;
-  background: radial-gradient(circle var(--light-r, 120px) at var(--light-x, 50%) var(--light-y, 50%), color-mix(in srgb, white 14%, transparent), color-mix(in srgb, white 4%, transparent) 55%, transparent 100%);
-}
-.glass-light[data-on] { opacity: 1; transition-duration: .12s; }
-html[data-theme="light"] .glass-light, html[data-theme="sepia"] .glass-light { mix-blend-mode: plus-lighter; }
-html[data-transparency="reduced"] .glass-light { display: none; }
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .glass-light { display: none; } }
-/* Glass controls swell a little under the finger and spring back with a small bounce when it lifts,
-   where content controls press in. The overshoot comes from the spring curve on the way back. */
-#root :is(.srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn), #root .pageaction { transition: transform var(--dur-4) var(--ease-spring), opacity var(--dur-2) ease; }
-#root :is(.srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn)[data-pressed]:not(:disabled), #root .pageaction[data-pressed]:not(:disabled) { transform: scale(var(--glass-press-scale)); transition-duration: var(--dur-1); transition-timing-function: var(--ease); }
