@@ -39,7 +39,7 @@ export const DEFAULT_SETTINGS: BibleSettings = {
   alignContent: "left", lineHeight: "normal", fontSizeScale: 0, textDisplay: "inline", showVerseNumbers: true,
   preferredColorScheme: "auto", preferredLightTheme: "default", preferredDarkTheme: "dark",
   // "Long press" (Bible Strong's default): a tap selects the verse, a long press opens its resources.
-  press: "longPress", relationsDisplay: "inline", tagsDisplay: "inline", fontFamily: "Newsreader",
+  press: "longPress", relationsDisplay: "inline", tagsDisplay: "inline", fontFamily: "Avenir",
   shareVerses: { hasVerseNumbers: true, hasInlineVerses: true, hasQuotes: true, hasAppName: true },
   colors: {}, defaultColorNames: {}, defaultColorTypes: {}, customHighlightColors: [],
 };
@@ -64,12 +64,14 @@ export function paletteOf(theme: ThemeName, s: BibleSettings): Palette {
 
 export const THEME_LABEL: Record<ThemeName, string> = Object.fromEntries([...LIGHT_THEMES, ...DARK_THEMES].map((t) => [t.id, t.label])) as Record<ThemeName, string>;
 
-/** The reader's faces: Newsreader (the app's reading face, as Settings names it), Bible Strong's Literata Book, then the browser faces. */
-export const FONTS = ["Newsreader", "Literata Book", "Georgia", "Arial", "Helvetica", "Times New Roman", "monospace"];
+/** The reader's faces: Newsreader (the app's serif, as Settings names it), Bible Strong's Literata Book, its default Avenir, then the browser faces. */
+export const FONTS = ["Newsreader", "Literata Book", "Avenir", "Georgia", "Arial", "Helvetica", "Times New Roman", "monospace"];
 const SYSTEM_SANS = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 /** webFontFamily: keep a chosen face when installed, with a deliberate fallback. */
 export function webFontFamily(f?: string): string {
-  if (!f || ["System", "normal", "Roboto", "Avenir"].includes(f)) return SYSTEM_SANS;
+  if (!f || ["System", "normal", "Roboto"].includes(f)) return SYSTEM_SANS;
+  // Bible Strong's default face: Avenir where the device has it (iOS, macOS), else the system sans.
+  if (f === "Avenir") return `"Avenir", "Avenir Next", ${SYSTEM_SANS}`;
   if (f.includes(",")) return f;
   if (["serif", "sans-serif", "monospace", "system-ui"].includes(f)) return f;
   if (f === "Newsreader") return '"Newsreader", Georgia, serif';

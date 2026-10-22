@@ -29,7 +29,7 @@ export function useAppTheme(): { name: ThemeName; dark: boolean; loaded: boolean
 export function ThemeApplier() {
   const [bible] = useBibleSettings();
   const { name, dark, loaded } = useAppTheme();
-  const [font] = useStored<Font>("font", "serif");
+  const [font] = useStored<Font>("font", "sans");
   const [spacing] = useStored<Spacing>("spacing", "regular");
   const [justify] = useStored("justify", false);
   // Bible Strong's bars, sheets and menus are solid, on the page colour: no frosted glass, which a
