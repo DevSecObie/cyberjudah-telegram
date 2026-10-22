@@ -9,6 +9,7 @@ import { Feather } from "../icons";
 import { useBibleSettings } from "../settings";
 import { getBibleTextFontSize, scaleLineHeight } from "../typography";
 import { BibleVerseDetailFooter } from "./BibleVerseDetailFooter";
+import { ResourceUnavailable } from "./ResourceUnavailable";
 
 /**
  * Bible Strong's Lexicon resource for one verse (BibleVerseDetailCard): the verse, its words
@@ -111,7 +112,7 @@ export function VerseLexicon({ verse, words, verses, onVerse, onOpen, onRead, ch
       </div>
       <div className="bs-vdetail__corner"><div /></div>
       <div className="bs-vdetail__cards">
-        {failed ? <p className="bs-loading" role="status">This did not load. <button type="button" className="bs-link" onClick={() => void failed.refetch()}>Retry</button></p>
+        {failed ? <ResourceUnavailable onRetry={() => void failed.refetch()} />
           : pending && numbers.length ? <p className="bs-loading">Loading...</p>
           : <div ref={strip} className="bs-vdetail__strip" style={{ scrollSnapType: "x mandatory" }} onScroll={onStripScroll}
               onPointerDown={() => { programmatic.current = false; }} onTouchStart={() => { programmatic.current = false; }} onWheel={() => { programmatic.current = false; }}
