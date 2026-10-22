@@ -59,8 +59,17 @@ export function Drawers() {
     }
     delete root.dataset.drawer;
     if (pinned.current === null) return;
-    const t = window.setTimeout(() => { const y = pinned.current ?? 0; pinned.current = null; delete root.dataset.drawerPin; window.scrollTo(0, y); }, SLIDE_MS);
-    return () => window.clearTimeout(t);
+    let frame = 0;
+    const unpin = () => {
+      const route = root.querySelector("#shell .route");
+      if (route && getComputedStyle(route).transform !== "none") { frame = requestAnimationFrame(unpin); return; }
+      const y = pinned.current ?? 0;
+      pinned.current = null;
+      delete root.dataset.drawerPin;
+      window.scrollTo(0, y);
+    };
+    frame = requestAnimationFrame(unpin);
+    return () => cancelAnimationFrame(frame);
   }, [side]);
   useEffect(() => {
     if (!side) return;
@@ -94,9 +103,6 @@ export function Drawers() {
     </>
   );
 }
-
-/** The drawer spring's length (--drawer-dur): the page behind is given back after it. */
-const SLIDE_MS = 600;
 
 /** A horizontal swipe toward the drawer's own edge closes it, as Bible Strong's pan does. */
 function useSwipeClose(side: DrawerSide) {
