@@ -199,7 +199,8 @@ export function App() {
     tracked.current = { key: now, idx, sheet };
     if (sheet) return;
     const prev = prevPath.current;
-    if (!isOver(idx) && !(push && prev !== null && (!isTabPath(prev) || isOver(idx - 1)))) recordPath(path);
+    if (push && !isOver(idx) && prev !== null && (!isTabPath(prev) || isOver(idx - 1))) markOver(idx);
+    if (!isOver(idx)) recordPath(path);
     prevPath.current = path;
   }), [base]);
   const navigate = useNavigate();

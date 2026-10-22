@@ -16,7 +16,7 @@ export function AlphabetList({ letter, setLetter, color = "var(--accent)" }: { l
   const first = useRef(true);
   // A scroll settles after the page may have changed (a letter tapped, a filter chosen): it reads the letter and setter as they are then.
   const latest = useRef({ letter, setLetter });
-  latest.current = { letter, setLetter };
+  useLayoutEffect(() => { latest.current = { letter, setLetter }; }, [letter, setLetter]);
   useLayoutEffect(() => {
     // A letter chosen outright (a tap) replaces a scroll still settling.
     window.clearTimeout(settle.current);
