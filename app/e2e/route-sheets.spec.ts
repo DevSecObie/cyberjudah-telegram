@@ -29,14 +29,14 @@ test("a dictionary word opens as a sheet at 45% over the list, which stays usabl
   await expect(title).toHaveCSS("font-size", "14px");
   await expect(sheet.getByText("Easton's Bible Dictionary", { exact: true })).toBeVisible();
   await expect(sheet.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
-  // The native grabber shows over the header, as on every Bible Strong sheet.
-  const grabber = sheet.getByRole("button", { name: "Expand sheet" });
+  // The grabber shows over the header, as on every Bible Strong sheet.
+  const grabber = sheet.locator(".bs-sheet__grabber");
   await expect(grabber).toBeVisible();
   expect(await grabber.evaluate((el) => { const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)); })).toBe(true);
   const max = 844 - 8;
   await expect.poll(async () => Math.round((await sheet.boundingBox())!.height)).toBe(Math.round(.45 * max));
   // The list is still there behind, not dimmed.
-  await expect(page.locator(".bs-scrim--clear")).toHaveCount(1);
+  await expect(page.locator(".sheet__scrim")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Abel", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/dictionary\?q=a$/);
@@ -84,16 +84,7 @@ test("a Strong's entry opens at full height, dimmed, as Bible Strong's strong sh
 
 // A native sheet moves with its content: pushed up it grows to its next detent, pulled down from
 // the top of its scroll it goes back, then closes. Several moves in one touch, as a finger makes.
-async function swipe(page: Page, sheet: ReturnType<Page["getByRole"]>, from: number, to: number) {
-  await sheet.locator(".bs-sheet__body").evaluate(async (body, [from, to]) => {
-    const r = body.getBoundingClientRect(), x = r.x + r.width / 2, target = body.querySelector("button, div") ?? body;
-    const fire = (type: string, y: number) => { const t = new Touch({ identifier: 7, target, clientX: x, clientY: y }); target.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, touches: type === "touchend" ? [] : [t], changedTouches: [t] })); };
-    fire("touchstart", r.y + from);
-    for (let i = 1; i <= 8; i++) { fire("touchmove", r.y + from + ((to - from) * i) / 8); await new Promise(res => requestAnimationFrame(() => res(null))); }
-    fire("touchend", r.y + to);
-  }, [from, to] as const);
-}
-test("a sheet follows a finger on its content through the whole drag: up grows it, down from the top closes it", async ({ page }) => {
+test("a sheet keeps its height when pushed up, and a pull down from the top of its content closes it", async ({ page }) => {
   await setup(page);
   await page.route(`${DATA}/api/kjv/**`, r => new URL(r.request().url()).pathname.endsWith("books.json")
     ? r.fulfill({ json: [{ book: "Genesis", slug: "genesis", chapters: 1, verses: 31, chapterIds: [1] }] })
@@ -104,11 +95,14 @@ test("a sheet follows a finger on its content through the whole drag: up grows i
   const sheet = page.getByRole("dialog", { name: "Font and settings", exact: true });
   await expect(sheet).not.toHaveClass(/bs-sheet--full/);
   await page.waitForTimeout(600);
-  await swipe(page, sheet, 120, 20);
-  await expect(sheet).toHaveClass(/bs-sheet--full/);
-  await expect(sheet).not.toHaveAttribute("style", /translateY/);
-  await swipe(page, sheet, 40, 200);
+  // Bible Strong's web sheet (vaul, on pointer events) does not grow from a drag; down closes it.
+  const drag = async (from: number, to: number) => {
+    const r = (await sheet.locator(".bs-sheet__body").boundingBox())!;
+    await page.mouse.move(r.x + r.width / 2, r.y + from); await page.mouse.down();
+    await page.mouse.move(r.x + r.width / 2, r.y + to, { steps: 10 }); await page.mouse.up();
+  };
+  await drag(120, 20);
   await expect(sheet).not.toHaveClass(/bs-sheet--full/);
-  await swipe(page, sheet, 40, 200);
+  await drag(20, 320);
   await expect(sheet).toHaveCount(0);
 });

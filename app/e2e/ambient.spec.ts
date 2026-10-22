@@ -72,8 +72,9 @@ test("failed ambient track leaves the reading running", async ({ page }) => {
   await setup(page, true); await panel(page);
   await page.getByRole("dialog", { name: "Ambient", exact: true }).getByRole("radio", { name: "Soft piano", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Ambient sound is unavailable");
-  await expect(page.getByRole("button", { name: "Ambient unavailable", exact: true })).toBeVisible();
+  // The modal sheet hides the reader from assistive tech while it is open, as Bible Strong's does.
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Ambient unavailable", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Stop audio playback", exact: true })).toBeVisible();
   const before = (await state(page)).voices;
   await page.evaluate(() => (window as unknown as { __music: { finish(): void } }).__music.finish());

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { Drawer } from "vaul";
 
 import { sheetOpened } from "@/tg/hooks";
 import { useModal } from "@/ui/modal";
@@ -13,130 +14,68 @@ export type SnapPoint = number | "auto";
 const LEGACY: Record<"auto" | "half" | "full" | "40", SnapPoint[]> = { auto: ["auto"], half: [0.5], full: [1], "40": [0.4] };
 
 /**
- * Bible Strong's bottom sheet (common/sheet.tsx over TrueSheet, as it is on the iPhone).
+ * Bible Strong's bottom sheet on the web (common/sheet.web.tsx → @expo/ui's BottomSheet, a vaul
+ * drawer): vaul opens, closes and drags it, moving the sheet itself rather than redrawing the page.
  *
- * - Detents: up to three `snapPoints`, `["auto"]` (the content's height) unless given; it opens
- *   at the first. The grabber or the header dragged up goes to the next, down to the one before,
- *   and from the first a long enough pull closes it. Pushing the content up while the sheet is not
- *   at its last detent grows it first (TrueSheet's scrollingExpandsSheet); pulling the content
- *   down from the top of its scroll moves the sheet, as a native sheet does.
- * - The grabber is always there, unless the sheet is not `draggable`; with more than one detent a
- *   tap on it goes to the next (UIKit's grabber).
- * - The page behind is dimmed from the detent `dimFrom` (the first, unless given), and a tap on it
- *   closes the sheet; with `backdrop` false it is never dimmed and stays usable.
- * - `dismissible` false: no swipe, tap or Back closes it. There is no ✕: a Bible Strong sheet
- *   closes by a swipe down, a tap outside, or Telegram's Back.
+ * - Detents: `snapPoints`, `["auto"]` (the content's height) unless given; it opens at the first,
+ *   whose height it keeps (BottomSheet.tsx sets the drawer's height to the snap point).
+ * - With a backdrop the page behind is dimmed and a tap on it closes the sheet; with `backdrop`
+ *   false (BottomSheet's `backdropComponent={null}`), or dimmed only from a later detent, it is a
+ *   nonmodal drawer and the page stays usable.
+ * - `dismissible` false: no swipe, tap or Back closes it. A sheet closes by a swipe down, a tap
+ *   outside, Escape or Telegram's Back.
  * - The header (SheetHeader): 54 px, the title in 16 px bold, left-aligned unless `centerTitle`,
  *   the subtitle 13 px grey under it, a back arrow or `left`, `right`, then `headerChildren` (a
  *   search field), with a line under it. The footer (SheetFooter): 8 px by 20 px, no line.
- * - `background` "reverse" is the page colour (Bible Strong's sheets given a backgroundColor);
- *   otherwise the system's material.
+ * - `background` "reverse" is the page colour (Bible Strong's sheets given a backgroundColor).
  *
  * `height` is the older way to say the detents ("half" is [0.5], "full" [1], "40" [0.4]).
  */
-export function Sheet({ open, onClose, backdrop = true, height, snapPoints, dimFrom = 0, background = "glass", title, subTitle, centerTitle = false, hasBack, onBack, right, left, headerChildren, children, footer, className, label, closable = true, dismissible, draggable = true, actions = false }: {
-  open: boolean; onClose: () => void; backdrop?: boolean; height?: "auto" | "half" | "full" | "40"; snapPoints?: SnapPoint[]; dimFrom?: number; background?: "glass" | "reverse";
+export function Sheet({ open, onClose, backdrop: withBackdrop = true, height, snapPoints, dimFrom = 0, background = "glass", title, subTitle, centerTitle = false, hasBack, onBack, right, left, headerChildren, children, footer, className, label, closable = true, dismissible, draggable = true, actions = false }: {
+  open: boolean; onClose: () => void; backdrop?: boolean; height?: "auto" | "half" | "full" | "40"; snapPoints?: SnapPoint[]; background?: "glass" | "reverse";
   title?: ReactNode; subTitle?: ReactNode; centerTitle?: boolean; hasBack?: boolean; onBack?: () => void; right?: ReactNode; left?: ReactNode; headerChildren?: ReactNode;
   children?: ReactNode; footer?: ReactNode; className?: string; label?: string; closable?: boolean; dismissible?: boolean; draggable?: boolean; actions?: boolean;
+  /** The first detent the page is dimmed from; a sheet stays at its first, so a later one leaves the page usable. */ dimFrom?: number;
   /** No longer used: a sheet's detents say whether it grows. */ expandable?: boolean;
   /** No longer used: every sheet moves with its content, as a native one does. */ dragAnywhere?: boolean;
 }) {
-  const detents = (snapPoints?.length ? snapPoints : LEGACY[height ?? "auto"]).slice(0, 3);
+  const detent = (snapPoints?.length ? snapPoints : LEGACY[height ?? "auto"])[0];
   const canDismiss = dismissible ?? closable;
-  const [index, setIndex] = useState(0);
-  const [drag, setDrag] = useState(0);
+  const backdrop = withBackdrop && dimFrom === 0;
   const box = useRef<HTMLDivElement>(null);
-  const last = detents.length - 1;
-  const detent = detents[Math.min(index, last)];
-  const dimmed = backdrop && index >= dimFrom;
   useEffect(() => { if (open) return sheetOpened(); }, [open]);
-  useEffect(() => { if (!open) { setDrag(0); setIndex(0); } }, [open]);
-  // As vaul's drawer: a sheet does not follow the finger in its first 500 ms, so the touch that
-  // opened it, or a finger still resting on it, does not move it.
-  const openedAt = useRef(0);
-  useEffect(() => { if (open) openedAt.current = performance.now(); }, [open]);
-  const settled = () => performance.now() - openedAt.current >= 500;
-  // The height eases between detents (sheet.css), the sheet's bottom staying where it is.
-  const go = (to: number) => setIndex(to);
-  // Where a drag ends: up to the next detent, down to the one before, or closed from the first.
-  const release = (dy: number) => {
-    setDrag(0);
-    if (dy < -60 && index < last) go(index + 1);
-    else if (dy > 60 && index > 0) go(index - 1);
-    else if (dy > 90 && index === 0 && canDismiss) onClose();
-  };
-  const start = useRef<number | null>(null);
-  const dragged = useRef(false);
-  const down = (e: RPointerEvent) => { if (!draggable || (e.target as HTMLElement).closest("button:not(.bs-sheet__grabber), a, input")) return; dragged.current = false; start.current = e.clientY; ((e.target as HTMLElement).closest(".bs-sheet__grabber") ?? e.currentTarget).setPointerCapture(e.pointerId); };
-  const move = (e: RPointerEvent) => { if (start.current !== null && settled()) { const dy = e.clientY - start.current; if (Math.abs(dy) > 6) dragged.current = true; setDrag(follow(dy)); } };
-  const up = (e: RPointerEvent) => { if (start.current === null) return; const dy = e.clientY - start.current; start.current = null; if (Math.abs(dy) > 6) dragged.current = true; release(dy); };
-  // Up follows the finger only while there is a detent to grow into; a sheet at its last one stays put.
-  const follow = (dy: number) => (dy < 0 && index >= last ? 0 : dy < 0 ? -Math.sqrt(-dy) * 3 : dy);
-  // The content's own drag (touch only, as a native sheet's): pulled down from the top of its
-  // scroll it moves the sheet; pushed up before the last detent it grows the sheet. Anything
-  // sideways, or inside a field or a slider, stays the content's. The gesture lives in a ref and
-  // the listeners read the sheet's current state through one, so the renders a drag causes do not
-  // drop it halfway.
-  const touch = useRef<{ x: number; y: number; on: 0 | 1 | -1; scroller: HTMLElement | null } | null>(null);
-  const live = useRef({ index, last, canDismiss, settled, follow, release });
-  live.current = { index, last, canDismiss, settled, follow, release };
+  // Escape reaches both our modal handling and the dialog's; the sheet asks to close once.
+  const closing = useRef(false);
+  useEffect(() => { if (open) closing.current = false; }, [open]);
+  const close = () => { if (closing.current || !canDismiss) return; closing.current = true; onClose(); };
+  useModal(box, open, canDismiss ? close : undefined, { lock: backdrop, trap: backdrop });
+  // Telegram's Back closes the top sheet with cj:close (tg/hooks), now that the overlay is not its parent.
   useEffect(() => {
-    const el = box.current; if (!el || !open || !draggable) return;
-    const scrollerOf = (n: Element | null): HTMLElement | null => {
-      for (let p = n as HTMLElement | null; p && p !== el; p = p.parentElement) { const o = getComputedStyle(p).overflowY; if ((o === "auto" || o === "scroll") && p.scrollHeight > p.clientHeight) return p; }
-      return null;
-    };
-    const onStart = (e: TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (e.touches.length !== 1 || target.closest(".bs-sheet__grab, input, textarea, select, [contenteditable], [data-sheet-nodrag]")) { touch.current = null; return; }
-      touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, on: 0, scroller: scrollerOf(target) };
-    };
-    const onMove = (e: TouchEvent) => {
-      const t = touch.current, s = live.current;
-      if (!t || !s.settled()) return;
-      const dx = e.touches[0].clientX - t.x, dy = e.touches[0].clientY - t.y;
-      if (!t.on) {
-        if (Math.abs(dx) > 8 && Math.abs(dx) >= Math.abs(dy)) { touch.current = null; return; }
-        if (Math.abs(dy) < 8) return;
-        const atTop = !t.scroller || t.scroller.scrollTop <= 0;
-        if (dy > 0 && atTop && (s.index > 0 || s.canDismiss)) t.on = 1;
-        else if (dy < 0 && s.index < s.last) t.on = -1;
-        else { touch.current = null; return; }
-      }
-      e.preventDefault();
-      setDrag(s.follow(dy));
-    };
-    const onEnd = (e: TouchEvent) => {
-      const t = touch.current; touch.current = null;
-      if (!t?.on) return;
-      live.current.release((e.changedTouches[0]?.clientY ?? t.y) - t.y);
-      // The touch that moved the sheet does not also tap what it started on.
-      const swallow = (c: Event) => { c.preventDefault(); c.stopPropagation(); };
-      el.addEventListener("click", swallow, { capture: true, once: true });
-      setTimeout(() => el.removeEventListener("click", swallow, { capture: true }), 400);
-    };
-    const onCancel = () => { touch.current = null; setDrag(0); };
-    el.addEventListener("touchstart", onStart, { passive: true });
-    el.addEventListener("touchmove", onMove, { passive: false });
-    el.addEventListener("touchend", onEnd);
-    el.addEventListener("touchcancel", onCancel);
-    return () => { el.removeEventListener("touchstart", onStart); el.removeEventListener("touchmove", onMove); el.removeEventListener("touchend", onEnd); el.removeEventListener("touchcancel", onCancel); };
-  }, [open, draggable]);
-  useModal(box, open, canDismiss ? onClose : undefined, { lock: dimmed, trap: dimmed });
-  if (!open) return null;
+    const el = box.current; if (!open || !el) return;
+    const onBack = () => close();
+    el.addEventListener("cj:close", onBack);
+    return () => el.removeEventListener("cj:close", onBack);
+  });
+  // A field, a slider or a marked area keeps its own drag: vaul neither moves the sheet nor holds
+  // the pointer for it, as the sheet before it left them alone.
+  const keepDrag = (e: React.PointerEvent) => {
+    const t = (e.target as HTMLElement).closest<HTMLElement>("input, textarea, select, [contenteditable], [data-sheet-nodrag]");
+    if (!t) return;
+    t.setAttribute("data-vaul-no-drag", "");
+    const target = e.target as Element, id = e.pointerId;
+    queueMicrotask(() => { if (target.hasPointerCapture?.(id)) target.releasePointerCapture(id); });
+  };
   const header = title !== undefined || subTitle !== undefined || hasBack || left || right || headerChildren;
   const size = detent === "auto" ? undefined : `calc(${detent} * var(--sheet-max))`;
+  const name = label ?? (typeof title === "string" ? title : "Sheet");
   return (
-    <div className={`sheet__scrim bs-scrim${dimmed ? "" : " bs-scrim--clear"}`} onClick={(e) => { if (e.target === e.currentTarget && canDismiss) onClose(); }}>
-      <div ref={box} className={`bs-sheet bs-sheet--${detent === 1 ? "full" : detent === "auto" ? "auto" : detent === 0.5 ? "half" : "part"}${className ? ` ${className}` : ""}`} role="dialog" aria-modal={dimmed} aria-label={label ?? (typeof title === "string" ? title : "Sheet")}
-        data-sheet-open="" data-detent={index} data-background={background} data-actions={actions && detent !== 1 ? "" : undefined}
-        style={{ height: size, ...(drag ? { transform: `translateY(${drag}px)`, transition: "none" } : null) }}>
-        {/* The empty click handler makes the strip a tap target of its own: without one, Android's
-            touch adjustment moves a tap here onto the nearest button below (a highlight colour). */}
-        <div className="bs-sheet__grab" onClick={() => {}} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { start.current = null; setDrag(0); }}>
-          {!draggable ? null : last > 0
-            ? <button type="button" className="bs-sheet__grabber" aria-label={index < last ? "Expand sheet" : "Collapse sheet"} title={index < last ? "Expand sheet" : "Collapse sheet"} aria-expanded={index === last} onClick={(e) => { if (e.detail && dragged.current) return; go(index < last ? index + 1 : 0); }}><span className="bs-sheet__handle" aria-hidden="true" /></button>
-            : <div className="bs-sheet__grabber" aria-hidden="true"><span className="bs-sheet__handle" /></div>}
+    <Drawer.Root open={open} onOpenChange={(o) => { if (!o) close(); }} dismissible={canDismiss && draggable} modal={backdrop}>
+      <Drawer.Overlay className="sheet__scrim bs-scrim" />
+      <Drawer.Content ref={box} className={`bs-sheet bs-sheet--${detent === 1 ? "full" : detent === "auto" ? "auto" : detent === 0.5 ? "half" : "part"}${className ? ` ${className}` : ""}`} aria-label={name} aria-describedby={undefined} aria-modal={backdrop} onPointerDown={keepDrag}
+        data-sheet-open="" data-clear={backdrop ? undefined : ""} data-background={background} data-actions={actions && detent !== 1 ? "" : undefined} style={{ height: size }}>
+        <Drawer.Title className="sr-only">{name}</Drawer.Title>
+        <div className="bs-sheet__grab">
+          {draggable ? <Drawer.Handle className="bs-sheet__grabber" aria-hidden="true" /> : null}
           {header ? (
             <div className="bs-sheet__head">
               <div className="bs-sheet__header" data-center={centerTitle ? "" : undefined}>
@@ -153,8 +92,8 @@ export function Sheet({ open, onClose, backdrop = true, height, snapPoints, dimF
         </div>
         <div className="bs-sheet__body">{children}</div>
         {footer ? <div className="bs-sheet__footer">{footer}</div> : null}
-      </div>
-    </div>
+      </Drawer.Content>
+    </Drawer.Root>
   );
 }
 

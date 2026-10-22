@@ -32,12 +32,9 @@ export function ThemeApplier() {
   const [font] = useStored<Font>("font", "serif");
   const [spacing] = useStored<Spacing>("spacing", "regular");
   const [justify] = useStored("justify", false);
-  const [transparency] = useStored<"system" | "tinted" | "reduced">("transparency", "system");
-  useEffect(() => {
-    const root = document.documentElement;
-    if (transparency === "reduced" || transparency === "tinted") root.dataset.transparency = transparency; else delete root.dataset.transparency;
-    try { localStorage.setItem("cj:transparency", transparency); } catch { /* private mode */ }
-  }, [transparency]);
+  // Bible Strong's bars, sheets and menus are solid, on the page colour: no frosted glass, which a
+  // web view redraws on every frame of a scroll or an animation.
+  useEffect(() => { document.documentElement.dataset.transparency = "reduced"; }, []);
   // Until the reader picks a theme of their own, the accent is Telegram's (its theme params).
   const [stored] = useStored<Partial<BibleSettings>>("bs", {});
   const { params } = useTheme();
