@@ -1,0 +1,1 @@
+- When a page has nothing to show, it now looks like Bible Strong's: the faint illustration, one centred grey message, and Bible Strong's round button under it when there is something to do.
