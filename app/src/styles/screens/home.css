@@ -108,6 +108,8 @@
 
 /* The doors: Learn, Study, Meditate, Go further. */
 .shelf-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* An odd door at the end takes the whole row rather than leaving a gap beside it. */
+.shelf-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .shelf-card { display: grid; gap: 4px; padding: 14px; border-radius: var(--r-lg); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); color: inherit; }
 .shelf-card:hover { background: color-mix(in srgb, var(--text-1) 3%, var(--surface-1)); }
 .shelf-card__icon { display: inline-grid; place-items: center; width: 34px; height: 34px; margin-bottom: 4px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
