@@ -1,10 +1,9 @@
-import { Children, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Children, Fragment, isValidElement, useEffect, useLayoutEffect, useRef, useState, type ElementType, type PointerEvent, type ReactNode } from "react";
 import { stoppingScroll } from "./fling";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Cell, Chip as TgChip, Placeholder, Section as TgSection, SegmentedControl, Skeleton as TgSkeleton } from "@telegram-apps/telegram-ui";
 
 import { toAppPath } from "@shared/links.mjs";
-import { haptic } from "@/tg/sdk";
+import { app, haptic } from "@/tg/sdk";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
 import { askTabPath, bibleTabPath, classesTabPath, currentTab, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
@@ -238,17 +237,51 @@ export function Section({ title, action, children }: { title?: ReactNode; action
   return <section className="section">{title ? <div className="section__head"><h2>{title}</h2>{action}</div> : null}{children}</section>;
 }
 
+/** The blocks below take Telegram's iOS look on iOS and macOS (blocks.css: the --ios classes) and the Android one elsewhere. */
+const IOS = app?.platform === "ios" || app?.platform === "macos";
+const has = (n: ReactNode) => n !== undefined && n !== null && n !== false && n !== "";
+
+/** Press feedback: on iOS the target fades (blocks.css); elsewhere a wave spreads from the finger, 70 ms after it lands. */
+function useTap() {
+  const [waves, setWaves] = useState<{ x: number; y: number; at: number }[]>([]);
+  const timers = useRef(new Map<number, number>());
+  const clear = useRef(0);
+  if (IOS) return { cls: "tap tap--ios", on: {}, ripple: null };
+  const onPointerDown = (e: PointerEvent<HTMLElement>) => {
+    const { top, left } = e.currentTarget.getBoundingClientRect(), x = e.clientX - left, y = e.clientY - top, id = e.pointerId;
+    timers.current.set(id, window.setTimeout(() => {
+      const now = Date.now();
+      setWaves((w) => [...w.filter((v) => v.at + 225 > now), { x, y, at: now }]);
+      window.clearTimeout(clear.current); clear.current = window.setTimeout(() => setWaves([]), 225);
+      timers.current.delete(id);
+    }, 70));
+  };
+  const onPointerCancel = (e: PointerEvent<HTMLElement>) => { window.clearTimeout(timers.current.get(e.pointerId)); timers.current.delete(e.pointerId); };
+  return { cls: "tap", on: { onPointerDown, onPointerCancel }, ripple: <span aria-hidden className="tap__ripple">{waves.map((w) => <span key={w.at} className="tap__wave" style={{ top: w.y, left: w.x }} />)}</span> };
+}
+
+/** One option of a segmented control: a tab. */
+function Segment({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
+  const tap = useTap();
+  return <button type="button" role="tab" aria-selected={selected} className={`${tap.cls} seg__item${IOS ? " seg__item--ios" : ""}`} {...tap.on} onClick={onClick}>{tap.ripple}<span>{children}</span></button>;
+}
+
+/** A segmented control: the options as tabs, the selection a thumb that slides under the chosen one. */
 export function Segmented<T extends string>({ value, options, onChange, label }: { value: T; options: [T, string][]; onChange: (v: T) => void; label: string }) {
+  const at = options.findIndex(([v]) => v === value);
   return (
-    <SegmentedControl className="seg" role="tablist" aria-label={label}>
-      {options.map(([v, text]) => <SegmentedControl.Item key={v} role="tab" aria-selected={v === value} selected={v === value} onClick={() => { if (v !== value) { haptic("select"); onChange(v); } }}>{text}</SegmentedControl.Item>)}
-    </SegmentedControl>
+    <div role="tablist" className={`seg${IOS ? " seg--ios" : ""}`} aria-label={label}>
+      <div className="seg__track">
+        {at > -1 ? <div aria-hidden className="seg__thumb" style={{ width: `${100 / options.length}%`, transform: `translateX(${100 * at}%)` }} /> : null}
+        {options.map(([v, text]) => <Segment key={v} selected={v === value} onClick={() => { if (v !== value) { haptic("select"); onChange(v); } }}>{text}</Segment>)}
+      </div>
+    </div>
   );
 }
 
 export function Chips({ children }: { children: ReactNode }) { return <div className="chips">{children}</div>; }
 export function Chip({ on, onClick, children }: { on?: boolean; onClick: () => void; children: ReactNode }) {
-  return <TgChip Component="button" type="button" className="chip" mode={on ? "mono" : "outline"} aria-pressed={on} onClick={() => { haptic("select"); onClick(); }}>{children}</TgChip>;
+  return <button type="button" className="tap tap--fade chip chip--toggle" aria-pressed={on} onClick={() => { haptic("select"); onClick(); }}><span className={`chip__label${IOS ? " chip__label--ios" : ""}`}>{children}</span></button>;
 }
 
 /** Navigate to a site or app path, preferring the app's own screen. */
@@ -266,23 +299,48 @@ export function Img({ src, eager, width, height }: { src: string; eager?: boolea
   }} />;
 }
 
-/** A tappable list row: TelegramUI's Cell. `href` is a site or app path. */
+/** A cell: what goes before, a subhead, the title and a subtitle stacked in the middle, and what goes after. */
+function Cell({ as: As = "div", className, before, subhead, subtitle, after, children, ...rest }: { as?: ElementType; className: string; before?: ReactNode; subhead?: ReactNode; subtitle?: ReactNode; after?: ReactNode; children: ReactNode; to?: string; type?: "button"; onClick?: () => void }) {
+  const tap = useTap();
+  return (
+    <As className={`${tap.cls} cell${IOS ? " cell--ios" : ""} ${className}`} {...tap.on} {...rest}>
+      {tap.ripple}
+      {has(before) ? <div className="cell__before">{before}</div> : null}
+      <div className="cell__middle">
+        {has(subhead) ? <span className="cell__subhead">{subhead}</span> : null}
+        {has(children) ? <span className="cell__title"><span className="cell__text">{children}</span></span> : null}
+        {has(subtitle) ? <span className="cell__subtitle">{subtitle}</span> : null}
+      </div>
+      {has(after) ? <div className="cell__after">{after}</div> : null}
+    </As>
+  );
+}
+
+/** A tappable list row. `href` is a site or app path. */
 export function Row({ href, onClick, title, sub, meta, thumb, trailing, icon, leading }: { href?: string; onClick?: () => void; title: ReactNode; sub?: ReactNode; meta?: ReactNode; thumb?: string; trailing?: ReactNode; icon?: IconName; leading?: ReactNode }) {
   const slots = {
     className: "row",
-    multiline: true,
     before: leading ?? (thumb !== undefined ? <span className="row__thumb">{thumb ? <Img src={thumb} /> : null}</span> : icon ? <span className="row__icon"><Icon name={icon} size={20} /></span> : undefined),
     subhead: meta ? <span className="row__meta">{meta}</span> : undefined,
     subtitle: sub ? <span className="row__sub">{sub}</span> : undefined,
     after: trailing ?? <span className="row__chev"><Icon name="chevron" size={18} /></span>,
     children: <span className="row__title">{title}</span>,
   };
-  if (href) return <Cell Component={Link} {...({ to: toAppPath(href) ?? href } as object)} onClick={() => haptic("select")} {...slots} />;
-  return <Cell Component="button" type="button" onClick={() => { haptic("select"); onClick?.(); }} {...slots} />;
+  if (href) return <Cell as={Link} to={toAppPath(href) ?? href} onClick={() => haptic("select")} {...slots} />;
+  return <Cell as="button" type="button" onClick={() => { haptic("select"); onClick?.(); }} {...slots} />;
 }
 
-/** A grouped list: TelegramUI's Section body, a divider between rows. */
-export function List({ children }: { children: ReactNode }) { return <TgSection className="list">{Children.toArray(children)}</TgSection>; }
+/** A grouped list, a divider between rows. */
+export function List({ children, ...rest }: { children: ReactNode; "aria-busy"?: "true"; "aria-label"?: string }) {
+  const items = Children.toArray(children);
+  return (
+    <section className={`list${IOS ? " list--ios" : ""}`} {...rest}>
+      <div className="list__box"><div className="list__body">
+        {items.map((c, i) => <Fragment key={isValidElement(c) && c.key !== null ? c.key : i}>{c}{i < items.length - 1 ? <hr className="list__divider" /> : null}</Fragment>)}
+      </div></div>
+    </section>
+  );
+}
 
 /** Autosaved settings still form a named group, without an artificial submit action. */
 export function FormSection({ title, action, children }: { title?: string; action?: ReactNode; children: ReactNode }) {
@@ -317,20 +375,23 @@ export function Skeleton({ rows = 6, thumb = false }: { rows?: number; thumb?: b
     </div>
   );
   return (
-    <TgSection className="list" aria-busy="true" aria-label="Loading">
+    <List aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }, (_, i) => (
-        <TgSkeleton key={i} visible>
-          <Cell className="row row--skel" multiline subtitle={<span className="skel" style={{ width: `${70 + ((i * 13) % 25)}%` }} />}><span className="skel" style={{ width: `${40 + ((i * 29) % 40)}%` }} /></Cell>
-        </TgSkeleton>
+        <div key={i} className="skeleton">
+          <Cell className="row row--skel" subtitle={<span className="skel" style={{ width: `${70 + ((i * 13) % 25)}%` }} />}><span className="skel" style={{ width: `${40 + ((i * 29) % 40)}%` }} /></Cell>
+        </div>
       ))}
-    </TgSection>
+    </List>
   );
 }
 
 /** Nothing here yet, and the next thing to do about it. */
 export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: { label: string; href?: string; onClick?: () => void } }) {
   return (
-    <Placeholder className="empty" header={title} description={children} action={action ? (action.href ? <Link to={toAppPath(action.href) ?? action.href} className="empty__act" onClick={() => haptic("select")}>{action.label}</Link> : <button type="button" className="empty__act" onClick={() => { haptic("select"); action.onClick?.(); }}>{action.label}</button>) : undefined} />
+    <section className={`empty${IOS ? " empty--ios" : ""}`}>
+      {has(title) || has(children) ? <dl className="empty__text">{has(title) ? <dt className="empty__head">{title}</dt> : null}{has(children) ? <dd className="empty__desc">{children}</dd> : null}</dl> : null}
+      {action ? (action.href ? <Link to={toAppPath(action.href) ?? action.href} className="empty__act" onClick={() => haptic("select")}>{action.label}</Link> : <button type="button" className="empty__act" onClick={() => { haptic("select"); action.onClick?.(); }}>{action.label}</button>) : null}
+    </section>
   );
 }
 

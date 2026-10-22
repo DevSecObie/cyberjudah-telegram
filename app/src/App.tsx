@@ -14,11 +14,10 @@ import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { useSettingsButton } from "@/tg/hooks";
-import { AppRoot } from "@telegram-apps/telegram-ui";
 import { Button, PageActions, Screen, Skeleton, TabBar } from "@/ui/ui";
 import { Drawers } from "@/ui/drawers";
 import { ScreenBoundary } from "@/ui/boundary";
-import { ThemeApplier, useAppTheme } from "@/ui/theme";
+import { ThemeApplier } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 import { Tabs as TabsScreen, NewTab } from "@/screens/Tabs";
 const NoteRequests = lazy(() => import("@/screens/NoteRequests").then((m) => ({ default: m.NoteRequests })));
@@ -212,11 +211,8 @@ export function App() {
   // The tab bar stays on every screen, as in an iOS app, except the player, which takes the screen.
   // The tab bar stays through a class note or a recording: a reader who came from a verse is still in the app.
   const tabs = true;
-  // Like an iOS app, the look follows the phone (through Telegram) until the reader picks one.
-  // One theme for the whole app: the Bible's day or night colour, following the phone until the reader picks one.
-  const appearance = useAppTheme().dark ? "dark" : "light";
   return (
-    <AppRoot className="cj" appearance={appearance} platform={app?.platform === "ios" || app?.platform === "macos" ? "ios" : "base"} id="shell" data-tabs={tabs ? "" : undefined}>
+    <div className="cj" id="shell" data-tabs={tabs ? "" : undefined}>
       <AudioPlayerProvider>
       <ThemeApplier />
       <NativeLifecycle />
@@ -236,7 +232,7 @@ export function App() {
       <Drawers />
       {tabs ? <TabBar /> : null}
       </AudioPlayerProvider>
-    </AppRoot>
+    </div>
   );
 }
 

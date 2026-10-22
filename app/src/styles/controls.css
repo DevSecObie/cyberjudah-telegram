@@ -66,13 +66,13 @@
 #root .chip[aria-pressed="true"] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
 .chip__n { margin-left: 6px; font-weight: 500; font-variant-numeric: tabular-nums; }
 
-/* ── Segmented control (TelegramUI's, restyled) ───────────────────────────────────────────── */
-#root .seg { --tgui--segmented_control_active_bg: color-mix(in srgb, var(--text-1) 17%, var(--surface-1)); padding: 3px; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); overflow-x: auto; scrollbar-width: none; }
-html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --tgui--segmented_control_active_bg: var(--surface-1); background: var(--fill-2); }
+/* ── Segmented control ────────────────────────────────────────────────────────────────────── */
+#root .seg { --seg-active: color-mix(in srgb, var(--text-1) 17%, var(--surface-1)); padding: 3px; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); overflow-x: auto; scrollbar-width: none; }
+html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --seg-active: var(--surface-1); background: var(--fill-2); }
 #root .seg::-webkit-scrollbar { display: none; }
 #root .seg button { min-height: var(--h-sm); padding: var(--sp-2); border-radius: var(--r-pill); color: var(--text-2); font: 500 var(--fs-footnote) var(--font-ui); }
-/* TelegramUI's Caption otherwise fixes the visible text at 13px inside the growing button. */
-#root .seg button > span { font: inherit; white-space: normal; overflow-wrap: anywhere; }
+/* The label wraps inside the growing button. */
+#root .seg button > span { white-space: normal; overflow-wrap: anywhere; }
 /* Selected: the lighter capsule, the primary ink and a heavier weight (never colour alone). */
 #root .seg button[aria-selected="true"] { color: var(--text-1); font-weight: 700; }
 
@@ -206,6 +206,6 @@ input[type="range"]:disabled { opacity: var(--disabled-opacity); cursor: default
 #root :is(.sheet, .bs-sheet) .card { --r-outer: var(--sheet-card-radius); border-radius: var(--r-outer); }
 
 /* The segmented control's selection slides between segments; the slider's knob is a narrow capsule. */
-#root .seg > div > [aria-hidden] { transition: transform var(--dur-3) var(--ease-spring); }
+#root .seg .seg__thumb { transition: transform var(--dur-3) var(--ease-spring); }
 input[type="range"]::-webkit-slider-thumb { width: 38px; height: 24px; margin-top: -10px; }
 input[type="range"]::-moz-range-thumb { width: 36px; height: 22px; }
