@@ -281,7 +281,7 @@ export function Segmented<T extends string>({ value, options, onChange, label }:
 
 export function Chips({ children }: { children: ReactNode }) { return <div className="chips">{children}</div>; }
 export function Chip({ on, onClick, children }: { on?: boolean; onClick: () => void; children: ReactNode }) {
-  return <button type="button" className="tap tap--fade chip chip--toggle" aria-pressed={on} onClick={() => { haptic("select"); onClick(); }}><span className={`chip__label${IOS ? " chip__label--ios" : ""}`}>{children}</span></button>;
+  return <button type="button" className="tap tap--fade chip chip--toggle" aria-pressed={on} onClick={() => { haptic("select"); onClick(); }}><span className="chip__label">{children}</span></button>;
 }
 
 /** Navigate to a site or app path, preferring the app's own screen. */

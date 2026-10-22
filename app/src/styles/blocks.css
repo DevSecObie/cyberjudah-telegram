@@ -55,8 +55,7 @@
 
 /* A filter chip: its label centred, never selected as text. */
 .chip--toggle { box-sizing: border-box; justify-content: center; gap: 8px; -webkit-user-select: none; user-select: none; }
-.chip__label { display: block; flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; margin: 0; font-family: var(--font-ui); font-weight: 600; font-size: 16px; line-height: 24px; }
-.chip__label--ios { font-size: 15px; line-height: 20px; }
+.chip__label { display: block; flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; margin: 0; font: inherit; }
 
 /* The empty state's title and description. */
 .empty__text { margin: 0; overflow-wrap: anywhere; text-align: center; }
