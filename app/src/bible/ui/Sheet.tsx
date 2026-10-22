@@ -73,7 +73,8 @@ export function Sheet({ open, onClose, backdrop: withBackdrop = true, height, sn
       <Drawer.Overlay className="sheet__scrim bs-scrim" />
       <Drawer.Content ref={box} className={`bs-sheet bs-sheet--${detent === 1 ? "full" : detent === "auto" ? "auto" : detent === 0.5 ? "half" : "part"}${className ? ` ${className}` : ""}`} aria-label={name} aria-describedby={undefined} aria-modal={backdrop} onPointerDown={keepDrag}
         data-sheet-open="" data-clear={backdrop ? undefined : ""} data-background={background} data-actions={actions && detent !== 1 ? "" : undefined} style={{ height: size }}>
-        <Drawer.Title className="sr-only">{name}</Drawer.Title>
+        {/* The dialog's name, as before vaul: not a second heading beside the visible title. */}
+        <Drawer.Title asChild><span className="sr-only">{name}</span></Drawer.Title>
         <div className="bs-sheet__grab">
           {draggable ? <Drawer.Handle className="bs-sheet__grabber" aria-hidden="true" /> : null}
           {header ? (

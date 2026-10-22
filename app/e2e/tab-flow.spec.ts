@@ -108,8 +108,14 @@ test("tab flow: Search slides into its own saved tab", async ({ page }) => {
 for (const width of [390, 768, 1280]) {
   test(`tab flow: ${width}px preview cards fit the actual content width at 200% text`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
+    // The 200% text is in place before the app's scripts run: added once they are running,
+    // Firefox can hand the page's own report-only CSP notice to that call as its error.
+    await page.addInitScript(() => {
+      const sheet = new CSSStyleSheet(); sheet.replaceSync("html { font-size: 200% !important }");
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+    });
     await setup(page);
-    await page.addStyleTag({ content: "html { font-size: 200% !important }" });
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("32px");
     await overview(page);
     // Each group is a page of the pager; the cards fit the page that is showing.
     const shown = page.locator(".switcher__page[data-active]");
