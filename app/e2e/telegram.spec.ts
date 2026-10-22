@@ -939,21 +939,22 @@ test("in the Bible, an open sheet shows Telegram's back button and closes with i
   // Other controls remain sheets: a swipe down closes Font and settings; a short one springs back.
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
   await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
-  const handle = page.getByRole("dialog", { name: "Font and settings", exact: true }).locator(".bs-sheet__handle");
+  const handle = page.getByRole("dialog", { name: "Font and settings", exact: true }).locator(".bs-sheet__grabber");
   const swipe = async (dy: number) => { await page.waitForTimeout(350); const b = (await handle.boundingBox())!; const y = b.y + b.height / 2; await page.mouse.move(b.x + b.width / 2, y); await page.mouse.down(); await page.mouse.move(b.x + b.width / 2, y + dy, { steps: 8 }); await page.mouse.up(); };
   await swipe(30);
   await expect(page.locator("[data-sheet-open]")).toHaveCount(1);
   await swipe(200);
   await expect(page.locator("[data-sheet-open]")).toHaveCount(0);
-  // A swipe up takes a sheet with two detents to its taller one: Font and settings, 40% then full.
+  // A swipe up leaves it at its height: Bible Strong's web sheet (vaul) does not drag between detents.
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
   await page.getByRole("menuitem", { name: "Font and settings", exact: true }).click();
   const params = page.getByRole("dialog", { name: "Font and settings", exact: true });
-  const before = (await params.boundingBox())!.height;
   await page.waitForTimeout(550);
-  const t = (await params.locator(".bs-sheet__handle").boundingBox())!;
+  const before = Math.round((await params.boundingBox())!.height);
+  const t = (await params.locator(".bs-sheet__grabber").boundingBox())!;
   await page.mouse.move(t.x + t.width / 2, t.y + 2); await page.mouse.down(); await page.mouse.move(t.x + t.width / 2, t.y - 120, { steps: 8 }); await page.mouse.up();
-  await expect.poll(async () => (await params.boundingBox())!.height).toBeGreaterThan(before + 40);
+  await page.waitForTimeout(550);
+  expect(Math.round((await params.boundingBox())!.height)).toBe(before);
 });
 
 test("a sheet uses the release position even when a fast swipe finishes before the next render", async ({ page }) => {
@@ -1258,9 +1259,10 @@ test("The Law: a law found by its words opens in its section, brought into view;
   await page.locator(".panel-filter", { hasText: "Part" }).click();
   await page.getByRole("radio", { name: "9. Feasts and observances" }).click();
   await expect(page.locator(".laws__part")).toHaveCount(1);
-  await expect(page.getByRole("region", { name: "Feasts and observances" })).toBeVisible();
+  // The open panel hides the handbook behind it from assistive tech, as Bible Strong's modal sheet does.
+  await expect(page.getByRole("region", { name: "Feasts and observances", includeHidden: true })).toBeVisible();
   await page.getByRole("button", { name: "Reset", exact: true }).click();
-  await expect(page.getByRole("region", { name: "The Ten Commandments" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "The Ten Commandments", includeHidden: true })).toBeVisible();
 });
 
 // Bible Strong's FiltersHeader on Courses & videos: open the panel, then one filter's screen.

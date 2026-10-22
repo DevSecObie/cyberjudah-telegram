@@ -142,11 +142,11 @@ export function DatePicker({ value, label, onChange, minimum, maximum }: { value
 }
 
 function PlanSuccess({ kind, onClose }: { kind: "day" | "plan" | null; onClose: () => void }) {
-  const host = useRef<HTMLDivElement>(null);
+  // The sheet mounts its content after it opens, so the animation starts once its host exists.
+  const [container, host] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
-    if (!kind || !host.current) return;
+    if (!kind || !container) return;
     let cancelled = false, animation: import("lottie-web").AnimationItem | undefined;
-    const container = host.current;
     void Promise.all([import("lottie-web"), kind === "plan" ? import("./plan-assets/crown.json") : import("./plan-assets/medal.json")]).then(([lottie, data]) => {
       if (cancelled) return;
       const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -154,6 +154,6 @@ function PlanSuccess({ kind, onClose }: { kind: "day" | "plan" | null; onClose: 
       if (reduce) animation.goToAndStop(60, true);
     });
     return () => { cancelled = true; animation?.destroy(); };
-  }, [kind]);
+  }, [kind, container]);
   return <Sheet open={!!kind} onClose={onClose} dismissible={false} draggable={false} title="Congratulations" className="reading-plan__success"><div className="reading-plan__celebration"><div ref={host} className="reading-plan__animation" aria-hidden="true" /><div className="reading-plan__congratulations"><b>Congratulations {kind === "plan" ? "!!" : "!"}</b><p>{kind === "plan" ? "You have completed this plan !" : "You have just finished your reading."}</p></div><Button onClick={onClose}>Continue</Button></div></Sheet>;
 }

@@ -495,9 +495,10 @@ test("plan completion can be corrected by keyboard and its read action stays ins
   const base = (process.env.CYBERJUDAH_APP_BASE ?? "/").replace(/\/$/, "");
   await page.goto(`${base}/plan`);
   const check = page.getByRole("checkbox", { name: "John 1", exact: true });
-  await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-checked", "true");
-  // Finishing the day's reading is celebrated, as in Bible Strong.
+  await check.focus(); await page.keyboard.press("Space");
+  // Finishing the day's reading is celebrated, as in Bible Strong; its sheet hides the page until Continue.
   await page.getByRole("dialog", { name: "Congratulations" }).getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(check).toHaveAttribute("aria-checked", "true");
   await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-checked", "false");
   await page.getByRole("button", { name: "Continue my journey", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${base}/read/john/1$`));
