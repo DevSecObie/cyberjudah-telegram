@@ -1,0 +1,1 @@
+- Move to the previous or next verse from Dictionary, Themes and Comments, staying on the same tab and within the chapter, as in Bible Strong. These tabs and Lexicon share the same verse controls; References, Precepts and People are unchanged.

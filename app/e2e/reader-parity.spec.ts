@@ -837,6 +837,71 @@ test("a typed Strong's number is searched as written, whatever the language tab"
   await expect(page.locator("a[href='/lexicon/H26']")).toHaveCount(0);
 });
 
+test.describe("verse resources navigation", () => {
+  const passage = ["Beginning", "Darkness", "Light"].map((text, i) => ({ verse: i + 1, text, words: [[text, []]] }));
+  test.beforeEach(async ({ page }) => {
+    await page.route(`${DATA}/api/kjv/genesis/1.json`, r => r.fulfill({ json: { book: "Genesis", chapter: 1, translation: "KJV", verses: passage } }));
+    await page.route("**/api/dictionary/lookup?*", r => {
+      const word = new URL(r.request().url()).searchParams.get("word")!;
+      return r.fulfill({ json: { slug: word.toLowerCase(), term: `${word} entry`, definitions: [`${word} definition`] } });
+    });
+    await page.route(`${DATA}/api/concordance/genesis/1.json`, r => r.fulfill({ json: {
+      book: "Genesis", chapter: 1,
+      cited_by: passage.flatMap(v => [
+        { url: `/topics/verse-${v.verse}`, kind: "topic", label: `Theme for verse ${v.verse}`, verses: String(v.verse) },
+        { url: `/classes/verse-${v.verse}`, kind: "class", label: `Comment for verse ${v.verse}`, verses: String(v.verse) },
+      ]),
+    } }));
+    await page.goto("/read/genesis/1");
+    await page.locator("#verset-2 .bs-num").click({ delay: 600 });
+    await expect(page.locator(".bs-resfooter")).toBeVisible();
+  });
+
+  for (const tab of ["Lexicon", "Dictionary", "Themes", "Comments"]) test(`${tab} keeps its tab while moving verses and stops at chapter boundaries`, async ({ page }) => {
+    const sheet = page.locator(".bs-resources-sheet");
+    const selected = sheet.getByRole("tab", { name: tab, exact: true });
+    await selected.click();
+    const previous = sheet.getByRole("button", { name: "Previous verse", exact: true });
+    const next = sheet.getByRole("button", { name: "Next verse", exact: true });
+    await expect(next).toBeVisible();
+    const content = (verse: number) => tab === "Dictionary" ? `${passage[verse - 1].text} entry` : tab === "Themes" ? `Theme for verse ${verse}` : `Comment for verse ${verse}`;
+    const checkVerse = async (verse: number) => {
+      await expect(sheet.getByRole("heading", { name: `Genesis 1:${verse}`, exact: true })).toBeVisible();
+      await expect(selected).toHaveAttribute("aria-selected", "true");
+      await expect(sheet.locator(tab === "Lexicon" ? ".bs-vdetail__text" : ".bs-resources__verse")).toHaveText(passage[verse - 1].text);
+      if (tab !== "Lexicon") {
+        await expect(sheet.getByRole("button", { name: content(verse), exact: false })).toBeVisible();
+        for (const other of passage.filter(v => v.verse !== verse)) await expect(sheet.getByRole("button", { name: content(other.verse), exact: false })).toHaveCount(0);
+      }
+      await expect(page).toHaveURL(/\/read\/genesis\/1$/);
+      await expect(previous).toHaveCount(verse === 1 ? 0 : 1);
+      await expect(next).toHaveCount(verse === passage.length ? 0 : 1);
+    };
+    await checkVerse(2);
+    await previous.click();
+    await checkVerse(1);
+    await next.click();
+    await checkVerse(2);
+    await next.click();
+    await checkVerse(3);
+    await previous.click();
+    await checkVerse(2);
+    await sheet.getByRole("tab", { name: tab === "Dictionary" ? "Themes" : "Dictionary", exact: true }).click();
+    await expect(sheet.getByRole("heading", { name: "Genesis 1:2", exact: true })).toBeVisible();
+    await selected.click();
+    await checkVerse(2);
+  });
+
+  test("References, Precepts and People keep their existing coverage without verse controls", async ({ page }) => {
+    const sheet = page.locator(".bs-resources-sheet");
+    for (const tab of ["References", "Precepts", "People"]) {
+      await sheet.getByRole("tab", { name: tab, exact: true }).click();
+      await expect(sheet.getByRole("heading", { name: "Genesis 1:2", exact: true })).toBeVisible();
+      await expect(sheet.getByRole("button", { name: /^(Previous|Next) verse$/ })).toHaveCount(0);
+    }
+  });
+});
+
 test("a verse's references that fail to load say so, with Retry, instead of 'none'", async ({ page }) => {
   let fail = true;
   await page.route(`${DATA}/api/xref/genesis/1.json`, r => (fail ? r.fulfill({ status: 500, body: "" }) : r.fulfill({ json: { 1: [["john", 1, 1]] } })));
