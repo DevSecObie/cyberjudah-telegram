@@ -1,0 +1,1 @@
+- Tests only: the tab switcher's 200% text check sets its text size before the app starts, so Firefox no longer fails it at random.
