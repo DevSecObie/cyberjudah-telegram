@@ -1,0 +1,1 @@
+- Recently viewed now shows Bible passages and Strong's entries in one newest-first list, with type chips, relative times and a count-aware clear confirmation. Revisiting moves an item to the top; history stays within Telegram's 4 KB storage limit. Dictionary and topic records are supported for their forthcoming screen integration.

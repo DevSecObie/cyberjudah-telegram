@@ -48,7 +48,8 @@ export function auditContrast(options?: { includePanels?: boolean; fadedContext?
   for (const element of document.querySelectorAll<HTMLElement>(options?.includePanels ? ".route *, .bs-gallery *" : ".route *")) {
     if (!Array.from(element.childNodes).some(n => n.nodeType === Node.TEXT_NODE && n.textContent?.trim())) continue;
     const rect = element.getBoundingClientRect(), style = getComputedStyle(element);
-    if (!rect.width || !rect.height || style.visibility !== "visible" || element.closest('[inert], [aria-hidden="true"], :disabled, .tabs') || (!options?.includePanels && element.closest('.bs-header, .sheet, .bs-sheet'))) continue;
+    // A modal sheet hides the page behind it from assistive tech (data-aria-hidden), but it stays on screen.
+    if (!rect.width || !rect.height || style.visibility !== "visible" || element.closest('[inert], [aria-hidden="true"]:not([data-aria-hidden]), :disabled, .tabs') || (!options?.includePanels && element.closest('.bs-header, .sheet, .bs-sheet'))) continue;
     if (selecting && element.closest('[id^="verset-"]:not([data-selected])')) continue;
     const stack: HTMLElement[] = []; let ancestor: HTMLElement | null = element, opacity = 1;
     while (ancestor) { stack.unshift(ancestor); opacity *= Number(getComputedStyle(ancestor).opacity); ancestor = ancestor.parentElement; }

@@ -32,7 +32,6 @@ export function Settings() {
   useBackButton();
   const sheet = useSheet();
   const [size, setSize] = useStored<"compact" | "regular" | "large">("size", "regular");
-  const [transparency, setTransparency] = useStored<"system" | "tinted" | "reduced">("transparency", "system");
   const [font, setFont] = useStored<Font>("font", "serif");
   const [spacing, setSpacing] = useStored<Spacing>("spacing", "regular");
   const [justify, setJustify] = useStored("justify", false);
@@ -140,8 +139,6 @@ export function Settings() {
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" trailing={<Value>{{ tight: "Tight", regular: "Regular", airy: "Airy" }[spacing]}</Value>} />
           <Toggle on={justify} onChange={setJustify} title="Justify the text" />
           <Row onClick={() => setRelDisplay(relDisplay === "inline" ? "block" : "inline")} title="Precepts in the reader" sub={relDisplay === "inline" ? "Shown as tags after each verse" : "Shown as a count beside the verse number"} trailing={<Value>{relDisplay === "inline" ? "Tags" : "Count"}</Value>} />
-          {/* iOS 26.1's Liquid Glass choice (Clear or Tinted), plus fully solid bars. */}
-          <Row onClick={() => setTransparency(transparency === "system" ? "tinted" : transparency === "tinted" ? "reduced" : "system")} title="Glass" sub={{ system: "Clear, see-through bars and panels", tinted: "Tinted: more opaque, easier to read", reduced: "Solid bars and panels, no transparency" }[transparency]} trailing={<Value>{{ system: "Clear", tinted: "Tinted", reduced: "Solid" }[transparency]}</Value>} />
           {features.fullscreen ? <Toggle on={fullscreen} onChange={setFs} title="Full screen" sub="The app fills the screen, without Telegram's header" /> : null}
           {features.fullscreen && (platform === "ios" || platform === "android") ? <Toggle on={portrait} onChange={setPortrait} title="Lock portrait" sub="Keep the reader upright" /> : null}
         </List>

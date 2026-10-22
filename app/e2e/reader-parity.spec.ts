@@ -495,9 +495,10 @@ test("plan completion can be corrected by keyboard and its read action stays ins
   const base = (process.env.CYBERJUDAH_APP_BASE ?? "/").replace(/\/$/, "");
   await page.goto(`${base}/plan`);
   const check = page.getByRole("checkbox", { name: "John 1", exact: true });
-  await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-checked", "true");
-  // Finishing the day's reading is celebrated, as in Bible Strong.
+  await check.focus(); await page.keyboard.press("Space");
+  // Finishing the day's reading is celebrated, as in Bible Strong; its sheet hides the page until Continue.
   await page.getByRole("dialog", { name: "Congratulations" }).getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(check).toHaveAttribute("aria-checked", "true");
   await check.focus(); await page.keyboard.press("Space"); await expect(check).toHaveAttribute("aria-checked", "false");
   await page.getByRole("button", { name: "Continue my journey", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`${base}/read/john/1$`));
@@ -562,7 +563,8 @@ test("notes list searches and sorts as Bible Strong's BibleVerseNotesScreen, and
     localStorage.setItem("cj:bs_n_john_1", JSON.stringify({ "4": { id: "n3", title: "Ark of the word", description: "The life was the light of men.", date: 2000 } }));
   });
   await page.goto("/notes");
-  const order = () => page.getByRole("link").filter({ hasText: /Light was the first|Beginning|Ark of the word/ }).allInnerTexts().then(t => t.map(s => /Light was the first|Beginning|Ark of the word/.exec(s)![0]));
+  // The list as drawn: an open panel's dimmed page is hidden from the accessibility tree, as a modal dialog's is.
+  const order = () => page.locator("a").filter({ hasText: /Light was the first|Beginning|Ark of the word/ }).allInnerTexts().then(t => t.map(s => /Light was the first|Beginning|Ark of the word/.exec(s)![0]));
   await expect.poll(order).toEqual(["Light was the first", "Ark of the word", "Beginning"]);
   // Bible Strong's filter panel: Order, Search, Tags.
   const choose = async (row: string, choice: string) => {
@@ -598,9 +600,9 @@ test("history keeps the verse gone to and opens on it, as Bible Strong's history
   await page.goto("/history");
   // One row per passage: the chapter itself and verse 28 of it.
   const row = (title: string) => page.locator(".histitem", { has: page.locator(".histitem__title", { hasText: new RegExp(`^${title}$`) }) });
-  await expect(row("Genesis 1:28")).toBeVisible();
-  await expect(row("Genesis 1")).toBeVisible();
-  await row("Genesis 1:28").click();
+  await expect(row("Genesis 1:28 KJV")).toBeVisible();
+  await expect(row("Genesis 1 KJV")).toBeVisible();
+  await row("Genesis 1:28 KJV").click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?at=28$/);
   await expect(page.locator("#verset-28")).toBeVisible();
 });
