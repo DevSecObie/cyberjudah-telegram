@@ -59,14 +59,16 @@
 .chip--toggle { box-sizing: border-box; justify-content: center; gap: 8px; -webkit-user-select: none; user-select: none; }
 .chip__label { display: block; flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; margin: 0; font: inherit; }
 
-/* The empty state's title and description. */
-.empty__text { margin: 0; overflow-wrap: anywhere; text-align: center; }
-.empty__head, .empty__desc { margin: 0; font-family: var(--font-ui); }
-.empty__head { font-weight: 600; font-size: 20px; line-height: 24px; }
-.empty__desc { font-weight: 400; font-size: 17px; line-height: 26px; color: var(--cj-hint); }
-.empty__desc:not(:first-child) { margin-top: 8px; }
-.empty--ios .empty__head { line-height: 25px; }
-.empty--ios .empty__desc { line-height: 22px; }
+/* Bible Strong's common/Empty: the illustration 180px at 60% with mb 20, the kind's icon on a 40px
+   gray-100 tile at 58/80 turned 6°, tinted tertiary; the message 16px, leading-normal, tertiary,
+   centred, at most 280px; the actions in a box 20px under it, as Bible Strong's screens place their
+   Button (48px, radius 24, primary, white 16px bold). */
+.empty__art { position: relative; width: 180px; height: 180px; margin-bottom: 20px; pointer-events: none; }
+.empty__art img { width: 180px; height: 180px; object-fit: contain; opacity: .6; }
+.empty__art span { position: absolute; left: 58px; top: 80px; width: 40px; height: 40px; border-radius: 6px; background: #f3f4f6; transform: rotate(6deg); }
+.empty__art span::after { content: ""; position: absolute; inset: 2px; background: var(--bs-tertiary, var(--text-3)); -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+.empty__msg { width: 100%; max-width: 280px; margin: 0; overflow-wrap: anywhere; text-align: center; color: var(--bs-tertiary, var(--text-3)); font: 400 16px/1.5 var(--font-ui); }
+.empty__acts { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 10px; margin-top: 20px; }
 
 /* Hairlines are half a pixel on a dense screen. */
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) { .list__divider, .seg--ios .seg__thumb { border-width: .5px; } }
