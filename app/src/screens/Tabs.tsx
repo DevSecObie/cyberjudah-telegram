@@ -24,6 +24,7 @@ const READ: Item[] = [
   ["/timeline", "Timeline", "Explore biblical history"],
   ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter"],
   ["/classes?feed=history", "Our Hidden History", "Explore our history, episode by episode"],
+  ["/classes?feed=sense", "Giving The Sense From A to Z", "The scriptures with the captains, verse by verse"],
 ];
 const PERSONAL: Item[] = [
   ["/studies", "Studies", "Find your studies"],
