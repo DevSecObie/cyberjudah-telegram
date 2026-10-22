@@ -19,7 +19,8 @@ concurrency:
 jobs:
   browser-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # Chromium's suite alone takes about 31 minutes; the rest leaves room for setup and the account checks.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -31,7 +32,15 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      # The browser download and its system packages sometimes stall for the whole job: give each
+      # attempt 8 minutes and try once more, so a stalled install fails fast instead of timing out.
+      - name: Install the browser
+        run: |
+          for attempt in 1 2; do
+            timeout 8m npx playwright install --with-deps ${{ matrix.browser }} && exit 0
+            echo "::warning::playwright install attempt $attempt did not finish"
+          done
+          exit 1
       - run: npm run test:e2e --workspace app -- --project=${{ matrix.browser }}
         env:
           CI: "true"
