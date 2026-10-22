@@ -46,7 +46,10 @@ export const DEFAULT_SETTINGS: BibleSettings = {
 
 export function useBibleSettings(): [BibleSettings, (patch: Partial<BibleSettings>) => void] {
   const [stored, set] = useStored<Partial<BibleSettings>>("bs", {});
-  const settings: BibleSettings = { ...DEFAULT_SETTINGS, ...stored, shareVerses: { ...DEFAULT_SETTINGS.shareVerses, ...stored.shareVerses } };
+  // A reader who chose serif before the Bible kept its own face (only "font" was saved) keeps Newsreader.
+  const [font] = useStored<"serif" | "sans">("font", "sans");
+  const legacy = stored.fontFamily === undefined && font === "serif" ? { fontFamily: "Newsreader" } : {};
+  const settings: BibleSettings = { ...DEFAULT_SETTINGS, ...stored, ...legacy, shareVerses: { ...DEFAULT_SETTINGS.shareVerses, ...stored.shareVerses } };
   return [settings, (patch) => set({ ...stored, ...patch })];
 }
 
