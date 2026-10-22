@@ -31,3 +31,41 @@ test("search field: Bible Strong's 36 px grey pill, 15 px text, a ✕ in 36 px w
   await expect(field).toHaveValue("");
   await expect(clear).toHaveCount(0);
 });
+
+for (const theme of ["default", "dark"]) {
+  test(`list search headers: ${theme} places the pill above the border with the focus ring around it`, async ({ page }) => {
+    await setup(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addInitScript(theme => {
+      (window as any).__cloud = { bs: JSON.stringify({ preferredColorScheme: theme === "dark" ? "dark" : "light", preferredLightTheme: "default", preferredDarkTheme: "dark" }) };
+    }, theme);
+    for (const path of ["/lexicon", "/dictionary", "/topics"]) {
+      await page.goto(`${path}${LAUNCH}`);
+      const head = page.locator(".screen > header");
+      const pill = head.locator(".bs-searchinput");
+      await expect(pill).toBeVisible();
+      const box = (await pill.boundingBox())!;
+      expect(box.y).toBe(54);
+      expect(box.height).toBe(36);
+      expect(box.x).toBe(20);
+      expect(box.width).toBe(350);
+      await expect(head).toHaveCSS("border-bottom-width", "1px");
+      expect((await head.boundingBox())!.height).toBe(106);
+      const input = pill.getByRole("searchbox");
+      await input.focus();
+      await expect(input).toBeFocused();
+      await expect(input).toHaveCSS("outline-style", "none");
+      const primary = await pill.evaluate(el => getComputedStyle(el).getPropertyValue("--bs-primary").trim());
+      const hex = primary.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+      const color = hex ? `rgb(${hex.slice(1).map(n => parseInt(n, 16)).join(", ")})` : primary;
+      await expect(pill).toHaveCSS("box-shadow", `${color} 0px 0px 0px 2px`);
+      await input.fill("Abraham");
+      const clear = pill.getByRole("button", { name: "Clear", exact: true });
+      await clear.focus();
+      await expect(pill).toHaveCSS("box-shadow", "none");
+      await clear.click();
+      await expect(input).toHaveValue("");
+      await expect(clear).toHaveCount(0);
+    }
+  });
+}
