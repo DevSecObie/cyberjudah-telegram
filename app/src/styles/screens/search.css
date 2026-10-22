@@ -31,11 +31,14 @@
 .srch__kbd { display: none; place-items: center; min-width: 22px; height: 22px; border-radius: var(--r-xs); box-shadow: inset 0 0 0 1px var(--control-edge); color: var(--text-3); font: 600 var(--fs-caption) var(--font-ui); }
 @media (hover: hover) and (pointer: fine) { .srch__kbd { display: grid; } }
 #root button.srch__cancel { flex: none; min-height: var(--touch); padding: 0 2px; border: 0; background: none; color: var(--accent); font: 500 var(--fs-body) var(--font-ui); cursor: pointer; }
-.srch__scopes { display: flex; gap: 6px; padding: 10px 0; overflow-x: auto; scrollbar-width: none; }
+/* The scopes as Bible Strong's filter chips (FilterChipRow): 8px apart and 8px above and below; 32px
+   high, padding 12, radius 16, on the border colour with 13px bold default text; the chosen one
+   primary with white text, eased over 200ms. */
+.srch__scopes { display: flex; gap: 8px; padding: 8px 0; overflow-x: auto; scrollbar-width: none; }
 .srch__scopes::-webkit-scrollbar { display: none; }
-#root button.srch__scope { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 var(--sp-3); border: 0; border-radius: var(--r-pill); background: var(--fill-1); box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-1); font: 600 var(--fs-footnote) var(--font-ui); cursor: pointer; transition: none; }
-#root button.srch__scope:hover { background: var(--fill-2); }
-#root button.srch__scope[aria-selected="true"] { background: var(--text-1); color: var(--canvas); box-shadow: none; }
+#root button.srch__scope { flex: none; display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; height: 32px; padding: 0 12px; border: 0; border-radius: 16px; background: var(--bs-border, var(--fill-2)); color: var(--bs-default, var(--text-1)); font: 700 13px/1 var(--font-ui); cursor: pointer; transition: background-color .2s cubic-bezier(.455, .03, .515, .955), color .2s cubic-bezier(.455, .03, .515, .955), opacity .2s; }
+#root button.srch__scope:active { opacity: .7; }
+#root button.srch__scope[aria-selected="true"] { background: var(--bs-primary, var(--accent)); color: var(--on-accent); }
 .srch__count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: color-mix(in srgb, currentColor 14%, transparent); font: 700 11px var(--font-ui); font-variant-numeric: tabular-nums; }
 .srch__head .srch__count { margin-left: var(--sp-2); color: var(--text-3); }
 .srch__results { display: flex; flex-direction: column; gap: 18px; padding-top: 6px; }
@@ -79,8 +82,10 @@
 .srch__empty p { max-width: 340px; margin: 0; font: 400 15px/1.5 var(--font-ui); }
 .srch__empty b { color: var(--text-1); font-weight: 600; }
 .srch__try { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); }
-#root .srch__try button:not(.tap) { box-sizing: border-box; min-height: var(--touch); margin-block: -4px; padding: 0 14px; border: 0; border-block: 4px solid transparent; border-radius: var(--r-pill); background: var(--fill-1) padding-box; box-shadow: inset 0 0 0 .5px var(--hairline); color: var(--text-1); font: 500 var(--fs-sub) var(--font-ui); cursor: pointer; }
-#root .srch__try button:not(.tap):hover { background: var(--fill-2) padding-box; }
+/* Bible Strong's SearchEmptyState examples: padding 4 by 12, radius 20, on light-grey with a 1px
+   border, 14px default text. */
+#root .srch__try button:not(.tap) { box-sizing: border-box; padding: 4px 12px; border: 1px solid var(--bs-border, var(--hairline)); border-radius: 20px; background: var(--bs-light-grey, var(--fill-1)); color: var(--bs-default, var(--text-1)); font: 400 14px/1.3 var(--font-ui); cursor: pointer; }
+#root .srch__try button:not(.tap):active { opacity: .7; }
 .srch__feeds { margin-bottom: 4px; }
 #root button.srch__all { min-height: var(--touch); padding: 0; border: 0; background: none; color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }
 @media (min-width: 720px) { .srch__title { font-size: var(--fs-body); } .srch__snip { -webkit-line-clamp: 2; } }
