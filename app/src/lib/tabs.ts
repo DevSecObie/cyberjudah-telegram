@@ -108,6 +108,16 @@ export function settleTabFloor(idx: number, entered = true) {
   entering = false;
   if (next !== floor) { floor = next; floorListeners.forEach((l) => l()); }
 }
+/** A tab change has been made and the page it shows is not shown yet. */
+export const tabChanging = () => entering;
+/**
+ * The router shows a page in a transition, after the browser has already gone to it: a tab can
+ * be left before the page opened in it is shown (a tap, then the bar while the page loads). The
+ * app brings the tab up to that page first (App), so the page stays the tab's place.
+ */
+let leaving: (() => void) | null = null;
+export const onLeaveTab = (fn: () => void) => { leaving = fn; return () => { if (leaving === fn) leaving = null; }; };
+const leave = () => leaving?.();
 /** The history index Back may not go below. */
 export const useTabFloor = () => useSyncExternalStore((l) => { floorListeners.add(l); return () => floorListeners.delete(l); }, () => floor);
 /** Where the app is now becomes the current tab's place. */
@@ -121,6 +131,7 @@ export function recordPath(path: string) {
 }
 /** A new tab in the current group, on the New Tab page by default; returns its path. */
 export function newTab(path = "/new"): string {
+  leave();
   const g = group(), t = { id: uid(), path };
   setGroup({ ...g, tabs: [...g.tabs, t], current: t.id });
   enterTab();
@@ -134,6 +145,7 @@ export function addTab(path: string): { group: string; tab: string } {
 }
 /** Select a tab of the current group; its path, or the switcher when the group has none. */
 export function selectTab(id: string): string {
+  leave();
   const g = group(), t = g.tabs.find((x) => x.id === id) ?? g.tabs[0];
   if (!t) return "/tabs";
   setGroup({ ...g, current: t.id });
@@ -146,6 +158,7 @@ export function selectTab(id: string): string {
  * last was closed.
  */
 export function closeTab(id: string) {
+  if (id === group().current) leave();
   const g = group();
   if (!g.tabs.some((t) => t.id === id)) return;
   const at = Math.max(0, g.tabs.findIndex((t) => t.id === g.current));
@@ -168,6 +181,7 @@ export function adjacentTab(step: 1 | -1): string | null {
 /** A new group (Bible Strong's createGroup): named, empty, made current; its id, or null at the limit or without a name. */
 export function newGroup(name: string, color: string): string | null {
   if (state.groups.length >= MAX_GROUPS || !name.trim()) return null;
+  leave();
   const g: Group = { id: uid(), name: name.trim(), color, tabs: [], current: "", createdAt: Date.now() };
   set({ groups: [...state.groups, g], group: g.id });
   enterTab();
@@ -186,6 +200,7 @@ export function groupWithTabs(name: string, paths: string[]): string | null {
 }
 /** Switch group; returns the path of that group's current tab, or the switcher when it has none. */
 export function switchGroup(id: string): string {
+  leave();
   const g = state.groups.find((x) => x.id === id) ?? state.groups[0];
   set({ ...state, group: g.id });
   enterTab();
