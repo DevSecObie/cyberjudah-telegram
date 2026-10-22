@@ -84,6 +84,7 @@ const LEARN: [string, string, string, IconName][] = [
   ["/classes", "Classes", "Every Sabbath class, with its notes", "play"],
   ["/books", "Library", "The books the classes read from", "layers"],
   ["/classes?feed=history", "Our Hidden History", "The episodes, with their notes", "history"],
+  ["/classes?feed=sense", "Giving The Sense From A to Z", "The scriptures, verse by verse", "book-open"],
   ["/encyclopedia", "Encyclopedia", "Standing subjects, book by book", "book"],
 ];
 /** The Law shelf. */
