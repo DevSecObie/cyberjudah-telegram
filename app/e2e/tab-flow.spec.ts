@@ -110,9 +110,10 @@ for (const width of [390, 768, 1280]) {
     await page.setViewportSize({ width, height: 844 });
     // The 200% text is in place before the app's scripts run: added once they are running,
     // Firefox can hand the page's own report-only CSP notice to that call as its error.
-    await page.addInitScript(() => document.addEventListener("DOMContentLoaded", () => {
-      const style = document.createElement("style"); style.textContent = "html { font-size: 200% !important }"; document.head.append(style);
-    }));
+    await page.addInitScript(() => {
+      const sheet = new CSSStyleSheet(); sheet.replaceSync("html { font-size: 200% !important }");
+      document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+    });
     await setup(page);
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("32px");
     await overview(page);
