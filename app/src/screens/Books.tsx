@@ -6,7 +6,7 @@ import { data, DATA_ORIGIN, fmtDate, type BookChapterRow, type BookFigure, type 
 import { useBackButton } from "@/tg/hooks";
 import { api, haptic } from "@/tg/sdk";
 import { PictureViewer, Said } from "@/ui/PictureViewer";
-import { Empty, Icon, List, Row, Screen, SearchField, Section, Skeleton } from "@/ui/ui";
+import { Empty, Icon, List, Row, Screen, SearchField, Section, Loading } from "@/ui/ui";
 
 /**
  * The library: public-domain books the classes read from, page by page as printed, with the
@@ -41,12 +41,12 @@ export function Books() {
       <div className="books__search">
         <SearchField id="book-q" value={q} onChange={setQ} onSubmit={() => { haptic("select"); setAsked(q.trim()); }} placeholder="Search inside the books" />
       </div>
-      {asked ? (found.isPending ? <Skeleton rows={4} /> : found.isError || (found.data && !found.data.ok) ? <Empty title="The book search did not answer">Try again in a moment.</Empty> : !hits.length ? <Empty title={`Nothing in the books for “${asked}”`}>Try another word or spelling.</Empty> : (
+      {asked ? (found.isPending ? <Loading /> : found.isError || (found.data && !found.data.ok) ? <Empty title="The book search did not answer">Try again in a moment.</Empty> : !hits.length ? <Empty title={`Nothing in the books for “${asked}”`}>Try another word or spelling.</Empty> : (
         <Section title={`${hits.length} ${hits.length === 1 ? "page" : "pages"} for “${asked}”`}>
           <List>{hits.map((h) => <Row key={h.url} href={h.url} title={h.title} meta={h.sub} sub={h.snippet.replace(/<\/?b>/g, "")} />)}</List>
         </Section>
       )) : null}
-      {lib.isPending ? <Skeleton rows={3} thumb /> : !lib.data?.length ? <Empty title="No books yet" /> : (
+      {lib.isPending ? <Loading /> : !lib.data?.length ? <Empty title="No books yet" /> : (
         <List>{[...lib.data].sort((a, b) => b.classes - a.classes || a.title.localeCompare(b.title)).map((b) => (
           <Row key={b.slug} href={`/books/${b.slug}`} thumb={b.cover ? src(b.cover) : undefined} title={b.title}
             sub={`${b.author}, ${b.year}${b.volumes > 1 ? ` · ${b.volumes} volumes` : ""} · ${b.classes ? `read in ${b.classes} ${b.classes === 1 ? "class" : "classes"}` : `${b.pages} pages`}${b.figures ? ` · ${b.figures} pictures` : ""}`} />
@@ -64,7 +64,7 @@ export function BookScreen() {
   const [allReads, setAllReads] = useState(false);
   const [allFigures, setAllFigures] = useState(false);
   useBackButton(() => { if (figure) { setFigure(null); return true; } });
-  if (book.isPending) return <Screen title="…"><Skeleton rows={6} /></Screen>;
+  if (book.isPending) return <Screen title="…"><Loading /></Screen>;
   if (!book.data) return <Screen title="Library"><Empty title="This book did not load" /></Screen>;
   const b = book.data;
   const volumeOf = (vol: number) => b.chapters.find((c) => c.vol === vol)?.volume;
@@ -136,7 +136,7 @@ export function BookPageLink() {
     const c = book.data.chapters.find((x) => x.vol === vol && n >= x.page && n <= x.end) ?? book.data.chapters.find((x) => x.vol === vol) ?? book.data.chapters[0];
     navigate(`/books/${slug}/${c.k}?p=${n}`, { replace: true });
   }, [book.data, page, slug, navigate]);
-  return <Screen title="…"><Skeleton rows={6} /></Screen>;
+  return <Screen title="…"><Loading /></Screen>;
 }
 
 export function BookChapterScreen() {
@@ -154,7 +154,7 @@ export function BookChapterScreen() {
     const el = at ? document.getElementById(`pg-${at}`) : null;
     if (el) el.scrollIntoView({ block: "start" }); else window.scrollTo(0, 0);
   }, [ch.data, at]);
-  if (ch.isPending || book.isPending) return <Screen title="…"><Skeleton rows={10} /></Screen>;
+  if (ch.isPending || book.isPending) return <Screen title="…"><Loading /></Screen>;
   if (!ch.data || !book.data) return <Screen title="Library"><Empty title="This chapter did not load" /></Screen>;
   const b = book.data, c = ch.data;
   const item = c.item ?? b.items[c.vol - 1]?.id ?? b.items[0]?.id ?? "";

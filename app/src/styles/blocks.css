@@ -38,11 +38,13 @@
 .list--ios .list__body > :only-child { border-radius: 12px; }
 .list__divider { margin: 0; border-top: none; border-color: var(--control-edge); border-width: 1px; }
 
-/* The loading cover: the page colour over a cell, breathing. */
-.skeleton { position: relative; }
-.skeleton::before, .skeleton::after { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--canvas); }
-.skeleton::after { z-index: 2; animation: skeleton-breathe 1.8s linear infinite; }
-@keyframes skeleton-breathe { 0%, to { opacity: .4; } 50% { opacity: .7; } }
+/* Bible Strong's common/Loading: flex 1, centred, at least 300px; the 20px grey ActivityIndicator
+   (a faint ring with a quarter arc turning), and the message 20px under it. On a page it takes the
+   height left between the header and the bar, as Bible Strong's flex 1 does. */
+.loading { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; }
+.screen > .loading { min-height: max(300px, calc(100dvh - var(--safe-top) - 54px - 22px - var(--sp-6) - var(--dock-space))); }
+.loading__spinner { width: 20px; height: 20px; box-sizing: border-box; border: 2.5px solid color-mix(in srgb, var(--bs-grey, var(--text-3)) 20%, transparent); border-top-color: var(--bs-grey, var(--text-3)); border-radius: 50%; animation: spin .75s linear infinite; }
+.loading__message { margin: 20px 0 0; font: 400 1rem/1.4 var(--font-ui); color: var(--text-1); }
 
 /* The segmented control: a track of equal options over a sliding thumb. */
 .seg { box-sizing: border-box; width: 100%; height: 100%; overflow: hidden; padding: 2px; border-radius: 44px; background: var(--surface-2); }

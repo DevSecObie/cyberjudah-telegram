@@ -16,7 +16,7 @@ import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { useOpenInNewTab } from "@/ui/open-in-new-tab";
 import { useSheet } from "@/ui/sheet";
 import { useToast } from "@/ui/toast";
-import { Chip, Chips, Empty, Icon, List, Row, Screen, SearchField, Section, Segmented, Skeleton } from "@/ui/ui";
+import { Chip, Chips, Empty, Icon, List, Row, Screen, SearchField, Section, Segmented, Loading } from "@/ui/ui";
 import { EntityChipList } from "./tag-detail";
 const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 
@@ -199,7 +199,7 @@ export function Study() {
   return (
     <Screen title="4 Chapters a Day" kicker={`${studies.length} chapters written up`}>
       <SearchField id="study-q" value={q} onChange={setQ} placeholder="A book or a chapter" />
-      {notes.isPending ? <Skeleton rows={10} /> : [...byBook.entries()].map(([book, rows]) => <Section key={book} title={book}><List>{rows.sort((a, b) => (a.chapters?.[0] ?? 0) - (b.chapters?.[0] ?? 0)).map((n) => <Row key={n.url} href={n.url} meta={n.range} title={n.title.replace(/^[^:]+:\s*/, "")} />)}</List></Section>)}
+      {notes.isPending ? <Loading /> : [...byBook.entries()].map(([book, rows]) => <Section key={book} title={book}><List>{rows.sort((a, b) => (a.chapters?.[0] ?? 0) - (b.chapters?.[0] ?? 0)).map((n) => <Row key={n.url} href={n.url} meta={n.range} title={n.title.replace(/^[^:]+:\s*/, "")} />)}</List></Section>)}
     </Screen>
   );
 }
@@ -209,7 +209,7 @@ export function Encyclopedia() {
   const rows = useQuery({ queryKey: ["encyclopedia"], queryFn: data.encyclopedia });
   return (
     <Screen title="Encyclopedia" kicker="Standing subjects, walked through book by book">
-      {rows.isPending ? <Skeleton rows={8} /> : <List>{(rows.data ?? []).map((e) => <Row key={e.slug} href={e.url} title={e.title} sub={e.summary} />)}</List>}
+      {rows.isPending ? <Loading /> : <List>{(rows.data ?? []).map((e) => <Row key={e.slug} href={e.url} title={e.title} sub={e.summary} />)}</List>}
     </Screen>
   );
 }
@@ -248,7 +248,7 @@ export function Glossary() {
     const t = setTimeout(() => { const el = document.getElementById(`gl-${id}`); if (!el) return; went.current = location.key; el.scrollIntoView({ block: "start" }); }, 120);
     return () => clearTimeout(t);
   }, [g.data, location.hash, location.key]);
-  if (g.isPending) return <Screen title="Glossary"><Skeleton rows={10} /></Screen>;
+  if (g.isPending) return <Screen title="Glossary"><Loading /></Screen>;
   if (g.isError) return <Screen title="Glossary"><Empty title="The glossary did not load" action={{ label: "Try again", onClick: () => void g.refetch() }}>Check your connection.</Empty></Screen>;
   if (!entries.length) return <Screen title="Glossary"><Empty title="The glossary is being written" action={{ label: "Open the precepts", href: "/precepts" }}>Meanwhile, the precepts gather what scripture says on each subject.</Empty></Screen>;
   return (
@@ -296,7 +296,7 @@ export function Concordance() {
   return (
     <Screen title="Concordance" kicker="Every chapter, with everything in the library that cites it">
       <SearchField id="conc-q" value={q} onChange={setQ} placeholder="Find a book" />
-      {rows.isPending ? <Skeleton rows={12} /> : testaments.map((t) => (
+      {rows.isPending ? <Loading /> : testaments.map((t) => (
         <Section key={t} title={t}>
           <List>{list.filter((r) => r.testament === t).map((r) => <Row key={r.slug} href={`/concordance/${r.slug}`} title={r.book} trailing={<span className="row__count">{r.cited.length ? `${r.cited.length} of ${r.chapters}` : "none"}</span>} />)}</List>
         </Section>
@@ -319,7 +319,7 @@ export function ConcordanceBookScreen() {
     const t = setTimeout(() => { const el = document.getElementById(`conc-${id}`); if (!el) return; went.current = location.key; el.scrollIntoView({ block: "start" }); }, 120);
     return () => clearTimeout(t);
   }, [b.data, location.hash, location.key]);
-  if (b.isPending) return <Screen title="…"><Skeleton rows={10} /></Screen>;
+  if (b.isPending) return <Screen title="…"><Loading /></Screen>;
   if (!b.data) return <Screen title="Concordance"><Empty title="This book did not load" action={{ label: "All books", href: "/concordance" }} /></Screen>;
   const d: ConcordanceBook = b.data;
   return (

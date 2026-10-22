@@ -16,7 +16,7 @@ async function setup(page: Page, named: false | "short" | "long" = false) {
     if (sessionStorage.getItem("seeded")) return;
     sessionStorage.setItem("seeded", "1");
     const main = { id: "default-group", name: "My tabs", color: "", isDefault: true, current: "b", tabs: named ? [{ id: "z", path: "/settings" }] : tabs };
-    const study = { id: "g2", name: named === "long" ? "The Psalms of David" : "Psalms", color: "#74b9ff", current: "b", tabs, createdAt: 1 };
+    const study = { id: "g2", name: named === "long" ? "The Psalms of King David" : "Psalms", color: "#74b9ff", current: "b", tabs, createdAt: 1 };
     localStorage.setItem("cj:tabgroups", JSON.stringify({ group: named ? "g2" : "default-group", groups: named ? [main, study] : [main] }));
   }, { tabs, named });
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
@@ -56,7 +56,7 @@ test("a named group shows its count on its colour and its name at 30 px", async 
 test("a long group name gets smaller to fit 70% of the screen", async ({ page }) => {
   await setup(page, "long");
   const name = page.locator(".switcher__group .switcher__name");
-  await expect(name).toHaveText("The Psalms of David");
+  await expect(name).toHaveText("The Psalms of King David");
   await expect.poll(async () => parseFloat(await name.evaluate((el) => getComputedStyle(el).fontSize))).toBeLessThan(30);
   expect(await name.evaluate((el) => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width; })).toBeLessThanOrEqual(390 * 0.7 + 1);
 });

@@ -10,7 +10,7 @@ import { haptic } from "@/tg/sdk";
 import { Feather } from "@/bible/icons";
 import { Button, Sheet } from "@/bible/ui/Sheet";
 import { useSheet } from "@/ui/sheet";
-import { Empty, Row, Screen, Skeleton } from "@/ui/ui";
+import { Empty, Row, Screen, Loading } from "@/ui/ui";
 import "./reading-plans.css";
 
 /** 27.2.0 ScheduledPlanContent over CyberJudah's chapter-based plans. */
@@ -102,7 +102,7 @@ export function Plan() {
       if (confirmed?.id === "remove") { setPlan(null); navigate("/plans", { replace: true }); }
     }
   };
-  if (!planReady || !progressReady || books.isPending) return <Screen title="Reading plan"><Skeleton rows={4} /></Screen>;
+  if (!planReady || !progressReady || books.isPending) return <Screen title="Reading plan"><Loading /></Screen>;
   if (books.isError) return <Screen title="Reading plan"><Empty title="Your plan did not load" action={{ label: "Retry", onClick: () => void books.refetch() }}>Check your connection. Your plan and what you have read are safe.</Empty></Screen>;
   if (!plan) return <Screen title="Reading plan"><Empty title="No journeys started yet. Discover a reading plan to begin." action={{ label: "Explore reading plans", href: "/plans" }} /></Screen>;
   const start = Math.max(0, Math.min(selected - Math.floor(visibleDays / 2), days.length - visibleDays));

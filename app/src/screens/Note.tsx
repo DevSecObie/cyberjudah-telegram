@@ -15,7 +15,7 @@ import { useSheet } from "@/ui/sheet";
 import { NoteBody, noteLede } from "@/ui/note-body";
 import { noteFirstMoment } from "@/ui/note-body";
 import { NotesOpener, NotesSheet, Player } from "@/ui/player";
-import { Empty, Icon, Skeleton, timestamp, youtube } from "@/ui/ui";
+import { Empty, Icon, Loading, timestamp, youtube } from "@/ui/ui";
 import { TranscriptExcerpt, useTranscriptAround } from "./Watch";
 
 const KIND: Record<string, string> = { class: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History", study: "4 Chapters a Day", encyclopedia: "Encyclopedia" };
@@ -71,7 +71,7 @@ export function NoteScreen() {
     return () => clearTimeout(t);
   }, [note.data, location.hash, notes]);
 
-  if (note.isPending) return <main className="screen"><Skeleton rows={6} /></main>;
+  if (note.isPending) return <main className="screen"><Loading /></main>;
   if (note.isError || !note.data) {
     // A recording hit whose notes are missing still opens the recording at its moment.
     if (at !== null && video) return <Navigate to={`/watch/${encodeURIComponent(video)}?t=${Math.round(at)}`} replace />;
