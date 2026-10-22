@@ -1,0 +1,1 @@
+- Giving The Sense From A to Z has its own section in the app, the way Our Hidden History does: a "Giving The Sense" collection on Courses & videos with its own heading, a door on the Home Learn shelf and a card on the New tab page. Its episodes leave the general Shows list, and the series' row in Shows opens the new section.
