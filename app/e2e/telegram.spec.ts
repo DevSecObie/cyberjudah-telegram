@@ -978,7 +978,7 @@ test("a sheet uses the release position even when a fast swipe finishes before t
 test("a verse's comment opens the note right where that passage is broken down", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await expect(page.locator("#verset-7")).toBeVisible();
-  await longPressVerse(page, 7);
+  await openResources(page, 7);
   await page.click('.bs-resfooter button >> text=Comments');
   const card = page.locator(".bs-comment", { hasText: "The firmament is the sky" });
   await expect(card).toBeVisible();

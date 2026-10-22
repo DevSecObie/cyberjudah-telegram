@@ -4,12 +4,12 @@ import { WorkspaceCommands } from "@/ui/WorkspaceCommands";
 import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
 import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router";
+import { Route, Routes, useHref, useLocation, useNavigate, useNavigationType } from "react-router";
 
-import { RouteSheet, useSheetEntry } from "@/ui/routeSheet";
+import { RouteSheet, sheetKind, useSheetEntry } from "@/ui/routeSheet";
 import { UnderSheetContext } from "@/ui/sheetRoute";
 import { initialLaunchPath } from "@/tg/launch.mjs";
-import { isTabPath, keptPath, recordPath, settleTabFloor } from "@/lib/tabs";
+import { isTabPath, keptPath, onLeaveTab, recordPath, settleTabFloor, tabChanging } from "@/lib/tabs";
 import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
@@ -169,7 +169,14 @@ export function App() {
   // over it does not move the tab, nor does a page over the workspace (lib/over-page.ts): one
   // opened from Home or the menu (a drawer, or the Home and menu pages), or further in from one.
   const prevPath = useRef<string | null>(null);
+  // The history entry the tabs have been brought up to, and whether it is a route sheet.
+  const tracked = useRef<{ key?: string; idx: number; sheet: boolean }>({ idx: 0, sheet: false });
   useEffect(() => {
+    // The router shows a page in a transition, after the browser has gone to it. One shown only
+    // after a tab change made since was already brought into the tab it was opened in (below).
+    const now = window.history.state?.key as string | undefined;
+    if (now !== undefined && now !== location.key && tabChanging()) return;
+    tracked.current = { key: location.key, idx: historyIdx(), sheet: !!sheet };
     if (sheet) return;
     const path = location.pathname + location.search;
     const prev = prevPath.current, idx = historyIdx();
@@ -178,6 +185,23 @@ export function App() {
     settleTabFloor(idx, navType !== "PUSH");
     prevPath.current = path;
   }, [location.key, location.pathname, location.search, sheet]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A tab left while the page opened in it is still on its way: that page becomes the tab's place
+  // now, as it would have once shown (not a route sheet, nor a page over the workspace).
+  const base = useHref("/");
+  useEffect(() => onLeaveTab(() => {
+    const now = window.history.state?.key as string | undefined, idx = historyIdx(), last = tracked.current;
+    // Nothing on its way, or a step back (whose page was already the tab's, or not).
+    if (now === undefined || now === last.key || idx < last.idx) return;
+    const push = idx > last.idx;
+    const at = window.location.pathname;
+    const path = (base !== "/" && (at === base || at.startsWith(`${base}/`)) ? at.slice(base.length) || "/" : at) + window.location.search;
+    const sheet = !!sheetKind(path) && (push || last.sheet);
+    tracked.current = { key: now, idx, sheet };
+    if (sheet) return;
+    const prev = prevPath.current;
+    if (!isOver(idx) && !(push && prev !== null && (!isTabPath(prev) || isOver(idx - 1)))) recordPath(path);
+    prevPath.current = path;
+  }), [base]);
   const navigate = useNavigate();
   useSettingsButton();
 

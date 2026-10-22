@@ -14,7 +14,12 @@ export function AlphabetList({ letter, setLetter, color = "var(--accent)" }: { l
   const settle = useRef(0);
   const programmatic = useRef(false);
   const first = useRef(true);
+  // A scroll settles after the page may have changed (a letter tapped, a filter chosen): it reads the letter and setter as they are then.
+  const latest = useRef({ letter, setLetter });
+  latest.current = { letter, setLetter };
   useLayoutEffect(() => {
+    // A letter chosen outright (a tap) replaces a scroll still settling.
+    window.clearTimeout(settle.current);
     const el = track.current; if (!el) return;
     const left = index * ITEM;
     if (Math.abs(el.scrollLeft - left) < 1) return;
@@ -30,7 +35,7 @@ export function AlphabetList({ letter, setLetter, color = "var(--accent)" }: { l
     settle.current = window.setTimeout(() => {
       const el = track.current; if (!el) return;
       const at = Math.min(ALPHABET.length - 1, Math.max(0, Math.round(el.scrollLeft / ITEM)));
-      if (ALPHABET[at] !== letter) setLetter(ALPHABET[at]);
+      if (ALPHABET[at] !== latest.current.letter) latest.current.setLetter(ALPHABET[at]);
     }, 120);
   };
   return (
