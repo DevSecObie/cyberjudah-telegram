@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 
 import { toAppPath } from "@shared/links.mjs";
 import { app, haptic } from "@/tg/sdk";
+import { assetUrl } from "@/lib/asset";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
 import { askTabPath, bibleTabPath, classesTabPath, currentTab, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
@@ -385,12 +386,20 @@ export function Skeleton({ rows = 6, thumb = false }: { rows?: number; thumb?: b
   );
 }
 
-/** Nothing here yet, and the next thing to do about it. */
-export function Empty({ title, children, action }: { title: string; children?: ReactNode; action?: { label: string; href?: string; onClick?: () => void } }) {
+/**
+ * Bible Strong's common/Empty: the faint 180px illustration (with the kind's icon tilted on it when
+ * there is one), one centred grey message (a second line for the detail), and the action as its
+ * Button under it.
+ */
+export function Empty({ title, children, action, icon }: { title: string; children?: ReactNode; action?: { label: string; href?: string; onClick?: () => void }; icon?: string }) {
   return (
-    <section className={`empty${IOS ? " empty--ios" : ""}`}>
-      {has(title) || has(children) ? <dl className="empty__text">{has(title) ? <dt className="empty__head">{title}</dt> : null}{has(children) ? <dd className="empty__desc">{children}</dd> : null}</dl> : null}
-      {action ? (action.href ? <Link to={toAppPath(action.href) ?? action.href} className="empty__act" onClick={() => haptic("select")}>{action.label}</Link> : <button type="button" className="empty__act" onClick={() => { haptic("select"); action.onClick?.(); }}>{action.label}</button>) : null}
+    <section className="empty">
+      <div className="empty__art" aria-hidden="true">
+        <img src={assetUrl("art/empty-state-illustration.webp")} alt="" />
+        {icon ? <span style={{ ["--icon" as string]: `url("${assetUrl(`bs/empty-state-icons/${icon}.svg`)}")` }} /> : null}
+      </div>
+      {has(title) || has(children) ? <p className="empty__msg">{has(title) ? title : null}{has(title) && has(children) ? <br /> : null}{has(children) ? children : null}</p> : null}
+      {action ? <div className="empty__acts">{action.href ? <Link to={toAppPath(action.href) ?? action.href} className="empty__act" onClick={() => haptic("select")}>{action.label}</Link> : <button type="button" className="empty__act" onClick={() => { haptic("select"); action.onClick?.(); }}>{action.label}</button>}</div> : null}
     </section>
   );
 }
