@@ -1,0 +1,1 @@
+- Screen readers hear a sheet's title once again: since the sheets moved to Bible Strong's web sheet, each one also announced a hidden copy of its title as a second heading.
