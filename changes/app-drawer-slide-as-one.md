@@ -1,0 +1,1 @@
+- Home and the menu slide the app aside in one piece again: the bottom bar moves with the page instead of ahead of it, and Ask's follow-up box stays put instead of jumping as the drawer opens and closes.
