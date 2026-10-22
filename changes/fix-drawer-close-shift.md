@@ -1,0 +1,1 @@
+- Keep the reader's chapter and audio controls and the Ask composer in place when closing Home or the menu.
