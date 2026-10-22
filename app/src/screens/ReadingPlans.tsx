@@ -7,7 +7,7 @@ import { cataloguePlan, filterPlans, normalizePlanFilters, PLAN_CATALOGUE, planC
 import { useBackButton } from "@/tg/hooks";
 import { Feather } from "@/bible/icons";
 import { Sheet } from "@/bible/ui/Sheet";
-import { Empty, Icon, List, Row, Screen, SearchField, Section, Skeleton } from "@/ui/ui";
+import { Empty, Icon, List, Row, Screen, SearchField, Section, Loading } from "@/ui/ui";
 import { useSheet } from "@/ui/sheet";
 import "./reading-plans.css";
 
@@ -40,7 +40,7 @@ export function ReadingPlans() {
   };
   return <Screen title="Reading plans" className="reading-catalogue" action={<button type="button" className="icon-btn" aria-label={activeCount ? `${activeCount} active filters` : "Filter"} onClick={() => void openFilters()}>{activeCount ? <span className="reading-catalogue__badge">{activeCount}<Feather name="chevron-down" size={13} /></span> : <Icon name="filter" size={20} />}</button>}>
     <div className="reading-catalogue__content">
-      {books.isPending ? <Skeleton rows={4} /> : books.isError ? <Empty title="The book list could not be loaded." action={{ label: "Retry", onClick: () => void books.refetch() }} /> : <>
+      {books.isPending ? <Loading /> : books.isError ? <Empty title="The book list could not be loaded." action={{ label: "Retry", onClick: () => void books.refetch() }} /> : <>
         {plan ? <Section title="Your journeys">{card(plan, true)}</Section> : null}
         <Section title="Discover">
           <label className="reading-catalogue__pace">Chapters each day<select aria-label="Chapters each day" value={pace} onChange={e => setPace(+e.target.value)}>{[1, 2, 4, 6].map(n => <option key={n} value={n}>{n} {n === 1 ? "chapter" : "chapters"} / day</option>)}</select></label>

@@ -6,7 +6,7 @@ import { useRecentSearches } from "@/lib/marks";
 import { showOf } from "@/lib/series";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, ApiError, haptic, hideKeyboard, openLink } from "@/tg/sdk";
-import { Button, Chip, Icon, Img, Skeleton, timestamp, type IconName } from "@/ui/ui";
+import { Button, Chip, Icon, Img, Loading, timestamp, type IconName } from "@/ui/ui";
 import { fmtDate } from "@/api/data";
 import { FEED_NAME, KIND_LABEL, Lit, Marked, hitPath, teachingPath, useTeachingsSearch, type Hit, type SearchResult, type TeachingHit } from "@/ui/search-hero";
 import { answerHtml, passageLabel, passagePath, type Source } from "./Ask";
@@ -292,7 +292,7 @@ function Top({ term, aiQ, refPath, taught, library, spoken, hits, counts, onScop
   const momentCount = taught?.hits.length ? String(taught.total) : spoken.data?.ok ? `${spoken.data.hits.length}${spoken.data.more ? "+" : ""}` : undefined;
   const loading = library.isPending || (spoken.isPending && !moments.length);
   const failed = library.isError || (library.data && !library.data.ok);
-  if (loading && !groups.length) return <Skeleton rows={6} thumb />;
+  if (loading && !groups.length) return <Loading />;
   if (failed && !moments.length) return <Trouble error={library.error ?? new ApiError(503, "/api/search", "unavailable")} what="search" q={term} onRetry={() => void library.refetch()} />;
   if (!groups.length && !moments.length && !refPath) return <NoResults q={term} />;
   const scopeOf = (k: string): Scope => (Object.entries(SCOPE_KINDS).find(([, ks]) => ks.includes(k))?.[0] ?? "notes") as Scope;
@@ -348,7 +348,7 @@ function Result({ h, q }: { h: Hit; q: string }) {
 }
 
 function Library({ scope, library, hits, q }: { scope: Scope; library: LibraryQuery; hits: Hit[]; q: string }) {
-  if (library.isPending) return <Skeleton rows={8} />;
+  if (library.isPending) return <Loading />;
   if (library.isError || (library.data && !library.data.ok)) return <Trouble error={library.error ?? new ApiError(503, "/api/search", "unavailable")} what="search" q={q} onRetry={() => void library.refetch()} />;
   if (!hits.length) return <NoResults q={q} where={SCOPES.find(([s]) => s === scope)?.[1]} />;
   return <ul className="srch__list srch__list--full">{hits.map((h) => <Result key={`${h.kind}|${h.url}`} h={h} q={q} />)}</ul>;
@@ -365,7 +365,7 @@ function NoResults({ q, where }: { q: string; where?: string }) {
 
 /** What was said in class: the recordings' passages that match, twenty a page, best first. */
 function Spoken({ q, res, page, onPage }: { q: string; res: SpokenQuery; page: number; onPage: (p: number) => void }) {
-  if (res.isPending) return <Skeleton rows={6} thumb />;
+  if (res.isPending) return <Loading />;
   const r = res.data;
   if (res.isError || !r) return <Trouble error={res.error} what="search" q={q} onRetry={() => void res.refetch()} />;
   if (!r.ok) return <Trouble error={new ApiError(503, "/api/teachings", r.reason)} what="search" q={q} onRetry={() => void res.refetch()} />;

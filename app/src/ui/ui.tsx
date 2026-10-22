@@ -365,23 +365,16 @@ export function SearchField({ value, onChange, onSubmit, placeholder, autoFocus,
   );
 }
 
-export function Skeleton({ rows = 6, thumb = false }: { rows?: number; thumb?: boolean }) {
-  // Shaped like what arrives: a thumbnail card for feeds, a two-line row for lists.
-  if (thumb) return (
-    <div className="feed" aria-busy="true" aria-label="Loading">
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="feed__card feed__card--skel"><span className="feed__thumb skel" /><span className="feed__body"><span className="skel" style={{ width: `${62 + ((i * 17) % 30)}%`, height: 16 }} /><span className="skel" style={{ width: "44%", height: 12 }} /><span className="skel" style={{ width: "28%", height: 12 }} /></span></div>
-      ))}
-    </div>
-  );
+/**
+ * Bible Strong's common/Loading: a grey activity indicator centred in the page (at least 300px)
+ * while what was asked for arrives, with the message under it where the screen gives one.
+ */
+export function Loading({ message }: { message?: string }) {
   return (
-    <List aria-busy="true" aria-label="Loading">
-      {Array.from({ length: rows }, (_, i) => (
-        <div key={i} className="skeleton">
-          <Cell className="row row--skel" subtitle={<span className="skel" style={{ width: `${70 + ((i * 13) % 25)}%` }} />}><span className="skel" style={{ width: `${40 + ((i * 29) % 40)}%` }} /></Cell>
-        </div>
-      ))}
-    </List>
+    <div className="loading" role="progressbar" aria-label={message || "Loading..."} aria-busy="true">
+      <span className="loading__spinner" />
+      {message ? <p className="loading__message" aria-live="polite">{message}</p> : null}
+    </div>
   );
 }
 
