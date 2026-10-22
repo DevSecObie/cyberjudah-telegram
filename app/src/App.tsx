@@ -14,7 +14,7 @@ import { assetUrl } from "@/lib/asset";
 import { app, features, startParam } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { useSettingsButton } from "@/tg/hooks";
-import { Button, PageActions, Screen, Skeleton, TabBar } from "@/ui/ui";
+import { Button, PageActions, Screen, Loading, TabBar } from "@/ui/ui";
 import { Drawers } from "@/ui/drawers";
 import { ScreenBoundary } from "@/ui/boundary";
 import { ThemeApplier } from "@/ui/theme";
@@ -246,12 +246,12 @@ export function App() {
       <Lock />
       <div ref={route} className="route" data-location-key={page.key} key={page.pathname.split("/").slice(0, 2).join("/")}>
       <ScreenBoundary resetKey={page.pathname}>
-      <Suspense fallback={<Screen className="route-loading"><Skeleton rows={8} /></Screen>}>
+      <Suspense fallback={<Screen className="route-loading"><Loading /></Screen>}>
       <UnderSheetContext.Provider value={!!sheet}><Routes location={sheet ? page : undefined}>{routes}</Routes></UnderSheetContext.Provider>
       </Suspense>
       </ScreenBoundary>
       </div>
-      {sheet ? <RouteSheet entry={sheet} path={location.pathname} label="Sheet"><ScreenBoundary resetKey={location.pathname}><Suspense fallback={<Skeleton rows={6} />}><Routes location={location}>{routes}</Routes></Suspense></ScreenBoundary></RouteSheet> : null}
+      {sheet ? <RouteSheet entry={sheet} path={location.pathname} label="Sheet"><ScreenBoundary resetKey={location.pathname}><Suspense fallback={<Loading />}><Routes location={location}>{routes}</Routes></Suspense></ScreenBoundary></RouteSheet> : null}
       <Suspense fallback={null}><ReminderSync /></Suspense>
       <AudioPlayerBar />
       <PageActions />

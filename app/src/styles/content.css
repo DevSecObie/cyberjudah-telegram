@@ -38,7 +38,6 @@
 .row__chev { flex: none; color: var(--text-4); }
 .row__count, .row__value { flex: none; display: inline-flex; align-items: center; gap: 4px; font: 400 var(--fs-sub) var(--font-ui); color: var(--text-3); white-space: nowrap; }
 .row__value svg { color: var(--text-4); }
-.row--skel { cursor: default; }
 
 /* ── Loading: content-shaped placeholders that keep the page's geometry ──────────────────── */
 .skel { display: block; height: 12px; border-radius: 6px; background: var(--fill-2); animation: pulse 1.4s ease-in-out infinite; }

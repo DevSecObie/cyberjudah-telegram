@@ -7,7 +7,7 @@ import { haptic } from "@/tg/sdk";
 
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { share } from "@/lib/share";
-import { Empty, List, Row, Screen, SearchField, Section, Skeleton } from "@/ui/ui";
+import { Empty, List, Row, Screen, SearchField, Section, Loading } from "@/ui/ui";
 
 type RowT = { slug: string; term: string };
 type Page = { count: number; page: number; pages: number; rows: RowT[]; related: RowT[]; total: number };
@@ -60,7 +60,7 @@ export function Dictionary() {
       <SearchField id="dict-q" value={q} onChange={setQ} placeholder="Search by word" autoFocus={false} />
       {from && !q ? (
         <Section title="In These Verses">
-          {found.isPending ? <Skeleton rows={3} /> : !found.data?.length ? <Empty title="No dictionary entry for these words">Search for a name or a place instead.</Empty> : <List>{found.data.map((e) => <Row key={e.slug} href={`/dictionary/${e.slug}`} title={e.term} sub={e.definitions[0]} />)}</List>}
+          {found.isPending ? <Loading message="Loading..." /> : !found.data?.length ? <Empty title="No dictionary entry for these words">Search for a name or a place instead.</Empty> : <List>{found.data.map((e) => <Row key={e.slug} href={`/dictionary/${e.slug}`} title={e.term} sub={e.definitions[0]} />)}</List>}
         </Section>
       ) : null}
       {page.isPending ? <p className="bs-list__loading">Loading...</p> : page.isError && !first ? (
@@ -91,7 +91,7 @@ export function DictionaryEntry() {
   useBackButton();
   const e = useQuery({ queryKey: ["dict-entry", slug], queryFn: async () => { const r = await fetch(`/api/dictionary/${slug}`); if (r.status === 404) return null; if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<Entry>; } });
   useBottomButtons(e.data ? { text: "Share", onClick: () => void share({ kind: "note", title: `${e.data!.term} · Easton's Bible Dictionary`, text: e.data!.definitions[0].slice(0, 300), sitePath: `/dictionary/${slug}` }) } : null);
-  if (e.isPending) return <Screen title="…"><Skeleton rows={3} /></Screen>;
+  if (e.isPending) return <Screen title="…"><Loading message="Loading..." /></Screen>;
   if (e.isError) return <Screen title="Dictionary"><Empty title="This entry did not load" action={{ label: "Retry", onClick: () => void e.refetch() }}>Check your connection.</Empty></Screen>;
   if (!e.data?.term) return <Screen title="Dictionary"><Empty title="No such entry" /></Screen>;
   return (

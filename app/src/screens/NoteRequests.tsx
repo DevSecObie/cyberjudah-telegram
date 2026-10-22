@@ -4,7 +4,7 @@ import { fmtDate } from "@/api/data";
 import { useCloseRequest, useNoteRequests } from "@/lib/requests";
 import { useBackButton } from "@/tg/hooks";
 import { haptic, openLink } from "@/tg/sdk";
-import { Empty, Screen, Section, Skeleton } from "@/ui/ui";
+import { Empty, Screen, Section, Loading } from "@/ui/ui";
 
 const WORKFLOW = "https://github.com/DevSecObie/cyberjudah-telegram/actions/workflows/draft-notes.yml";
 
@@ -23,7 +23,7 @@ export function NoteRequests() {
   return (
     <Screen title="Requested notes" kicker="Admin">
       <p className="hint">Classes readers asked notes for, the most asked first. To write them, run the draft-notes workflow with their video ids; it opens a pull request with the drafts for review. Mark a class done when its notes are in.</p>
-      {list.isPending ? <Skeleton rows={5} /> : list.isError ? <Empty title="The requests did not load" action={{ label: "Retry", onClick: () => void list.refetch() }} /> : !rows.length ? <Empty title="No requests yet">When readers ask for a class's notes, it shows here.</Empty> : (
+      {list.isPending ? <Loading /> : list.isError ? <Empty title="The requests did not load" action={{ label: "Retry", onClick: () => void list.refetch() }} /> : !rows.length ? <Empty title="No requests yet">When readers ask for a class's notes, it shows here.</Empty> : (
         <>
           <div className="nreq__bar">
             <button type="button" className="btn btn--prominent btn--sm nreq__btn" onClick={() => copy(rows.slice(0, 5).map((r) => r.video).join(" "))}>Copy the top {Math.min(5, rows.length)} ids</button>

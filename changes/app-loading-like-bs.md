@@ -1,0 +1,1 @@
+- While a page loads it now shows Bible Strong's loading look: a small grey spinner in the middle of the page, instead of blank rows divided by dark lines.
