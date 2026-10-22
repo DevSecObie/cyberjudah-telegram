@@ -1,0 +1,1 @@
+- Fixed: a filter chosen right after tapping a letter in the Lexicon, Dictionary and other lettered lists is no longer undone a moment later, and a tab left while its page is still loading keeps that page, with Back staying in the tab you go to.
