@@ -38,7 +38,7 @@ export function Settings() {
   const [relDisplay, setRelDisplay] = useRelationsDisplay();
   // One typeface for reading: the notes and the Bible both follow this row, and it names the face the Bible is really set in.
   const [bible, setBible] = useBibleSettings();
-  const face = ["System", "Avenir", "normal", "Roboto"].includes(bible.fontFamily) ? "System" : bible.fontFamily;
+  const face = ["System", "normal", "Roboto"].includes(bible.fontFamily) ? "System" : bible.fontFamily;
   const [fullscreen, setFs, fsLoaded] = useStored("fullscreen", false);
   const [portrait, setPortrait] = useStored("portrait", false);
   const [daily, setDaily] = useState<boolean | null>(null);
@@ -135,7 +135,7 @@ export function Settings() {
           <Row onClick={() => { const i = LIGHT_THEMES.findIndex((t) => t.id === bible.preferredLightTheme); setBible({ preferredLightTheme: LIGHT_THEMES[(i + 1) % LIGHT_THEMES.length].id }); }} title="Day colour" sub="The whole app takes the Bible’s colours" trailing={<Value>{LIGHT_THEMES.find((t) => t.id === bible.preferredLightTheme)?.label ?? ""}</Value>} />
           <Row onClick={() => { const i = DARK_THEMES.findIndex((t) => t.id === bible.preferredDarkTheme); setBible({ preferredDarkTheme: DARK_THEMES[(i + 1) % DARK_THEMES.length].id }); }} title="Night colour" trailing={<Value>{DARK_THEMES.find((t) => t.id === bible.preferredDarkTheme)?.label ?? ""}</Value>} />
           <Row onClick={() => setSize(size === "compact" ? "regular" : size === "regular" ? "large" : "compact")} title="Text size" trailing={<Value>{{ compact: "Small", regular: "Regular", large: "Large" }[size]}</Value>} />
-          <Row onClick={() => { const serif = face !== "Newsreader"; setFont(serif ? "serif" : "sans"); setBible({ fontFamily: serif ? "Newsreader" : "Avenir" }); }} title="Typeface" sub={face === "Newsreader" || face === "System" ? undefined : "Chosen in the Bible’s own settings"} trailing={<Value>{face}</Value>} />
+          <Row onClick={() => { const serif = face !== "Newsreader"; setFont(serif ? "serif" : "sans"); setBible({ fontFamily: serif ? "Newsreader" : "Avenir" }); }} title="Typeface" sub={face === "Newsreader" || face === "Avenir" || face === "System" ? undefined : "Chosen in the Bible’s own settings"} trailing={<Value>{face}</Value>} />
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" trailing={<Value>{{ tight: "Tight", regular: "Regular", airy: "Airy" }[spacing]}</Value>} />
           <Toggle on={justify} onChange={setJustify} title="Justify the text" />
           <Row onClick={() => setRelDisplay(relDisplay === "inline" ? "block" : "inline")} title="Precepts in the reader" sub={relDisplay === "inline" ? "Shown as tags after each verse" : "Shown as a count beside the verse number"} trailing={<Value>{relDisplay === "inline" ? "Tags" : "Count"}</Value>} />
