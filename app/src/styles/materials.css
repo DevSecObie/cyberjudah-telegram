@@ -267,19 +267,3 @@ html[data-actions] .toasts { bottom: calc(var(--dock-space) + var(--h-md) + var(
 /* Panels grow into place as they fade in; no blur is animated. */
 @keyframes materialize { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { @keyframes materialize { from { opacity: 0; } to { opacity: 1; } } }
-
-/* ── Interactive glass (iOS 26) ──────────────────────────────────────────────────────────────
-   The light under the finger (ui/glass-light.ts): drawn over the touched glass surface, clipped
-   to its shape, following the finger and fading out when it lifts. */
-.glass-light {
-  position: fixed; z-index: 2147483000; pointer-events: none; overflow: hidden; opacity: 0; transition: opacity .35s ease-out;
-  background: radial-gradient(circle var(--light-r, 120px) at var(--light-x, 50%) var(--light-y, 50%), color-mix(in srgb, white 14%, transparent), color-mix(in srgb, white 4%, transparent) 55%, transparent 100%);
-}
-.glass-light[data-on] { opacity: 1; transition-duration: .12s; }
-html[data-theme="light"] .glass-light, html[data-theme="sepia"] .glass-light { mix-blend-mode: plus-lighter; }
-html[data-transparency="reduced"] .glass-light { display: none; }
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) { .glass-light { display: none; } }
-/* Glass controls swell a little under the finger and spring back with a small bounce when it lifts,
-   where content controls press in. The overshoot comes from the spring curve on the way back. */
-#root :is(.srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn), #root .pageaction { transition: transform var(--dur-4) var(--ease-spring), opacity var(--dur-2) ease; }
-#root :is(.srch__bar, .chat2__bar, .reader__bar, .tlh, .pv__bar) :is(.icon-btn, .btn)[data-pressed]:not(:disabled), #root .pageaction[data-pressed]:not(:disabled) { transform: scale(var(--glass-press-scale)); transition-duration: var(--dur-1); transition-timing-function: var(--ease); }
