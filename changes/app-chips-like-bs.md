@@ -1,0 +1,1 @@
+- Chips now look like Bible Strong's: filter chips (the search scopes, a note's teacher) are 32px grey pills that turn blue when chosen, link chips sit on a light blue tint, and the search examples are small outlined pills.
