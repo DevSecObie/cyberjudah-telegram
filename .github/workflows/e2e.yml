@@ -19,7 +19,15 @@ concurrency:
 jobs:
   browser-tests:
     runs-on: ubuntu-latest
-    # Chromium's suite alone takes about 31 minutes; with a slow install (up to 20) and the account checks, 60.
+    # Microsoft's Playwright image already carries every browser's system packages (and the browsers
+    # for this version), so nothing is fetched from Ubuntu's mirror, which some days crawls (minutes
+    # per package). Keep the tag on the @playwright/test version in package-lock.json.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      # Firefox refuses to start as root under a HOME it does not own.
+      env:
+        HOME: /root
+    # Chromium's suite alone takes about 31 minutes; with the account checks, 60.
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -32,11 +40,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      # The system packages come from Ubuntu's mirror, which some days crawls (minutes per package).
-      # Bound the install on its own, so a slow mirror cannot take the whole job with it.
+      # A no-op while the image's tag matches the locked version; after an upgrade it downloads the
+      # browser alone (its system packages are in the image).
       - name: Install the browser
         timeout-minutes: 20
-        run: npx playwright install --with-deps ${{ matrix.browser }}
+        run: npx playwright install ${{ matrix.browser }}
       - run: npm run test:e2e --workspace app -- --project=${{ matrix.browser }}
         env:
           CI: "true"
