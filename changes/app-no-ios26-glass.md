@@ -1,0 +1,1 @@
+- Closer to Bible Strong: the iOS 26 extras are gone. Glass no longer lights up under the finger, buttons in the bars no longer swell and bounce when pressed, and the segmented control's selection no longer lifts into glass. They press in like every other control.
