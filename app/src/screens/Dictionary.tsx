@@ -56,8 +56,7 @@ export function Dictionary() {
   } });
   const top = useHeaderOffset();
   return (
-    <Screen title="Dictionary" className="bs-list">
-      <SearchField id="dict-q" value={q} onChange={setQ} placeholder="Search by word" autoFocus={false} />
+    <Screen title="Dictionary" className="bs-list" headerChildren={<SearchField id="dict-q" value={q} onChange={setQ} placeholder="Search by word" autoFocus={false} />}>
       {from && !q ? (
         <Section title="In These Verses">
           {found.isPending ? <Loading message="Loading..." /> : !found.data?.length ? <Empty title="No dictionary entry for these words">Search for a name or a place instead.</Empty> : <List>{found.data.map((e) => <Row key={e.slug} href={`/dictionary/${e.slug}`} title={e.term} sub={e.definitions[0]} />)}</List>}

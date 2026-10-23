@@ -1,0 +1,1 @@
+- Place Lexicon, Dictionary and Topics searches inside their headers and show Bible Strong's rounded focus ring on search fields.
