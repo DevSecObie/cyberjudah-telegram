@@ -29,7 +29,7 @@
 .screen.grouped { background: var(--surface-1); box-shadow: 0 0 0 100vmax var(--surface-1); clip-path: inset(0 -100vmax); }
 .screen.grouped:not(.screen--sheet) { min-height: calc(100dvh - var(--dock-space)); }
 #root [data-tabs]:has(.screen.grouped) { padding-bottom: var(--dock-space); }
-.screen.grouped > .head { background: var(--surface-1); }
+.screen.grouped > .head { background: var(--surface-1); box-shadow: 0 0 0 100vmax var(--surface-1); }
 #root .screen.grouped .list, .screen.grouped .list--ios .list__body { background: var(--canvas); }
 .row { box-sizing: border-box; width: 100%; text-align: left; cursor: pointer; transition: none; }
 #root button.row { appearance: none; -webkit-appearance: none; margin: 0; border: 0; border-radius: 0; background: transparent; font: inherit; }
