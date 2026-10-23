@@ -105,6 +105,7 @@
 
   /* Type. */
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-title: "Plus Jakarta Sans", var(--font-ui);                 /* Bible Strong's fontFamily.title */
   --font-read: "Newsreader", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
   --fs-caption: .75rem; --fs-footnote: .8125rem; --fs-sub: .90625rem; --fs-body: 1rem; --fs-callout: 1.0625rem;

@@ -1,0 +1,1 @@
+- The Lexicon, Dictionary and Topics lists now set their titles and A–Z letters in Plus Jakarta Sans, the closest free match to the font Bible Strong uses for titles. It's served from the app itself, so nothing loads from a font service.
