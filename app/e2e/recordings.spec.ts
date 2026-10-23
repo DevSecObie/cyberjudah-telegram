@@ -515,7 +515,7 @@ test("shared controls clear search and Ask composers without adding a glass laye
   await continuitySetup(page); await page.goto("/read/psalms/23");
   await page.getByRole("button", { name: "Start audio playback", exact: true }).click();
   await expect.poll(async () => (await audios(page)).length).toBe(1);
-  for (const [path, selector] of [["/search", ".srch__bar--dock"], ["/ask", ".composer2"]]) {
+  for (const [path, selector] of [["/search", ".srch__bar--header"], ["/ask", ".composer2"]]) {
     await routeTo(page, path);
     const bar = page.getByRole("region", { name: "Bible audio player" }), composer = page.locator(selector);
     await expect(bar).toBeVisible(); await expect(composer).toBeVisible();
