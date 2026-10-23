@@ -1,0 +1,1 @@
+- Match the More menu's rows, coloured resource labels, group strips and back-arrow header to Bible Strong, keeping our content and group order.

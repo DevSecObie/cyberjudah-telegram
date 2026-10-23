@@ -22,6 +22,48 @@ async function setup(page: Page, color = "") {
 }
 const bar = (page: Page) => page.getByRole("navigation", { name: "Sections" });
 
+for (const theme of ["default", "dark"]) {
+  test(`More menu: ${theme} matches the rows, group strips and arrow header without reordering`, async ({ page }) => {
+    await page.addInitScript(theme => {
+      (window as any).__cloud = { bs: JSON.stringify({ preferredColorScheme: theme === "dark" ? "dark" : "light", preferredLightTheme: "default", preferredDarkTheme: "dark" }) };
+    }, theme);
+    await setup(page);
+    await bar(page).getByRole("button", { name: "Main menu", exact: true }).click();
+    const drawer = page.locator(".drawer--more[data-open]");
+    const heading = drawer.locator(".drawer__head h2");
+    await expect(heading).toHaveText("More");
+    await expect(heading).toHaveCSS("font-size", "14px");
+    await expect(heading).toHaveCSS("font-weight", "700");
+    await expect(drawer).toHaveCSS("backdrop-filter", "none");
+    const back = drawer.getByRole("button", { name: "Close the menu", exact: true });
+    await expect(back.locator("svg")).toHaveAttribute("width", "20");
+    await expect(back.locator("svg path").first()).toHaveAttribute("d", "M19 12H5");
+    await expect(drawer.locator(".mcard__head")).toHaveText(["Yours", "Resources", "The Law", "Settings", "CyberJudah"]);
+    expect(await drawer.locator(".more").evaluate(el => el.firstElementChild?.className)).toBe("more__account");
+    for (const strip of await drawer.locator(".mcard__head").all()) {
+      await expect(strip).toHaveCSS("font-size", "12px");
+      await expect(strip).toHaveCSS("text-transform", "uppercase");
+      await expect(strip).toHaveCSS("background-color", theme === "default" ? "rgba(0, 0, 0, 0.05)" : "rgba(200, 200, 200, 0.05)");
+      await expect(strip.locator("svg")).toHaveAttribute("width", "16");
+    }
+    for (const row of await drawer.locator(".mcard__row").all()) {
+      await expect(row).toHaveCSS("height", "48px");
+      await expect(row).toHaveCSS("font-size", "15px");
+      await expect(row.locator(".mcard__icon")).toHaveCSS("width", "36px");
+    }
+    const resources = drawer.locator(".mcard").filter({ has: page.getByRole("heading", { name: "Resources", exact: true }) });
+    await expect(resources).toHaveCSS("background-color", theme === "default" ? "rgb(255, 255, 255)" : "rgb(18, 45, 66)");
+    await expect(resources.locator(".mcard__head")).toHaveCSS("font-weight", "400");
+    for (const row of await resources.locator(".mcard__row").all()) {
+      const color = await row.locator(".mcard__icon").evaluate(el => getComputedStyle(el).color);
+      await expect(row.locator(".mcard__label")).toHaveCSS("color", color);
+    }
+    await back.click();
+    await expect(drawer).toHaveCount(0);
+    await expect(page).toHaveURL(/\/settings/);
+  });
+}
+
 test("the buttons are 48 px, at Feather's stroke, with Bible Strong's labels and no selected state", async ({ page }) => {
   await setup(page);
   const buttons = bar(page).locator(".tab");

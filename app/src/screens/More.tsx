@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 
 import { APP_URL, share } from "@/lib/share";
@@ -8,6 +8,8 @@ import { DATA_ORIGIN, SITE_URL } from "@/api/data";
 import { Icon, NotificationDot, Screen, type IconName } from "@/ui/ui";
 import { useAvailableUpdatesIndicator } from "@/resources/updates";
 import { haptic } from "@/tg/sdk";
+import { useAppTheme } from "@/ui/theme";
+import { cssVars, PALETTES } from "@/bible/theme";
 
 const STUDY: [string, string, string, IconName][] = [
   ["/study", "4 Chapters a Day", "The daily reading, a note for every chapter", "book"],
@@ -35,10 +37,10 @@ export function More() {
 
 type Item = { icon: IconName; label: string; color: string; colored?: boolean; href?: string; onClick?: () => void; dot?: boolean; a11y?: string };
 /** Bible Strong's SectionCard: a rounded card with a small grey heading row and its links. */
-function Card({ icon, title, items }: { icon: IconName; title: string; items: (Item | null)[] }) {
+function Card({ icon, title, items, headingWeight }: { icon: IconName; title: string; items: (Item | null)[]; headingWeight?: 400 | 700 }) {
   return (
     <section className="mcard">
-      <h2 className="mcard__head"><Icon name={icon} size={16} />{title}</h2>
+      <h2 className="mcard__head" style={{ fontWeight: headingWeight }}><Icon name={icon} size={16} />{title}</h2>
       {items.filter((i): i is Item => !!i).map((i) => {
         const inner = <><span className="mcard__icon" style={{ color: i.color, background: `color-mix(in srgb, ${i.color} 12%, transparent)` }}><Icon name={i.icon} size={20} />{i.dot ? <NotificationDot size={12} style={{ top: -3, right: -3 }} /> : null}</span><span className="mcard__label" style={i.colored ? { color: i.color } : undefined}>{i.label}</span><span className="mcard__chev"><Icon name="chevron" size={20} /></span></>;
         return i.href
@@ -53,11 +55,12 @@ const C = { blue: "var(--accent)", teal: "var(--accent)", violet: "var(--danger)
 
 /** The menu's content (Bible Strong's MoreScreen), on its own page or in the menu drawer. */
 export function MoreBody() {
+  const { name } = useAppTheme();
   const [pin, setPin] = useState(false);
   const { hasUpdates } = useAvailableUpdatesIndicator();
   useEffect(() => { void homeScreenStatus().then((s) => setPin(s === "missed" || s === "unknown")); }, []);
   return (
-    <div className="more">
+    <div className="more" style={cssVars(PALETTES[name]) as CSSProperties}>
       {/* Bible Strong's account card at the top of the menu: who is signed in (here, the Telegram user). */}
       <Link className="more__account" to="/settings/account" onClick={() => haptic("select")}>
         <span className="more__avatar" aria-hidden="true">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? "?")}</span>
@@ -74,10 +77,10 @@ export function MoreBody() {
         { icon: "clock", label: "History", color: C.blue, href: "/history" },
         { icon: "sun", label: "Sabbath", color: C.amber, href: "/sabbath" },
       ]} />
-      <Card icon="book" title="Resources" items={[
-        { icon: "chat", label: "Ask CyberJudah", color: C.teal, href: "/ask" },
-        { icon: "play", label: "Classes", color: C.red, href: "/classes" },
-        ...STUDY.map(([href, label, , icon], k) => ({ href, label, icon, colored: ["/lexicon", "/dictionary"].includes(href), color: href === "/lexicon" ? C.blue : href === "/dictionary" ? C.amber : [C.blue, C.violet, C.amber, C.green, C.rose, C.teal, C.violet, C.slate][k % 8] })),
+      <Card icon="book" title="Resources" headingWeight={400} items={[
+        { icon: "chat", label: "Ask CyberJudah", color: C.teal, colored: true, href: "/ask" },
+        { icon: "play", label: "Classes", color: C.red, colored: true, href: "/classes" },
+        ...STUDY.map(([href, label, , icon], k) => ({ href, label, icon, colored: true, color: href === "/lexicon" ? C.blue : href === "/dictionary" ? C.amber : [C.blue, C.violet, C.amber, C.green, C.rose, C.teal, C.violet, C.slate][k % 8] })),
       ]} />
       <Card icon="law" title="The Law" items={LAW.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.amber, C.teal, C.slate][k % 3] }))} />
       <Card icon="gear" title="Settings" items={[
