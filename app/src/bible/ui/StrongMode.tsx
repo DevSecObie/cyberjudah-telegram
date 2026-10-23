@@ -8,6 +8,7 @@ import { Feather } from "../icons";
 import { nextAvailableStrongMode, strongCode, type StrongMode, type StrongSelection } from "../strongMode";
 import { Sheet } from "./Sheet";
 import { WordSheet } from "./WordSheet";
+import { ResourceUnavailable } from "./ResourceUnavailable";
 import "./strong-mode.css";
 
 /** Bible Strong's StrongMark: a bold serif "S", in the accent while the numbers show. */
@@ -104,7 +105,7 @@ export function StrongSelectionSheet({ selection, onClose, books, here }: { sele
     <>
       <Sheet open={!!selection} onClose={onClose} backdrop={false} title={shown ? `${shown.word} · KJV` : "Strong · KJV"} label={shown ? `${shown.word} · KJV` : "Strong"} className="bs-strongsel">
         <div className="bs-strongsel__body">
-          {failed ? <p className="bs-loading" role="status">This did not load. <button type="button" className="bs-link" onClick={() => void failed.refetch()}>Retry</button></p>
+          {failed ? <ResourceUnavailable onRetry={() => void failed.refetch()} />
             : pending ? (
               <div className="bs-strongsel__skeleton" aria-busy="true">
                 <div className="bs-strongsel__pills"><span style={{ width: 68 }} /><span style={{ width: 62 }} /></div>

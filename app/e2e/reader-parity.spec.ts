@@ -913,6 +913,14 @@ test("a verse's references that fail to load say so, with Retry, instead of 'non
   await page.getByRole("button", { name: "References", exact: true }).click();
   const sheet = page.locator(".bs-resources");
   await expect(sheet.getByText("This did not load.")).toBeVisible();
+  const error = sheet.locator(".bs-unavailable");
+  await expect(error.locator("svg")).toHaveAttribute("width", "72");
+  await expect(error.locator("svg")).toHaveAttribute("height", "72");
+  await expect(error.locator(".bs-unavailable__content")).toHaveCSS("max-width", "320px");
+  await expect(error.locator(".bs-unavailable__title")).toHaveCSS("font-weight", "700");
+  await expect(error.locator(".bs-unavailable__detail")).toHaveCSS("margin-top", "8px");
+  await expect(error.getByRole("button", { name: "Retry" })).toHaveCSS("font-weight", "700");
+  await expect(error.getByRole("button", { name: "Retry" })).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(sheet.getByText("No cross references for this verse.")).toHaveCount(0);
   fail = false;
   await sheet.getByRole("button", { name: "Retry" }).click();

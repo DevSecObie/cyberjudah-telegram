@@ -11,6 +11,7 @@ import { Feather } from "../icons";
 import { ResourceIcon, type ResourceKind } from "./ResourceIcon";
 import { Sheet } from "./Sheet";
 import { VerseLexicon } from "./VerseLexicon";
+import { ResourceUnavailable as Failed } from "./ResourceUnavailable";
 import { BibleVerseDetailFooter } from "./BibleVerseDetailFooter";
 import { WordSheet } from "./WordSheet";
 import { Xrefs } from "@/ui/xrefs";
@@ -207,9 +208,6 @@ const passageLink = (c: VerseComment) => `${toApp(c.note.url)}${c.t ? `?t=${c.t}
 
 /** A missing file means there is nothing for this chapter; any other failure is shown, with Retry. */
 const none = <T,>(fallback: T) => (e: unknown): T => { if (e instanceof Error && e.message.startsWith("404 ")) return fallback; throw e; };
-function Failed({ onRetry }: { onRetry: () => void }) {
-  return <p className="bs-loading" role="status">This did not load. <button type="button" className="bs-link" onClick={onRetry}>Retry</button></p>;
-}
 
 /** A precept topic from the reference work that lists this verse, with its other scriptures a tap away. */
 function TopicPrecepts({ cite, onRead, onOpen }: { cite: Citation; onRead: (url: string, verses: string) => void; onOpen: () => void }) {

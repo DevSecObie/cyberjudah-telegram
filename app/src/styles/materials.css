@@ -42,6 +42,9 @@
    in a 54 px square (Back padding); the title 14 px bold (in rem, so it follows the shared text size), 20 px in when there is no ←, with the
    subtitle 12 px grey under it; the actions on the right. */
 .head { display: flex; align-items: center; min-width: 0; min-height: 54px; }
+.head.head--children, .sheet-head.head--children { flex-direction: column; align-items: stretch; }
+.head__row { display: flex; align-items: center; min-width: 0; min-height: 54px; }
+.head__children { padding: 0 20px 10px; }
 .head__titles { flex: 1; min-width: 0; padding-inline-start: 20px; }
 #root .head__back { flex: none; display: grid; place-items: center; width: 54px; height: 54px; margin: 0; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
 .head__back + .head__titles { padding-inline-start: 0; }

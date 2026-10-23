@@ -166,6 +166,13 @@
 .bs-versetile--48 { width: 48px; height: 48px; }
 .bs-versetile[aria-pressed="true"] { color: var(--bs-primary); font-weight: 700; }
 .bs-loading { margin: 20px; text-align: center; color: var(--bs-grey); font-size: 14px; }
+.bs-unavailable { display: flex; flex: 1; align-items: center; justify-content: center; padding: 30px; overflow: hidden; }
+.bs-unavailable__content { display: flex; flex-direction: column; align-items: center; max-width: 320px; text-align: center; font-size: 16px; color: var(--bs-default); }
+.bs-unavailable__content > svg { flex-shrink: 0; }
+.bs-unavailable__title { margin: 30px 0 0; font-weight: 700; }
+.bs-unavailable__detail { margin: 8px 0 0; color: var(--bs-tertiary); }
+#root .bs-unavailable__retry { margin-top: 30px; padding: 0; border: 0; background: none; color: var(--bs-primary); font: inherit; font-weight: 700; cursor: pointer; }
+#root .bs-btn:not(.btn) { display: inline-flex; align-items: center; justify-content: center; height: 48px; border: 0; border-radius: 24px; padding: 0 15px; background: var(--bs-primary); color: white; font: 700 16px var(--font-ui); cursor: pointer; }
 .bs-versions { padding: 8px 0; }
 .bs-versionrow { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "id check" "name check" "note check"; align-items: center; column-gap: 12px; width: 100%; padding: 12px 20px; border: 0; border-left: 3px solid var(--bs-primary); background: none; text-align: left; cursor: pointer; color: var(--bs-primary); }
 .bs-versionrow__id { grid-area: id; font-size: 12px; font-weight: 700; color: var(--bs-tertiary); }

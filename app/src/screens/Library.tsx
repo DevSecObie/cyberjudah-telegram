@@ -36,7 +36,7 @@ function Quote({ r }: { r: ResolvedRef }) {
  * rows of one letter filed under its disc, the alphabet along the bottom, and a search that
  * replaces the letters. The letter is kept in the address, so Back returns to it.
  */
-function NaveList({ title, rows, tone, failed, retry }: { title: string; rows: { key: string; name: string; href: string }[] | undefined; tone: "quart" | "quint"; failed: boolean; retry: () => void }) {
+function NaveList({ title, rows, tone, failed, retry, searchInHeader = false }: { title: string; rows: { key: string; name: string; href: string }[] | undefined; tone: "quart" | "quint"; failed: boolean; retry: () => void; searchInHeader?: boolean }) {
   // The theme's own colour, darkened only where its white letter would not read (night's quart, the dark themes' quint).
   const color = readableColor(PALETTES[useAppTheme().name][tone], [[255, 255, 255]]);
   const [params, setParams] = useSearchParams();
@@ -46,9 +46,10 @@ function NaveList({ title, rows, tone, failed, retry }: { title: string; rows: {
   const needle = q.trim().toLowerCase();
   const shown = useMemo(() => (rows ?? []).filter((r) => (needle ? r.name.toLowerCase().includes(needle) : firstLetter(r.name) === letter)), [rows, needle, letter]);
   const top = useHeaderOffset();
+  const search = <SearchField id={`${title.toLowerCase()}-q`} value={q} onChange={setQ} placeholder="Search by word" />;
   return (
-    <Screen title={title} className="bs-list">
-      <SearchField id={`${title.toLowerCase()}-q`} value={q} onChange={setQ} placeholder="Search by word" />
+    <Screen title={title} className="bs-list" headerChildren={searchInHeader ? search : undefined}>
+      {!searchInHeader ? search : null}
       {!rows && !failed ? <p className="bs-list__loading">Loading...</p> : failed && !rows ? (
         <Empty title={`The ${title.toLowerCase()} did not load`} action={{ label: "Retry", onClick: retry }}>Check your connection.</Empty>
       ) : shown.length ? (
@@ -136,7 +137,7 @@ export function Topics() {
   useBackButton();
   const rows = useQuery({ queryKey: ["topics"], queryFn: data.topics });
   const list = useMemo(() => rows.data?.filter((t) => (t.notes || t.cases) && !t.slug.startsWith("verdict-")).map((t) => ({ key: t.slug, name: t.label, href: toApp(t.url) })), [rows.data]);
-  return <NaveList title="Topics" rows={list} tone="quint" failed={rows.isError} retry={() => void rows.refetch()} />;
+  return <NaveList title="Topics" rows={list} tone="quint" failed={rows.isError} retry={() => void rows.refetch()} searchInHeader />;
 }
 
 export function TopicScreen() {
