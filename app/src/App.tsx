@@ -37,6 +37,7 @@ const Account = lazy(() => import("@/screens/Account").then(m => ({ default: m.A
 const Settings = lazy(() => import("@/screens/Settings").then((m) => ({ default: m.Settings })));
 const Help = lazy(() => import("@/screens/Help").then(m => ({ default: m.Help })));
 const AudioSettings = lazy(() => import("@/screens/AudioSettings").then((m) => ({ default: m.AudioSettings })));
+const ThemeSettings = lazy(() => import("@/screens/ThemeSettings").then((m) => ({ default: m.ThemeSettings })));
 const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.Reminders })));
 const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));
 const Privacy = lazy(() => import("@/screens/Privacy").then((m) => ({ default: m.Privacy })));
@@ -110,6 +111,7 @@ const routes = (
     <Route path="/settings" element={<Settings />} />
     <Route path="/settings/help" element={<Help />} />
     <Route path="/settings/audio" element={<AudioSettings />} />
+    <Route path="/settings/theme" element={<ThemeSettings />} />
     <Route path="/settings/requests" element={<NoteRequests />} />
     <Route path="/plans" element={<ReadingPlans />} />
     <Route path="/plan" element={<Plan />} />

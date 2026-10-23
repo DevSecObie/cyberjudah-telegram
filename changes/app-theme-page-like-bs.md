@@ -1,0 +1,1 @@
+- Settings › Theme is now its own page, laid out like Bible Strong's: a Mode card with sun, moon and sunrise icons for Day, Night and Auto, then Day Color and Night Color cards with a disc for each palette, the chosen one ringed. Settings keeps a single Theme row that opens it.

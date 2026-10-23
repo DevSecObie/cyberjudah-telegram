@@ -12,11 +12,10 @@ import { alert, api, app, confirm, features, haptic, platform, requestWriteAcces
 import { secure } from "@/tg/store";
 import { collect, parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
-import { Icon, List, Row, Screen, FormSection as Section, Segmented } from "@/ui/ui";
+import { Icon, List, Row, Screen, FormSection as Section } from "@/ui/ui";
 import { useRelationsDisplay } from "@/lib/relations";
 import { useBibleSettings } from "@/bible/settings";
 import type { Font, Spacing } from "@/ui/theme";
-import { DARK_THEMES, LIGHT_THEMES } from "@/bible/theme";
 
 /** A setting's current value, iOS style: quiet text before the chevron. */
 export function Value({ children }: { children: string }) {
@@ -129,11 +128,9 @@ export function Settings() {
       <Section title="Study library"><List><Row title="Study resources" sub="Install, remove or roll back offline resources" onClick={() => navigate("/resources")} /></List></Section>
       <Section title="Listening"><List><Row title="Audio settings" sub="Voice, speed, pitch and ambient sound" onClick={() => navigate("/settings/audio")} /></List></Section>
       <Section title="Reading">
-        <Segmented label="Theme" value={bible.preferredColorScheme} onChange={(v) => setBible({ preferredColorScheme: v })} options={[["auto", "Automatic"], ["light", "Day"], ["dark", "Night"]]} />
         <List>
-          {/* The Bible's own colours, worn by the whole app: the same choice as Font and settings in the reader. */}
-          <Row onClick={() => { const i = LIGHT_THEMES.findIndex((t) => t.id === bible.preferredLightTheme); setBible({ preferredLightTheme: LIGHT_THEMES[(i + 1) % LIGHT_THEMES.length].id }); }} title="Day colour" sub="The whole app takes the Bible’s colours" trailing={<Value>{LIGHT_THEMES.find((t) => t.id === bible.preferredLightTheme)?.label ?? ""}</Value>} />
-          <Row onClick={() => { const i = DARK_THEMES.findIndex((t) => t.id === bible.preferredDarkTheme); setBible({ preferredDarkTheme: DARK_THEMES[(i + 1) % DARK_THEMES.length].id }); }} title="Night colour" trailing={<Value>{DARK_THEMES.find((t) => t.id === bible.preferredDarkTheme)?.label ?? ""}</Value>} />
+          {/* Bible Strong's Theme page: mode, day colour and night colour, worn by the whole app. */}
+          <Row onClick={() => navigate("/settings/theme")} title="Theme" />
           <Row onClick={() => setSize(size === "compact" ? "regular" : size === "regular" ? "large" : "compact")} title="Text size" trailing={<Value>{{ compact: "Small", regular: "Regular", large: "Large" }[size]}</Value>} />
           <Row onClick={() => { const serif = face !== "Newsreader"; setFont(serif ? "serif" : "sans"); setBible({ fontFamily: serif ? "Newsreader" : "Avenir" }); }} title="Typeface" sub={face === "Newsreader" || face === "Avenir" || face === "System" ? undefined : "Chosen in the Bible’s own settings"} trailing={<Value>{face}</Value>} />
           <Row onClick={() => setSpacing(spacing === "tight" ? "regular" : spacing === "regular" ? "airy" : "tight")} title="Line spacing" trailing={<Value>{{ tight: "Tight", regular: "Regular", airy: "Airy" }[spacing]}</Value>} />
