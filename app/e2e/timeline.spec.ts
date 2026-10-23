@@ -73,6 +73,11 @@ test("an event opens to its date, our case study and its verses in the KJV", asy
 
 test("search finds the two kings Ahaziah, each with the reign Who's Who gives and the right case study", async ({ page }) => {
   await page.goto("/timeline/search");
+  await expect(page.locator(".tl-search")).toHaveCSS("padding-top", "0px");
+  await expect.poll(async () => {
+    const bar = await page.locator(".srch__bar").boundingBox(), header = await page.locator(".tlh").boundingBox();
+    return bar && header ? bar.y - header.y - header.height : null;
+  }).toBe(0);
   await page.getByRole("searchbox").fill("ahaziah");
   const rows = page.locator(".tl-search__list a");
   await expect(rows).toHaveCount(2);
@@ -241,4 +246,3 @@ test("The Final Captivity: a period's events by category, and an event's history
   await expect(page.locator("img.tl-event__pic")).toHaveJSProperty("complete", true);
   await shot(page, "fc-3-leader");
 });
-

@@ -87,3 +87,50 @@ test("list search headers: forced-colors retains the outer focus outline", async
     await expect(pill).toHaveCSS("outline-offset", "2px");
   }
 });
+
+test("Search header: the shared pill preserves class, note and scripture queries and results", async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const requests: URL[] = [];
+  await page.route("**/api/search?**", r => {
+    requests.push(new URL(r.request().url()));
+    return r.fulfill({ json: { ok: true, counts: { class: 1, study: 1, verse: 1 }, hits: [
+      { kind: "class", title: "Passover class", url: "/notes/passover", snippet: "Passover was taught in class." },
+      { kind: "study", title: "Passover study note", url: "/study/passover", snippet: "A note about Passover." },
+      { kind: "verse", title: "Exodus 12:11", url: "/bible/exodus/12#v11", snippet: "It is the LORD's passover." },
+    ] } });
+  });
+  await page.route("**/api/teachings?**", r => r.fulfill({ json: { ok: true, hits: [], more: false } }));
+  await page.route("**/api/search/answer?**", r => r.fulfill({ status: 503, json: { ok: false } }));
+  await page.goto(`/search${LAUNCH}`);
+  const header = page.locator(".screen > header"), pill = header.locator(".bs-searchinput");
+  const field = pill.getByRole("searchbox", { name: "Search CyberJudah" });
+  await expect(field).toBeFocused();
+  await expect(pill).toHaveCSS("height", "36px");
+  expect((await pill.boundingBox())!.y).toBe(54);
+  await expect(header).toHaveCSS("border-bottom-width", "1px");
+  await expect(page.locator(".srch__bar--dock")).toHaveCount(0);
+  await field.fill("Passover");
+  const classResult = page.locator(".srch__hit").filter({ hasText: "Passover class" });
+  await expect(classResult).toBeVisible();
+  await expect.poll(() => requests.some(u => u.searchParams.get("q") === "Passover" && u.searchParams.get("limit") === "40" && u.searchParams.get("live") === "1")).toBe(true);
+  await field.press("Enter");
+  await expect(page).toHaveURL(u => u.searchParams.get("q") === "Passover");
+  await expect.poll(() => requests.some(u => u.searchParams.get("q") === "Passover" && u.searchParams.get("limit") === "40" && !u.searchParams.has("live"))).toBe(true);
+  await page.keyboard.press("/");
+  await expect(field).toBeFocused();
+  await field.press("ArrowDown");
+  await expect(classResult).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(field).toBeFocused();
+  await page.getByRole("tab", { name: /^Notes/ }).click();
+  await expect(classResult).toBeVisible();
+  await expect(page.locator(".srch__hit").filter({ hasText: "Passover study note" })).toBeVisible();
+  await expect(page.locator(".srch__hit").filter({ hasText: "Exodus 12:11" })).toHaveCount(0);
+  await page.getByRole("tab", { name: /^Scripture/ }).click();
+  await expect(page.locator(".srch__hit").filter({ hasText: "Exodus 12:11" })).toBeVisible();
+  await expect(classResult).toHaveCount(0);
+  await pill.getByRole("button", { name: "Clear the search", exact: true }).click();
+  await expect(field).toHaveValue("");
+  await expect(field).toBeFocused();
+});
