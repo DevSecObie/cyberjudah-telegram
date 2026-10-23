@@ -1,0 +1,1 @@
+- Show Reading Plans as separate rounded cards on a light-grey page, with Bible Strong's thumbnails and text styling; keep the plans and their actions unchanged.
