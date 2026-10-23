@@ -6,7 +6,7 @@ import { useRecentSearches } from "@/lib/marks";
 import { showOf } from "@/lib/series";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
 import { api, ApiError, haptic, hideKeyboard, openLink } from "@/tg/sdk";
-import { Button, Chip, Icon, Img, Loading, timestamp, type IconName } from "@/ui/ui";
+import { Button, Chip, Icon, Img, Loading, Screen, timestamp, type IconName } from "@/ui/ui";
 import { fmtDate } from "@/api/data";
 import { FEED_NAME, KIND_LABEL, Lit, Marked, hitPath, teachingPath, useTeachingsSearch, type Hit, type SearchResult, type TeachingHit } from "@/ui/search-hero";
 import { answerHtml, passageLabel, passagePath, type Source } from "./Ask";
@@ -142,9 +142,7 @@ export function Search() {
   const failed = (library.isError || library.data?.ok === false) && (spoken.isError || spoken.data?.ok === false || !spoken.data);
 
   return (
-    <main className="screen srch">
-      <h1 className="sr-only">Search</h1>
-      <SearchBar keyboardDock id="q" value={input} onChange={setInput} onSubmit={() => submit()} onCancel={() => { setInput(""); if (q) setParams({}, { replace: true }); }}
+    <Screen className="srch srch--header" title="Search" headerChildren={<SearchBar header keyboardDock id="q" value={input} onChange={setInput} onSubmit={() => submit()} onCancel={() => { setInput(""); if (q) setParams({}, { replace: true }); }}
         placeholder="Search CyberJudah" busy={busy} autoFocus={!q} results={results} controls="srch-results">
         {term.trim().length >= 2 ? (
           <div className="srch__scopes" role="tablist" aria-label="Search in">
@@ -155,7 +153,7 @@ export function Search() {
             ))}
           </div>
         ) : null}
-      </SearchBar>
+      </SearchBar>}>
       <p className="sr-only" aria-live="polite">{term.trim().length >= 2 && !busy && !failed ? `${total} ${total === 1 ? "result" : "results"} for ${term}` : ""}</p>
       <div id="srch-results" ref={results} className="srch__results">
         {term.trim().length < 2 ? (
@@ -171,7 +169,7 @@ export function Search() {
           <Library scope={scope} library={library} hits={hits.filter((h) => SCOPE_KINDS[scope].includes(h.kind))} q={term} />
         )}
       </div>
-    </main>
+    </Screen>
   );
 }
 

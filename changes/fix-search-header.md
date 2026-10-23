@@ -1,0 +1,1 @@
+- Move Search's field into its header using the shared 36px search pill, keeping the same queries, results, scopes and keyboard actions.

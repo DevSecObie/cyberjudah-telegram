@@ -1,4 +1,4 @@
-import { Children, Fragment, isValidElement, useEffect, useLayoutEffect, useRef, useState, type ElementType, type PointerEvent, type ReactNode } from "react";
+import { Children, Fragment, isValidElement, useEffect, useLayoutEffect, useRef, useState, type ElementType, type InputHTMLAttributes, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { stoppingScroll } from "./fling";
 import { Link, useLocation, useNavigate } from "react-router";
 
@@ -358,12 +358,16 @@ export function FormSection({ title, action, children }: { title?: string; actio
  * icon at 20 px, the text at 15 px with a grey placeholder, and a ✕ in a 36 px square while there
  * is text.
  */
-export function SearchField({ value, onChange, onSubmit, placeholder, autoFocus, id, trailing }: { value: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder: string; autoFocus?: boolean; id: string; trailing?: ReactNode }) {
+export function SearchField({ value, onChange, onSubmit, placeholder, autoFocus, id, trailing, inputRef, inputProps, onClear, clearLabel = "Clear", leading, blurOnSubmit = true }: {
+  value: string; onChange: (v: string) => void; onSubmit?: () => void; placeholder: string; autoFocus?: boolean; id: string; trailing?: ReactNode;
+  inputRef?: RefObject<HTMLInputElement | null>; inputProps?: Pick<InputHTMLAttributes<HTMLInputElement>, "onKeyDown" | "onFocus" | "onBlur" | "aria-controls">;
+  onClear?: () => void; clearLabel?: string; leading?: ReactNode; blurOnSubmit?: boolean;
+}) {
   return (
-    <form className="field bs-searchinput" role="search" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur(); onSubmit?.(); }}>
-      <Feather name="search" size={20} raw />
-      <input id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} value={value} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} aria-label={placeholder} />
-      {value ? <button type="button" className="bs-searchinput__clear" aria-label="Clear" title="Clear" onClick={() => onChange("")}><Feather name="x" size={20} /></button> : trailing}
+    <form className="field bs-searchinput" role="search" onSubmit={(e) => { e.preventDefault(); if (blurOnSubmit) (document.activeElement as HTMLElement | null)?.blur(); onSubmit?.(); }}>
+      {leading ?? <Feather name="search" size={20} raw />}
+      <input ref={inputRef} {...inputProps} id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false} value={value} placeholder={placeholder} autoFocus={autoFocus} onChange={(e) => onChange(e.target.value)} aria-label={placeholder} />
+      {value ? <button type="button" className="bs-searchinput__clear" aria-label={clearLabel} title={clearLabel} onClick={() => { if (onClear) onClear(); else onChange(""); }}><Feather name="x" size={20} /></button> : trailing}
     </form>
   );
 }
