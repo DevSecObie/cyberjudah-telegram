@@ -125,7 +125,7 @@ export function Settings() {
   };
 
   return (
-    <Screen title="Settings">
+    <Screen title="Settings" className="grouped">
       <Section title="Study library"><List><Row title="Study resources" sub="Install, remove or roll back offline resources" onClick={() => navigate("/resources")} /></List></Section>
       <Section title="Listening"><List><Row title="Audio settings" sub="Voice, speed, pitch and ambient sound" onClick={() => navigate("/settings/audio")} /></List></Section>
       <Section title="Reading">
