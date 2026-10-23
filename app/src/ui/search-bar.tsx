@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type RefObject } from "react";
 
-import { Icon } from "@/ui/ui";
+import { Icon, SearchField } from "@/ui/ui";
 import { useSearchViewport } from "./use-search-viewport";
 
 /**
@@ -10,9 +10,9 @@ import { useSearchViewport } from "./use-search-viewport";
  * the down arrow into the results (any element marked `data-result` inside `results`), the
  * arrows through them, Escape back to the field, and Escape again to clear it.
  */
-export function SearchBar({ id, value, onChange, onSubmit, onCancel, placeholder, busy, autoFocus, results, controls, keyboardDock = false, children }: {
+export function SearchBar({ id, value, onChange, onSubmit, onCancel, placeholder, busy, autoFocus, results, controls, keyboardDock = false, header = false, children }: {
   id: string; value: string; onChange: (v: string) => void; onSubmit: () => void; onCancel: () => void;
-  placeholder: string; busy?: boolean; autoFocus?: boolean; results: RefObject<HTMLElement | null>; controls?: string; keyboardDock?: boolean; children?: ReactNode;
+  placeholder: string; busy?: boolean; autoFocus?: boolean; results: RefObject<HTMLElement | null>; controls?: string; keyboardDock?: boolean; header?: boolean; children?: ReactNode;
 }) {
   const [focused, setFocused] = useState(false);
   const field = useRef<HTMLInputElement>(null);
@@ -48,18 +48,23 @@ export function SearchBar({ id, value, onChange, onSubmit, onCancel, placeholder
     if (e.key === "ArrowDown") { const first = results.current?.querySelector<HTMLElement>("[data-result]"); if (first) { e.preventDefault(); first.focus(); } }
     if (e.key === "Escape") { e.preventDefault(); if (value) onChange(""); else field.current?.blur(); }
   };
-  return (
-    <div ref={bar} className={`srch__bar${keyboardDock ? " srch__bar--dock" : ""}`}>
-      <form className="srch__form" role="search" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
-        <label className="srch__field" data-focus={focused ? "" : undefined}>
+  const content = <>
+        {header ? <SearchField id={id} value={value} onChange={onChange} onSubmit={onSubmit} placeholder={placeholder} inputRef={field} blurOnSubmit={false}
+          inputProps={{ onKeyDown: onFieldKey, onFocus: () => setFocused(true), onBlur: () => setFocused(false), "aria-controls": controls }}
+          onClear={() => { onChange(""); field.current?.focus(); }} clearLabel="Clear the search"
+          leading={busy ? <span className="srch__icon" aria-hidden="true"><span className="srch__spin" /></span> : undefined}
+          trailing={<kbd className="srch__kbd" aria-hidden="true">/</kbd>} /> : <label className="srch__field" data-focus={focused ? "" : undefined}>
           <span className="srch__icon" aria-hidden="true">{busy ? <span className="srch__spin" /> : <Icon name="search" size={19} />}</span>
           <input ref={field} id={id} type="search" enterKeyHint="search" autoComplete="off" autoCorrect="off" spellCheck={false}
             placeholder={placeholder} aria-label={placeholder} aria-controls={controls}
             value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={onFieldKey} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} />
           {value ? <button type="button" className="srch__clear" aria-label="Clear the search" title="Clear the search" onClick={() => { onChange(""); field.current?.focus(); }}><Icon name="close" size={14} /></button> : <kbd className="srch__kbd" aria-hidden="true">/</kbd>}
-        </label>
+        </label>}
         {focused || value ? <button type="button" className="srch__cancel" onMouseDown={(e) => e.preventDefault()} onClick={() => { field.current?.blur(); onCancel(); }}>Cancel</button> : null}
-      </form>
+  </>;
+  return (
+    <div ref={bar} className={`srch__bar${header ? " srch__bar--header" : keyboardDock ? " srch__bar--dock" : ""}`}>
+      {header ? <div className="srch__form">{content}</div> : <form className="srch__form" role="search" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>{content}</form>}
       {children}
     </div>
   );
