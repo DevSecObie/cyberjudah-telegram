@@ -468,15 +468,17 @@ test("the reading plan ticks today's chapters and keeps a streak", async ({ page
 test("one theme: the Bible's day and night colours are the whole app's", async ({ page }) => {
   await page.goto(`/settings${LAUNCH}`);
   const canvas = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim());
-  await page.click('[role=tab] >> text=Day');
+  // Settings › Theme, Bible Strong's own page: mode icons and a disc per palette.
+  await page.click('.row >> text="Theme"');
+  await expect(page).toHaveURL(/\/settings\/theme/);
+  await page.getByRole("button", { name: "Day", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.locator("html")).toHaveAttribute("data-palette", "default");
   expect(await canvas()).toBe("#ffffff");
-  await page.click(".row >> text=Day colour");
-  await page.click(".row >> text=Day colour");
+  await page.getByRole("radio", { name: "Nature", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-palette", "nature");
   expect(await canvas()).toBe("#fdfffd");
-  await page.click('[role=tab] >> text=Night');
+  await page.getByRole("button", { name: "Night", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-palette", "dark");
   expect(await canvas()).toBe("#122d42");
@@ -485,10 +487,11 @@ test("one theme: the Bible's day and night colours are the whole app's", async (
 });
 
 liveDataTest("settings: theme, spacing and offline books", async ({ page }) => {
-  await page.goto(`/settings${LAUNCH}`);
-  await page.click('[role=tab] >> text=Day');
-  await page.click(".row >> text=Day colour");
+  await page.goto(`/settings/theme${LAUNCH}`);
+  await page.getByRole("button", { name: "Day", exact: true }).click();
+  await page.getByRole("radio", { name: "Sepia", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-palette", "sepia");
+  await page.goto(`/settings${LAUNCH}`);
   await page.click(".link >> text=Save a book");
   await page.click(".sheet__item >> text=Jude");
   // A saved book shows its text as kept on this device; narration is a separate, optional download.

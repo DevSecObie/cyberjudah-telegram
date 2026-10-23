@@ -312,20 +312,8 @@ for (const theme of ["default", "dark", "sepia"]) {
         const toggle = page.getByRole("switch", { name: "Justify the text", exact: true });
         await expect(toggle).toBeVisible();
         const initialFont = await toggle.locator("b").evaluate(e => parseFloat(getComputedStyle(e).fontSize));
-        const captions = page.getByRole("tablist", { name: "Theme" }).locator("button > span");
-        const initialCaptionFonts = await captions.evaluateAll(labels => labels.map(e => parseFloat(getComputedStyle(e).fontSize)));
         await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
         await expect.poll(() => toggle.locator("b").evaluate(e => parseFloat(getComputedStyle(e).fontSize))).toBe(initialFont * 2);
-        await expect.poll(() => captions.evaluateAll(labels => labels.map(e => parseFloat(getComputedStyle(e).fontSize)))).toEqual(initialCaptionFonts.map(size => size * 2));
-        expect(await captions.evaluateAll(labels => labels.every(label => {
-          const l = label.getBoundingClientRect(), b = label.parentElement!.getBoundingClientRect();
-          // Inline spans have clientWidth=0; Firefox still reports their scrollWidth.
-          // Measure the painted text fragments so every wrapped line must fit the button.
-          const text = document.createRange(); text.selectNodeContents(label);
-          const fragments = [...text.getClientRects()];
-          return l.left >= b.left && l.right <= b.right && l.top >= b.top && l.bottom <= b.bottom && fragments.length > 0 &&
-            fragments.every(r => r.left >= b.left && r.right <= b.right && r.top >= b.top && r.bottom <= b.bottom);
-        }))).toBe(true);
         await toggle.focus();
         const before = await toggle.getAttribute("aria-checked");
         await page.keyboard.press("Space");
@@ -349,6 +337,19 @@ for (const theme of ["default", "dark", "sepia"]) {
           const b = (await button.boundingBox())!;
           expect(b.x).toBeGreaterThanOrEqual(0); expect(b.x + b.width).toBeLessThanOrEqual(width); expect(b.y).toBeGreaterThanOrEqual(bounds.y);
         }
+        // Settings › Theme at 200%: every mode icon and colour disc stays inside its card and on screen.
+        await page.click('.row >> text="Theme"');
+        const cards = page.locator(".bs-theme__card");
+        await expect(cards).toHaveCount(3);
+        // The values are 15 px in rem, so they double with the text.
+        await expect.poll(() => cards.locator(".bs-theme__value").evaluateAll(labels => labels.map(e => parseFloat(getComputedStyle(e).fontSize)))).toEqual([30, 30, 30]);
+        expect(await cards.evaluateAll((all, w) => all.every(card => {
+          const c = card.getBoundingClientRect();
+          return c.left >= 0 && c.right <= w && [...card.querySelectorAll("button")].every(btn => {
+            const b = btn.getBoundingClientRect();
+            return b.width > 0 && b.left >= c.left && b.right <= c.right && b.top >= c.top && b.bottom <= c.bottom;
+          });
+        }), width)).toBe(true);
         // Navigate in-app to retain 200% text; a reload would silently reset the style tag.
         await dock.getByRole("button", { name: "Bible", exact: true }).click();
         await expect(page.locator("#verset-1")).toBeVisible();
