@@ -55,7 +55,7 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
           </>
         ) : (
           <>
-            <div className="bs-pills toolbar-group" role="group" aria-label="Passage">
+            <div className="bs-pills" role="group" aria-label="Passage">
               <button type="button" className="bs-pill bs-pill--book" aria-label={`Choose book and chapter. Current selection: ${bookLabel}`} title={`Choose book and chapter. Current selection: ${bookLabel}`} onClick={() => { haptic("select"); onBook(); }}><span className="bs-pill__bg" style={fade} /><b style={lift}>{short}</b></button>
               <button type="button" className="bs-pill bs-pill--version" aria-label={`Choose version. Current selection: ${version}`} title={`Choose version. Current selection: ${version}`} onClick={() => { haptic("select"); onVersion(); }}><span className="bs-pill__bg" style={fade} /><b style={lift}>{version}</b></button>
             </div>

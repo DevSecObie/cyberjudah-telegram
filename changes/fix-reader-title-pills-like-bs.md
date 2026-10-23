@@ -1,0 +1,1 @@
+- Match tab-card title typography and middle truncation, and the reader's book and version pills, to Bible Strong without changing their actions.

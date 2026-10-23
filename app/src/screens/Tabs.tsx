@@ -349,15 +349,22 @@ function MiddleText({ text }: { text: string }) {
   const el = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
     const node = el.current; if (!node) return;
-    node.textContent = text;
-    if (node.scrollWidth <= node.clientWidth) return;
-    let lo = 0, hi = text.length;
-    while (lo < hi) {
-      const mid = Math.ceil((lo + hi) / 2);
-      node.textContent = `${text.slice(0, Math.ceil(mid / 2))}…${text.slice(text.length - Math.floor(mid / 2))}`;
-      if (node.scrollWidth <= node.clientWidth) lo = mid; else hi = mid - 1;
-    }
-    node.textContent = `${text.slice(0, Math.ceil(lo / 2))}…${text.slice(text.length - Math.floor(lo / 2))}`;
+    const fit = () => {
+      node.textContent = text;
+      node.style.maxWidth = `${Math.max(0, node.parentElement!.getBoundingClientRect().right - node.getBoundingClientRect().left)}px`;
+      if (node.scrollWidth <= node.clientWidth) return;
+      let lo = 0, hi = text.length;
+      while (lo < hi) {
+        const mid = Math.ceil((lo + hi) / 2);
+        node.textContent = `${text.slice(0, Math.ceil(mid / 2))}…${text.slice(text.length - Math.floor(mid / 2))}`;
+        if (node.scrollWidth <= node.clientWidth) lo = mid; else hi = mid - 1;
+      }
+      node.textContent = `${text.slice(0, Math.ceil(lo / 2))}…${text.slice(text.length - Math.floor(lo / 2))}`;
+    };
+    let active = true;
+    fit();
+    void document.fonts.ready.then(() => { if (active) fit(); });
+    return () => { active = false; };
   });
   return <b ref={el}>{text}</b>;
 }
