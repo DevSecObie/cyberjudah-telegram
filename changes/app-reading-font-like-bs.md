@@ -1,0 +1,1 @@
+- Scripture now reads in Bible Strong's default font, Avenir (or your phone's own sans font where Avenir isn't installed), in the Bible and across the app's verse cards. Newsreader is still one tap away under Settings > Typeface and in the Bible's font list.

@@ -13,7 +13,9 @@
 .verses { font: 400 20px/var(--lh-read) var(--font-read); color: var(--text-2); }
 html[data-size="compact"] .verses { font-size: 17.5px; }
 html[data-size="large"] .verses { font-size: 23.5px; }
-html[data-font="sans"] .verses, html[data-font="sans"] .note, html[data-font="sans"] .verse { font-family: var(--font-ui); }
+html[data-font="sans"] .verses, html[data-font="sans"] .note, html[data-font="sans"] .verse { font-family: var(--font-read); }
+/* Sans, the default as Bible Strong reads in Avenir: every reading surface (verse cards, quotes) in Avenir where the device has it, else the UI face. */
+html[data-font="sans"] { --font-read: "Avenir", "Avenir Next", var(--font-ui); }
 html[data-spacing="airy"] .verses { line-height: 1.95; }
 html[data-spacing="tight"] .verses { line-height: 1.45; }
 html[data-justify="yes"] .verses { text-align: justify; hyphens: auto; }
