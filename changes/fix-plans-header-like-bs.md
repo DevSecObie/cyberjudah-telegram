@@ -1,0 +1,1 @@
+- Remove the Reading Plans filter button and catalogue pace picker; new plan previews use one chapter a day, while saved journeys and single-book study stay unchanged.
