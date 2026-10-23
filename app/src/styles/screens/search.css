@@ -3,9 +3,10 @@
    results come in, a clear button, a "/" hint on keyboards), Cancel, and the scopes with counts.
    Results are grouped, each with its kind's icon, title, place and the matching words lit. */
 .srch { padding-top: 0 !important; max-width: var(--w-wide); }
+.srch--header { padding-top: calc(var(--sp-3) + var(--safe-top)) !important; }
 .srch__bar { margin: 0 calc(-1 * var(--gutter)) var(--sp-2); padding: calc(var(--sp-2) + var(--safe-top)) var(--gutter) 0; }
 @media (max-width: 899px) {
-  .srch { padding-top: calc(var(--safe-top) + var(--sp-4)) !important; padding-bottom: calc(var(--dock-space) + var(--search-bar-height, 64px) + var(--sp-4)) !important; }
+  .srch:not(:where(.srch--header)) { padding-top: calc(var(--safe-top) + var(--sp-4)) !important; padding-bottom: calc(var(--dock-space) + var(--search-bar-height, 64px) + var(--sp-4)) !important; }
   .srch__bar--dock { position: fixed; top: auto; bottom: 0; left: var(--safe-left); right: var(--safe-right); margin: 0; padding: var(--sp-2) var(--gutter); transform: translateY(calc(-1 * var(--dock-space) + var(--search-lift, 0px))); transition: transform var(--dur-2) var(--ease); }
   .srch__bar--dock[data-keyboard] { transform: translateY(calc(var(--search-lift, 0px) - var(--safe-bottom))); }
   .srch__bar--dock .srch__form { flex-wrap: wrap; justify-content: flex-end; }
@@ -17,6 +18,12 @@
 }
 @media (prefers-reduced-motion: reduce) { .srch__bar--dock { transition: none; } }
 .srch__form { display: flex; align-items: center; gap: 10px; }
+.srch__bar--header { margin: 0; padding: 0; transition: none; }
+.srch__bar--header::before, .srch__bar--header::after { display: none; }
+.srch__bar--header .srch__form { align-items: flex-start; }
+.srch__bar--header .bs-searchinput { flex: 1; }
+.srch__bar--header .bs-searchinput > .srch__icon { width: 20px; margin-right: 8px; }
+@media (max-width: 899px) { .srch__bar--header .srch__kbd { display: none; } }
 .srch__field { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--sp-2); height: 46px; padding: 0 var(--sp-2) 0 14px; border-radius: var(--r-pill); cursor: text;
   background: var(--fill-1); box-shadow: inset 0 0 0 1px var(--control-edge); transition: none; }
 .srch__field[data-focus] { background: var(--surface-1); box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft); }

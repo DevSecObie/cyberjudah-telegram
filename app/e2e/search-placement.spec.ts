@@ -98,21 +98,21 @@ for (const theme of ["default", "dark", "sepia"]) {
       const search = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true });
       await expect(search).toBeVisible();
       if (["app", "system", "contrast", "forced"].includes(mode)) {
-        for (const [selector, pseudo] of [[".srch__bar--dock", "::before"], ["nav.tabs", undefined]] as const) expect(await page.locator(selector).evaluate((el, pseudo) => { const s = getComputedStyle(el, pseudo); return s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"); }, pseudo), `${mode} ${selector}`).toBe("none");
+        for (const [selector, pseudo] of [[".srch__bar--header", "::before"], ["nav.tabs", undefined]] as const) expect(await page.locator(selector).evaluate((el, pseudo) => { const s = getComputedStyle(el, pseudo); return s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"); }, pseudo), `${mode} ${selector}`).toBe("none");
       }
-      if (mode === "motion") await expect(page.locator(".srch__bar--dock")).toHaveCSS("transition-property", "none");
+      if (mode === "motion") await expect(page.locator(".srch__bar--header")).toHaveCSS("transition-property", "none");
     }
     await cdp?.detach();
   });
 }
 
 for (const theme of ["default", "dark", "sepia"]) for (const source of ["visual viewport", "Telegram", "layout viewport"] as const) {
-  test(`search placement: ${theme} follows the ${source} keyboard and restores the dock`, async ({ page }) => {
+  test(`search placement: ${theme} keeps the header visible with the ${source} keyboard and restores the tabs`, async ({ page }) => {
     await setup(page, theme, theme === "sepia");
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: theme === "sepia" ? "reduce" : "no-preference", contrast: theme === "dark" ? "more" : "no-preference" });
     await page.goto(`/search${LAUNCH}`);
-    const field = page.getByRole("searchbox", { name: "Search CyberJudah" }), bar = page.locator(".srch__bar--dock");
+    const field = page.getByRole("searchbox", { name: "Search CyberJudah" }), bar = page.locator(".srch__bar--header");
     await expect(field).toBeFocused();
     const resultsTop = await page.locator("#srch-results").evaluate(el => el.getBoundingClientRect().top);
     await page.evaluate(() => {
