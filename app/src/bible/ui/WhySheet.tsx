@@ -8,8 +8,8 @@ import { Feather } from "../icons";
 import { Sheet } from "./Sheet";
 
 /**
- * The note that leads a verse's precepts: a quick breakdown of why each precept is there,
- * one line each, from the class that lined it up, with the precept's words to hand. A tap on
+ * A verse's precepts: a quick breakdown of why each precept is there, when a precept pass has
+ * written one, from the class that lined it up, with the precept's words to hand. A tap on
  * a precept reads it; the class line opens the class at that moment.
  */
 export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRead, onOpenClass }: {
@@ -23,10 +23,6 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
   const seen = new Map<string, { r: TaughtPrecept; more: number }>();
   for (const r of rows) { const k = `${r.kind}|${r.ref.url}|${r.ref.verses}`; const e = seen.get(k); if (e) e.more++; else seen.set(k, { r, more: 0 }); }
   const items = [...seen.values()];
-  // Until a precept has its own line, the class's point for the passage says it, once, above
-  // the precepts it covers, not repeated under each.
-  const leads = new Map<string, TaughtPrecept>();
-  for (const { r } of items) if (!r.why && r.point && !leads.has(r.point)) leads.set(r.point, r);
   const chapters = [...new Set(items.map(({ r }) => slugOfUrl(r.ref.url)).filter(Boolean).map((m) => `${m![1]}/${m![2]}`))];
   const texts = useQueries({ queries: chapters.map((c) => { const [s, ch] = c.split("/"); return { queryKey: ["chapter", s, Number(ch)], queryFn: () => data.chapter(s, Number(ch)), staleTime: Infinity, enabled: open }; }) });
   const words = (r: TaughtPrecept) => {
@@ -37,12 +33,6 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
   return (
     <Sheet open={open} onClose={onClose} snapPoints={[1]} background="reverse" title={reference} subTitle={items.length > 1 ? "Precepts" : "Precept"} className="why-sheet">
       <div className="why">
-        {[...leads.values()].map((r) => (
-          <div key={`lead|${r.point}`} className="why__lead">
-            <p className="why__reason">{r.point}</p>
-            <button type="button" className="why__src" onClick={() => onOpenClass(r.note.url, r.ts)}>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}{r.ts ? ` · ${r.ts}` : ""}</button>
-          </div>
-        ))}
         {taught.isPending ? <p className="bs-loading">Loading...</p> : !items.length ? <p className="bs-loading">No precept is lined up with this verse.</p> : items.map(({ r, more }) => (
           <div key={`${r.kind}|${r.ref.url}|${r.ref.verses}`} className="why__item">
             <button type="button" className="why__ref" onClick={() => onRead(r.ref.url, r.ref.verses)}>
@@ -53,7 +43,8 @@ export function WhySheet({ open, onClose, slug, chapter, verse, reference, onRea
             {words(r) ? <p className="why__words">{words(r)}</p> : null}
             {r.why ? <Breakdown text={r.why} open={expanded.has(`${r.kind}|${r.ref.url}`)} onMore={() => setExpanded(new Set(expanded).add(`${r.kind}|${r.ref.url}`))} /> : null}
             {/^https:\/\/www\.youtube\.com\/watch\?v=([\w-]{11})$/.test(r.note.url) ? <CmsEditLink kind="precepts" id={new URL(r.note.url).searchParams.get("v")!} /> : null}
-            {r.why || more ? <button type="button" className="why__src" onClick={() => onOpenClass(r.note.url, r.ts)}>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}{r.ts ? ` · ${r.ts}` : ""}{more ? ` · and ${more} more class${more > 1 ? "es" : ""}` : ""}</button> : null}
+            {/* The class that lined the precept up, at that moment. A class's points belong to the verses they speak to, in Comments, not here. */}
+            <button type="button" className="why__src" onClick={() => onOpenClass(r.note.url, r.ts)}>{r.note.label}{r.note.date ? ` · ${fmtDate(r.note.date)}` : ""}{r.ts ? ` · ${r.ts}` : ""}{more ? ` · and ${more} more class${more > 1 ? "es" : ""}` : ""}</button>
           </div>
         ))}
       </div>

@@ -1,0 +1,1 @@
+- A verse's Precepts no longer show a line from a class about some other passage. Each precept shows the class that lined it up; the class's own points stay in the verse's Comments, on the verse they speak to.
