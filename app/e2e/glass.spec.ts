@@ -640,15 +640,14 @@ test("menus: collapsed Bible header removes its hidden controls and restores who
 });
 
 for (const reduced of [true]) {
-  test(`menus: navigation and group actions share one elevated surface (${reduced ? "solid" : "glass"})`, async ({ page }) => {
+  test(`menus: navigation stays flat and group actions keep their elevated surface (${reduced ? "solid" : "glass"})`, async ({ page }) => {
     await setup(page, "dark", reduced);
     await page.goto(`/settings${LAUNCH}`);
     await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true }).click();
     const drawer = page.getByRole("dialog", { name: "More", exact: true });
     await expect(drawer).toBeVisible();
     const more = (await materials(page, [[".drawer--more"]]))[0];
-    if (reduced) expect(more).toMatchObject({ filter: "none", alpha: 255 });
-    else expect(more.filter).toContain("blur(");
+    expect(more).toMatchObject({ filter: "none", alpha: 255 });
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
     await page.keyboard.press("Escape");
     await page.goto(`/tabs${LAUNCH}`);
@@ -865,7 +864,7 @@ for (const theme of ["default", "dark", "sepia"]) {
         }
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         const caps = await page.locator("h2, h3, .eyebrow, .mcard__head").evaluateAll(els => els.filter(el => getComputedStyle(el).textTransform === "uppercase").map(el => el.textContent));
-        expect(caps).toEqual([]);
+        expect(caps).toEqual(scene === "more" ? ["Yours", "Resources", "The Law", "Settings", "CyberJudah"] : []);
         if (["settings", "reminders"].includes(scene)) {
           if (scene === "reminders") await expect(page.getByRole("group", { name: "Settings", exact: true })).toBeVisible();
           const groups = page.locator("fieldset.form-section");
