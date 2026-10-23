@@ -96,8 +96,7 @@ export function Lexicon() {
       <button type="button" className={`bs-filter${active ? " bs-filter--on" : ""}`} aria-label={active ? "1 filter" : "Filter"} title={active ? "1 filter" : "Filter"} onClick={() => void openFilters()}>
         {active ? <span className="bs-filter__pill"><span><Icon name="book-open" size={14} /></span><span><Icon name="chevron-down" size={13} /></span></span> : <Icon name="filter" size={20} />}
       </button>
-    }>
-      <SearchField id="lex-q" value={q} onChange={setQ} placeholder="Search by code or by word" />
+    } headerChildren={<SearchField id="lex-q" value={q} onChange={setQ} placeholder="Search by code or by word" />}>
       {idx.isPending ? <p className="bs-list__loading">Loading...</p> : idx.isError ? <Empty title="The lexicon did not load" action={{ label: "Retry", onClick: () => void idx.refetch() }} /> : !hits.length ? <Empty title="No Strong's found...">Try the number, the transliteration (ʼâb, agapē) or a word from the meaning.</Empty> : (
         <div className="bs-list__body" style={{ ["--section-top" as string]: `${top}px` }}>
           {sections(hits.slice(0, limit), gloss).map((section) => (
