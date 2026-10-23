@@ -92,6 +92,9 @@ html[data-theme="light"] #root .seg, html[data-theme="sepia"] #root .seg { --seg
 .bs-searchinput input::-webkit-search-cancel-button { display: none; }
 #root .bs-searchinput:has(input:focus) { box-shadow: 0 0 0 2px var(--bs-primary, var(--accent)); }
 #root .bs-searchinput input:focus { outline: none; box-shadow: none; }
+@media (forced-colors: active) {
+  #root .bs-searchinput:has(input:focus) { outline: 2px solid Highlight !important; outline-offset: 2px; }
+}
 #root .bs-searchinput__clear { flex: none; display: grid; place-items: center; width: 36px; height: 36px; margin: 0; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
 .hero__clear { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--fill-2); color: var(--text-1) !important; font-size: 17px !important; line-height: 1; cursor: pointer; }
 /* A text box or area: a well with a visible edge (3:1), an accent ring when focused. */

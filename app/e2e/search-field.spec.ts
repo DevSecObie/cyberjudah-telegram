@@ -69,3 +69,21 @@ for (const theme of ["default", "dark"]) {
     }
   });
 }
+
+test("list search headers: forced-colors retains the outer focus outline", async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ forcedColors: "active" });
+  for (const path of ["/lexicon", "/dictionary", "/topics"]) {
+    await page.goto(`${path}${LAUNCH}`);
+    const pill = page.locator(".screen > header .bs-searchinput");
+    const input = pill.getByRole("searchbox");
+    await input.focus();
+    await expect(input).toBeFocused();
+    await expect(input).toHaveCSS("outline-style", "none");
+    await expect(pill).toHaveCSS("box-shadow", "none");
+    await expect(pill).toHaveCSS("outline-style", "solid");
+    await expect(pill).toHaveCSS("outline-width", "2px");
+    await expect(pill).toHaveCSS("outline-offset", "2px");
+  }
+});
