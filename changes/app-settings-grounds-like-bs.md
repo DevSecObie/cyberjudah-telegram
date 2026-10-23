@@ -1,0 +1,1 @@
+- Settings now sits on Bible Strong's light-grey page with white cards on it, as Bible Strong's Theme screen does (night themes swap the same way), instead of grey cards on a white page.
