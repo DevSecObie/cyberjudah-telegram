@@ -24,12 +24,22 @@ jobs:
     # per package). Keep the tag on the @playwright/test version in package-lock.json.
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
-    # Chromium's suite alone takes about 31 minutes; with the account checks, 60.
-    timeout-minutes: 60
+    # Each engine's suite is split across jobs (Playwright shards), each with its own server, so the
+    # one-worker runs stay isolated while the slowest engine finishes in about a quarter of the time.
+    name: browser-tests (${{ matrix.browser }} ${{ matrix.shard }}/${{ matrix.total }})
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, webkit, firefox]
+        include:
+          - { browser: chromium, shard: 1, total: 4 }
+          - { browser: chromium, shard: 2, total: 4 }
+          - { browser: chromium, shard: 3, total: 4 }
+          - { browser: chromium, shard: 4, total: 4 }
+          - { browser: webkit, shard: 1, total: 2 }
+          - { browser: webkit, shard: 2, total: 2 }
+          - { browser: firefox, shard: 1, total: 2 }
+          - { browser: firefox, shard: 2, total: 2 }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -42,20 +52,23 @@ jobs:
       - name: Install the browser
         timeout-minutes: 20
         run: npx playwright install ${{ matrix.browser }}
-      - run: npm run test:e2e --workspace app -- --project=${{ matrix.browser }}
+      - run: npm run test:e2e --workspace app -- --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/${{ matrix.total }}
         env:
           CI: "true"
           # The container runs as root, and Firefox will not start as root under a HOME it does not
           # own; Actions sets each step's HOME to /github/home, so it is set back here.
           HOME: /root
+      # The Firebase checks run once per engine, in its first shard.
       - uses: actions/setup-java@v6
+        if: matrix.shard == 1
         with:
           distribution: temurin
           java-version: '21'
       - name: Check the published rules and retry-safe imports
-        if: matrix.browser == 'chromium'
+        if: matrix.browser == 'chromium' && matrix.shard == 1
         run: npx --yes --package firebase-tools@15.33.0 firebase emulators:exec --config app/firebase/firebase.json --only firestore --project demo-cyberjudah 'node --test app/firebase/tests/*.test.mjs'
       - name: Check account sync in this browser
+        if: matrix.shard == 1
         run: npx --yes --package firebase-tools@15.33.0 firebase emulators:exec --config app/firebase/firebase.json --only auth,firestore --project demo-cyberjudah 'npm run test:e2e --workspace app -- account-sync.spec.ts --project=${{ matrix.browser }}'
         env:
           CI: 'true'
@@ -66,7 +79,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-${{ github.run_id }}-${{ matrix.browser }}
+          name: playwright-report-${{ github.run_id }}-${{ matrix.browser }}-${{ matrix.shard }}
           path: |
             app/test-results
             app/playwright-report
