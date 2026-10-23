@@ -77,7 +77,7 @@
 #root button.srch__recentbtn:hover { background: var(--state-hover); }
 .srch__recentbtn svg { color: var(--text-3); }
 #root button.srch__forget { display: grid; place-items: center; width: var(--touch); height: var(--touch); border: 0; background: none; color: var(--text-3); cursor: pointer; }
-.srch__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; overflow: hidden; text-align: center; color: var(--bs-tertiary); }
+.srch__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; color: var(--bs-tertiary); }
 .srch__empty-intro { display: flex; flex-direction: column; align-items: center; margin: 30px 0 24px; }
 .srch__empty svg { flex: none; margin-bottom: 16px; opacity: .6; }
 .srch__empty p { margin: 0; font-size: 16px; }
