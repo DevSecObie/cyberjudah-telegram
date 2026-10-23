@@ -315,7 +315,6 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-markread[data-pressed] { opacity: .7; }
 .bs-chapterend__plan { margin: 0; font-size: 13px; color: var(--bs-tertiary); }
 .bs-chapterend__plan a { color: var(--bs-primary); text-decoration: none; font-weight: 600; }
-.why__lead { display: flex; flex-direction: column; gap: 6px; padding: 2px 4px 6px 14px; border-left: 3px solid var(--bs-primary); }
 
 /* Search the Scriptures. */
 .bs-search__field { display: flex; align-items: center; gap: 10px; margin: 4px 16px 8px; padding: 0 8px 0 14px; min-height: 46px; border-radius: var(--r-md); background: var(--bs-light-grey); }
