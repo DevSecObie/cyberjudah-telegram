@@ -1,0 +1,1 @@
+- Match Search's empty-state spacing, search icon, text and example chips to Bible Strong, keeping the existing wording, examples and search actions.

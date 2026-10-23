@@ -8,6 +8,40 @@ async function setup(page: Page) {
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
 }
 
+for (const theme of ["light", "dark"]) test(`search empty: upstream layout and existing examples in ${theme}`, async ({ page }) => {
+  await setup(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(theme => {
+    (window as any).__cloud = { bs: JSON.stringify({ preferredColorScheme: theme, preferredLightTheme: "default", preferredDarkTheme: "dark" }), recent: "[]" };
+  }, theme);
+  await page.route("**/api/search?**", r => r.fulfill({ json: { ok: true, counts: {}, hits: [] } }));
+  await page.route("**/api/teachings?**", r => r.fulfill({ json: { ok: true, hits: [], more: false } }));
+  await page.route("**/api/search/answer?**", r => r.fulfill({ status: 503, json: { ok: false } }));
+  await page.goto(`/search${LAUNCH}`);
+  const empty = page.locator(".srch__empty"), examples = empty.locator(".srch__try");
+  await expect(empty).toBeVisible();
+  expect((await empty.boundingBox())!.height).toBeCloseTo(844 * .6, 0);
+  await expect(empty).toHaveCSS("justify-content", "center");
+  await expect(empty.locator("svg")).toHaveAttribute("width", "80");
+  await expect(empty.locator("svg")).toHaveAttribute("height", "80");
+  await expect(empty.locator("svg")).toHaveCSS("opacity", "0.6");
+  await expect(empty.locator("p")).toHaveCSS("font-size", "16px");
+  const color = await empty.evaluate(el => getComputedStyle(el).color);
+  await expect(empty.locator("p")).toHaveCSS("color", color);
+  await expect(empty.locator("svg")).toHaveCSS("color", color);
+  await expect(examples).toHaveCSS("max-width", "320px");
+  const queries = ["Passover", "Melchizedek", "Matthew 15:24", '"most high"', "twelve tribes", "usury"];
+  await expect(examples.getByRole("button")).toHaveText(queries);
+  for (const query of queries) {
+    await expect(examples.getByRole("button", { name: query, exact: true })).toHaveCSS("height", "27px");
+    await examples.getByRole("button", { name: query, exact: true }).click();
+    await expect(page).toHaveURL(url => url.searchParams.get("q") === query);
+    await expect(page.getByRole("searchbox", { name: "Search CyberJudah" })).toHaveValue(query);
+    await page.getByRole("button", { name: "Clear the search", exact: true }).click();
+    await expect(examples).toBeVisible();
+  }
+});
+
 test("search field: Bible Strong's 36 px grey pill, 15 px text, a ✕ in 36 px while there is text", async ({ page }) => {
   await setup(page);
   await page.goto(`/people${LAUNCH}`);
