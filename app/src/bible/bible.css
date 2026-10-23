@@ -19,12 +19,14 @@
 .bs-header__center { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; }
 .bs-header__focus { flex: 1; min-width: 0; padding-left: 22px; font-size: 0.875rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bs-pills { min-width: 0; display: flex; align-items: center; gap: 3px; padding-left: 10px; }
-.bs-pill { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 32px; height: 32px; border: 0; background: none; padding: 0; cursor: pointer; }
-#root .bs-pill { font-size: 14px; }
+.bs-pill { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: var(--touch); height: auto; margin-block: -6px; border: 0; background: none; padding: 0; cursor: pointer; }
+/* 14 px in rem, so it follows the text size as Bible Strong's Text does. */
+#root .bs-pill { font-size: .875rem; }
 .bs-pill b { position: relative; z-index: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bs-pill--book { min-width: 0; padding-left: 12px; padding-right: 7px; }
 .bs-pill--version { padding-left: 7px; padding-right: 12px; }
-.bs-pill__bg { position: absolute; inset: 0; background: var(--bs-light-grey); }
+/* The capsule is drawn 32px tall, as in Bible Strong, inside its 44px tap area. */
+.bs-pill__bg { position: absolute; inset: 6px 0; background: var(--bs-light-grey); }
 .bs-pill--book .bs-pill__bg { border-radius: 20px 0 0 20px; }
 .bs-pill--version .bs-pill__bg { border-radius: 0 20px 20px 0; }
 .bs-header__verses { width: var(--touch); height: var(--touch); border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; }

@@ -47,7 +47,8 @@ for (const theme of ["light", "dark"]) test(`reader book and version use separat
   await expect(group).toHaveCSS("padding-left", "10px");
   for (const [kind, radius, padding] of [["book", "20px 0px 0px 20px", "0px 7px 0px 12px"], ["version", "0px 20px 20px 0px", "0px 12px 0px 7px"]]) {
     const pill = group.locator(`.bs-pill--${kind}`);
-    await expect(pill).toHaveCSS("height", "32px");
+    // The capsule is 32 px, as in Bible Strong; the button keeps a 44 px tap area around it.
+    expect(await pill.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
     await expect(pill).toHaveCSS("padding", padding);
     await expect(pill.locator("b")).toHaveCSS("font-size", "14px");
     await expect(pill.locator("b")).toHaveCSS("font-weight", "700");
