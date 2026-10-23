@@ -3,13 +3,14 @@ import { Icon, type IconName } from "@/ui/icons";
 
 /** Feather icons (the set Bible Strong draws from) as inline SVG; `ion` adds the few Ionicons it uses. */
 export type FeatherName =
-  | "music" | "alert-circle" | "feather" | "droplet"
+  | "music" | "alert-circle" | "wifi-off" | "feather" | "droplet"
   | "file-plus" | "file-text" | "tag" | "link" | "git-merge" | "precepts" | "bookmark" | "crosshair" | "edit-2" | "copy" | "share-2" | "download" | "check-square" | "layers"
   | "sun" | "moon" | "sunrise" | "type" | "align-left" | "align-justify" | "arrow-right" | "corner-down-right" | "chevron-right" | "chevron-down" | "chevron-up" | "chevron-left" | "chevrons-left" | "chevrons-right" | "chevrons-down"
   | "more-vertical" | "arrow-left" | "x" | "list" | "hash" | "grid" | "arrow-left-circle" | "bold" | "italic" | "minus" | "rotate-cw" | "plus-square" | "list-ordered" | "arrow-right-circle" | "book" | "book-open" | "search" | "plus" | "check" | "clock" | "settings" | "trash-2" | "film" | "external-link" | "play" | "pause" | "skip-back" | "skip-forward" | "volume-2" | "edit-3" | "square" | "mic" | "sliders" | "users" | "repeat" | "arrow-up" | "arrow-down" | "heart" | "rotate-ccw" | "user" | "map-pin" | "globe" | "play-circle" | "message-circle" | "watch" | "refresh-cw" | "home" | "more-horizontal" | "x-circle"
   | "youtube" | "instagram" | "video" | "facebook" | "linkedin" | "github";
 
 const P: Record<FeatherName, string> = {
+  "wifi-off": '<line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
   // Bible Strong's link type icons (linkTypeConfig).
   youtube: '<path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>',
   instagram: '<rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>',
