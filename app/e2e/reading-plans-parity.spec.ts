@@ -30,6 +30,23 @@ for (const theme of ['light', 'dark']) test(`reading plan screenshots: ${theme}`
   await page.goto('/plans');
   await expect(page.getByRole('heading', { name: 'Reading plans', exact: true })).toBeVisible();
   await expect(page.getByText('New Testament', { exact: true }).first()).toBeVisible();
+  await expect(page.locator('.reading-catalogue .list')).toHaveCount(0);
+  const card = page.locator('.reading-catalogue__card').first();
+  await expect(card).toHaveCSS('border-radius', '20px');
+  await expect(card).toHaveCSS('padding', '16px');
+  await expect(card).toHaveCSS('margin-bottom', '12px');
+  await expect(card).toHaveCSS('background-color', theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(18, 45, 66)');
+  await expect(page.locator('.reading-catalogue')).toHaveCSS('background-color', theme === 'light' ? 'rgb(244, 247, 255)' : 'rgb(30, 61, 82)');
+  await expect(card.locator('.row')).toHaveCSS('gap', '16px');
+  await expect(card.locator('.reading-catalogue__image')).toHaveCSS('width', '96px');
+  await expect(card.locator('.reading-catalogue__image')).toHaveCSS('height', '64px');
+  await expect(card.locator('.reading-catalogue__image')).toHaveCSS('border-radius', '14px');
+  await expect(card.locator('.row__title')).toHaveCSS('font-size', '16px');
+  await expect(card.locator('.row__title')).toHaveCSS('font-weight', '700');
+  await expect(card.locator('.row__sub')).toHaveCSS('font-size', '13px');
+  await expect(card.locator('.row__sub > b')).toHaveCSS('font-weight', '700');
+  await expect(page.getByRole('heading', { name: 'English', exact: true })).toHaveCSS('font-size', '14px');
+  await expect(page.getByRole('heading', { name: 'English', exact: true })).toHaveCSS('font-weight', '700');
   await page.screenshot({ path: `e2e/review/reading-plans/${process.env.REVIEW_PHASE || 'after'}/${theme}-catalogue-390.png` });
 });
 
