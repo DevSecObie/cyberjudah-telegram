@@ -84,14 +84,15 @@
 #root button.srch__recentbtn:hover { background: var(--state-hover); }
 .srch__recentbtn svg { color: var(--text-3); }
 #root button.srch__forget { display: grid; place-items: center; width: var(--touch); height: var(--touch); border: 0; background: none; color: var(--text-3); cursor: pointer; }
-.srch__empty { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px var(--sp-2); text-align: center; color: var(--text-3); }
-.srch__empty svg { opacity: .55; }
-.srch__empty p { max-width: 340px; margin: 0; font: 400 15px/1.5 var(--font-ui); }
-.srch__empty b { color: var(--text-1); font-weight: 600; }
-.srch__try { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2); }
+.srch__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; color: var(--bs-tertiary); }
+.srch__empty-intro { display: flex; flex-direction: column; align-items: center; margin: 30px 0 24px; }
+.srch__empty svg { flex: none; margin-bottom: 16px; opacity: .6; }
+.srch__empty p { margin: 0; font-size: 16px; }
+.srch__empty b { color: inherit; font-weight: inherit; }
+.srch__try { display: flex; flex-wrap: wrap; justify-content: center; align-self: center; max-width: 320px; gap: 8px; }
 /* Bible Strong's SearchEmptyState examples: padding 4 by 12, radius 20, on light-grey with a 1px
    border, 14px default text. */
-#root .srch__try button:not(.tap) { box-sizing: border-box; padding: 4px 12px; border: 1px solid var(--bs-border, var(--hairline)); border-radius: 20px; background: var(--bs-light-grey, var(--fill-1)); color: var(--bs-default, var(--text-1)); font: 400 14px/1.3 var(--font-ui); cursor: pointer; }
+#root .srch__try button:not(.tap) { box-sizing: border-box; height: 27px; padding: 4px 12px; border: 1px solid var(--bs-border, var(--hairline)); border-radius: 20px; background: var(--bs-light-grey, var(--fill-1)); color: var(--bs-default, var(--text-1)); font: 400 14px/17px var(--font-ui); cursor: pointer; }
 #root .srch__try button:not(.tap):active { opacity: .7; }
 .srch__feeds { margin-bottom: 4px; }
 #root button.srch__all { min-height: var(--touch); padding: 0; border: 0; background: none; color: var(--accent); font: 600 var(--fs-sub) var(--font-ui); cursor: pointer; }

@@ -17,6 +17,8 @@ import { Trouble } from "@/ui/trouble";
 import { ReportAnswer } from "@/ui/report";
 import { SearchBar, useSettled } from "@/ui/search-bar";
 import { agree, consented } from "@/lib/ai-consent";
+import { useAppTheme } from "@/ui/theme";
+import { cssVars, PALETTES } from "@/bible/theme";
 
 const EXAMPLES = ["Passover", "Melchizedek", "Matthew 15:24", "\"most high\"", "twelve tribes", "usury"];
 
@@ -173,6 +175,7 @@ export function Search() {
 
 /** Before a search: recent searches to pick up again, and a few to try. */
 function Start({ recent, onPick, onForget, onClear }: { recent: string[]; onPick: (q: string) => void; onForget: (q: string) => void; onClear: () => void }) {
+  const { name } = useAppTheme();
   return (
     <div className="srch__start">
       {recent.length ? (
@@ -188,9 +191,11 @@ function Start({ recent, onPick, onForget, onClear }: { recent: string[]; onPick
           </ul>
         </section>
       ) : null}
-      <div className="srch__empty">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4.2-4.2" /></svg>
-        <p>Every class, verse, note and law. Words together, a <b>"quoted phrase"</b>, or a reference like <b>John 3:16</b>.</p>
+      <div className="srch__empty" style={cssVars(PALETTES[name])}>
+        <div className="srch__empty-intro">
+          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          <p>Every class, verse, note and law. Words together, a <b>"quoted phrase"</b>, or a reference like <b>John 3:16</b>.</p>
+        </div>
         <div className="srch__try">{EXAMPLES.map((e) => <button key={e} type="button" data-result="" onClick={() => onPick(e)}>{e}</button>)}</div>
       </div>
     </div>
