@@ -93,7 +93,7 @@ export function Drawers() {
         {hasOpenedMore ? (
           <>
             <header className="drawer__head">
-              <button type="button" className="drawer__back" aria-label="Close the menu" title="Close the menu" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="back" size={22} /></button>
+              <button type="button" className="drawer__back" aria-label="Close the menu" title="Close the menu" onClick={() => { haptic("select"); setDrawer(null); }}><Icon name="arrow-left" size={20} /></button>
               <h2>More</h2>
             </header>
             <div className="drawer__scroll"><Suspense fallback={null}><MoreBody /></Suspense></div>

@@ -173,9 +173,9 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 .drawer--home .drawer__scroll { padding-bottom: calc(100px + var(--safe-bottom)); }
 .drawer__scroll > .screen { min-height: 0; padding-bottom: var(--sp-6); }
 .drawer__fade { position: absolute; left: 0; right: 0; bottom: 0; height: 100px; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--surface-1)); }
-.drawer__head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: var(--sp-1); min-height: 54px; padding: var(--safe-top) 10px 0; background: var(--surface-1); border-bottom: .5px solid var(--hairline); }
-.drawer__head h2 { margin: 0; font: 700 var(--fs-callout) var(--font-ui); color: var(--text-1); }
-#root button.drawer__back, .drawer__back { display: grid; place-items: center; width: var(--touch); height: var(--touch); padding: 0; border: 0; border-radius: var(--r-pill); background: none; color: var(--text-1); cursor: pointer; }
+.drawer__head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; min-height: 54px; padding: var(--safe-top) 0 0; background: var(--canvas); border-bottom: 1px solid var(--hairline); }
+.drawer__head h2 { margin: 0; font: 700 14px var(--font-ui); color: var(--text-1); }
+#root button.drawer__back, .drawer__back { display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
 #root button.drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(var(--sp-6) + var(--safe-bottom)); display: grid; place-items: center; width: 52px; height: 52px; margin-left: -26px; padding: 0;
   border-radius: var(--r-pill); border: .5px solid var(--mat-edge); background: var(--mat-overlay); color: var(--text-1); box-shadow: var(--mat-highlight), var(--shadow-2); cursor: pointer; }
 .drawer-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 5); pointer-events: none; background: transparent; transition: none; }
