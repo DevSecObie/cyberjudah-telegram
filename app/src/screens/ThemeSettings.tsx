@@ -30,11 +30,15 @@ export function ThemeSettings() {
         </Card>
         <Card icon="sun" title="Day Color">
           <span className="bs-theme__value bs-theme__value--grow">{LIGHT_THEMES.find((t) => t.id === s.preferredLightTheme)?.label}</span>
-          {LIGHT_THEMES.map((t) => <Disc key={t.id} label={t.label} color={t.swatch} selected={s.preferredLightTheme === t.id} onPress={() => set({ preferredLightTheme: t.id })} />)}
+          <span className="bs-theme__discs" role="radiogroup" aria-label="Day Color">
+            {LIGHT_THEMES.map((t) => <Disc key={t.id} label={t.label} color={t.swatch} selected={s.preferredLightTheme === t.id} onPress={() => set({ preferredLightTheme: t.id })} />)}
+          </span>
         </Card>
         <Card icon="moon" title="Night Color">
           <span className="bs-theme__value bs-theme__value--grow">{DARK_THEMES.find((t) => t.id === s.preferredDarkTheme)?.label}</span>
-          {DARK_THEMES.map((t) => <Disc key={t.id} label={t.label} color={t.swatch} selected={s.preferredDarkTheme === t.id} onPress={() => set({ preferredDarkTheme: t.id })} />)}
+          <span className="bs-theme__discs" role="radiogroup" aria-label="Night Color">
+            {DARK_THEMES.map((t) => <Disc key={t.id} label={t.label} color={t.swatch} selected={s.preferredDarkTheme === t.id} onPress={() => set({ preferredDarkTheme: t.id })} />)}
+          </span>
         </Card>
       </div>
     </Screen>

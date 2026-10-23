@@ -341,6 +341,8 @@ for (const theme of ["default", "dark", "sepia"]) {
         await page.click('.row >> text="Theme"');
         const cards = page.locator(".bs-theme__card");
         await expect(cards).toHaveCount(3);
+        // The values are 15 px in rem, so they double with the text.
+        await expect.poll(() => cards.locator(".bs-theme__value").evaluateAll(labels => labels.map(e => parseFloat(getComputedStyle(e).fontSize)))).toEqual([30, 30, 30]);
         expect(await cards.evaluateAll((all, w) => all.every(card => {
           const c = card.getBoundingClientRect();
           return c.left >= 0 && c.right <= w && [...card.querySelectorAll("button")].every(btn => {

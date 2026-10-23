@@ -4,9 +4,11 @@
 #root .bs-theme__card { padding-bottom: 0; color: var(--bs-default); }
 .bs-theme__card:first-child { margin-top: 8px; }
 .bs-theme__row { display: flex; align-items: center; padding: 14px 16px; }
-.bs-theme__value { font-size: 15px; }
+/* 15 px, in rem like the More rows so it follows the reader's text size, as Bible Strong's Text does. */
+.bs-theme__value { font-size: .9375rem; }
 .bs-theme__value--grow { flex: 1; }
 .bs-theme__icons { display: flex; gap: 20px; margin-left: auto; }
+.bs-theme__discs { display: contents; }
 /* TouchableIcon's hitSlop 8: the press area runs 8 px past the 20 px icon on every side. */
 #root .bs-theme__icon { display: grid; place-items: center; margin: -8px; padding: 8px; border: 0; background: none; cursor: pointer; }
 /* LinkBox doesn't centre: the Circle sits at its top left, 10 px in. */
