@@ -103,7 +103,7 @@ html[data-theme="dark"] #root .spick__grid > button { background: var(--bs-opaci
 .tabcard__open::after { content: ""; position: absolute; inset: 0 0 auto; height: 60px; background: linear-gradient(var(--canvas), transparent); pointer-events: none; }
 .tabcard__icon { position: relative; z-index: 1; display: grid; place-items: center; width: 80px; height: 80px; border-radius: 40px; background: var(--canvas); }
 .tabcard__title { position: absolute; top: 0; left: 0; right: 40px; z-index: 1; display: flex; align-items: center; height: 40px; padding: 0 5px 0 14px; pointer-events: none; }
-.tabcard__title b { min-width: 0; margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 12px var(--font-ui); color: var(--text-1); }
+.tabcard__title b { flex-shrink: 0; min-width: 0; margin-left: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 12px var(--font-title); color: var(--text-1); }
 #root .tabcard__close { position: absolute; top: 0; right: 0; z-index: 1; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; transition: opacity .25s; }
 /* A TouchableOpacity: the ✕ dims while pressed; the card itself gives no feedback. */
 #root .tabcard__close:active { opacity: .2; transition-duration: .15s; }

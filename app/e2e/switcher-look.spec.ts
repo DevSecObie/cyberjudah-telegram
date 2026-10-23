@@ -44,6 +44,31 @@ test("cards carry Bible Strong's tab icons and cut long titles in the middle", a
   expect(title).toMatch(/^the .*….*high$/);
 });
 
+test("the Bible card title fits in full in the title font without moving the card controls", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await setup(page);
+  await page.evaluate(() => document.fonts.ready);
+  const card = page.locator('.tabcard[data-tab-id="b"]');
+  const title = card.locator(".tabcard__title b");
+  await expect(title).toHaveText("Genesis 1 - KJV");
+  await expect(title).toHaveCSS("font-family", /Plus Jakarta Sans/);
+  await expect(title).toHaveCSS("font-size", "12px");
+  await expect(title).toHaveCSS("font-weight", "700");
+  await expect(card.locator(".tabcard__title")).toHaveCSS("padding", "0px 5px 0px 14px");
+  const layout = await card.evaluate(el => {
+    const card = el.getBoundingClientRect();
+    const row = el.querySelector(".tabcard__title")!.getBoundingClientRect();
+    const icon = el.querySelector(".tabcard__title .tabicon")!.getBoundingClientRect();
+    const title = el.querySelector(".tabcard__title b")!.getBoundingClientRect();
+    const close = el.querySelector(".tabcard__close")!.getBoundingClientRect();
+    const capsule = el.querySelector(".tabcard__close span")!.getBoundingClientRect();
+    return { card: card.width, row: row.width, icon: icon.width, titleX: title.x - card.x, titleRight: title.right, capsuleLeft: capsule.left, close: close.width, capsule: capsule.width };
+  });
+  expect(layout).toMatchObject({ card: 165, row: 125, icon: 16, titleX: 38, close: 40, capsule: 24 });
+  expect(layout.titleRight).toBeLessThan(layout.capsuleLeft);
+  await expect(card.locator(".tabcard__open")).toHaveAttribute("aria-label", "Open Genesis 1 - KJV");
+});
+
 test("a named group shows its count on its colour and its name at 30 px", async ({ page }) => {
   await setup(page, "short");
   const header = page.locator(".switcher__group");

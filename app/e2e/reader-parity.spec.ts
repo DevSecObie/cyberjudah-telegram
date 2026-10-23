@@ -36,6 +36,36 @@ async function overview(page: Page) {
 }
 test.beforeEach(async ({ page }) => setup(page));
 
+for (const theme of ["light", "dark"]) test(`reader book and version use separate half-capsules (${theme})`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(theme => localStorage.setItem("cj:bs", JSON.stringify({ preferredColorScheme: theme, preferredLightTheme: "default", preferredDarkTheme: "dark" })), theme);
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1")).toBeVisible();
+  const group = page.getByRole("group", { name: "Passage", exact: true });
+  await expect(group).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(group).toHaveCSS("gap", "3px");
+  await expect(group).toHaveCSS("padding-left", "10px");
+  for (const [kind, radius, padding] of [["book", "20px 0px 0px 20px", "0px 7px 0px 12px"], ["version", "0px 20px 20px 0px", "0px 12px 0px 7px"]]) {
+    const pill = group.locator(`.bs-pill--${kind}`);
+    await expect(pill).toHaveCSS("height", "32px");
+    await expect(pill).toHaveCSS("padding", padding);
+    await expect(pill.locator("b")).toHaveCSS("font-size", "14px");
+    await expect(pill.locator("b")).toHaveCSS("font-weight", "700");
+    const bg = pill.locator(".bs-pill__bg");
+    await expect(bg).toBeVisible();
+    await expect(bg).toHaveCSS("border-radius", radius);
+    await expect(bg).toHaveCSS("height", "32px");
+    expect(await bg.evaluate(el => {
+      const expected = document.createElement("span");
+      expected.style.backgroundColor = "var(--bs-light-grey)";
+      el.append(expected);
+      const matches = getComputedStyle(el).backgroundColor === getComputedStyle(expected).backgroundColor;
+      expected.remove();
+      return matches;
+    })).toBe(true);
+  }
+});
+
 async function gestureClock(page: Page) {
   await page.goto("/read/genesis/1");
   await expect(page.locator("#verset-2 .bs-num")).toBeVisible();
