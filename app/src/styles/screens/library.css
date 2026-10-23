@@ -160,17 +160,17 @@
 .screen.bs-list:not(.screen--sheet) { min-height: calc(100dvh - var(--dock-space)); padding-bottom: 0; }
 #root [data-tabs]:has(.screen.bs-list) { padding-bottom: var(--dock-space); }
 .bs-section { position: sticky; top: var(--section-top, 0px); z-index: 1; height: 50px; pointer-events: none; }
-.bs-section span { display: grid; place-items: center; width: 30px; height: 30px; margin-top: 10px; border-radius: 15px; color: var(--canvas); font: 700 16px var(--font-ui); }
+.bs-section span { display: grid; place-items: center; width: 30px; height: 30px; margin-top: 10px; border-radius: 15px; color: var(--canvas); font: 700 16px var(--font-title); }
 .bs-dictitem, .bs-lexitem { box-sizing: border-box; display: flex; justify-content: center; border-bottom: 1px solid var(--hairline); color: var(--text-1); text-decoration: none; }
 .bs-dictitem { flex-direction: column; height: 60px; }
-.bs-dictitem span { padding-right: 20px; font: 600 18px var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bs-dictitem span { padding-right: 20px; font: 700 18px var(--font-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bs-lexitem { flex-direction: column; align-items: flex-start; height: 80px; }
 .bs-lexitem__chips { display: flex; }
 .bs-lexchip { margin-bottom: 3px; padding: 2px 5px; border-radius: 10px; background: var(--hairline); font: 400 10px var(--font-ui); color: var(--text-1); }
 .bs-lexchip + .bs-lexchip { margin-left: 5px; }
 .bs-lexchip--hebrew { background: var(--accent-soft); }
 .bs-lexitem__line { display: flex; width: 100%; }
-.bs-lexitem__line b { flex: 1; min-width: 0; padding-right: 20px; font: 600 18px var(--font-ui); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bs-lexitem__line b { flex: 1; min-width: 0; padding-right: 20px; font: 700 18px var(--font-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bs-lexitem__line span { font-size: 18px; }
 .bs-alpha { position: sticky; bottom: var(--dock-space); z-index: 2; margin: auto calc(-1 * var(--gutter)) 0; padding-bottom: 7px; border-top: 1px solid var(--hairline); background: var(--canvas); }
 .bs-alpha__track { display: flex; overflow-x: auto; padding: 5px calc(50% - 18px) 0; scroll-snap-type: x mandatory; scrollbar-width: none; }
