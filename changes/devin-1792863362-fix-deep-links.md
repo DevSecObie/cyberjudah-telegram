@@ -1,0 +1,1 @@
+- Open the intended class or Scripture when following existing website links with a startapp destination, while preserving Telegram launch links.
