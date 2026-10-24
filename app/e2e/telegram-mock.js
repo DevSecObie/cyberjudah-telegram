@@ -35,7 +35,7 @@
     enable() { b.params.is_active = true; return b; }, disable() { b.params.is_active = false; return b; }, showProgress() { b.progress = true; return b; }, hideProgress() { b.progress = false; return b; } }; return b; };
   const Back = button("Back"), Main = button("Main"), Second = button("Second"), SettingsB = button("Settings");
   const WebApp = {
-    initData, initDataUnsafe: { user, start_param: params.get("tgWebAppStartParam") || undefined, auth_date: 1, hash: "x" }, version, platform: params.get("tgWebAppPlatform") || "ios",
+    initData, initDataUnsafe: { user, start_param: params.get("tgWebAppStartParam") ?? undefined, auth_date: 1, hash: "x" }, version, platform: params.get("tgWebAppPlatform") || "ios",
     colorScheme: "dark", themeParams: window.__themeParams || { bg_color: "#05070f" }, isActive: true, isExpanded: true, viewportHeight: innerHeight, viewportStableHeight: innerHeight,
     headerColor: "", backgroundColor: "", bottomBarColor: "", isClosingConfirmationEnabled: false, isVerticalSwipesEnabled: true, isFullscreen: false, isOrientationLocked: false,
     safeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }, contentSafeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 },

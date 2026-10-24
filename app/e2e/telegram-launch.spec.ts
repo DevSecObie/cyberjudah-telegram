@@ -106,6 +106,17 @@ test.describe("website deep links", () => {
     await expect(page).toHaveURL("/app/settings");
   });
 
+  for (const [name, url] of [
+    ["query falls back to website", `/app?tgWebAppStartParam=&startapp=${classParam}`],
+    ["SDK falls back to website", `/app?startapp=${classParam}${LAUNCH}&tgWebAppStartParam=`],
+    ["SDK falls back to query", `/app?tgWebAppStartParam=${classParam}&startapp=settings${LAUNCH}&tgWebAppStartParam=`],
+    ["SDK and query fall back to website", `/app?tgWebAppStartParam=&startapp=${classParam}${LAUNCH}&tgWebAppStartParam=`],
+  ] as const) test(`empty launch parameters: ${name}`, async ({ page }) => {
+    await page.goto(url);
+    await expect(page).toHaveURL(`/app/note${classPath}`);
+    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+  });
+
   test("invalid website parameters stay on Home and never navigate off site", async ({ page }) => {
     for (const param of ["", "https://example.com", "//example.com", "../settings", "x".repeat(513)]) {
       await page.goto(`/app?startapp=${encodeURIComponent(param)}`);
