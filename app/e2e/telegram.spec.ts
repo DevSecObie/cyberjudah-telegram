@@ -250,6 +250,23 @@ test("a verse's precepts lead with one note, Precepts: why each is there, from t
   await expect(page).toHaveURL(/\/read\/2-esdras\/6\?v=38/);
 });
 
+test("a precept shows its class but never a class point about another passage", async ({ page }) => {
+  // Genesis 1:5 was read as a precept while the class was on Leviticus 23; the note's point there was about Leviticus.
+  await page.route("**/api/concordance/genesis/1.json", (r) => r.fulfill({ json: { book: "Genesis", chapter: 1, cited_by: [], moments: [], commentary: [], precepts: [
+    { verses: "5", kind: "opened", ref: { book: "Leviticus", chapter: 23, verses: "1-3", label: "Leviticus 23:1-3", url: "/bible/leviticus/23#v1" }, text: "", point: "It is consciously they put it there.", note: { label: "The History of Easter", url: "/classes/2017/2017-04-13-the-history-of-easter", date: "2017-04-13", teacher: "Bishop Nathanyel" }, ts: "4:02" },
+  ] } }));
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  const note = page.locator("#verset-5 .rel-tag").first();
+  await expect(note).toHaveText("Precept");
+  await note.click();
+  await expect(page.locator(".bs-sheet__titles b")).toHaveText("Genesis 1:5");
+  const item = page.locator(".why__item");
+  await expect(item).toHaveCount(1);
+  await expect(item.locator(".why__ref b")).toHaveText("Leviticus 23:1-3");
+  await expect(item.locator(".why__src")).toContainText("The History of Easter · Apr 13, 2017 · 4:02");
+  await expect(page.locator(".why")).not.toContainText("It is consciously they put it there.");
+});
+
 // Annotate → Relation opens "Add relation" over the reader; Telegram's Back button must show and
 // close it (it did nothing: the picker was not counted as an open sheet), keeping the selection.
 test("relations: Telegram's Back button closes the Add relation picker", async ({ page }) => {

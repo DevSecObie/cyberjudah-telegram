@@ -43,7 +43,7 @@ async function reading(c: Ctx, book: number, chapter: number) {
   for (const p of data.precepts ?? []) {
     const moment = (data.moments ?? []).find(m => m.url === p.note.url && m.ts === p.ts);
     const video = moment?.video ?? notes.find(n => n.url === p.note.url)?.videoId;
-    const content = `<h3>${html(p.kind === 'opened' ? 'Read with' : 'Precept')} ${siteLink(p.ref.url, p.ref.label)}</h3>${paragraphs(p.why || p.point || p.text)}${citation(p.note, p.ts, video, seconds(p.ts) ?? moment?.t)}`;
+    const content = `<h3>${html(p.kind === 'opened' ? 'Read with' : 'Precept')} ${siteLink(p.ref.url, p.ref.label)}</h3>${paragraphs(p.why || p.text)}${citation(p.note, p.ts, video, seconds(p.ts) ?? moment?.t)}`;
     items.push({ verses: numbers(p.verses), teacher: p.note.teacher, date: p.note.date, content });
   }
   for (const p of data.commentary ?? []) {
