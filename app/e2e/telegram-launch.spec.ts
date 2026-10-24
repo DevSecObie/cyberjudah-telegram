@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { LAUNCH, setup, goInApp } from "./telegram-harness";
+import { DATA_ORIGIN, LAUNCH, setup, goInApp } from "./telegram-harness";
 
 test.beforeEach(async ({ page }) => setup(page));
 
@@ -46,6 +46,86 @@ for (const root of ["/", "/app/"]) {
     expect(new URL(page.url()).pathname).toBe(`${root}settings`);
   });
 }
+
+test.describe("website deep links", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  const classPath = "/classes/2026/2026-01-19-the-punishments-and-promises-of-job";
+  const classParam = "classes_2026_2026-01-19-the-punishments-and-promises-of-job";
+  const title = "The Punishments and Promises of Job";
+
+  test.beforeEach(async ({ page }) => {
+    await page.route(`${DATA_ORIGIN}/**`, r => {
+      const path = new URL(r.request().url()).pathname;
+      if (path === `/api/notes${classPath}.json`) return r.fulfill({ json: { kind: "class", title, url: classPath, body: "## Class notes\n\nThe class linked in the shared message." } });
+      if (path === "/api/kjv/books.json") return r.fulfill({ json: [{ book: "John", slug: "john", chapters: 3, verses: 31, chapterIds: [1, 2, 3] }] });
+      if (path === "/api/kjv/john/3.json") return r.fulfill({ json: { book: "John", chapter: 3, translation: "KJV", verses: Array.from({ length: 31 }, (_, i) => ({ verse: i + 1, text: `Scripture fixture ${i + 1}.` })) } });
+      return r.fulfill({ status: 404, body: "" });
+    });
+  });
+
+  for (const root of ["/", "/app", "/app/"]) {
+    const base = root === "/" ? "/" : "/app/";
+    for (const telegram of [false, true]) {
+      const launch = telegram ? LAUNCH : "";
+      const client = telegram ? "Telegram" : "browser";
+      for (const theme of ["light", "dark"]) test(`class link at ${root} (${client}, ${theme})`, async ({ page }, testInfo) => {
+        await page.addInitScript(theme => localStorage.setItem("cj:bs", JSON.stringify({ preferredColorScheme: theme, preferredLightTheme: "default", preferredDarkTheme: "dark" })), theme);
+        await page.goto(`${root}?startapp=${classParam}${launch}`);
+        await expect(page).toHaveURL(`${base}note${classPath}`);
+        await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+        await expect(page.getByText("The class linked in the shared message.", { exact: true })).toBeVisible();
+        await page.reload();
+        await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+        if (root === "/app" && !telegram) {
+          await page.evaluate(async () => { await document.fonts.ready; });
+          await testInfo.attach(`class-link-${theme}`, { body: await page.screenshot(), contentType: "image/png" });
+        }
+      });
+
+      test(`verse ranges at ${root} (${client})`, async ({ page }) => {
+        await page.goto(`${root}?startapp=bible_john_3_16-18x20${launch}`);
+        await expect(page).toHaveURL(`${base}read/john/3?v=16-18,20`);
+        for (const verse of [16, 17, 18, 20]) await expect(page.locator(`#verset-${verse}`)).toBeVisible();
+        await expect(page.locator("#verset-19")).toHaveCount(0);
+      });
+    }
+
+    test(`an explicit route wins over startapp at ${root}`, async ({ page }) => {
+      await page.goto(`${base}settings?startapp=${classParam}`);
+      await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+      expect(new URL(page.url()).pathname).toBe(`${base}settings`);
+    });
+  }
+
+  test("Telegram launch parameters take precedence over website parameters", async ({ page }) => {
+    await page.goto(`/app?startapp=${classParam}&tgWebAppStartParam=settings`);
+    await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+    await expect(page).toHaveURL("/app/settings");
+    await page.goto(`/app?startapp=${classParam}&tgWebAppStartParam=privacy${LAUNCH}&tgWebAppStartParam=settings`);
+    await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
+    await expect(page).toHaveURL("/app/settings");
+  });
+
+  for (const [name, url] of [
+    ["query falls back to website", `/app?tgWebAppStartParam=&startapp=${classParam}`],
+    ["SDK falls back to website", `/app?startapp=${classParam}${LAUNCH}&tgWebAppStartParam=`],
+    ["SDK falls back to query", `/app?tgWebAppStartParam=${classParam}&startapp=settings${LAUNCH}&tgWebAppStartParam=`],
+    ["SDK and query fall back to website", `/app?tgWebAppStartParam=&startapp=${classParam}${LAUNCH}&tgWebAppStartParam=`],
+  ] as const) test(`empty launch parameters: ${name}`, async ({ page }) => {
+    await page.goto(url);
+    await expect(page).toHaveURL(`/app/note${classPath}`);
+    await expect(page.getByRole("heading", { name: title, exact: true })).toBeVisible();
+  });
+
+  test("invalid website parameters stay on Home and never navigate off site", async ({ page }) => {
+    for (const param of ["", "https://example.com", "//example.com", "../settings", "x".repeat(513)]) {
+      await page.goto(`/app?startapp=${encodeURIComponent(param)}`);
+      await expect(page.getByRole("heading", { name: "What do you want to learn?" })).toBeVisible();
+      expect(new URL(page.url()).pathname).toBe("/app/");
+      expect(new URL(page.url()).searchParams.get("startapp")).toBe(param);
+    }
+  });
+});
 
 
 test("a reopened tab stays covered until the app lock's preference is read", async ({ page }) => {

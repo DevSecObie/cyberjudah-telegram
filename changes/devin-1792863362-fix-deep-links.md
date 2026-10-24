@@ -1,0 +1,1 @@
+- Open the intended class or Scripture when following existing website links with a startapp destination, including when Telegram launch parameters are empty, while preserving non-empty Telegram launch precedence.

@@ -18,7 +18,8 @@ export const has = (v: string) => app?.isVersionAtLeast(v) ?? false;
 export const platform = app?.platform ?? (native ? nativePlatform : "web");
 export const isMobile = platform === "ios" || platform === "android";
 export const user = app?.initDataUnsafe.user ?? null;
-export const startParam = app?.initDataUnsafe.start_param ?? new URLSearchParams(location.search).get("tgWebAppStartParam") ?? undefined;
+const launchParams = new URLSearchParams(location.search);
+export const startParam = app?.initDataUnsafe.start_param || launchParams.get("tgWebAppStartParam") || launchParams.get("startapp") || undefined;
 
 /** Feature availability, for the Settings screen and for choosing a fallback. */
 export const features = {

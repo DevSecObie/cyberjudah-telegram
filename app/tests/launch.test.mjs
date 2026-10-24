@@ -8,6 +8,10 @@ test("root launches use each supplied destination, including the same link again
   }
 });
 
+test("the shared class parameter opens its note rather than the catalogue", () => {
+  assert.equal(initialLaunchPath("/", "classes_2026_2026-01-19-the-punishments-and-promises-of-job"), "/note/classes/2026/2026-01-19-the-punishments-and-promises-of-job");
+});
+
 test("a bare or invalid launch stays on Home and cannot navigate off site", () => {
   for (const param of [undefined, "", "https://t.me/example", "//example.com", "../settings", "x".repeat(513)]) {
     assert.equal(initialLaunchPath("/", param), null);
