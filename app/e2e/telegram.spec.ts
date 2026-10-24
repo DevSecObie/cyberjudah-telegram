@@ -467,8 +467,10 @@ test("the reading plan ticks today's chapters and keeps a streak", async ({ page
   await expect(page.getByText("No journeys started yet. Discover a reading plan to begin.")).toBeVisible();
   expect((await state(page)).main).toBeNull();
   await page.getByRole("link", { name: "Explore reading plans" }).click();
-  await page.getByRole("combobox", { name: "Chapters each day" }).selectOption("4");
+  await expect(page.getByRole("link", { name: /^Whole Bible with Apocrypha/ })).toHaveAttribute("href", "/plan?catalog=whole&pace=1");
   await page.getByRole("link", { name: /^Whole Bible with Apocrypha/ }).click();
+  await expect(page).toHaveURL(/\/plan\?catalog=whole&pace=1/);
+  await goInApp(page, "/plan?catalog=whole&pace=4");
   await page.getByRole("button", { name: "Start this plan", exact: true }).click();
   // Starting opens the first reading, and opening it marks it read.
   await expect(page).toHaveURL(/\/read\/genesis\/1/);

@@ -1,0 +1,1 @@
+- Reading plans uses the shared search and language filter panels; new catalogue previews start at one chapter a day without a pace picker. Saved journeys and single-book study are unchanged.
