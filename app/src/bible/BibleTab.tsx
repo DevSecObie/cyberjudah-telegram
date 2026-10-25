@@ -20,7 +20,7 @@ import { useToast } from "@/ui/toast";
 import { useOpenInNewTab } from "@/ui/open-in-new-tab";
 import { useReferencePreview, verseSpec } from "@/ui/refpreview";
 import { popoverTrigger } from "@/ui/popover";
-import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
+import { keyOfVerses, noteEndpoint, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { VerseJump } from "./ui/VerseJump";
 import { StrongModeSheet, StrongSelectionSheet, useStrongModeShortcut } from "./ui/StrongMode";
@@ -271,9 +271,9 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       await writeNote(slug, ch, noteEdit.key, n); setNotes({ ...notes, [noteEdit.key]: n });
       setNoteEdit(null); setSheet(null); say("Note saved"); return;
     }
-    const key = keyOfVerses(selectedSorted); const n: Note = { id: uuid(), title: v.title, description: v.description, date: Date.now() };
+    const n: Note = { id: uuid(), verses: selectedSorted, title: v.title, description: v.description, date: Date.now() }; const key = n.id;
     await writeNote(slug, ch, key, n); setNotes({ ...notes, [key]: n });
-    await createRelation([verseEndpoint(), { type: "note", verseKey: selectedKeys[0], label: v.title || v.description.slice(0, 60) || "Untitled note" }]);
+    await createRelation([verseEndpoint(), noteEndpoint(slug, ch, key, n)]);
     setSheet(null); setSelected([]); haptic("success");
   };
   const removeNote = async () => {
@@ -295,7 +295,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     if (isWhy(it.relation)) { setWhyAt(whyVerse(it.relation)); setSheet("why"); return; }
     if (t.type === "note") {
       const anchor = popoverTrigger();
-      const found = await readNote(t.verseKey);
+      const found = await readNote(t.verseKey, t.noteId);
       const edit = () => { if (found) { setNoteEdit({ key: found.key, note: found.note, relation: it.relation }); setSheet("note"); } else void alert("This note no longer exists"); };
       if (!preview({ kind: "note", note: found?.note ?? null, open: edit }, anchor)) edit();
       return;
