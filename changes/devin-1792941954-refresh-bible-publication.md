@@ -1,0 +1,1 @@
+- Refresh the Bible feed index from the published CyberJudah KJV so updated chapters, including Tobit, pass the release check without bypassing content verification.

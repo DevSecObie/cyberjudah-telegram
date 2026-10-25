@@ -22,7 +22,7 @@ import { strongCode } from '../../src/bs/strongs.ts';
 
 const fixture = async (path: string) => JSON.parse(await readFile(new URL(`../fixtures/bs/${path}`, import.meta.url), 'utf8'));
 const paths = [
-  'api/kjv/books.json', 'api/kjv/genesis/1.json', 'api/kjv/john/1.json', 'api/kjv/wisdom-of-solomon/1.json', 'api/kjv/2-maccabees/1.json',
+  'api/kjv/books.json', 'api/kjv/genesis/1.json', 'api/kjv/john/1.json', 'api/kjv/tobit/1.json', 'api/kjv/wisdom-of-solomon/1.json', 'api/kjv/2-maccabees/1.json',
   'api/lxx/wisdom-of-solomon/1.json', 'api/lxx/2-maccabees/1.json', 'api/strongs/H1.json', 'api/strongs/G3056.json', 'api/strongs/index.json',
   'api/xref/john/1.json', 'api/concordance/john/1.json', 'api/topics/faith.json',
 ];
@@ -108,6 +108,21 @@ test('81 books retain exact 1611 names, number Epistle before Song, and preserve
   const { json } = await request('/v1/bibles/KJV/verses?references=81-1-1', ExtendedVerseTexts);
   assert.throws(() => Schema.decodeUnknownSync(Bible.BibleVerseTextsDto)(json));
   assert.throws(() => Schema.decodeUnknownSync(Bible.BibleChapterRequest)({ version: 'KJV', book: '81', chapter: '1' }));
+});
+
+test('the release gate serves the published Tobit chapter and still rejects changed text', async () => {
+  const { json } = await request('/v1/bibles/KJV/books/69/chapters/1', Bible.BibleChapterDto);
+  assert.equal(json.verses.length, 22);
+  assert.equal(json.verses[0].text, originals.get('/api/kjv/tobit/1.json').verses[0].text);
+  assert.equal(json.resource.textSha256, metadata.textSha256);
+  await Promise.all(pending.splice(0));
+  cache.clear();
+  const changed = structuredClone(originals.get('/api/kjv/tobit/1.json'));
+  changed.verses[0].text += ' changed';
+  data.set('/api/kjv/tobit/1.json', changed);
+  const { json: problem } = await request('/v1/bibles/KJV/books/69/chapters/1', Problems.ResourceUnavailableProblem, { status: 503 });
+  assert.equal(problem.code, 'BIBLE_PUBLICATION_INACTIVE');
+  assert.equal(problem.detail, 'The KJV publication changed; refresh the CyberJudah feed index');
 });
 
 test('search uses real FTS5, applies filters before paging, counts all matches and excludes classes', async () => {
