@@ -79,8 +79,12 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await page.click(".bs-btn >> text=Save");
   await expect(page.locator("#verset-2 .rel-inline .rel-tag", { hasText: "The shepherd psalm." })).toBeVisible();
   c = await cloud(page);
-  expect(JSON.parse(c.bs_n_psalms_23)["1/2"].title).toBe("The shepherd psalm.");
-  expect(JSON.parse(c.rel_psalms_23)[0].endpoints[1].type).toBe("note");
+  const savedNotes = JSON.parse(c.bs_n_psalms_23);
+  expect(Object.keys(savedNotes)).toHaveLength(1);
+  const [noteId] = Object.keys(savedNotes);
+  expect(noteId).not.toBe("1/2");
+  expect(savedNotes[noteId]).toMatchObject({ id: noteId, verses: [1, 2], title: "The shepherd psalm.", description: "He restoreth my soul." });
+  expect(JSON.parse(c.rel_psalms_23)[0].endpoints[1]).toMatchObject({ type: "note", noteId, verseKey: "psalms-23-1" });
   // Tags: a new tag on the highlight shows as a chip under the last verse of the group.
   await tapVerse(page, 1);
   await page.click(".bs-action >> text=Tag");
