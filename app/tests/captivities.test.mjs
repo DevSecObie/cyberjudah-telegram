@@ -38,11 +38,11 @@ test("the captivities come in order, each with its periods, after the periods be
 });
 
 test("the Exile is cut at the captivities' years, and a cut adds no bar running into another", () => {
-  const exile = OUT.filter((s) => s.picture === "8");
+  const exile = OUT.filter((s) => s.from === "8");
   assert.deepEqual(exile.map((s) => s.captivity), ["assyrian", "babylonian", "persian", "greek"]);
   for (const s of exile) for (const e of s.events) assert.ok(e.start <= s.endYear && e.end >= s.startYear, `${e.title} touches ${s.title}`);
-  for (const s of OUT.filter((x) => x.picture)) {
-    const from = DATA.sections.find((x) => x.id === s.picture);
+  for (const s of OUT.filter((x) => x.from)) {
+    const from = DATA.sections.find((x) => x.id === s.from);
     assert.ok(overlaps(s) <= overlaps(from), `${s.id}: ${overlaps(s)} overlaps, ${from.id} had ${overlaps(from)}`);
   }
 });

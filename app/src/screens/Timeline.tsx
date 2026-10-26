@@ -57,8 +57,7 @@ const PERIOD_PICTURES = new Set(["1", "2", "4", "5", "6", "7", "8", "9", "10", "
 /** An admin's cover or the existing approved period artwork; no image for unapproved periods. */
 function usePeriodPicture(s: TimelineSection) {
   const set = usePhotos().data?.[`period:${s.id}`];
-  const id = s.picture ?? s.id; // a piece of a period cut at the captivities shows that period's picture
-  return set ?? (PERIOD_PICTURES.has(id) ? pictureSrc(`timeline/periods/${id}.webp`) : undefined);
+  return set ?? (PERIOD_PICTURES.has(s.id) ? pictureSrc(`timeline/periods/${s.id}.webp`) : undefined);
 }
 
 /** A period's picture, or its colour where the picture waits on direction. Decorative: the title is beside it. */
@@ -350,7 +349,7 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
   return (
     <div className="tl-details">
       <SectionCard s={s} />
-      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.picture ?? s.id)} />
+      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
       <CaptivityDescription s={s} />
       {withCases.length ? (
         <>
@@ -370,7 +369,7 @@ function AgeGroupedPeriodDetails({ s }: { s: TimelineSection }) {
   return (
     <div className="tl-details">
       <SectionCard s={s} />
-      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.picture ?? s.id)} />
+      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
       <CaptivityDescription s={s} />
       <p className="hint">More events are being added to this period as each one is checked against the classes and the sources.</p>
       {[...groups].map(([g, list]) => (

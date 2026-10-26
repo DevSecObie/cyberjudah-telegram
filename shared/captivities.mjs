@@ -65,8 +65,9 @@ export const captivityOf = (s) => (s.captivity ? byId.get(s.captivity) : undefin
 
 /**
  * The periods ordered by the captivities. A period of a captivity has it as its age and carries
- * `captivity` (its id); a piece of a cut period carries `picture`, the id of the period it was cut
- * from, whose picture it shows. A piece has the events whose years touch its canvas, on their rows.
+ * `captivity` (its id); a piece of a cut period carries `from`, the id of the period it was cut
+ * from. A piece has the events whose years touch its canvas, on their rows, and no picture of its
+ * own until one is uploaded (its colour shows, as for any period waiting on its picture).
  */
 export function byCaptivity(sections) {
   const out = [];
@@ -77,7 +78,7 @@ export function byCaptivity(sections) {
     for (const p of place.cut) {
       const c = byId.get(p.under);
       out.push({
-        ...s, id: `${s.id}-${c.id}`, picture: s.id, title: p.title ?? s.title, sectionTitle: c.age, captivity: c.id, subTitle: p.subTitle,
+        ...s, id: `${s.id}-${c.id}`, from: s.id, title: p.title ?? s.title, sectionTitle: c.age, captivity: c.id, subTitle: p.subTitle,
         startYear: p.startYear, endYear: p.endYear, interval: p.interval, color: p.title ? c.color : s.color,
         events: s.events.filter((e) => e.start <= p.endYear && e.end >= p.startYear),
       });
