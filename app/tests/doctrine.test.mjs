@@ -37,7 +37,7 @@ test("scripture rows preserve KJV and exact class bullets, read markers, times a
   const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
   const scripture = html.slice(html.indexOf("Scriptures against it"), html.indexOf("Books against it"));
   assert.equal((scripture.match(/class="lawrow"/g) ?? []).length, fixture.scriptures.length);
-  assert.equal((scripture.match(/<li /g) ?? []).length, 2);
+  assert.equal((scripture.match(/<li(?: |>)/g) ?? []).length, 2);
   for (const ref of fixture.scriptures) for (const verse of ref.text) assert.ok(scripture.includes(verse.text));
   assert.ok(scripture.includes('href="/read/job/3?v=17"'));
   assert.ok(scripture.includes(fixture.scriptures[0].points[0].text));

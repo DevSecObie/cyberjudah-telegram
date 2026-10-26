@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import fixture from "../tests/fixtures/doctrine.json" with { type: "json" };
 
-async function setup(page: Page, status = 200) {
+async function setup(page: Page, status = 200, entry = fixture) {
   let responseStatus = status;
   let requests = 0;
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: "" }));
@@ -12,8 +12,8 @@ async function setup(page: Page, status = 200) {
     if (responseStatus !== 200) return r.fulfill({ status: responseStatus });
     return r.fulfill({ json: path.endsWith("/index.json") ? [
       { slug: "zulu-fixture", name: "Zulu fixture", claim: "", refs: 0, scriptures: 0, books: 0, url: "/doctrine/zulu-fixture" },
-      { slug: fixture.slug, name: fixture.name, claim: fixture.claim, refs: 2, scriptures: fixture.scriptures.length, books: fixture.books.length, url: fixture.url },
-    ] : fixture });
+      { slug: entry.slug, name: entry.name, claim: entry.claim, refs: 2, scriptures: entry.scriptures.length, books: entry.books.length, url: entry.url },
+    ] : entry });
   });
   return { publish: () => { responseStatus = 200; }, requests: () => requests };
 }
@@ -83,4 +83,20 @@ test("a connection failure is not described as unpublished Doctrine", async ({ p
   await setup(page, 503); await page.goto("/doctrine");
   await expect(page.getByText(/^The false doctrines did not load/)).toBeVisible();
   await expect(page.getByText("The false doctrines section is not published yet", { exact: true })).toHaveCount(0);
+});
+
+test("35 fixture scriptures stay flat, readable and within the phone and desktop column", async ({ page }) => {
+  const entry = structuredClone(fixture);
+  entry.scriptures = Array.from({ length: 35 }, (_, i) => structuredClone(fixture.scriptures[i % fixture.scriptures.length]));
+  await setup(page, 200, entry);
+  await page.goto(entry.url);
+  const scripture = page.locator("section").filter({ has: page.getByRole("heading", { name: "Scriptures against it", exact: true }) }).last();
+  await expect(scripture.locator(".lawrow")).toHaveCount(35);
+  for (const width of [390, 880]) {
+    await page.setViewportSize({ width, height: 844 });
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expect.poll(() => page.locator(".doctrine-content").evaluate((el) => el.getBoundingClientRect().width)).toBeLessThanOrEqual(616);
+    await expect(scripture.locator(".list__box")).toHaveCSS("box-shadow", "none");
+    await expect(scripture.locator(".verse-quote").first()).toHaveCSS("white-space", "pre-wrap");
+  }
 });

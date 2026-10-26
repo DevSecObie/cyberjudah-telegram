@@ -19,6 +19,7 @@ import { useSheet } from "@/ui/sheet";
 import { useToast } from "@/ui/toast";
 import { Chip, Chips, Empty, Icon, List, Row, Screen, SearchField, Section, Segmented, Loading } from "@/ui/ui";
 import { EntityChipList } from "./tag-detail";
+import "./doctrine.css";
 const toApp = (sitePath: string) => toAppPath(sitePath) ?? sitePath;
 
 /** The law, the precepts, the cases, the topics, the study notes and the encyclopedia: the reference shelf. */
@@ -162,36 +163,35 @@ function DoctrineWatch({ moment }: { moment: Pick<DoctrineEntry["answers"][numbe
     note.searchParams.set("t", String(moment.t));
     to = `${toApp(note.pathname)}${note.search}${note.hash}`;
   }
-  return <Link className="chip" to={to}>Watch at {moment.ts}</Link>;
+  return <Link className="doctrine-watch" to={to}>Watch at {moment.ts}</Link>;
 }
 
 function DoctrineBookQuotes({ page, title }: { page: DoctrineBookPage; title: string }) {
   const [open, setOpen] = useState(false);
   return <>
-    {page.quotes?.map((quote, i) => <div key={i}>
+    {page.quotes?.map((quote, i) => <div key={i} className="doctrine-ocr">
       <blockquote className="verse-quote" style={{ whiteSpace: "pre-wrap" }}>{quote.text}</blockquote>
-      <button type="button" className="btn btn--sm" onClick={() => setOpen(true)}>See it on the page</button>
+      <button type="button" className="doctrine-scan" onClick={() => setOpen(true)}>See it on the page</button>
     </div>)}
     {open ? <DoctrinePageViewer page={page} title={title} onClose={() => setOpen(false)} /> : null}
   </>;
 }
 
 export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
-  return <>
-    <Section title="False claim"><p style={{ whiteSpace: "pre-wrap" }}>{entry.claim}</p></Section>
+  return <div className="doctrine-content">
+    <Section title="False claim"><p className="doctrine-claim">{entry.claim}</p></Section>
     {entry.answers.map((answer, i) => <Section key={i} title={`Answer ${i + 1}`}>
       <List>{answer.refs.map((r, n) => <div key={n} className="lawrow"><Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}</div>)}</List>
-      {answer.sense.map((s, n) => <div key={n}>
+      {answer.sense.map((s, n) => <div key={n} className="doctrine-teaching">
         <blockquote className="verse-quote" style={{ whiteSpace: "pre-wrap" }}>{s.text}</blockquote>
-        {s.teacher ? <p className="hint">{s.teacher}</p> : null}
-        <DoctrineWatch moment={s} />
+        <div className="doctrine-source">{s.teacher ? <p className="hint">{s.teacher}</p> : null}<DoctrineWatch moment={s} /></div>
       </div>)}
     </Section>)}
     {entry.scriptures?.length ? <Section title="Scriptures against it"><List>{entry.scriptures.map((r, i) => <div key={i} className="lawrow">
       <Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}
-      {r.points.length ? <ul style={{ margin: "8px 0 0", paddingInlineStart: 20 }}>{r.points.map((p, n) => <li key={n} style={{ marginBlock: 8 }}>
+      {r.points.length ? <ul className="doctrine-points">{r.points.map((p, n) => <li key={n}>
         {p.read ? <>Read in {p.title}{" "}<DoctrineWatch moment={p} /></> : <>
-          <p style={{ whiteSpace: "pre-wrap", margin: "0 0 4px" }}>{p.text}</p>
+          <p className="doctrine-explanation">{p.text}</p>
           <div className="hint">{p.teacher ? `${p.teacher} · ` : null}{p.title}{" "}<DoctrineWatch moment={p} /></div>
         </>}
       </li>)}</ul> : null}
@@ -199,11 +199,11 @@ export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
     {entry.books?.length ? <Section title="Books against it"><List>{entry.books.map((book, i) => <div key={i} className="lawrow">
       <h3 style={{ margin: "0 0 4px" }}>{book.url ? <Link to={toApp(book.url)}>{book.title}</Link> : book.title}</h3>
       {book.author || book.year !== null ? <p className="hint">{book.author}{book.author && book.year !== null ? " · " : null}{book.year}</p> : null}
-      {book.pages ? book.pages.map((page, n) => <div key={n} style={{ marginBlock: 8 }}>
+      {book.pages ? book.pages.map((page, n) => <div key={n} className="doctrine-book-page">
         <Link to={toApp(page.url)}>{page.vol === 1 ? `p. ${page.page}` : `vol. ${page.vol}, p. ${page.page}`}</Link>
         <span className="hint"> · read in {page.classes} {page.classes === 1 ? "class" : "classes"}</span>
         <DoctrineBookQuotes page={page} title={book.title} />
-        {page.reads.length ? <ul style={{ margin: "8px 0 0", paddingInlineStart: 20 }}>{page.reads.slice(0, 3).map((read, k) => <li key={k} style={{ marginBlock: 8 }}>
+        {page.reads.length ? <ul className="doctrine-points">{page.reads.slice(0, 3).map((read, k) => <li key={k}>
           <span className="hint">{read.teacher ? `${read.teacher} · ` : null}{read.title}</span>{" "}<DoctrineWatch moment={read} />
         </li>)}</ul> : null}
       </div>) : <>
@@ -214,7 +214,7 @@ export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
       </>}
     </div>)}</List></Section> : null}
     {([['precepts', 'Related precepts'], ['cases', 'Related cases'], ['topics', 'Related topics']] as const).map(([kind, title]) => entry.related[kind].length ? <Section key={kind} title={title}><Chips>{entry.related[kind].map((r) => <Link key={r.slug} className="chip" to={toApp(r.url)}>{r.title ?? r.name ?? r.label ?? r.slug}</Link>)}</Chips></Section> : null)}
-  </>;
+  </div>;
 }
 
 export function Topics() {

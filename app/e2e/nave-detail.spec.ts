@@ -34,6 +34,62 @@ async function setup(page: Page, { failPrecept = false } = {}) {
 }
 const menu = (page: Page) => page.getByRole("button", { name: "More options", exact: true });
 
+test("the phone ellipsis stays anchored through opening, navigation and reopening", async ({ page }) => {
+  await setup(page);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript(() => {
+    const original = document.startViewTransition?.bind(document);
+    const w = window as unknown as { __menuMotion: { from: string; to: string; animation: string }[] };
+    w.__menuMotion = [];
+    if (!original) return;
+    document.startViewTransition = (...args) => {
+      const transition = original(...args);
+      void transition.ready.then(() => {
+        const style = getComputedStyle(document.documentElement, "::view-transition-group(action-popover)");
+        w.__menuMotion.push({ from: getComputedStyle(document.documentElement).getPropertyValue("--popover-from"), to: getComputedStyle(document.documentElement).getPropertyValue("--popover-to"), animation: style.animationName });
+      }).catch(() => {});
+      return transition;
+    };
+  });
+  await page.goto("/precepts/sin");
+  const native = await page.evaluate(() => !!document.startViewTransition);
+  const open = async () => {
+    const trigger = (await menu(page).boundingBox())!;
+    const count = await page.evaluate(() => (window as unknown as { __menuMotion: unknown[] }).__menuMotion.length);
+    await menu(page).click();
+    const popup = page.locator(".sheet[data-popover]");
+    await expect(popup).toBeVisible();
+    await expect(popup).toHaveAttribute("data-placed");
+    const bounds = await popup.boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(bounds!.x).toBeGreaterThanOrEqual(8);
+    expect(bounds!.y).toBeGreaterThanOrEqual(8);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
+    if (!native) return;
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __menuMotion: unknown[] }).__menuMotion.length)).toBeGreaterThan(count);
+    const motion = await page.evaluate(() => (window as unknown as { __menuMotion: { from: string; to: string; animation: string }[] }).__menuMotion.at(-1)!);
+    expect(motion.animation).toContain("popover-morph");
+    const origin = motion.from.match(/^translate\((\d+)px, (\d+)px\)/);
+    expect(origin).not.toBeNull();
+    expect(Number(origin![1])).toBeGreaterThanOrEqual(trigger.x);
+    expect(Number(origin![1])).toBeLessThanOrEqual(trigger.x + trigger.width);
+    expect(Number(origin![2])).toBeGreaterThanOrEqual(trigger.y);
+    expect(Number(origin![2])).toBeLessThanOrEqual(trigger.y + trigger.height);
+    expect(motion.to).toContain(`translate(${Math.round(bounds!.x)}px, ${Math.round(bounds!.y)}px)`);
+  };
+  await open();
+  await page.getByRole("button", { name: "Edit relations", exact: true }).click();
+  await expect(page).toHaveURL(/\/relations\?/);
+  await expect(page.locator(".sheet[data-popover]")).toHaveCount(0);
+  await page.goBack();
+  await expect(page.locator(".head h1")).toHaveText("Sin");
+  await open();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".sheet[data-popover]")).toHaveCount(0);
+  await expect(menu(page)).toBeFocused();
+});
+
 test("a precept's page is Bible Strong's Nave page: its name, the ⋮ menu with Share the link, Copy the text, Edit relations and Open in new tab, then its scriptures", async ({ page }) => {
   await setup(page);
   await page.goto("/precepts/sin");
