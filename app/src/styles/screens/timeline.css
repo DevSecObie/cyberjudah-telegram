@@ -105,7 +105,6 @@ a.tl-major:focus-visible, a.tl-minor:focus-visible { outline: 2px solid var(--ac
 .tl-details__list { list-style: none; margin: 0; padding: 0; justify-self: stretch; display: grid; gap: 8px; }
 .tl-details__list a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 14px; background: var(--fill-1); color: var(--text-1); text-decoration: none; }
 .tl-details__list span { color: var(--text-2); font-size: var(--fs-footnote); white-space: nowrap; }
-.tl-details__list .tl-details__name { display: block; padding: 12px 14px; border-radius: 14px; background: var(--fill-1); color: var(--text-1); font-size: inherit; white-space: normal; }
 .tl-about p { margin: 0 0 12px; color: var(--text-2); line-height: 1.5; }
 
 /* Search (TimelineSearchScreen) in the main search's field and list (search.css); the timeline's
