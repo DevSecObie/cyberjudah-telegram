@@ -1,30 +1,32 @@
 import { expect, test, type Page } from "@playwright/test";
 import fixture from "../tests/fixtures/doctrine.json" with { type: "json" };
 
-for (const width of [390, 880]) test(`contents toggles by keyboard and jumps to supplied passages and books at ${width}px`, async ({ page }) => {
+for (const width of [390, 880]) test(`Markdown-style contents stays compact and links to sections and books at ${width}px`, async ({ page }) => {
   const entry = structuredClone(fixture);
   entry.scriptures = Array.from({ length: 35 }, (_, i) => structuredClone(fixture.scriptures[i % fixture.scriptures.length]));
   await page.setViewportSize({ width, height: 844 });
   await setup(page, 200, entry); await page.goto(entry.url);
-  const details = page.locator(".doctrine-toc"), summary = details.locator("summary");
-  await expect(details).toHaveJSProperty("open", false);
-  await summary.focus();
-  await page.keyboard.press("Enter");
-  await expect(details).toHaveJSProperty("open", true);
   const toc = page.getByRole("navigation", { name: "Table of contents" });
-  await expect(toc.locator('a[href^="#doctrine-scripture-"]')).toHaveCount(35);
+  await expect(toc).toBeVisible();
+  await expect(toc.locator("details, summary, button")).toHaveCount(0);
+  await expect(toc.locator("ul").first()).toHaveCSS("list-style-type", "disc");
+  await expect(toc.locator("ul ul")).toHaveCSS("list-style-type", "circle");
+  await expect(toc.getByRole("link")).toHaveCount(6 + fixture.books.length);
+  await expect(toc.locator('a[href^="#doctrine-scripture-"]')).toHaveCount(0);
+  await expect.poll(() => toc.evaluate(el => el.getBoundingClientRect().height)).toBeLessThan(280);
   expect(await toc.locator("a").evaluateAll(links => links.every(link => document.getElementById((link as HTMLAnchorElement).hash.slice(1))))).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await toc.locator('a[href="#doctrine-scripture-34"]').click();
-  await expect(page).toHaveURL(/#doctrine-scripture-34$/);
-  await expect(page.locator("#doctrine-scripture-34")).toBeInViewport();
-  await expect.poll(() => page.locator("#doctrine-scripture-34").evaluate(el => { const y = el.getBoundingClientRect().top; return y >= 60 && y < innerHeight / 2; })).toBe(true);
+  await toc.getByRole("link", { name: "Scripture & teaching", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  await expect(toc.getByRole("link", { name: "Scriptures against it", exact: true })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#doctrine-scriptures$/);
+  const heading = page.getByRole("heading", { name: "Scriptures against it", exact: true });
+  await expect(heading).toBeInViewport();
+  await expect.poll(() => heading.evaluate(el => { const y = el.getBoundingClientRect().top; return y >= 60 && y < innerHeight / 2; })).toBe(true);
   await toc.getByRole("link", { name: fixture.books[0].title, exact: true }).click();
   await expect(page).toHaveURL(/#doctrine-book-0$/);
   await expect(page.locator("#doctrine-book-0")).toBeInViewport();
-  await summary.focus();
-  await page.keyboard.press("Space");
-  await expect(details).toHaveJSProperty("open", false);
 });
 
 
@@ -138,7 +140,6 @@ test("linked passages and class citations replace numbered answers, with working
   await expect(page.getByRole("heading", { name: "Scripture & teaching", exact: true })).toHaveCount(1);
   await expect(page.locator(".doctrine-evidence .refs a").first()).toHaveCSS("text-decoration-line", "underline");
   await expect(page.locator(".doctrine-evidence .doctrine-watch").first()).toHaveCSS("text-decoration-line", "underline");
-  await page.locator(".doctrine-toc > summary").click();
   await page.getByRole("navigation", { name: "Table of contents" }).getByRole("link", { name: /^Books/ }).click();
   await expect(page).toHaveURL(/#doctrine-books$/);
   await expect.poll(() => page.getByRole("heading", { name: "Books against it", exact: true }).evaluate(el => el.getBoundingClientRect().top)).toBeGreaterThanOrEqual(60);

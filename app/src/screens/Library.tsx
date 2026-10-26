@@ -180,21 +180,17 @@ function DoctrineBookQuotes({ page, title }: { page: DoctrineBookPage; title: st
 export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
   return <div className="doctrine-content">
     <Section title="False claim"><p className="doctrine-claim">{entry.claim}</p></Section>
-    {entry.answers.length || entry.scriptures?.length || entry.books?.length || Object.values(entry.related).some(items => items.length) ? <details className="doctrine-toc">
-      <summary>Contents</summary>
-      <nav aria-label="Table of contents"><ul className="doctrine-toc-sections">
-        {entry.answers.length ? <li><a href="#doctrine-study">Scripture &amp; teaching</a><ul className="doctrine-toc-refs">
-          {entry.answers.flatMap((answer, i) => answer.refs.map((r, n) => <li key={`${i}-${n}`}><a href={`#doctrine-study-${i}-${n}`}>{r.label}</a></li>))}
-        </ul></li> : null}
-        {entry.scriptures?.length ? <li><a href="#doctrine-scriptures">Scriptures against it</a><ul className="doctrine-toc-refs">
-          {entry.scriptures.map((r, i) => <li key={i}><a href={`#doctrine-scripture-${i}`}>{r.label}</a></li>)}
-        </ul></li> : null}
-        {entry.books?.length ? <li><a href="#doctrine-books">Books against it</a><ul className="doctrine-toc-refs">
+    {entry.answers.length || entry.scriptures?.length || entry.books?.length || Object.values(entry.related).some(items => items.length) ? <nav className="doctrine-toc" aria-label="Table of contents">
+      <h2>Contents</h2>
+      <ul>
+        {entry.answers.length ? <li><a href="#doctrine-study">Scripture &amp; teaching</a></li> : null}
+        {entry.scriptures?.length ? <li><a href="#doctrine-scriptures">Scriptures against it</a></li> : null}
+        {entry.books?.length ? <li><a href="#doctrine-books">Books against it</a><ul>
           {entry.books.map((book, i) => <li key={i}><a href={`#doctrine-book-${i}`}>{book.title}</a></li>)}
         </ul></li> : null}
         {([['precepts', 'Related precepts'], ['cases', 'Related cases'], ['topics', 'Related topics']] as const).map(([kind, title]) => entry.related[kind].length ? <li key={kind}><a href={`#doctrine-related-${kind}`}>{title}</a></li> : null)}
-      </ul></nav>
-    </details> : null}
+      </ul>
+    </nav> : null}
     {entry.answers.length ? <div id="doctrine-study"><Section title="Scripture & teaching">
       {entry.answers.map((answer, i) => <article key={i} className="doctrine-evidence">
         <List>{answer.refs.map((r, n) => <div key={n} id={`doctrine-study-${i}-${n}`} className="lawrow"><Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}</div>)}</List>
