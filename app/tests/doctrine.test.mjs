@@ -16,7 +16,7 @@ const library = {};
 const wrap = tag => ({ children, title }) => createElement(tag, null, title, children);
 runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, {
   exports: library, URL,
-  require: name => name === "react/jsx-runtime" ? require(name) : name === "react-router" ? { Link: ({ to, children, ...rest }) => createElement("a", { ...rest, href: to }, children) } : name === "@/ui/ui" ? { Section: wrap("section"), List: wrap("div"), Chips: wrap("div") } : name === "@shared/links.mjs" ? { toAppPath } : {},
+  require: name => name === "react/jsx-runtime" || name === "react" ? require(name) : name === "react-router" ? { Link: ({ to, children, ...rest }) => createElement("a", { ...rest, href: to }, children) } : name === "@/ui/ui" ? { Section: wrap("section"), List: wrap("div"), Chips: wrap("div") } : name === "@shared/links.mjs" ? { toAppPath } : {},
 });
 
 test("doctrine renders the supplied KJV, Apocrypha and complete teacher words without rewriting data", () => {
@@ -27,26 +27,43 @@ test("doctrine renders the supplied KJV, Apocrypha and complete teacher words wi
     for (const sense of answer.sense) { assert.ok(html.includes(sense.text)); assert.ok(html.includes(sense.teacher)); }
   }
   for (const link of ["/read/genesis/1?v=1", "/read/2-esdras/6?v=38", "/note/classes/2026/fixture?t=65", "/watch/fixture0002?t=0", "/precepts/fixture-precept", "/cases/fixture-case", "/topics/fixture-topic"]) assert.ok(html.includes(`href="${link}"`), link);
-  assert.ok(html.indexOf(fixture.claim) < html.indexOf("Answer 1"));
+  assert.ok(html.indexOf(fixture.claim) < html.indexOf('id="doctrine-study"'));
+  assert.ok(!/Answer \d+/.test(html));
   assert.ok(html.includes("Watch at 1:05")); assert.ok(html.includes("Watch at 0:00"));
   assert.deepEqual(fixture, before);
+});
+
+test("Markdown-style contents uses section and book links with unique anchors, and omits absent sections", () => {
+  const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
+  assert.ok(html.includes('<nav class="doctrine-toc" aria-label="Table of contents"><h2>Contents</h2>'));
+  assert.ok(!html.includes('<details class="doctrine-toc"'));
+  const contents = html.match(/<nav class="doctrine-toc"[^>]*>(.*?)<\/nav>/s)[1];
+  assert.ok(contents.includes('href="#doctrine-scriptures"'));
+  assert.ok(contents.includes('href="#doctrine-book-0"'));
+  assert.ok(!contents.includes('href="#doctrine-scripture-0"'));
+  for (const [, id] of html.matchAll(/href="#([^"]+)"/g)) assert.ok(html.includes(`id="${id}"`), id);
+  const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(ids.length, new Set(ids).size);
+  const entry = { ...fixture, answers: [], scriptures: [], books: [], related: { precepts: [], cases: [], topics: [] } };
+  assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes('class="doctrine-toc"'));
 });
 
 test("scripture rows preserve KJV and exact class bullets, read markers, times and links", () => {
   const before = structuredClone(fixture);
   const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
-  const scripture = html.slice(html.indexOf("Scriptures against it"), html.indexOf("Books against it"));
+  const scripture = html.slice(html.indexOf('id="doctrine-scriptures"'), html.indexOf('id="doctrine-books"'));
   assert.equal((scripture.match(/class="lawrow"/g) ?? []).length, fixture.scriptures.length);
-  assert.equal((scripture.match(/<li /g) ?? []).length, 2);
+  assert.equal((scripture.match(/<li(?: |>)/g) ?? []).length, 2);
   for (const ref of fixture.scriptures) for (const verse of ref.text) assert.ok(scripture.includes(verse.text));
   assert.ok(scripture.includes('href="/read/job/3?v=17"'));
   assert.ok(scripture.includes(fixture.scriptures[0].points[0].text));
-  assert.ok(scripture.includes(">Fixture explanation class "));
+  assert.ok(scripture.includes(">Fixture explanation class<span"));
   assert.ok(scripture.includes("Read in Fixture reading class"));
-  assert.ok(scripture.includes('href="/note/classes/2026/fixture-scripture?t=821">Watch at 13:41'));
-  assert.ok(scripture.includes('href="/watch/fixture0004?t=3725">Watch at 1:02:05'));
+  assert.ok(scripture.includes('href="/note/classes/2026/fixture-scripture?t=821"'));
+  assert.ok(scripture.includes('href="/watch/fixture0004?t=3725"'));
+  assert.ok(scripture.includes("Watch at 13:41") && scripture.includes("Watch at 1:02:05"));
   assert.ok(!html.includes("undefined") && !html.includes("62:05") && !html.includes('class="hint"></p>'));
-  assert.ok(html.indexOf("Answer 1") < html.indexOf("Scriptures against it"));
+  assert.ok(html.indexOf('id="doctrine-study"') < html.indexOf('id="doctrine-scriptures"'));
   assert.deepEqual(fixture, before);
 });
 
@@ -60,7 +77,7 @@ test("doctrine guards empty arrays and formats teachers and query-bearing note l
   const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry }));
   assert.ok(html.includes("Fixture teacher · Fixture explanation class"));
   assert.ok(html.includes('href="/note/classes/2026/fixture-scripture?source=fixture&amp;t=821#moment"'));
-  assert.ok(html.includes('href="/watch/fixture0002?t=4520">Watch at 1:15:20'));
+  assert.ok(html.includes('href="/watch/fixture0002?t=4520"') && html.includes("Watch at 1:15:20"));
   assert.ok(!html.includes("Related cases") && !html.includes("Related topics"));
   entry.scriptures = [];
   assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes("Scriptures against it"));
@@ -69,13 +86,13 @@ test("doctrine guards empty arrays and formats teachers and query-bearing note l
 test("doctrine books show library pages, class reads and exact cited paragraphs before Related", () => {
   const before = structuredClone(fixture);
   const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
-  const books = html.slice(html.indexOf("Books against it"), html.indexOf("Related precepts"));
+  const books = html.slice(html.indexOf('id="doctrine-books"'), html.indexOf('id="doctrine-related-precepts"'));
   assert.equal((books.match(/class="lawrow"/g) ?? []).length, 2);
   for (const href of ["/books/fixture-book", "/books/fixture-book/p/1-93", "/books/fixture-book/p/2-140", "/read/job/3#v17", "/note/classes/2026/fixture-book?t=2862", "/watch/fixture0006?t=4520"]) assert.ok(books.includes(`href="${href}"`), href);
   for (const text of ["Fixture book author", "1871", "p. 93", "vol. 2, p. 140", "read in 8 classes", "read in 1 class", "Fixture book-reading class", "Fixture citation teacher · Fixture citing class", "Watch at 47:42", "Watch at 1:15:20", fixture.books[1].said.text]) assert.ok(books.includes(text), text);
   assert.match(books, /<h3[^>]*>Fixture cited book<\/h3>/);
   assert.ok(!books.includes("null") && !books.includes("undefined") && !books.includes('class="hint"> · Fixture'));
-  assert.ok(html.indexOf("Scriptures against it") < html.indexOf("Books against it"));
+  assert.ok(html.indexOf('id="doctrine-scriptures"') < html.indexOf('id="doctrine-books"'));
   assert.deepEqual(fixture, before);
 });
 
@@ -91,10 +108,21 @@ test("book lists cap class reads at three, hide empty books, and allow linked ci
   assert.ok(html.includes("Fixture reader · Fixture book class 1") && html.includes("Fixture book class 3") && !html.includes("Fixture book class 4"));
   assert.ok(html.includes('href="/books/fixture-citation">Fixture cited book</a>'));
   assert.ok(html.includes("Fixture citation author"));
-  assert.ok(html.includes('class="hint">Fixture citing class</p>'));
+  assert.ok(html.includes('>Fixture citing class<span aria-hidden="true"> · </span>'));
   assert.ok(html.includes('href="/note/classes/2026/fixture-citation?source=fixture&amp;t=4520#moment"'));
   entry.books = [];
   assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes("Books against it"));
+});
+
+test("book OCR quotes preserve whitespace and misreadings as escaped text, with lazy page viewers", () => {
+  const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
+  const page = fixture.books[0].pages[0];
+  for (const quote of page.quotes) assert.ok(html.includes(renderToStaticMarkup(createElement("span", null, quote.text)).slice(6, -7)));
+  assert.equal((html.match(/See it on the page/g) ?? []).length, 2);
+  assert.ok(!html.includes(page.scan) && !html.includes("<not markup>"));
+  const legacy = structuredClone(fixture);
+  delete legacy.books[0].pages[0].quotes;
+  assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: legacy })).includes("See it on the page"));
 });
 
 test("Doctrine share links return to the list and the entry rather than the Bible", () => {

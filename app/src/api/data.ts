@@ -107,8 +107,10 @@ export type DoctrineRow = { slug: string; name: string; claim: string; refs: num
 export type DoctrineSense = { video: string; ts: string; t: number; teacher: string; text: string; note: string | null };
 export type DoctrineClass = Pick<DoctrineSense, "video" | "ts" | "t" | "note"> & { teacher?: string; title: string; date: string };
 export type DoctrinePoint = DoctrineClass & ({ read: true; text?: never } | { read?: false; text: string });
+export type DoctrineBookQuote = { text: string; highlight: [number, number, number, number][] };
+export type DoctrineBookPage = { vol: number; page: number; url: string; classes: number; reads: DoctrineClass[]; scan?: string | null; quotes?: DoctrineBookQuote[] };
 export type DoctrineBook = { title: string; author: string; year: number | null; book: string | null; url: string | null } & (
-  { pages: { vol: number; page: number; url: string; classes: number; reads: DoctrineClass[] }[]; said?: never }
+  { pages: DoctrineBookPage[]; said?: never }
   | { pages?: never; said: DoctrineClass & { ref: { label: string; url: string | null }; text: string } }
 );
 export type DoctrineRelated = { slug: string; url: string; title?: string; name?: string; label?: string };
