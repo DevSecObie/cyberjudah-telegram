@@ -1,6 +1,8 @@
 {
  "source": "PORTRAITS in app/src/ui/portraits.ts on claude/people-portraits (docs/AVATARS.md), approved portraits",
- "heldBack": {},
+ "heldBack": {
+  "naamah-gen-4-22": "Taken down 2026-10-26: Obie said the portrait (fair, under the Cain's line rule) is wrong. The classes do not describe Naamah (Genesis 4:22); she keeps the lettered avatar until Obie directs how she is shown."
+ },
  "ids": [
   "aaron-exo-4-14",
   "abel-gen-4-2",
@@ -165,7 +167,6 @@
   "miriam-exo-15-20",
   "mordecai-est-2-5",
   "moses-exo-2-10",
-  "naamah-gen-4-22",
   "naphtali-gen-30-8",
   "nebat-1ki-11-26",
   "nehemiah-neh-1-1",
