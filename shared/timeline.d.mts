@@ -1,6 +1,6 @@
 export type TimelineCase = { slug: string; name: string; kind: "judgment" | "blessing" };
 export type TimelineEvent = { id: number; slug: string; title: string; start: number; end: number; row: number; type: "major" | "minor"; approx?: boolean; isFixed?: boolean; cases?: TimelineCase[]; reign?: { kingdom: string; from: number; to: number; approx?: boolean }; portrait?: string; fc?: boolean; btt?: boolean; group?: string; leader?: string };
-export type TimelineSection = { id: string; title: string; sectionTitle: string; subTitle: string; startYear: number; endYear: number; interval: number; color: string; events: TimelineEvent[] };
+export type TimelineSection = { id: string; title: string; sectionTitle: string; subTitle: string; startYear: number; endYear: number; interval: number; color: string; events: TimelineEvent[]; captivity?: string; picture?: string };
 export type TimelineData = { source: string; reigns: string; finalCaptivity?: { age: string; reviewedThrough: string }; sections: TimelineSection[] };
 export const offsetTop: number;
 export const rows: number;

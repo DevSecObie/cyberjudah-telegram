@@ -8,6 +8,7 @@ import {
   calculateLabel, dateMarks, flatten, geometry, hasDetails, linkedEvents, rowToPx, searchEvents,
   type TimelineData, type TimelineEvent, type TimelineSection,
 } from "@shared/timeline.mjs";
+import { byCaptivity, captivityOf, CAPTIVITIES } from "@shared/captivities.mjs";
 import raw from "@/data/timeline.json";
 import { data, type ResolvedRef } from "@/api/data";
 import { Feather } from "@/bible/icons";
@@ -39,7 +40,8 @@ import "@/styles/screens/timeline.css";
  * docs/TIMELINE_PARITY.md is the checklist of their behaviour, item by item.
  */
 const TL = raw as TimelineData;
-const SECTIONS = TL.sections;
+/** The periods ordered by the captivities, each under its captivity (shared/captivities.mjs). */
+const SECTIONS = byCaptivity(TL.sections);
 const ALL = flatten(SECTIONS);
 /** The Final Captivity, the last age (app/scripts/final-captivity): its name and the date its sources were reviewed through. */
 const FINAL_CAPTIVITY = TL.finalCaptivity;
@@ -55,7 +57,8 @@ const PERIOD_PICTURES = new Set(["1", "2", "4", "5", "6", "7", "8", "9", "10", "
 /** An admin's cover or the existing approved period artwork; no image for unapproved periods. */
 function usePeriodPicture(s: TimelineSection) {
   const set = usePhotos().data?.[`period:${s.id}`];
-  return set ?? (PERIOD_PICTURES.has(s.id) ? pictureSrc(`timeline/periods/${s.id}.webp`) : undefined);
+  const id = s.picture ?? s.id; // a piece of a period cut at the captivities shows that period's picture
+  return set ?? (PERIOD_PICTURES.has(id) ? pictureSrc(`timeline/periods/${id}.webp`) : undefined);
 }
 
 /** A period's picture, or its colour where the picture waits on direction. Decorative: the title is beside it. */
@@ -143,6 +146,7 @@ function About() {
       <p>The periods, the events and their years are Bible Strong's Bible Timeline. Only its history is kept here: its descriptions, articles, pictures and prophetic interpretation are not.</p>
       <p>The pictures are ours, painted for CyberJudah under the assembly's depiction brief: each period's scene, and on an event the approved portrait of the person it is about. A period still waiting on direction shows its colour.</p>
       <p>A king's reign, where shown, is from <i>Who's Who in the Bible</i> (Joan Comay and Ronald Brownrigg), its chronology of the kings.</p>
+      <p>The periods from the Exile on are ordered by the captivities, Assyrian, Babylonian, Persian and Mede, Greek, Roman and American, with each one's prophets and main people, as the assembly's captivity packets (written and compiled by Nathanyel Ben Israel, Israel United in Christ) give them. Their dates are, in their own words, "at best approximates".</p>
       <p>An event opens to our case studies on it, with their scripture in the KJV. An event with no case study yet stays on the line, greyed, as Bible Strong shows an event without details.</p>
       {FINAL_CAPTIVITY ? <>
         <h3 className="tl-about__h">{FINAL_CAPTIVITY.age}</h3>
@@ -174,7 +178,25 @@ function SectionCard({ s, direction }: { s: TimelineSection; direction?: "previo
   );
 }
 
-/** TimelineHomeScreen: the periods, each as its card (TimelineItem) over its picture. */
+/**
+ * A captivity's heading: its name and years, then its prophets and the main people of its time,
+ * as the assembly's booklet names them (shared/captivities.mjs). Over its periods on the home
+ * list, and in each of its periods' details.
+ */
+function CaptivityHead({ id, as: H = "h2" }: { id: string; as?: "h2" | "h3" }) {
+  const c = CAPTIVITIES.find((x) => x.id === id);
+  if (!c) return null;
+  return (
+    <section className="tl-captivity" style={{ ["--tl-color" as string]: c.color }}>
+      <H className="tl-captivity__age">{c.age}<span className="tl-captivity__years">{c.years}</span></H>
+      {c.prophets.length ? <p className="tl-captivity__people"><b>Prophets</b> {c.prophets.join(", ")}</p> : null}
+      {c.figures.length ? <p className="tl-captivity__people"><b>In this time</b> {c.figures.join(", ")}</p> : null}
+      {c.note ? <p className="tl-captivity__note">{c.note}</p> : null}
+    </section>
+  );
+}
+
+/** TimelineHomeScreen: the periods, each as its card (TimelineItem) over its picture, under the captivity it falls in. */
 export function Timeline() {
   useBackButton();
   const navigate = useNavigate();
@@ -185,9 +207,10 @@ export function Timeline() {
     <main className="tl-home">
       <Header title="The Bible Timeline" onSearch={() => navigate("/timeline/search")} onMenu={menu} />
       <ol className="tl-items">
-        {SECTIONS.map((s, i) => (
-          <li key={s.id}><Link to={`/timeline/${i}`} className="tl-item" onClick={() => haptic("select")}><Emblem s={s} /><PeriodPicture s={s} className="tl-item__pic" eager={i < 2} /></Link></li>
-        ))}
+        {SECTIONS.map((s, i) => [
+          s.captivity && s.captivity !== SECTIONS[i - 1]?.captivity ? <li key={`captivity:${s.captivity}`} className="tl-captivity-item"><CaptivityHead id={s.captivity} /></li> : null,
+          <li key={s.id}><Link to={`/timeline/${i}`} className="tl-item" onClick={() => haptic("select")}><Emblem s={s} /><PeriodPicture s={s} className="tl-item__pic" eager={i < 2} /></Link></li>,
+        ])}
       </ol>
       {about ? <Panel title="Details" onClose={() => setAbout(false)}><About /></Panel> : null}
     </main>
@@ -330,7 +353,8 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
   return (
     <div className="tl-details">
       <SectionCard s={s} />
-      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
+      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.picture ?? s.id)} />
+      {captivityOf(s) ? <CaptivityHead id={s.captivity!} as="h3" /> : null}
       {withCases.length ? (
         <>
           <h2 className="entity__eyebrow">Case Studies in This Period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
@@ -349,7 +373,8 @@ function AgeGroupedPeriodDetails({ s }: { s: TimelineSection }) {
   return (
     <div className="tl-details">
       <SectionCard s={s} />
-      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
+      <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.picture ?? s.id)} />
+      {captivityOf(s) ? <CaptivityHead id={s.captivity!} as="h3" /> : null}
       <p className="hint">More events are being added to this period as each one is checked against the classes and the sources.</p>
       {[...groups].map(([g, list]) => (
         <section key={g}>
