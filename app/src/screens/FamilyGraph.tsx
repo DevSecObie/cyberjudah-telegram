@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { data, type Person, type PersonIndexRow } from "@/api/data";
 import { Feather, type FeatherName } from "@/bible/icons";
@@ -82,9 +82,11 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
   const [page, setPage] = useState(0);
   const [scene, setScene] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
+  const latestRelationRequestId = useRef(0);
+  useEffect(() => () => { latestRelationRequestId.current += 1; }, []);
   // A new person on the page (a profile opened from the graph) starts the graph again.
   const [root, setRoot] = useState(person.id);
-  if (root !== person.id) { setRoot(person.id); setActive(person); setHistory([]); setPage(0); setScene((n) => n + 1); }
+  if (root !== person.id) { latestRelationRequestId.current += 1; setBusy(null); setRoot(person.id); setActive(person); setHistory([]); setPage(0); setScene((n) => n + 1); }
 
   const prev = history[history.length - 1];
   const previousPosition = prev ? OPPOSITE[prev.position] : undefined;
@@ -98,22 +100,24 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
   if (!relationsOf(person).length) return null;
 
   const walk = async (r: Rel, position: number) => {
-    if (busy) return;
+    const requestId = ++latestRelationRequestId.current;
     haptic("select"); setBusy(r.id);
     try {
       const next = await client.fetchQuery({ queryKey: ["person", r.id], queryFn: () => data.person(r.id), staleTime: Infinity });
+      if (requestId !== latestRelationRequestId.current) return;
       setHistory((h) => next.id === person.id ? [] : [...h, { person: active, via: r, position, page: shownPage }]);
       setActive(next); setPage(0); setScene((n) => n + 1);
     } catch { /* the person did not load: stay where we are */ }
-    finally { setBusy(null); }
+    finally { if (requestId === latestRelationRequestId.current) setBusy(null); }
   };
   const back = () => {
     if (!prev) return;
+    latestRelationRequestId.current += 1; setBusy(null);
     haptic("select");
     setHistory((h) => h.slice(0, -1)); setActive(prev.person); setPage(prev.page); setScene((n) => n + 1);
   };
-  const reset = () => { haptic("select"); setHistory([]); setActive(person); setPage(0); setScene((n) => n + 1); };
-  const turn = (p: number) => { haptic("select"); setPage(p); setScene((n) => n + 1); };
+  const reset = () => { latestRelationRequestId.current += 1; setBusy(null); haptic("select"); setHistory([]); setActive(person); setPage(0); setScene((n) => n + 1); };
+  const turn = (p: number) => { if (p === shownPage) return; latestRelationRequestId.current += 1; setBusy(null); haptic("select"); setPage(p); setScene((n) => n + 1); };
   const elsewhere = active.id !== person.id;
   const prevKind: AvatarKind = prev ? (avatarKind(prev.person.type) !== "other" ? avatarKind(prev.person.type) : kindOf(prev.person.id)) : "other";
 
