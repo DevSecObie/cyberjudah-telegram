@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
-import { compressVerses, data, fmtDate, type ConcordanceBook, type DoctrineEntry, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
+import { compressVerses, data, fmtDate, type ConcordanceBook, type DoctrineBookPage, type DoctrineEntry, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
+import { DoctrinePageViewer } from "@/ui/DoctrinePageViewer";
 import { Feather } from "@/bible/icons";
 import { PALETTES } from "@/bible/theme";
 import { useEndpointRelations, type EntryEndpoint } from "@/lib/relations";
@@ -164,6 +165,17 @@ function DoctrineWatch({ moment }: { moment: Pick<DoctrineEntry["answers"][numbe
   return <Link className="chip" to={to}>Watch at {moment.ts}</Link>;
 }
 
+function DoctrineBookQuotes({ page, title }: { page: DoctrineBookPage; title: string }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    {page.quotes?.map((quote, i) => <div key={i}>
+      <blockquote className="verse-quote" style={{ whiteSpace: "pre-wrap" }}>{quote.text}</blockquote>
+      <button type="button" className="btn btn--sm" onClick={() => setOpen(true)}>See it on the page</button>
+    </div>)}
+    {open ? <DoctrinePageViewer page={page} title={title} onClose={() => setOpen(false)} /> : null}
+  </>;
+}
+
 export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
   return <>
     <Section title="False claim"><p style={{ whiteSpace: "pre-wrap" }}>{entry.claim}</p></Section>
@@ -190,6 +202,7 @@ export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
       {book.pages ? book.pages.map((page, n) => <div key={n} style={{ marginBlock: 8 }}>
         <Link to={toApp(page.url)}>{page.vol === 1 ? `p. ${page.page}` : `vol. ${page.vol}, p. ${page.page}`}</Link>
         <span className="hint"> · read in {page.classes} {page.classes === 1 ? "class" : "classes"}</span>
+        <DoctrineBookQuotes page={page} title={book.title} />
         {page.reads.length ? <ul style={{ margin: "8px 0 0", paddingInlineStart: 20 }}>{page.reads.slice(0, 3).map((read, k) => <li key={k} style={{ marginBlock: 8 }}>
           <span className="hint">{read.teacher ? `${read.teacher} · ` : null}{read.title}</span>{" "}<DoctrineWatch moment={read} />
         </li>)}</ul> : null}

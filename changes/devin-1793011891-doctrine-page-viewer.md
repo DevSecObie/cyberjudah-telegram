@@ -1,0 +1,1 @@
+- Show book OCR quotes exactly as supplied on False Doctrines pages, with a full-screen scan viewer, scaled yellow highlights, pinch zoom, panning and an Open in the book link. Keep the quotes available when the scan cannot load.

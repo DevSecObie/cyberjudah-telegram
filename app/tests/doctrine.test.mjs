@@ -16,7 +16,7 @@ const library = {};
 const wrap = tag => ({ children, title }) => createElement(tag, null, title, children);
 runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, {
   exports: library, URL,
-  require: name => name === "react/jsx-runtime" ? require(name) : name === "react-router" ? { Link: ({ to, children, ...rest }) => createElement("a", { ...rest, href: to }, children) } : name === "@/ui/ui" ? { Section: wrap("section"), List: wrap("div"), Chips: wrap("div") } : name === "@shared/links.mjs" ? { toAppPath } : {},
+  require: name => name === "react/jsx-runtime" || name === "react" ? require(name) : name === "react-router" ? { Link: ({ to, children, ...rest }) => createElement("a", { ...rest, href: to }, children) } : name === "@/ui/ui" ? { Section: wrap("section"), List: wrap("div"), Chips: wrap("div") } : name === "@shared/links.mjs" ? { toAppPath } : {},
 });
 
 test("doctrine renders the supplied KJV, Apocrypha and complete teacher words without rewriting data", () => {
@@ -95,6 +95,17 @@ test("book lists cap class reads at three, hide empty books, and allow linked ci
   assert.ok(html.includes('href="/note/classes/2026/fixture-citation?source=fixture&amp;t=4520#moment"'));
   entry.books = [];
   assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes("Books against it"));
+});
+
+test("book OCR quotes preserve whitespace and misreadings as escaped text, with lazy page viewers", () => {
+  const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
+  const page = fixture.books[0].pages[0];
+  for (const quote of page.quotes) assert.ok(html.includes(renderToStaticMarkup(createElement("span", null, quote.text)).slice(6, -7)));
+  assert.equal((html.match(/See it on the page/g) ?? []).length, 2);
+  assert.ok(!html.includes(page.scan) && !html.includes("<not markup>"));
+  const legacy = structuredClone(fixture);
+  delete legacy.books[0].pages[0].quotes;
+  assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: legacy })).includes("See it on the page"));
 });
 
 test("Doctrine share links return to the list and the entry rather than the Bible", () => {

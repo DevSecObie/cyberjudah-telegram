@@ -59,7 +59,7 @@ test("False Doctrines opens from More, searches A–Z and renders the fixture wi
   await expect(books.getByRole("link", { name: "Watch at 47:42", exact: true })).toHaveAttribute("href", "/note/classes/2026/fixture-book?t=2862");
   await expect(books.getByRole("heading", { name: "Fixture cited book", exact: true })).toBeVisible();
   await expect(books.getByRole("link", { name: "Fixture cited book", exact: true })).toHaveCount(0);
-  await expect(books.locator("blockquote")).toHaveJSProperty("textContent", fixture.books[1].said!.text);
+  await expect(books.locator("blockquote").filter({ hasText: fixture.books[1].said!.text })).toHaveJSProperty("textContent", fixture.books[1].said!.text);
   await expect(books.getByRole("link", { name: "Watch at 1:15:20", exact: true })).toHaveAttribute("href", "/watch/fixture0006?t=4520");
   await expect(books.getByRole("link", { name: "Job 3:17", exact: true })).toHaveAttribute("href", "/read/job/3#v17");
   for (const kind of ["precepts", "cases", "topics"] as const) await expect(page.locator(`a.chip[href="${fixture.related[kind][0].url}"]`)).toBeVisible();
