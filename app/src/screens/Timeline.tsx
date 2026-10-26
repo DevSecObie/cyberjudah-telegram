@@ -8,7 +8,7 @@ import {
   calculateLabel, dateMarks, flatten, geometry, hasDetails, linkedEvents, rowToPx, searchEvents,
   type TimelineData, type TimelineEvent, type TimelineSection,
 } from "@shared/timeline.mjs";
-import { byCaptivity, captivityOf, CAPTIVITIES } from "@shared/captivities.mjs";
+import { byCaptivity, captivityOf } from "@shared/captivities.mjs";
 import raw from "@/data/timeline.json";
 import { data, type ResolvedRef } from "@/api/data";
 import { Feather } from "@/bible/icons";
@@ -179,24 +179,27 @@ function SectionCard({ s, direction }: { s: TimelineSection; direction?: "previo
 }
 
 /**
- * A captivity's heading: its name and years, then its prophets and the main people of its time,
- * as the assembly's booklet names them (shared/captivities.mjs). Over its periods on the home
- * list, and in each of its periods' details.
+ * A captivity's people in a period's details, as the details list them (the booklet's prophets and
+ * the main people of its time, shared/captivities.mjs). A name with its own event on the timeline
+ * opens it, as the case studies' events do.
  */
-function CaptivityHead({ id, as: H = "h2" }: { id: string; as?: "h2" | "h3" }) {
-  const c = CAPTIVITIES.find((x) => x.id === id);
+function CaptivityPeople({ s }: { s: TimelineSection }) {
+  const c = captivityOf(s);
   if (!c) return null;
+  const row = (name: string) => {
+    const e = ALL.find((x) => x.title === name && hasDetails(x)) ?? ALL.find((x) => x.title === name);
+    return <li key={name}>{e ? <Link to={`/timeline/event/${e.slug}`} onClick={() => haptic("select")}><b>{name}</b><span>{calculateLabel(e.start, e.end)}</span></Link> : <span className="tl-details__name"><b>{name}</b></span>}</li>;
+  };
   return (
-    <section className="tl-captivity" style={{ ["--tl-color" as string]: c.color }}>
-      <H className="tl-captivity__age">{c.age}<span className="tl-captivity__years">{c.years}</span></H>
-      {c.prophets.length ? <p className="tl-captivity__people"><b>Prophets</b> {c.prophets.join(", ")}</p> : null}
-      {c.figures.length ? <p className="tl-captivity__people"><b>In this time</b> {c.figures.join(", ")}</p> : null}
-      {c.note ? <p className="tl-captivity__note">{c.note}</p> : null}
-    </section>
+    <>
+      <p className="hint">{c.age}, {c.years}.{c.note ? ` ${c.note}` : ""}</p>
+      {c.prophets.length ? <><h2 className="entity__eyebrow">Prophets<span> · {c.prophets.length}</span></h2><ul className="tl-details__list">{c.prophets.map(row)}</ul></> : null}
+      {c.figures.length ? <><h2 className="entity__eyebrow">In This Time<span> · {c.figures.length}</span></h2><ul className="tl-details__list">{c.figures.map(row)}</ul></> : null}
+    </>
   );
 }
 
-/** TimelineHomeScreen: the periods, each as its card (TimelineItem) over its picture, under the captivity it falls in. */
+/** TimelineHomeScreen: the periods, each as its card (TimelineItem) over its picture; a captivity's periods carry it as their age. */
 export function Timeline() {
   useBackButton();
   const navigate = useNavigate();
@@ -207,10 +210,9 @@ export function Timeline() {
     <main className="tl-home">
       <Header title="The Bible Timeline" onSearch={() => navigate("/timeline/search")} onMenu={menu} />
       <ol className="tl-items">
-        {SECTIONS.map((s, i) => [
-          s.captivity && s.captivity !== SECTIONS[i - 1]?.captivity ? <li key={`captivity:${s.captivity}`} className="tl-captivity-item"><CaptivityHead id={s.captivity} /></li> : null,
-          <li key={s.id}><Link to={`/timeline/${i}`} className="tl-item" onClick={() => haptic("select")}><Emblem s={s} /><PeriodPicture s={s} className="tl-item__pic" eager={i < 2} /></Link></li>,
-        ])}
+        {SECTIONS.map((s, i) => (
+          <li key={s.id}><Link to={`/timeline/${i}`} className="tl-item" onClick={() => haptic("select")}><Emblem s={s} /><PeriodPicture s={s} className="tl-item__pic" eager={i < 2} /></Link></li>
+        ))}
       </ol>
       {about ? <Panel title="Details" onClose={() => setAbout(false)}><About /></Panel> : null}
     </main>
@@ -354,7 +356,7 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
     <div className="tl-details">
       <SectionCard s={s} />
       <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.picture ?? s.id)} />
-      {captivityOf(s) ? <CaptivityHead id={s.captivity!} as="h3" /> : null}
+      <CaptivityPeople s={s} />
       {withCases.length ? (
         <>
           <h2 className="entity__eyebrow">Case Studies in This Period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
@@ -374,7 +376,7 @@ function AgeGroupedPeriodDetails({ s }: { s: TimelineSection }) {
     <div className="tl-details">
       <SectionCard s={s} />
       <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.picture ?? s.id)} />
-      {captivityOf(s) ? <CaptivityHead id={s.captivity!} as="h3" /> : null}
+      <CaptivityPeople s={s} />
       <p className="hint">More events are being added to this period as each one is checked against the classes and the sources.</p>
       {[...groups].map(([g, list]) => (
         <section key={g}>
