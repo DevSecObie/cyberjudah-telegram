@@ -47,7 +47,10 @@ for (const theme of ["default", "dark"]) {
       await expect(strip.locator("svg")).toHaveAttribute("width", "16");
     }
     for (const row of await drawer.locator(".mcard__row").all()) {
-      await expect(row).toHaveCSS("height", "48px");
+      if (await row.getAttribute("href") === "/doctrine") {
+        await expect(row.locator(".mcard__description")).toHaveText("False doctrines answered from scripture and the classes");
+        expect((await row.boundingBox())!.height).toBeGreaterThan(48);
+      } else await expect(row).toHaveCSS("height", "48px");
       await expect(row).toHaveCSS("font-size", "15px");
       await expect(row.locator(".mcard__icon")).toHaveCSS("width", "36px");
     }
