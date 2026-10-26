@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Adds The Final Captivity (README.md here) to the Timeline: its periods go after the
- * Bible periods in app/src/data/timeline.json as Bible Strong-shaped periods (bars, rows, colour),
+ * Reformation in app/src/data/timeline.json as Bible Strong-shaped periods (bars, rows, colour),
  * and every event's full content (account, teaching, scriptures, sources) goes to
  * app/src/data/final-captivity.json, which the event sheet loads only when one is opened.
  *

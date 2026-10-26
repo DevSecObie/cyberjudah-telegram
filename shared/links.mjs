@@ -12,7 +12,7 @@
  */
 
 const SECTIONS = new Set([
-  "plan", "resources",
+  "plan", "resources", "doctrine",
   "about", "api", "ask", "bible", "captains", "cases", "classes", "concordance", "dictionary", "downloads",
   "encyclopedia", "history", "law", "lexicon", "people", "person", "precepts", "privacy", "search", "settings", "shows", "study", "tags", "teachings", "terms", "timeline", "topics", "truth-shall-make-you-free",
 ]);
@@ -78,7 +78,7 @@ export function sitePathOf(pathname) {
   const parts = String(pathname).split("/").filter(Boolean);
   if (parts[0] === "read" && parts.length === 3) return `/bible/${parts[1]}/${parts[2]}`;
   if (parts[0] === "note" && parts.length > 1) return `/${parts.slice(1).join("/")}`;
-  if (["bible", "search", "classes", "law", "precepts", "cases", "topics", "encyclopedia", "glossary", "concordance", "study", "about"].includes(parts[0])) return `/${parts.join("/")}`;
+  if (["bible", "search", "classes", "law", "precepts", "doctrine", "cases", "topics", "encyclopedia", "glossary", "concordance", "study", "about"].includes(parts[0])) return `/${parts.join("/")}`;
   return "/";
 }
 

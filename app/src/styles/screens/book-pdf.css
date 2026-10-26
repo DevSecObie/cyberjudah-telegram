@@ -1,0 +1,11 @@
+.bookpdf { min-width: 0; }
+.bookpdf__controls, .bookpdf__zoom, .bookpdf__volume { display: flex; align-items: center; justify-content: center; gap: 8px; margin-block: 8px; }
+.bookpdf__controls form { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; }
+.bookpdf input, .bookpdf select { color: var(--text-1); background: var(--surface-1); border: 1px solid var(--hairline); border-radius: 6px; min-height: 44px; font: inherit; }
+.bookpdf input { width: 4.5em; max-width: 20vw; padding: 4px; }
+.bookpdf select { min-width: 0; max-width: 75%; }
+.bookpdf__zoom .btn { min-width: 44px; min-height: 44px; }
+.bookpdf__zoom output { font-variant-numeric: tabular-nums; min-width: 3.5em; text-align: center; }
+.bookpdf__viewport { overflow: auto; width: 100%; height: max(240px, calc(var(--tg-viewport-stable-height, 100dvh) - 310px)); background: var(--surface-2); border: 1px solid var(--hairline); border-radius: 8px; touch-action: none; overscroll-behavior: contain; }
+.bookpdf__viewport canvas { display: block; margin: 8px; background: white; }
+:root[data-theme="dark"] .bookpdf__viewport canvas { filter: invert(.9) hue-rotate(180deg); }

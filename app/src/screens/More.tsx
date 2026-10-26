@@ -26,6 +26,7 @@ const STUDY: [string, string, string, IconName][] = [
 const LAW: [string, string, string, IconName][] = [
   ["/law", "The Law", "The handbook, every law with its scripture", "law"],
   ["/precepts", "Precepts", "Every subject scripture speaks to, A to Z", "quote"],
+  ["/doctrine", "False Doctrines", "False doctrines answered from scripture and the classes", "quote"],
   ["/cases", "Case studies", "Judgments, and those who kept the law and were blessed", "folder"],
   ["/timeline", "Bible timeline", "The periods and events by year, with the case studies on them", "clock"],
 ];
@@ -35,14 +36,14 @@ export function More() {
   return <Screen title="More"><MoreBody /></Screen>;
 }
 
-type Item = { icon: IconName; label: string; color: string; colored?: boolean; href?: string; onClick?: () => void; dot?: boolean; a11y?: string };
+type Item = { icon: IconName; label: string; description?: string; color: string; colored?: boolean; href?: string; onClick?: () => void; dot?: boolean; a11y?: string };
 /** Bible Strong's SectionCard: a rounded card with a small grey heading row and its links. */
 function Card({ icon, title, items, headingWeight }: { icon: IconName; title: string; items: (Item | null)[]; headingWeight?: 400 | 700 }) {
   return (
     <section className="mcard">
       <h2 className="mcard__head" style={{ fontWeight: headingWeight }}><Icon name={icon} size={16} />{title}</h2>
       {items.filter((i): i is Item => !!i).map((i) => {
-        const inner = <><span className="mcard__icon" style={{ color: i.color, background: `color-mix(in srgb, ${i.color} 12%, transparent)` }}><Icon name={i.icon} size={20} />{i.dot ? <NotificationDot size={12} style={{ top: -3, right: -3 }} /> : null}</span><span className="mcard__label" style={i.colored ? { color: i.color } : undefined}>{i.label}</span><span className="mcard__chev"><Icon name="chevron" size={20} /></span></>;
+        const inner = <><span className="mcard__icon" style={{ color: i.color, background: `color-mix(in srgb, ${i.color} 12%, transparent)` }}><Icon name={i.icon} size={20} />{i.dot ? <NotificationDot size={12} style={{ top: -3, right: -3 }} /> : null}</span><span className="mcard__label" style={i.colored ? { color: i.color } : undefined}>{i.label}{i.description ? <small className="mcard__description">{i.description}</small> : null}</span><span className="mcard__chev"><Icon name="chevron" size={20} /></span></>;
         return i.href
           ? <Link key={i.label} className="mcard__row" to={i.href} aria-label={i.a11y} onClick={() => haptic("select")}>{inner}</Link>
           : <button key={i.label} type="button" className="mcard__row" onClick={() => { haptic("select"); i.onClick?.(); }}>{inner}</button>;
@@ -82,7 +83,7 @@ export function MoreBody() {
         { icon: "play", label: "Classes", color: C.red, colored: true, href: "/classes" },
         ...STUDY.map(([href, label, , icon], k) => ({ href, label, icon, colored: true, color: href === "/lexicon" ? C.blue : href === "/dictionary" ? C.amber : [C.blue, C.violet, C.amber, C.green, C.rose, C.teal, C.violet, C.slate][k % 8] })),
       ]} />
-      <Card icon="law" title="The Law" items={LAW.map(([href, label, , icon], k) => ({ href, label, icon, color: [C.amber, C.teal, C.slate][k % 3] }))} />
+      <Card icon="law" title="The Law" items={LAW.map(([href, label, description, icon], k) => ({ href, label, icon, description: href === "/doctrine" ? description : undefined, color: [C.amber, C.teal, C.teal, C.slate, C.amber][k] }))} />
       <Card icon="gear" title="Settings" items={[
         { icon: "gear", label: "Settings", color: C.slate, href: "/settings" },
         { icon: "download", label: "Downloads", color: C.green, href: "/resources", dot: hasUpdates, a11y: hasUpdates ? "Downloads, updates available" : undefined },
