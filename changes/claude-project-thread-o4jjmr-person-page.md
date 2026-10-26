@@ -1,0 +1,1 @@
+- A person's page now opens with what the classes taught and the King James verses that name them; their family and related case studies come after.

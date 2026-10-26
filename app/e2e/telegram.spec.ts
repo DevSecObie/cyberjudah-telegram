@@ -1117,6 +1117,19 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
   });
 }
 
+test("People: the classes that read of a person are listed, and one opens its note", async ({ page }) => {
+  await page.route("**/api/people/abraham-gen-11-26.json", async (r) => {
+    const body = await (await r.fetch()).json();
+    body.classes = [{ title: "Who Is Abraham", url: "/classes/2026/2026-07-18-who-is-abraham", kind: "class", collection: "", date: "2026-07-18", verse: "Genesis 12:1", verseUrl: "/bible/genesis/12#v1" }];
+    await r.fulfill({ json: body });
+  });
+  await page.goto(`/person/abraham-gen-11-26${LAUNCH}`);
+  const list = page.getByRole("region", { name: "Classes that read of Abraham" });
+  await expect(list).toContainText("Genesis 12:1");
+  await list.getByRole("link", { name: /Who Is Abraham/ }).click();
+  await expect(page).toHaveURL(/\/note\/classes\/2026\/2026-07-18-who-is-abraham/);
+});
+
 test("People: a Strong's number opens its word study, a class card opens the class, a person who does not load says so", async ({ page }) => {
   await page.goto(`/person/abraham-gen-11-26${LAUNCH}`);
   await page.locator(".entity__code", { hasText: "H87" }).click();
