@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
-import entries from '../../data/easton.json';
 import provenance from '../../data/provenance.json';
-import { lookup } from '../dictionary';
+import { all as entries, lookup } from '../dictionary';
 import { type App, type Ctx, cmp, cursor, encodeCursor, invalid, language, limit, missing, paragraphs, readChapter, verseKey } from './core';
 
 export const dictionaries = new Hono<App>();

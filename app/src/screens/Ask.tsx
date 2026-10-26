@@ -681,7 +681,7 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
             <p className="credits__why">Telegram (and the app store, when you buy Stars) keeps a share of each Star, so $1 of balance costs about {perDollar} Stars. Your answers are charged only what they cost; the balance a Star adds is kept a little under what CyberJudah receives for it, in case the Star's payout falls.</p>
             <label className="credits__remind">
               <input type="checkbox" checked={remind} disabled={busy === "remind"} onChange={(e) => void toggleRemind(e.target.checked)} />
-              <span><b>Remind me to top up before the Sabbath and feast days</b><small>A Telegram message at midday the day before, only if your balance is under $1. Top-ups pause from full dark the evening before until full dark at the day's end.</small></span>
+              <span><b>Remind me to top up before the Sabbath and feast days</b><small>A Telegram message at midday the day before, only if your balance is under $1. Top-ups pause from sunset the evening before until full dark at the day's end.</small></span>
             </label>
           </>
         ) : null}

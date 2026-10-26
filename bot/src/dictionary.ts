@@ -1,16 +1,19 @@
 import { Hono } from "hono";
 
 import entries from "../data/easton.json";
+import withheld from "../data/dictionary-withheld.json";
 // data/easton.json is fetched by scripts/fetch-dictionary.mjs (from the cyberjudah repo) before build.
 
 /**
- * Easton's Bible Dictionary (1897, public domain; provenance in data/provenance.json): 3,963
- * entries, served a page at a time so the app never downloads the whole book. Lookup is by
+ * Easton's Bible Dictionary (1897, public domain; provenance in data/provenance.json), less the
+ * entries in data/dictionary-withheld.json that teach against the KJV and the classes, served a page at a time so the app never downloads the whole book. Lookup is by
  * term prefix first, then substring, then a word inside a definition, so tapping a word in
  * the reader finds its entry.
  */
 type Entry = { slug: string; term: string; definitions: string[] };
-const all = entries as Entry[];
+const left = new Set(withheld.terms.map((t) => t.term));
+/** Every entry the app serves: Easton's without the withheld ones. Ask and the feed read this too. */
+export const all = (entries as Entry[]).filter((e) => !left.has(e.term));
 const byTerm = new Map(all.map((e) => [e.term.toLowerCase(), e]));
 
 /** The entry a word in the text most likely means: exact, then singular, then prefix. */

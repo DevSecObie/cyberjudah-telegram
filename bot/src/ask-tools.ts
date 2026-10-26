@@ -6,8 +6,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { Env, Exec } from "./env";
 import type { Passage } from "./ai.mjs";
 import { dataJson } from "./data";
-import { lookup as eastonLookup } from "./dictionary";
-import easton from "../data/easton.json";
+import { all as easton, lookup as eastonLookup } from "./dictionary";
 import timeline from "../../app/src/data/timeline.json";
 import finalCaptivity from "../../app/src/data/final-captivity.json";
 
@@ -107,7 +106,7 @@ const lookUpWord: Tool = async (env, input, ctx, emit, line, add, resources = {}
     const s = await strongs<StrongsDefinition>(`entry/${num}`, `/api/strongs/${num}.json`);
     if (s) out.push(line(`Strong's ${s.number} (${s.language}) ${s.lemma} · ${s.xlit}${s.pron ? ` (${s.pron})` : ""}`, `${s.def}${s.derivation ? ` Derivation: ${s.derivation}` : ""}${s.kjv ? ` In the KJV: ${s.kjv}` : ""}`, strongsLink(num)));
   } else {
-    const e = eastonLookup(word) ?? (easton as EastonEntry[]).find((x) => norm(x.term) === norm(word)) ?? null;
+    const e = eastonLookup(word) ?? (easton satisfies EastonEntry[]).find((x) => norm(x.term) === norm(word)) ?? null;
     if (e) out.push(line(`Easton's Bible Dictionary: ${e.term}`, e.definitions.join(" ").slice(0, 2400), `/dictionary/${e.slug}`));
     const idx = await strongs<StrongsRow[]>("index", "/api/strongs/index.json");
     const w = norm(word);

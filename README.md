@@ -68,8 +68,9 @@ top-up. Top-ups of $1, $5 and $20 are sold in Telegram Stars (`bot/src/billing.t
 costs `ceil(dollars / ASK_USD_PER_STAR)` Stars and adds exactly what those Stars pay out.
 Admins (`ADMIN_IDS`) are not charged; `/api/admin/usage` shows each day's cost and charges.
 
-No top-up is sold from full dark ("no blue in the sky": the sun 18° below the horizon) on the
-evening before a Sabbath, feast day or New Moon to full dark at its end, in the reader's own
+No top-up is sold from sunset on the evening before a Sabbath, feast day or New Moon (when the
+day begins, "when the sun goes down") to full dark ("no blue in the sky": the sun 18° below the
+horizon) at its end, in the reader's own
 time zone (`shared/holy-days.mjs`; the zone's place comes from the tz database,
 `shared/zone-coords.json`, built by `bot/scripts/zone-coords.mjs`). A balance already held can
 be used. The feast days and New Moons are the IUIC calendar's, in `shared/holy-days.json`; the

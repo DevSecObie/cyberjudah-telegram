@@ -204,6 +204,10 @@ test('Easton catalog, directory, lookup, batches and passage discovery are all o
   await request('/v1/dictionaries/easton/en/verses/43-1-1/entries', Dictionary.DictionaryPassageAnchorsResponseDto);
   const { json: discovery } = await request('/v1/dictionaries/verses/43-1-1/entries?language=en', Dictionary.DictionaryPassageDiscoveryResponseDto);
   assert.ok(discovery.entries.length > 0); assert.ok(discovery.entries.every((e: any) => e.evidenceKind === 'verse-phrase'));
+  // Entries that teach against the KJV and the classes (bot/data/dictionary-withheld.json) are never served.
+  for (const word of ['Trinity', 'Holy%20Ghost']) await request(`/v1/dictionaries/easton/en/entries/${word}`, Problems.ResourceNotFoundProblem, { status: 404 });
+  const { json: batch } = await request('/v1/dictionaries/easton/en/entries/batch?words=Trinity,Jew,God', Dictionary.DictionaryEntriesBatchResponseDto);
+  assert.deepEqual(batch.entries.map((e: any) => e.word), ['God']);
 });
 
 test('Nave routes map our topic threads, including exact verse associations', async () => {

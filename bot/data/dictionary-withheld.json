@@ -1,0 +1,15 @@
+{
+  "about": "Easton's entries left out of the app because they teach against the King James Bible with the Apocrypha or the IUIC classes (owner's direction, 2026-10-26). The reasons and the verses or classes are in the doctrine audit.",
+  "terms": [
+    { "term": "Sabbath", "why": "Says the first day of the week is now the Sabbath (Exodus 20:10; 31:16)." },
+    { "term": "Lord's day", "why": "Reads Revelation 1:10 as the first day of the week." },
+    { "term": "Trinity", "why": "Teaches the Trinity, which the classes reject." },
+    { "term": "Holy Ghost", "why": "\"The third Person of the adorable Trinity.\"" },
+    { "term": "Son of God", "why": "Teaches the Trinity and a sonship of equality, against the classes." },
+    { "term": "Jew", "why": "Reads today's Jews as Israel (Revelation 2:9; 3:9)." },
+    { "term": "Baptism, Christian", "why": "Church doctrine of the old and new dispensations and infant membership." },
+    { "term": "Covenant", "why": "Says the covenant \"is abrogated under the gospel\"." },
+    { "term": "Enmity", "why": "Says the law was abrogated (\"the abrogation of the Mosaic institutes\")." },
+    { "term": "Hagar", "why": "Reads the law as bondage and Sarah as \"the Christian church\"." }
+  ]
+}

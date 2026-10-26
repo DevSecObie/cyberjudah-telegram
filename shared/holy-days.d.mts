@@ -12,6 +12,8 @@ export function localHour(ms: number, tz: unknown): number;
 export function addDays(date: string, n: number): string;
 export function fullDark(date: string, lat: number, lon: number, deg?: number): { at: number; deepest: boolean };
 export function fullDarkIn(date: string, tz: unknown): number;
+export const SUNSET_DEG: number;
+export function sunsetIn(date: string, tz: unknown): number;
 export function holyDay(date: string, days?: ListedDay[]): { kind: HolyKind; name: string } | null;
 export function topupPause(now: number, tz: unknown, days?: ListedDay[]): Pause | null;
 export function pauseDay(p: Pause): string;
