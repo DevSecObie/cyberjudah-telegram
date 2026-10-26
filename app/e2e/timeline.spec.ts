@@ -220,7 +220,8 @@ test("search keeps its words: in the address, and on coming back from an event",
 test("The Final Captivity: a period's events by category, and an event's history, teaching, sources and where they differ", async ({ page }) => {
   const data = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8"));
   const index = data.sections.findIndex((s: { id: string }) => s.id === "fc-house-of-bondage");
-  expect(index).toBeGreaterThan(11);
+  // After every Bible Strong period.
+  expect(index).toBeGreaterThanOrEqual(data.sections.filter((s: { id: string }) => !String(s.id).startsWith("fc-")).length);
   await page.goto("/timeline/event/kimpa-vita-1706");
   await expect(page.locator(".tl-event__title")).toHaveText("Kimpa Vita burned in Kongo");
   await expect(page.getByRole("region", { name: "Summary" })).toBeVisible();

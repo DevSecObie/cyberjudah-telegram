@@ -84,6 +84,10 @@ export function fullDark(date, lat, lon, deg = FULL_DARK_DEG) {
 }
 /** Full dark on the evening of a local date in a zone. */
 export const fullDarkIn = (date, tz) => { const [lat, lon] = coordsOf(tz); return fullDark(date, lat, lon).at; };
+/** How far below the horizon the sun's centre is at sunset: its half-width and the air's bending of its light. */
+export const SUNSET_DEG = 0.833;
+/** Sunset on the evening of a local date in a zone: when the classes say a holy day begins ("when the sun goes down"). */
+export const sunsetIn = (date, tz) => { const [lat, lon] = coordsOf(tz); return fullDark(date, lat, lon, SUNSET_DEG).at; };
 
 /** What a daytime date is: the weekly Sabbath, a listed feast day or New Moon, or nothing. */
 export function holyDay(date, days = HOLY_DAYS) {
@@ -94,8 +98,8 @@ export function holyDay(date, days = HOLY_DAYS) {
 
 /**
  * Whether top-ups are paused now for a reader in this zone, and until when. A holy day's pause
- * runs from full dark on the evening before it to full dark on its own evening; days that follow
- * one another (a feast day before the Sabbath) run on as one pause.
+ * runs from sunset on the evening before it, when the day begins, to full dark on its own evening;
+ * days that follow one another (a feast day before the Sabbath) run on as one pause.
  */
 export function topupPause(now, tz, days = HOLY_DAYS) {
   const zone = zoneOf(tz);
@@ -103,7 +107,7 @@ export function topupPause(now, tz, days = HOLY_DAYS) {
   for (const date of [addDays(today, -1), today, addDays(today, 1)]) {
     const h = holyDay(date, days);
     if (!h) continue;
-    const from = fullDarkIn(addDays(date, -1), zone);
+    const from = sunsetIn(addDays(date, -1), zone);
     let until = fullDarkIn(date, zone);
     if (now < from || now >= until) continue;
     for (let next = addDays(date, 1); holyDay(next, days); next = addDays(next, 1)) until = fullDarkIn(next, zone);

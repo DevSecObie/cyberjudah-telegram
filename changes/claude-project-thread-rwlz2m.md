@@ -1,0 +1,4 @@
+- Dictionary: Easton's entries that teach against the King James Bible and the classes (a Sunday Sabbath, the Trinity, today's Jews as Israel and others) are left out of the Dictionary screen and Ask's word lookup.
+- Timeline: "Ham's Sin and Curse" now reads "Ham's Sin; Canaan Cursed" (Genesis 9:25); the Seven Trumpets and Daniel 2, 8 and 11 prophecy bars, the Immanuel bar, the second date for Judah's fall, the Roman calendar days in titles, and the Middle Ages and Reformation periods are taken out.
+- Top-ups now pause from sunset on the evening before a Sabbath, feast day or New Moon, when the day begins, instead of from full dark.
+- Ask no longer reads ccel.org or sacred-texts.com as outside sources, and may read the sites the classes use: Bible Hub and Blue Letter Bible (for Strong's and the lexicons, never another translation), Britannica, Merriam-Webster, Dictionary.com and the Jewish Virtual Library.
