@@ -1,0 +1,1 @@
+- The Apocrypha opens again in the Bible Strong views: 157 Apocrypha chapters had stopped loading after the Apocrypha text was updated.
