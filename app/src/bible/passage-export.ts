@@ -1,4 +1,5 @@
 import type { Highlight, Link, Note, Tag } from "./store";
+import { noteVerses } from "./note-records.ts";
 import type { Relation } from "@/lib/relations";
 import type { Annotation } from "@/studies/storage";
 
@@ -23,7 +24,7 @@ export function passageExport(reference: string, chapters: ExportChapter[], opti
     const inScope = (key: string) => key.split("/").some(v => included.has(+v));
     const noteRef = (key: string) => `${ref}:${key.replaceAll("/", ",")}${key.split("/").some(v => !included.has(+v)) ? " (also covers verses outside this selection)" : ""}`;
     if (options.text) section("Scripture", c.verses.map(v => `${v.verse}. ${v.text}`));
-    if (options.notes) section("Notes", Object.entries(c.notes).filter(([key]) => inScope(key)).map(([key, n]) => `${noteRef(key)} — ${n.title}${tagged(n.tags)}\n${n.description}`));
+    if (options.notes) section("Notes", Object.entries(c.notes).filter(([key, n]) => noteVerses(key, n).some(v => included.has(v))).map(([key, n]) => `${noteRef(noteVerses(key, n).join("/"))} — ${n.title}${tagged(n.tags)}\n${n.description}`));
     if (options.links) section("Links", Object.entries(c.links).filter(([key]) => inScope(key)).map(([key, l]) => `${noteRef(key)} — ${l.title}${tagged(l.tags)}\n${l.url}`));
     if (options.relations) section("Your precepts", c.relations.filter(r => !seenRelations.has(r.id) && r.endpoints.some(e => e.type === "verse" ? e.verseKeys.some(k => keys.has(k)) : e.type === "note" && keys.has(e.verseKey))).map(r => {
       seenRelations.add(r.id);

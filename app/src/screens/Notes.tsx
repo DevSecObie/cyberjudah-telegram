@@ -4,9 +4,9 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { data } from "@/api/data";
 import { Feather } from "@/bible/icons";
-import { compactVerses, useAllNotes, useTags, versesOfKey, writeNote, type Note } from "@/bible/store";
+import { compactVerses, noteEndpoint, noteVerses, useAllNotes, useTags, writeNote, type Note } from "@/bible/store";
 import { queryEntityList, ENTITY_LIST_SORTS, type EntityListSort } from "@/lib/entity-list";
-import { deleteRelation, identity, useSavedRelations, verseKey, type Relation } from "@/lib/relations";
+import { deleteRelation, identity, useSavedRelations, type Relation } from "@/lib/relations";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
 import { useOpenInNewTab } from "@/ui/open-in-new-tab";
@@ -24,7 +24,7 @@ const QUERY_KEY = "cj:entityListFilters.notes.v1";
 const DEFAULT_QUERY: Query = { query: "", sort: "newest" };
 const readQuery = (): Query => { try { return { ...DEFAULT_QUERY, ...JSON.parse(localStorage.getItem(QUERY_KEY) ?? "{}") }; } catch { return DEFAULT_QUERY; } };
 const PAGE = 30;
-const readerAt = (r: Pick<Row, "slug" | "chapter" | "key">) => `/read/${r.slug}/${r.chapter}?v=${versesOfKey(r.key)[0]}`;
+const readerAt = (r: Pick<Row, "slug" | "chapter" | "key" | "note">) => `/read/${r.slug}/${r.chapter}?v=${noteVerses(r.key, r.note)[0]}`;
 
 /**
  * Bible Strong's BibleVerseNotesScreen: the filter button (Search, Order, Tags, kept between
@@ -49,8 +49,8 @@ export function Notes() {
     return out;
   }, [saved]);
   const rows = useMemo(() => all.map((n): Row => {
-    const verses = versesOfKey(n.key);
-    return { ...n, id: `${n.slug}/${n.chapter}/${n.key}`, title: n.note.title || "", description: n.note.description, date: n.note.date, reference: `${bookName(n.slug)} ${n.chapter}:${compactVerses(verses)}`, relations: byNote.get(`note:${verseKey(n.slug, n.chapter, verses[0])}`) ?? [] };
+    const verses = noteVerses(n.key, n.note);
+    return { ...n, id: `${n.slug}/${n.chapter}/${n.key}`, title: n.note.title || "", description: n.note.description, date: n.note.date, reference: `${bookName(n.slug)} ${n.chapter}:${compactVerses(verses)}`, relations: byNote.get(identity(noteEndpoint(n.slug, n.chapter, n.key, n.note))) ?? [] };
   }), [all, byNote, books.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const shown = useMemo(() => queryEntityList(rows.filter((r) => !q.tagId || r.note.tags?.[q.tagId]), q), [rows, q]);
   const [limit, setLimit] = useState(PAGE);
@@ -89,7 +89,8 @@ function BibleNoteItem({ row, now, onRemoved }: { row: Row; now: number; onRemov
   const navigate = useNavigate();
   const title = row.note.title?.trim() ?? "", description = row.note.description?.trim() ?? "";
   const chips = !!Object.keys(row.note.tags ?? {}).length || !!row.relations.length;
-  const relationsAt = `/relations?endpoint=${encodeURIComponent(`note:${verseKey(row.slug, row.chapter, versesOfKey(row.key)[0])}`)}`;
+  const endpoint = noteEndpoint(row.slug, row.chapter, row.key, row.note);
+  const relationsAt = `/relations?endpoint=${encodeURIComponent(`note:${endpoint.verseKey}${endpoint.noteId ? `:${endpoint.noteId}` : ""}`)}`;
   return (
     <div className="noteitem">
       <div className="noteitem__main">

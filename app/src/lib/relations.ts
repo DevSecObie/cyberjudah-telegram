@@ -19,7 +19,7 @@ import { json, store } from "@/tg/store";
 export type RelationType = "linked" | "references" | "explains" | "contrasts" | "mentions";
 export type RelationDirection = "none" | "forward" | "backward";
 export type VerseEndpoint = { type: "verse"; verseKeys: string[]; label: string };
-export type NoteEndpoint = { type: "note"; verseKey: string; label: string };
+export type NoteEndpoint = { type: "note"; verseKey: string; noteId?: string; label: string };
 export type EntryEndpoint = { type: "entry"; url: string; kind: string; label: string };
 export type DictionaryEndpoint = { type: "dictionary"; slug: string; label: string };
 export type LinkEndpoint = { type: "link"; url: string; label: string };
@@ -44,7 +44,7 @@ export const parseVerseKey = (k: string) => { const m = /^(.+)-(\d+)-(\d+)$/.exe
 export function identity(e: Endpoint): string {
   switch (e.type) {
     case "verse": return `verse:${[...e.verseKeys].sort(byKey).join("/")}`;
-    case "note": return `note:${e.verseKey}`;
+    case "note": return `note:${e.noteId ?? e.verseKey}`;
     case "entry": return `entry:${e.url}`;
     case "dictionary": return `dictionary:${e.slug}`;
     case "link": return `link:${e.url}`;

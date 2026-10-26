@@ -5,7 +5,7 @@ import { Link } from "react-router";
 import { compressVerses, data } from "@/api/data";
 import { Feather, type FeatherName } from "@/bible/icons";
 import { highlightInfo, paletteOf, resolveTheme, telegramScheme, useBibleSettings } from "@/bible/settings";
-import { compactVerses, useTags, type Tag } from "@/bible/store";
+import { compactVerses, noteVerses, useTags, type Tag } from "@/bible/store";
 import { HighlightTypeIndicator } from "@/bible/ui/SelectedVersesSheet";
 import type { TagData, TaggedHighlight, TaggedLink, TaggedMark, TaggedNote } from "@/lib/tag-items";
 import { parseVerseKey } from "@/lib/relations";
@@ -90,7 +90,7 @@ export function AnnotationItem({ item, now, options }: { item: TaggedMark; now: 
 /** Bible Strong's NoteItem: "Genesis 1:3 - 5 minutes ago", the title, then the start of the text. */
 export function NoteItem({ item, now }: { item: TaggedNote; now: number }) {
   const bookName = useBookName();
-  const verses = item.key.split("/").map(Number);
+  const verses = noteVerses(item.key, item.note);
   const title = item.note.title?.trim() ?? "", description = item.note.description?.trim() ?? "";
   return (
     <div className="tagd-item tagd-item--note">
