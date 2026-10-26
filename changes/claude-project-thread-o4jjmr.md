@@ -1,0 +1,1 @@
+- Naamah, the sister of Tubal-cain, no longer shows a portrait; she has her letter until her depiction is settled.

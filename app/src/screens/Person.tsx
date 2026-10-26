@@ -11,18 +11,21 @@ import { useBackButton } from "@/tg/hooks";
 import { haptic, openLink } from "@/tg/sdk";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { refLabel, refOfLink, refOfPath, ScriptureCard, usePassage, type VerseRef } from "@/ui/scripture";
-import { Empty, Screen } from "@/ui/ui";
+import { Empty, List, Row, Screen } from "@/ui/ui";
 import { CaseCard } from "./Cases";
 import { FamilyGraph, relationsOf } from "./FamilyGraph";
 
 /**
  * A person of the Bible, laid out as Bible Strong's entity page (StrongEntityPage): the summary
  * card (their picture, what they are, their name and their Strong's numbers, then who they were),
- * the Relationships graph under a rule, and then, as cards with the King James text, what the
- * classes taught where they come up (the Bishops' and Deacons' first) and every verse that names
- * them. Each card goes to its verse. Names, family and verses are STEPBible's TIPNR (CC BY 4.0).
+ * the Relationships graph (only the family the King James text states), then the classes and the
+ * King James Bible: what the classes taught where they come up (the Bishops' and Deacons' first),
+ * the classes that read or cite a verse naming them, and every verse that names them, each card
+ * going to its verse. The related case studies come last. Names, family and verses start from
+ * STEPBible's TIPNR (CC BY 4.0), with its family links checked against the King James text.
  */
-const TAUGHT_FIRST = 3, TAUGHT_MORE = 6, VERSES_FIRST = 5, VERSES_MORE = 10;
+const TAUGHT_FIRST = 3, TAUGHT_MORE = 6, CLASSES_FIRST = 5, CLASSES_MORE = 10, VERSES_FIRST = 5, VERSES_MORE = 10;
+const SERIES: Record<string, string> = { class: "Class", captains: "15 Minutes with the Captains", history: "Our Hidden History" };
 const fold = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 
 export function Person() {
@@ -32,6 +35,7 @@ export function Person() {
   const p = useQuery({ queryKey: ["person", id], queryFn: () => data.person(id), staleTime: Infinity, retry: 1 });
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const [taughtShown, setTaughtShown] = useVisitState("taught", TAUGHT_FIRST);
+  const [classesShown, setClassesShown] = useVisitState("classes", CLASSES_FIRST);
   const [versesShown, setVersesShown] = useVisitState("verses", VERSES_FIRST);
   useKeptScroll(!!p.data && !!books.data);
 
@@ -71,14 +75,6 @@ export function Person() {
         </EntitySection>
       ) : null}
 
-      {d.cases?.length ? (
-        <EntitySection title="Related case studies" count={d.cases.length}>
-          <div className="entity__cards">
-            {d.cases.map((c) => <CaseCard key={c.slug} to={c.url} name={c.name} preview={c.preview} kind={c.kind} meta={[c.kind === "blessing" ? "Blessing" : "Judgment", c.era, c.verdictLabel].join(" · ")} />)}
-          </div>
-        </EntitySection>
-      ) : null}
-
       <EntitySection title="What the classes taught" count={taught.length}>
         {taught.length ? (
           <div className="entity__cards">
@@ -102,6 +98,18 @@ export function Person() {
         <EntityMore shown={taughtShown} total={taught.length} step={TAUGHT_MORE} onMore={setTaughtShown} />
       </EntitySection>
 
+      {d.classes?.length ? (
+        <EntitySection title={`Classes that read of ${d.name}`} count={d.classes.length}>
+          <List>
+            {d.classes.slice(0, classesShown).map((c) => (
+              <Row key={c.url} href={c.url} title={c.title} meta={c.collection || SERIES[c.kind] || "Class"}
+                sub={[c.verse, c.date ? fmtDate(c.date) : ""].filter(Boolean).join(" · ")} />
+            ))}
+          </List>
+          <EntityMore shown={classesShown} total={d.classes.length} step={CLASSES_MORE} onMore={setClassesShown} />
+        </EntitySection>
+      ) : null}
+
       <EntitySection title="Verses" count={verses.length} note={verses.length ? <>First named in {refLabel(verses[0], bookName)}</> : null}>
         <div className="entity__cards">
           {verses.slice(0, versesShown).map((r) => <ScriptureCard key={`${r.slug}/${r.chapter}/${r.from}`} at={r} label={refLabel(r, bookName)} />)}
@@ -109,7 +117,15 @@ export function Person() {
         <EntityMore shown={versesShown} total={verses.length} step={VERSES_MORE} onMore={setVersesShown} />
       </EntitySection>
 
-      <p className="entity__source">Names, family and verses: <button type="button" onClick={() => openLink(d.source.url)}>{d.source.name}</button> ({d.source.license}).</p>
+      {d.cases?.length ? (
+        <EntitySection title="Related case studies" count={d.cases.length}>
+          <div className="entity__cards">
+            {d.cases.map((c) => <CaseCard key={c.slug} to={c.url} name={c.name} preview={c.preview} kind={c.kind} meta={[c.kind === "blessing" ? "Blessing" : "Judgment", c.era, c.verdictLabel].join(" · ")} />)}
+          </div>
+        </EntitySection>
+      ) : null}
+
+      <p className="entity__source">Family as the King James Bible states it. Names and verses from <button type="button" onClick={() => openLink(d.source.url)}>{d.source.name}</button> ({d.source.license}).</p>
     </Screen>
   );
 }
