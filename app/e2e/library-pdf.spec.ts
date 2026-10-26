@@ -161,7 +161,7 @@ test("a cross-origin PDF exposes range headers and renders through partial reque
   const ranges: string[] = [];
   let pdfUrl = "";
   page.on("request", req => {
-    if (!req.url().startsWith(origin)) return;
+    if (new URL(req.url()).origin !== origin) return;
     pdfUrl = req.url();
     if (req.headers().range) ranges.push(req.headers().range);
   });
