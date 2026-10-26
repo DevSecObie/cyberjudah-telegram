@@ -208,6 +208,13 @@ test('Easton catalog, directory, lookup, batches and passage discovery are all o
   for (const word of ['Trinity', 'Holy%20Ghost']) await request(`/v1/dictionaries/easton/en/entries/${word}`, Problems.ResourceNotFoundProblem, { status: 404 });
   const { json: batch } = await request('/v1/dictionaries/easton/en/entries/batch?words=Trinity,Jew,God', Dictionary.DictionaryEntriesBatchResponseDto);
   assert.deepEqual(batch.entries.map((e: any) => e.word), ['God']);
+  // Ids are each entry's place in the whole book, so leaving entries out renumbers none of the rest.
+  const book = JSON.parse(await readFile(new URL('../../data/easton.json', import.meta.url), 'utf8')) as { term: string }[];
+  const trinity = book.findIndex(e => e.term === 'Trinity') + 1, after = book.findIndex((e, i) => i >= trinity && e.term !== 'Trinity' && !['Holy Ghost', 'Jew'].includes(e.term)) + 1;
+  await request(`/v1/dictionaries/easton/en/entries/by-id/${trinity}`, Problems.ResourceNotFoundProblem, { status: 404 });
+  const { json: next } = await request(`/v1/dictionaries/easton/en/entries/by-id/${after}`, Dictionary.DictionaryEntryResponseDto);
+  assert.equal(next.entry.word, book[after - 1].term);
+  assert.match(next.resource.revision, /-withheld-\d+$/);
 });
 
 test('Nave routes map our topic threads, including exact verse associations', async () => {

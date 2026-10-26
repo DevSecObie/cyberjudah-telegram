@@ -12,8 +12,12 @@ import withheld from "../data/dictionary-withheld.json";
  */
 type Entry = { slug: string; term: string; definitions: string[] };
 const left = new Set(withheld.terms.map((t) => t.term));
+/** Whether an entry is one of the withheld ones. */
+export const isWithheld = (e: { term: string }) => left.has(e.term);
+/** Every entry in the book, withheld ones included: the feed numbers entries from this so ids stay the same. */
+export const book = entries as Entry[];
 /** Every entry the app serves: Easton's without the withheld ones. Ask and the feed read this too. */
-export const all = (entries as Entry[]).filter((e) => !left.has(e.term));
+export const all = book.filter((e) => !isWithheld(e));
 const byTerm = new Map(all.map((e) => [e.term.toLowerCase(), e]));
 
 /** The entry a word in the text most likely means: exact, then singular, then prefix. */

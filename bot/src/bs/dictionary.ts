@@ -1,13 +1,14 @@
 import { Hono } from 'hono';
 import provenance from '../../data/provenance.json';
-import { all as entries, lookup } from '../dictionary';
+import { book, isWithheld, lookup } from '../dictionary';
 import { type App, type Ctx, cmp, cursor, encodeCursor, invalid, language, limit, missing, paragraphs, readChapter, verseKey } from './core';
 
 export const dictionaries = new Hono<App>();
-const resource = { kind: 'dictionary' as const, work: 'easton', language: 'en' as const, revision: `cj-easton-${provenance.sha256}` };
+const resource = { kind: 'dictionary' as const, work: 'easton', language: 'en' as const, revision: `cj-easton-${provenance.sha256}-withheld-${book.filter(isWithheld).length}` };
 const work = { resource, resourceId: 'easton-en', title: "Easton's Bible Dictionary", abbreviation: 'Easton', authors: ['Matthew George Easton'], description: "Easton's Bible Dictionary as published by CyberJudah.", edition: '1897', source: 'https://data.cyberjudah.io', attribution: "Easton's Bible Dictionary; CyberJudah dataset. See bot/data/provenance.json for source attribution.", onlineAccess: true, offlineDownload: false };
 const normalize = (value: string) => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-const rows = entries.map((entry, i) => ({ ...entry, id: i + 1, word: entry.term, normalizedWord: normalize(entry.term) }));
+// Ids come from each entry's place in the whole book, so leaving entries out never renumbers the rest.
+const rows = book.map((entry, i) => ({ ...entry, id: i + 1, word: entry.term, normalizedWord: normalize(entry.term) })).filter(e => !isWithheld(e));
 const summary = (e: typeof rows[number]) => ({ id: e.id, word: e.word, normalizedWord: e.normalizedWord });
 const full = (e: typeof rows[number]) => ({ id: e.id, word: e.word, definition: e.definitions.map(paragraphs).join('') });
 const source = (e: typeof rows[number]) => ({ resource, resourceId: work.resourceId, title: work.title, abbreviation: work.abbreviation, ...summary(e) });
