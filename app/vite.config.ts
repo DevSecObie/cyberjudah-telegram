@@ -16,6 +16,8 @@ const offlineShell: Plugin = {
       if (!chunk || chunk.type !== 'chunk') return;
       // Do not let service-worker installation bypass the runtime admin gate.
       if (/\/src\/(?:admin\/(?:Admin|TimelineEditor|ResourceAdmin|ClassEditor|PeopleEditor|PreceptEditor)|ui\/(?:photo-editor|note-edit))\./.test(chunk.facadeModuleId ?? '')) return;
+      // PDF rendering is an on-demand Library feature, not part of the offline reader shell.
+      if (/\/src\/screens\/BookPdf\./.test(chunk.facadeModuleId ?? '')) return;
       reader.add(name);
       const css = (chunk as typeof chunk & { viteMetadata?: { importedCss: Set<string> } }).viteMetadata?.importedCss;
       css?.forEach(name => reader.add(name));

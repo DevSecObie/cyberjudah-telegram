@@ -1,0 +1,3 @@
+- Open public-domain Library books as PDFs inside the app, turn or jump to pages, choose volumes, and pinch or use the zoom controls.
+- Open printed pages directly in the PDF, download the original to your device, or ask the bot to send files up to 50 MB to your Telegram chat.
+- Keep PDF delivery limited to public-domain books and their listed Internet Archive items; larger files remain available to view and download.
