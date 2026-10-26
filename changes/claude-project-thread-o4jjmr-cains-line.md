@@ -1,0 +1,2 @@
+- A person's page shows their family first again, then what the classes taught, a new list of the classes that read of them, and the King James verses that name them.
+- Cain and all of his line (Enoch, Irad, Mehujael, Lamech, Adah, Zillah, Jabal, Jubal) no longer show a portrait; each has their letter until their depiction is settled.
