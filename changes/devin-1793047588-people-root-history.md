@@ -1,0 +1,1 @@
+- Returning to the starting person in the family graph now clears the old path and restores the starting person's six-place relationship pages.
