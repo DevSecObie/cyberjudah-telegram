@@ -40,15 +40,15 @@ export function relationsOf(p: Person): Rel[] {
   return out;
 }
 
-/** What a relation is called, by who they are: a wife or a husband, a brother or a sister, a son or a daughter. */
+/** Bible Strong specializes partner and sibling labels only when the target's gender is known. */
 export function relationLabel(relation: Relation, kind: AvatarKind): string {
   const f = kind === "female", m = kind === "male";
   switch (relation) {
     case "father": return "Father";
     case "mother": return "Mother";
-    case "partner": return f ? "Wife" : m ? "Husband" : "Spouse";
+    case "partner": return f ? "Wife" : m ? "Husband" : "Partner";
     case "sibling": return f ? "Sister" : m ? "Brother" : "Sibling";
-    case "offspring": return f ? "Daughter" : m ? "Son" : "Child";
+    case "offspring": return "Offspring";
   }
 }
 
@@ -136,7 +136,7 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
           {nodes.map(({ r, position }, i) => {
             const kind = kindOf(r.id, r.relation, active);
             return <Satellite key={r.id} at={positionOf(position, width)} center={center} order={i + 1} id={r.id} name={r.name} src={r.image?.src} kind={kind}
-              label={relationLabel(r.relation, kind)} relation={r.relation} loading={busy === r.id} onPress={() => void walk(r, position)} />;
+              label={relationLabel(r.relation, avatarKind(types.get(r.id)))} relation={r.relation} loading={busy === r.id} onPress={() => void walk(r, position)} />;
           })}
           <div className="fg__center" style={{ left: center.x - CENTER / 2, top: center.y - CENTER / 2 }}>
             <button type="button" className="fg__node fg__node--center" disabled={!elsewhere} aria-label={elsewhere ? `View ${active.name}'s profile` : active.name} title={elsewhere ? `View ${active.name}'s profile` : active.name}

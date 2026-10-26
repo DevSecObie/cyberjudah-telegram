@@ -1,0 +1,1 @@
+- Family relationships now use Bible Strong's Offspring and Partner labels, specializing partner and sibling labels only when the person's gender is known.
