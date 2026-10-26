@@ -103,6 +103,21 @@ export type LawPart = { n: number; title: string; url: string; sections: { id: s
 export type LawSection = { id: string; title: string; part: { n: number; title: string; url: string }; url: string; seeAlso: { id: string; title: string; url: string | null }[]; entries: { id: string; text: string; refs: ResolvedRef[]; citation: string }[]; caseRefs?: { slug: string; name: string; charge: string; verdict: string; url: string }[] };
 export type PreceptRow = { slug: string; title: string; refs: number; url: string };
 export type Precept = { slug: string; title: string; url: string; refs: ResolvedRef[] };
+export type DoctrineRow = { slug: string; name: string; claim: string; refs: number; scriptures: number; books: number; url: string };
+export type DoctrineSense = { video: string; ts: string; t: number; teacher: string; text: string; note: string | null };
+export type DoctrineClass = Pick<DoctrineSense, "video" | "ts" | "t" | "note"> & { teacher?: string; title: string; date: string };
+export type DoctrinePoint = DoctrineClass & ({ read: true; text?: never } | { read?: false; text: string });
+export type DoctrineBook = { title: string; author: string; year: number | null; book: string | null; url: string | null } & (
+  { pages: { vol: number; page: number; url: string; classes: number; reads: DoctrineClass[] }[]; said?: never }
+  | { pages?: never; said: DoctrineClass & { ref: { label: string; url: string | null }; text: string } }
+);
+export type DoctrineRelated = { slug: string; url: string; title?: string; name?: string; label?: string };
+export type DoctrineEntry = Omit<DoctrineRow, "refs" | "scriptures" | "books"> & {
+  answers: { refs: ResolvedRef[]; sense: DoctrineSense[] }[];
+  scriptures: (ResolvedRef & { points: DoctrinePoint[] })[];
+  books: DoctrineBook[];
+  related: { precepts: DoctrineRelated[]; cases: DoctrineRelated[]; topics: DoctrineRelated[] };
+};
 export type CaseRow = { slug: string; name: string; era: string; kind: "judgment" | "blessing"; charge: string; verdict: string; url: string; code?: string; themes?: string[]; topics?: string[] };
 export type CaseIndex = { eras: string[]; verdicts: Record<string, string>; cases: CaseRow[] };
 export type Case = CaseRow & { summary: string; offense: string; judgment: string; verdictLabel?: string; refsResolved?: ResolvedRef[]; lawsResolved?: { id: string; text: string; url: string | null }[]; preceptsResolved?: { slug: string; title: string; url: string | null }[]; relatedCases?: { slug: string; name: string; desc: string }[]; taught?: { title: string; range: string; url: string }[]; see?: { title: string; url: string }[]; offenseFull?: string[]; judgmentFull?: string[]; related?: { slug: string; name: string; charge: string; url: string | null; desc?: string }[]; people?: { id: string; name: string }[] };
@@ -166,6 +181,8 @@ export const data = {
   lawTexts: () => get<{ id: string; text: string; url: string }[]>("/search/laws.json"),
   precepts: () => get<PreceptRow[]>("/api/precepts/index.json"),
   precept: (slug: string) => get<Precept>(`/api/precepts/${slug}.json`),
+  doctrine: () => get<DoctrineRow[]>("/api/doctrine/index.json"),
+  doctrineEntry: (slug: string) => get<DoctrineEntry>(`/api/doctrine/${encodeURIComponent(slug)}.json`),
   cases: () => get<CaseIndex>("/api/cases/index.json"),
   case: (slug: string) => get<Case>(`/api/cases/${slug}.json`),
   topics: () => get<TopicRow[]>("/api/topics/index.json"),
