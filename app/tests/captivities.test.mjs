@@ -41,6 +41,11 @@ test("the Exile is cut at the captivities' years, and a cut adds no bar running 
   const exile = OUT.filter((s) => s.from === "8");
   assert.deepEqual(exile.map((s) => s.captivity), ["assyrian", "babylonian", "persian", "greek"]);
   for (const s of exile) for (const e of s.events) assert.ok(e.start <= s.endYear && e.end >= s.startYear, `${e.title} touches ${s.title}`);
+  // A minor event is a pill at its start year: it is never put in a piece whose canvas starts after it.
+  for (const s of OUT.filter((x) => x.from)) {
+    const first = OUT.find((x) => x.from === s.from) === s;
+    for (const e of s.events.filter((x) => x.type === "minor")) assert.ok(first || e.start >= s.startYear, `${e.title} (${e.start}) in ${s.id} from ${s.startYear}`);
+  }
   for (const s of OUT.filter((x) => x.from)) {
     const from = DATA.sections.find((x) => x.id === s.from);
     assert.ok(overlaps(s) <= overlaps(from), `${s.id}: ${overlaps(s)} overlaps, ${from.id} had ${overlaps(from)}`);

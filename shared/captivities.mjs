@@ -75,14 +75,17 @@ export function byCaptivity(sections) {
     const place = PLACES[s.id] ?? (FINAL.test(s.id) ? { under: "american" } : BETWEEN.test(s.id) ? { under: "persian" } : null);
     if (!place) { out.push(s); continue; }
     if (place.under) { const c = byId.get(place.under); out.push({ ...s, sectionTitle: c.age, captivity: c.id }); continue; }
-    for (const p of place.cut) {
+    place.cut.forEach((p, i) => {
       const c = byId.get(p.under);
       out.push({
         ...s, id: `${s.id}-${c.id}`, from: s.id, title: p.title ?? s.title, sectionTitle: c.age, captivity: c.id, subTitle: p.subTitle,
         startYear: p.startYear, endYear: p.endYear, interval: p.interval, color: p.title ? c.color : s.color,
-        events: s.events.filter((e) => e.start <= p.endYear && e.end >= p.startYear),
+        // A major bar is drawn across its years, so it shows wherever they touch the canvas. A minor
+        // one is a pill at its start year, so it goes only where its start is (the first piece
+        // keeps those that start before it).
+        events: s.events.filter((e) => e.start <= p.endYear && (e.type === "minor" ? i === 0 || e.start >= p.startYear : e.end >= p.startYear)),
       });
-    }
+    });
   }
   // The periods before the captivities first, as they were; then each captivity's, by their years.
   const rank = new Map(CAPTIVITIES.map((c, i) => [c.id, i]));
