@@ -43,6 +43,13 @@
       "book": "fixture-book", "url": "/books/fixture-book",
       "pages": [
         { "vol": 1, "page": 93, "url": "/books/fixture-book/p/1-93", "classes": 8,
+          "scan": "https://archive.org/download/fixture-doctrine/page/n1_w1200.jpg",
+          "quotes": [
+            { "text": "  Fixture OCR — th1s misread1ng stays.\n\nSecond fixture OCR paragraph; no corrections.  ",
+              "highlight": [[0.1, 0.72, 0.65, 0.02], [0.1, 0.75, 0.55, 0.02]] },
+            { "text": "Fixture second OCR quote <not markup> & unchanged.",
+              "highlight": [[0.2, 0.86, 0.6, 0.025]] }
+          ],
           "reads": [
             { "video": "fixture0005", "t": 2862, "ts": "47:42", "teacher": "",
               "title": "Fixture book-reading class", "date": "2026-01-03",

@@ -16,7 +16,7 @@ export function usePopover(open: boolean, ref: RefObject<HTMLElement | null>) {
   const [present, setPresent] = useState(false);
   const trigger = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    if (!open && !ref.current) return;
+    if (!open && !ref.current) { setPresent(false); return; }
     let canceled = false;
     let animation: Animation | undefined;
     let transition: ViewTransition | undefined;
@@ -27,7 +27,7 @@ export function usePopover(open: boolean, ref: RefObject<HTMLElement | null>) {
     }
     const source = trigger.current;
     const origin = () => {
-      const box = ref.current, from = source?.getBoundingClientRect();
+      const box = ref.current, from = source?.isConnected ? source.getBoundingClientRect() : null;
       if (!box || !from) return;
       const to = box.getBoundingClientRect();
       box.style.transformOrigin = `${from.x + from.width / 2 - to.x}px ${from.y + from.height / 2 - to.y}px`;
