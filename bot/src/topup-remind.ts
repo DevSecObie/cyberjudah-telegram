@@ -66,7 +66,7 @@ export async function sendTopupReminders(env: Env, now = Date.now()): Promise<{ 
     const left = (await wallet(env, r.user_id, now)).total_mc;
     if (left >= MC_PER_USD) continue;
     try {
-      await telegramApi(env).sendMessage(chat!, `Top-ups pause for ${FOR[eve.kind]} from sunset this evening until after dark tomorrow. Your Ask CyberJudah balance is ${fmtUsd(left, { floor: true })}: top up before then if you will want to ask with a paid model. The free model stays free.`, { reply_markup: openButton(env, env.WORKER_URL, "private", "ask", "Top up") });
+      await telegramApi(env).sendMessage(chat!, `Top-ups pause for ${FOR[eve.kind]} from sunset this evening until after dark at its end. Your Ask CyberJudah balance is ${fmtUsd(left, { floor: true })}: top up before then if you will want to ask with a paid model. The free model stays free.`, { reply_markup: openButton(env, env.WORKER_URL, "private", "ask", "Top up") });
       sent++;
     } catch (e) {
       // The reader blocked the bot: there is no one to remind.
