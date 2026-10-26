@@ -96,7 +96,7 @@ export function DictionaryEntry() {
   return (
     <Screen title={e.data.term} kicker="Easton's Bible Dictionary">
       <div className="dict">{e.data.definitions.map((d, i) => <p key={i}>{d}</p>)}</div>
-      <p className="hint">Easton's Bible Dictionary, 1897, public domain.</p>
+      <p className="hint">Easton's Bible Dictionary, 1897, public domain. An outside dictionary: the King James Bible and the classes come first, and entries that teach against them are left out.</p>
     </Screen>
   );
 }

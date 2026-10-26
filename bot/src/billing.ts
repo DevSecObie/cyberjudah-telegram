@@ -14,7 +14,7 @@ import { pid } from "./privacy.mjs";
  * balance, its ledger and what each answer is charged are in credits.ts. This file is the edge
  * with Telegram: invoices, the check before Stars are taken, adding a payment after, refunds.
  *
- * No top-up is sold from full dark before a Sabbath, feast day or New Moon to full dark at its
+ * No top-up is sold from sunset before a Sabbath, feast day or New Moon to full dark at its
  * end, where the reader is (shared/holy-days.mjs): no invoice is made, and a checkout already
  * open is refused. A balance already held is used as on any day.
  */

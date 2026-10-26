@@ -7,6 +7,8 @@ import { useBackButton } from "@/tg/hooks";
 import { api, haptic } from "@/tg/sdk";
 import { PictureViewer, Said } from "@/ui/PictureViewer";
 import { Empty, Icon, List, Row, Screen, SearchField, Section, Loading } from "@/ui/ui";
+import { useLibraryPdfs } from "@/lib/library-pdf";
+import { libraryPdfHref } from "@shared/library-pdf";
 
 /**
  * The library: public-domain books the classes read from, page by page as printed, with the
@@ -60,6 +62,7 @@ export function Books() {
 export function BookScreen() {
   const { slug = "" } = useParams();
   const book = useBook(slug);
+  const pdfs = useLibraryPdfs(book.data);
   const [figure, setFigure] = useState<BookFigure | null>(null);
   const [allReads, setAllReads] = useState(false);
   const [allFigures, setAllFigures] = useState(false);
@@ -79,6 +82,7 @@ export function BookScreen() {
   return (
     <Screen title={b.title} kicker={`${b.author} · ${b.year}`}>
       <p className="book__sub">{[b.subtitle, b.publisher].filter(Boolean).join(". ")}.</p>
+      {pdfs.data?.length ? <Link className="btn btn--bordered" to={libraryPdfHref(slug, pdfs.data[0].vol)}>Open PDF</Link> : null}
 
       {b.figures.length ? (
         <Section title={b.figures.some((f) => f.kind === "foldout") ? "Maps and pictures" : "Pictures"} action={b.figures.length > 8 ? <button type="button" className="section__more" onClick={() => setAllFigures((v) => !v)}>{allFigures ? "Fewer" : `All ${b.figures.length}`}</button> : undefined}>
@@ -97,10 +101,13 @@ export function BookScreen() {
             <div key={r.video} className="book__read">
               <Link to={readingHref(r)} className="book__readtitle"><b>{r.title || "Class"}</b><small>{[fmtDate(r.date ?? ""), r.teacher].filter(Boolean).join(" · ")}</small></Link>
               <div className="book__readpages">{pages.map((p) => (
-                <span key={`${p.vol}-${p.page}-${p.t}`} className="book__readpage">
-                  <Link to={pageHref(slug, p.vol, p.page)}>{pageLabel(b, p.vol, p.page, volumeOf(p.vol))}</Link>
-                  <Link to={readingHref(p)} aria-label={`Watch from ${p.ts}`}><Icon name="play" size={12} /> {p.ts}</Link>
-                </span>
+                <div key={`${p.vol}-${p.page}-${p.t}`} className="book__readpagegroup">
+                  <span className="book__readpage">
+                    <Link to={pageHref(slug, p.vol, p.page)}>{pageLabel(b, p.vol, p.page, volumeOf(p.vol))}</Link>
+                    <Link to={readingHref(p)} aria-label={`Watch from ${p.ts}`}><Icon name="play" size={12} /> {p.ts}</Link>
+                  </span>
+                  {pdfs.data?.some(item => item.vol === p.vol) ? <Link className="book__readpdf" to={libraryPdfHref(slug, p.vol, p.page)}>Open at this page in the PDF</Link> : null}
+                </div>
               ))}</div>
             </div>
           ))}</div>
@@ -144,6 +151,7 @@ export function BookChapterScreen() {
   const [params] = useSearchParams();
   const at = Number(params.get("p")) || 0;
   const book = useBook(slug);
+  const pdfs = useLibraryPdfs(book.data);
   const ch = useQuery({ queryKey: ["library", slug, k], queryFn: () => data.libraryChapter(slug, Number(k)), staleTime: Infinity });
   const [scans, setScans] = useState<Set<number>>(new Set());
   const [open, setOpen] = useState<Set<number>>(new Set());
@@ -175,6 +183,7 @@ export function BookChapterScreen() {
                 <span>Page {p.page}</span>
                 <button type="button" className="btn btn--bordered btn--sm bookpage__scan" aria-pressed={scans.has(p.img)} onClick={() => toggle(p.img)}>{scans.has(p.img) ? "Text" : "Original page"}</button>
               </header>
+              {pdfs.data?.some(item => item.id === (c.item ?? b.items[p.vol - 1]?.id)) ? <Link className="bs-link" to={libraryPdfHref(slug, p.vol, undefined, p.img + 1)}>Open at this page in the PDF</Link> : null}
               {p.reads.length ? (
                 <div className="bookpage__reads">
                   {(open.has(p.img) ? p.reads : p.reads.slice(0, 2)).map((r) => <PageReading key={`${r.video}-${r.t}`} r={r} />)}

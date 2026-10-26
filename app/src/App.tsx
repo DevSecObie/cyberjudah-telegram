@@ -64,6 +64,7 @@ const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Boo
 const BookScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookScreen })));
 const BookChapterScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookChapterScreen })));
 const BookPageLink = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookPageLink })));
+const BookPdfScreen = lazy(() => import("@/screens/BookPdf").then((m) => ({ default: m.BookPdfScreen })));
 const LawIndex = lazy(() => import("@/screens/Laws").then((m) => ({ default: m.LawIndex })));
 const LawSectionScreen = lazy(() => import("@/screens/Laws").then((m) => ({ default: m.LawSectionScreen })));
 const Precepts = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Precepts })));
@@ -132,6 +133,7 @@ const routes = (
     <Route path="/tags/:id" element={<TagScreen />} />
     <Route path="/books" element={<Books />} />
     <Route path="/books/:slug" element={<BookScreen />} />
+    <Route path="/books/:slug/pdf" element={<BookPdfScreen />} />
     <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
     <Route path="/books/:slug/:k" element={<BookChapterScreen />} />
     <Route path="/bookmarks" element={<Bookmarks />} />

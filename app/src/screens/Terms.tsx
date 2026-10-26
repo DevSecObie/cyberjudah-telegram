@@ -23,7 +23,7 @@ export function Terms() {
         <ul>
           <li>Top-ups are bought with Telegram Stars, and Telegram handles the payment. Each adds to your balance about what CyberJudah receives for those Stars after Telegram's share, kept a little under it in case the Star's payout falls.</li>
           <li>Credit you buy never expires.</li>
-          <li>Top-ups are not sold from full dark before a Sabbath, feast day or New Moon until full dark at its end, where you are. A balance you already have can be used on those days.</li>
+          <li>Top-ups are not sold from sunset before a Sabbath, feast day or New Moon until full dark at its end, where you are. A balance you already have can be used on those days.</li>
           <li>Gifts sent with /support are gifts: they do not add to your balance.</li>
         </ul>
       </Section>

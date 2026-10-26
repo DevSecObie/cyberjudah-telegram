@@ -4,14 +4,14 @@ import { openButton } from "./bot";
 import { isAdmin } from "./edit";
 import { ownerOfUser, wallet } from "./credits";
 import { fmtUsd, MC_PER_USD } from "../../shared/credits.mjs";
-import { eveOfHolyDay, fullDarkIn, localHour, zoneOf } from "../../shared/holy-days.mjs";
+import { eveOfHolyDay, sunsetIn, localHour, zoneOf } from "../../shared/holy-days.mjs";
 import { open, seal } from "./privacy.mjs";
 import { telegramApi } from "./telegram-api";
 
 /**
  * "Remind me to top up before the Sabbath and feast days": an opt-in Telegram message at midday,
  * in the reader's own time zone, on the day before a Sabbath, feast day or New Moon (when top-ups
- * pause from full dark, shared/holy-days.mjs), sent only if their balance is under $1.
+ * pause from sunset, shared/holy-days.mjs), sent only if their balance is under $1.
  *
  * One row per reader in D1, filed under their pseudonymous ID; the chat to write to (their
  * Telegram ID) is sealed for them (privacy.mjs). `last_day` is the local date it last went out (or
@@ -56,8 +56,8 @@ export async function sendTopupReminders(env: Env, now = Date.now()): Promise<{ 
   let sent = 0, checked = 0;
   for (const r of rows.results ?? []) {
     const eve = eveOfHolyDay(now, r.tz);
-    // Midday on the eve, and only until the pause begins at full dark: after that a reminder would be too late.
-    if (!eve || r.last_day === eve.date || localHour(now, r.tz) < 12 || now >= fullDarkIn(eve.date, r.tz)) continue;
+    // Midday on the eve, and only until the pause begins at sunset: after that a reminder would be too late.
+    if (!eve || r.last_day === eve.date || localHour(now, r.tz) < 12 || now >= sunsetIn(eve.date, r.tz)) continue;
     const claimed = await env.DB.prepare("UPDATE topup_reminders SET last_day = ? WHERE user_id = ? AND last_day = ?").bind(eve.date, r.user_id, r.last_day).run();
     if (!Number(claimed.meta.changes ?? 0)) continue;
     checked++;
@@ -66,7 +66,7 @@ export async function sendTopupReminders(env: Env, now = Date.now()): Promise<{ 
     const left = (await wallet(env, r.user_id, now)).total_mc;
     if (left >= MC_PER_USD) continue;
     try {
-      await telegramApi(env).sendMessage(chat!, `Top-ups pause for ${FOR[eve.kind]} from full dark this evening until after dark tomorrow. Your Ask CyberJudah balance is ${fmtUsd(left, { floor: true })}: top up before then if you will want to ask with a paid model. The free model stays free.`, { reply_markup: openButton(env, env.WORKER_URL, "private", "ask", "Top up") });
+      await telegramApi(env).sendMessage(chat!, `Top-ups pause for ${FOR[eve.kind]} from sunset this evening until after dark at its end. Your Ask CyberJudah balance is ${fmtUsd(left, { floor: true })}: top up before then if you will want to ask with a paid model. The free model stays free.`, { reply_markup: openButton(env, env.WORKER_URL, "private", "ask", "Top up") });
       sent++;
     } catch (e) {
       // The reader blocked the bot: there is no one to remind.

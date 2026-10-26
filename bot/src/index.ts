@@ -11,6 +11,7 @@ import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Exec, Sub } from "./env";
 import { launchMaxAge, sameHex, validateInitData, type InitData } from "./initdata.mjs";
 import { pdfLinkOk, pdfSig } from "./pdf-link";
+import { libraryPdf } from "./library-pdf";
 import { createBot, deletedSummary, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { runSearch } from "./search";
@@ -77,6 +78,7 @@ app.use("/api/*", async (c, next) => {
   // The frames' geometry is public like the sheets themselves: the library's build reads it to place frames in the notes.
   // A note's PDF is fetched by Telegram's downloader, which carries no launch data: its link is signed instead.
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
+  if (c.req.method === "GET" && /^\/api\/library\/pdf\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(c.req.path)) return next();
   // Reading reminders authenticate themselves: Telegram launch data, a browser's device credential, or (for the service worker) its push endpoint.
   if (c.req.path === "/api/reminders" || c.req.path.startsWith("/api/reminders/") || c.req.path.startsWith("/api/push/")) return next();
   // The photos an admin sets are public pictures like the app's own: readers fetch them without signing in.
@@ -311,6 +313,9 @@ app.post("/api/notes/pdf", async (c) => {
   const url = `${new URL(c.req.url).origin}/api/pdf${path}?exp=${exp}&sig=${await pdfSig(c.env.BOT_TOKEN, path, exp)}`;
   return c.json({ ok: true, url, file: pdfName(note) });
 });
+app.post("/api/library/pdf", c => libraryPdf(c.req.raw, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx),
+  (stream, file, caption) => new Api(c.env.BOT_TOKEN).sendDocument(c.get("tma").user!.id, new InputFile(stream, file), { caption })));
+app.get("/api/library/pdf/:slug/:item", c => libraryPdf(c.req.raw, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx)));
 // A backup of everything the reader kept (Bible Strong's Backup screen): the app sends its
 // CloudStorage keys, the bot sends them back as a JSON file in the reader's chat. Nothing is
 // stored on the server; the file goes straight to Telegram.
