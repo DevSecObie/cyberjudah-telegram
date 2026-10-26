@@ -105,7 +105,7 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
     try {
       const next = await client.fetchQuery({ queryKey: ["person", r.id], queryFn: () => data.person(r.id), staleTime: Infinity });
       if (requestId !== latestRelationRequestId.current) return;
-      setHistory((h) => [...h, { person: active, via: r, position, page: shownPage }]);
+      setHistory((h) => next.id === person.id ? [] : [...h, { person: active, via: r, position, page: shownPage }]);
       setActive(next); setPage(0); setScene((n) => n + 1);
     } catch { /* the person did not load: stay where we are */ }
     finally { if (requestId === latestRelationRequestId.current) setBusy(null); }
