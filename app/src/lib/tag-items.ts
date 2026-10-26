@@ -1,5 +1,5 @@
 import { compressVerses } from "@/api/data";
-import { type Highlight, type Link, type Note } from "@/bible/store";
+import { noteVerses, type Highlight, type Link, type Note } from "@/bible/store";
 import { allAnnotations, changeAnnotations, markId, type Annotation } from "@/studies/storage";
 import { json, store } from "@/tg/store";
 import { parseVerseKey } from "./relations";
@@ -117,7 +117,7 @@ export function tagTabPaths(d: TagData | undefined): string[] {
   if (!d) return [];
   const paths: string[] = [];
   for (const h of d.highlights) { const first = h.verses[0]; if (first) paths.push(readerAt(first.slug, first.chapter, h.verses.filter((v) => v.slug === first.slug && v.chapter === first.chapter).map((v) => v.verse))); }
-  for (const n of d.notes) paths.push(readerAt(n.slug, n.chapter, n.key.split("/").map(Number)));
+  for (const n of d.notes) paths.push(readerAt(n.slug, n.chapter, noteVerses(n.key, n.note)));
   for (const l of d.links) paths.push(readerAt(l.slug, l.chapter, l.key.split("/").map(Number)));
   for (const a of d.wordAnnotations) { const p = readerAtKeys(a.verseKeys); if (p) paths.push(p); }
   return paths;

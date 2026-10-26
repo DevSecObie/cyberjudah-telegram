@@ -36,6 +36,139 @@ async function overview(page: Page) {
 }
 test.beforeEach(async ({ page }) => setup(page));
 
+for (const theme of ["light", "dark"]) test(`same-passage notes keep independent identities, edits, exports and deletion (${theme})`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(theme => {
+    if (sessionStorage.getItem("notes-seeded")) return;
+    sessionStorage.setItem("notes-seeded", "1");
+    localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress", preferredColorScheme: theme, preferredLightTheme: "default", preferredDarkTheme: "dark" }));
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({ "1": { id: "legacy", title: "Legacy note", description: "Keep legacy words", date: 1, tags: { faith: true } } }));
+    localStorage.setItem("cj:bs_tags", JSON.stringify({ faith: { id: "faith", name: "Faith", date: 1 } }));
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([{ id: "legacy-relation", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-1"], label: "Genesis 1:1" }, { type: "note", verseKey: "genesis-1-1", label: "Legacy note" }], createdAt: 1, updatedAt: 1 }]));
+  }, theme);
+  const records = () => page.evaluate(() => JSON.parse(localStorage.getItem("cj:bs_n_genesis_1") ?? "{}"));
+  const note = page.getByRole("dialog", { name: "Note", exact: true });
+  await page.goto("/read/genesis/1");
+  for (const title of ["First note", "Second note"]) {
+    await page.locator("#verset-1 .bs-text").click();
+    const selection = page.getByRole("dialog", { name: /^Selected:/ });
+    await selection.getByRole("tab", { name: "Annotate", exact: true }).click();
+    await selection.getByRole("button", { name: "Note", exact: true }).click();
+    await note.getByRole("textbox", { name: "Title", exact: true }).fill(title);
+    await note.getByRole("textbox", { name: "Description", exact: true }).fill(`${title} words`);
+    await note.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(note).toBeHidden();
+    await expect(page.locator("#verset-1 .rel-tag", { hasText: title })).toBeVisible();
+  }
+  await expect.poll(async () => Object.keys(await records()).length).toBe(3);
+  const saved = await records();
+  expect(saved["1"]).toEqual({ id: "legacy", title: "Legacy note", description: "Keep legacy words", date: 1, tags: { faith: true } });
+  const firstId = Object.keys(saved).find(k => saved[k].title === "First note")!;
+  const secondId = Object.keys(saved).find(k => saved[k].title === "Second note")!;
+  expect(firstId).not.toBe(secondId);
+  for (const id of [firstId, secondId]) expect(saved[id]).toMatchObject({ id, verses: [1] });
+  await page.reload();
+  await expect(page.locator("#verset-1 .rel-tag")).toHaveCount(3);
+  for (const [title, words] of [["Second note", "Edited second words"], ["Legacy note", "Edited legacy words"]]) {
+    await page.locator("#verset-1 .rel-tag", { hasText: title }).click();
+    await expect(note).toContainText(title);
+    await note.getByRole("button", { name: "Open", exact: true }).click();
+    await expect(note.getByRole("textbox", { name: "Title", exact: true })).toHaveValue(title);
+    await expect(note.locator(".bs-sheet__titles small")).toHaveText("Genesis 1:1");
+    await note.getByRole("textbox", { name: "Description", exact: true }).fill(words);
+    await note.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(note).toBeHidden();
+  }
+  expect((await records())[firstId]).toEqual(saved[firstId]);
+  expect((await records())[secondId].description).toBe("Edited second words");
+  expect((await records())["1"].tags).toEqual({ faith: true });
+  await page.locator("#verset-1 .bs-text").click();
+  const selection = page.getByRole("dialog", { name: /^Selected:/ });
+  await selection.getByRole("tab", { name: "Share", exact: true }).click();
+  await selection.getByRole("button", { name: "Export", exact: true }).click();
+  const exported = page.getByRole("dialog", { name: "Export passage", exact: true });
+  for (const words of ["First note words", "Edited second words", "Edited legacy words"]) await expect(exported.locator("pre")).toContainText(words);
+  const download = page.waitForEvent("download");
+  await exported.getByRole("button", { name: "Save text file", exact: true }).click();
+  const text = await fs.readFile((await (await download).path())!, "utf8");
+  for (const words of ["First note words", "Edited second words", "Edited legacy words"]) expect(text).toContain(words);
+  await page.goto("/notes");
+  await expect(page.locator(".noteitem")).toHaveCount(3);
+  for (const row of await page.locator(".noteitem").all()) {
+    await expect(row.locator(".noteitem__meta")).toContainText("Genesis 1:1");
+    await expect(row.locator(".noteitem__link")).toHaveAttribute("href", /\/read\/genesis\/1\?v=1$/);
+    await expect(row.getByRole("button", { name: "1", exact: true })).toBeVisible();
+  }
+  page.once("dialog", d => void d.accept());
+  await page.locator(".noteitem", { hasText: "First note words" }).getByRole("button", { name: "More options", exact: true }).click();
+  await page.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(page.locator(".noteitem")).toHaveCount(2);
+  await page.reload();
+  await expect(page.locator(".noteitem")).toHaveCount(2);
+  expect(Object.keys(await records()).sort()).toEqual(["1", secondId].sort());
+  const relations = await page.evaluate(() => JSON.parse(localStorage.getItem("cj:rel_genesis_1") ?? "[]"));
+  expect(relations).toHaveLength(2);
+  expect(relations.some((r: { endpoints: { noteId?: string }[] }) => r.endpoints.some(e => e.noteId === firstId))).toBe(false);
+  await page.goto("/settings");
+  const backupDownload = page.waitForEvent("download");
+  await page.getByText("Download a backup", { exact: true }).click();
+  const backup = JSON.parse(await fs.readFile((await (await backupDownload).path())!, "utf8"));
+  expect(JSON.parse(backup.keys.bs_n_genesis_1)).toEqual(await records());
+});
+
+for (const theme of ["light", "dark"]) test(`note editor headings use saved passages for ID-keyed and legacy range notes (${theme})`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(theme => {
+    localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress", preferredColorScheme: theme, preferredLightTheme: "default", preferredDarkTheme: "dark" }));
+    const id = "724a8fa2-e4d1-4cb6-9621-7a25c4618438";
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({
+      "1/2/4": { id: "legacy", title: "Legacy range note", description: "Legacy words", date: 1 },
+      [id]: { id, verses: [1, 2, 4], title: "Independent range note", description: "Independent words", date: 2 },
+    }));
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([undefined, id].map(noteId => ({
+      id: noteId ?? "legacy-relation", type: "linked", direction: "none",
+      endpoints: [{ type: "verse", verseKeys: ["genesis-1-1"], label: "Genesis 1:1" }, { type: "note", verseKey: "genesis-1-1", ...(noteId ? { noteId } : {}), label: noteId ? "Independent range note" : "Legacy range note" }],
+      createdAt: 1, updatedAt: 1,
+    }))));
+  }, theme);
+  await page.goto("/read/genesis/1");
+  const note = page.getByRole("dialog", { name: "Note", exact: true });
+  for (const title of ["Independent range note", "Legacy range note"]) {
+    await page.locator("#verset-1 .rel-tag", { hasText: title }).click();
+    await note.getByRole("button", { name: "Open", exact: true }).click();
+    await expect(note.getByRole("textbox", { name: "Title", exact: true })).toHaveValue(title);
+    await expect(note.locator(".bs-sheet__titles small")).toHaveText("Genesis 1:1-2,4");
+    await note.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(note).toBeHidden();
+  }
+});
+
+test("the relation picker and note relation pages distinguish notes on the same passage", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({
+    "1": { id: "legacy", title: "Legacy note", description: "Old words", date: 1 },
+    first: { id: "first", verses: [1], title: "First note", description: "First words", date: 2 },
+    second: { id: "second", verses: [1], title: "Second note", description: "Second words", date: 3 },
+  })));
+  await page.goto("/relations?endpoint=genesis-1-3");
+  for (const title of ["Legacy note", "First note", "Second note"]) {
+    await page.getByRole("button", { name: "Add a precept", exact: true }).click();
+    for (const candidate of ["Legacy note", "First note", "Second note"]) await expect(page.locator(".rel-result", { hasText: candidate })).toBeVisible();
+    await page.locator(".rel-result", { hasText: title }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
+  await expect(page.locator(".rel-row")).toHaveCount(3);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("cj:rel_genesis_1") ?? "[]"));
+  expect(saved.map((r: { endpoints: { noteId?: string; type: string }[] }) => r.endpoints.find(e => e.type === "note")?.noteId ?? "legacy").sort()).toEqual(["first", "legacy", "second"]);
+  await page.goto("/notes");
+  await page.locator(".noteitem", { hasText: "First words" }).getByRole("button", { name: "1", exact: true }).click();
+  await expect(page).toHaveURL(/endpoint=note%3Agenesis-1-1%3Afirst$/);
+  await expect(page.locator(".rel-row")).toHaveCount(1);
+  await page.goto("/notes");
+  await page.locator(".noteitem", { hasText: "Old words" }).getByRole("button", { name: "1", exact: true }).click();
+  await expect(page).toHaveURL(/endpoint=note%3Agenesis-1-1$/);
+  await expect(page.locator(".rel-row")).toHaveCount(1);
+});
+
 for (const theme of ["light", "dark"]) test(`reader book and version use separate half-capsules (${theme})`, async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(theme => localStorage.setItem("cj:bs", JSON.stringify({ preferredColorScheme: theme, preferredLightTheme: "default", preferredDarkTheme: "dark" })), theme);

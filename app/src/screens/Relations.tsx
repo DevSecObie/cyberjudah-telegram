@@ -8,7 +8,7 @@ import { RELATION_TYPES, annotationParam, createRelation, deleteRelation, endpoi
 import { sheetOpened, useBackButton, useBottomButtons } from "@/tg/hooks";
 import { alert, api, confirm, haptic, openLink } from "@/tg/sdk";
 import { store } from "@/tg/store";
-import { versesOfKey, type Note } from "@/bible/store";
+import { noteVerses, versesOfKey, type Note } from "@/bible/store";
 import { useModal } from "@/ui/modal";
 import { useSheet } from "@/ui/sheet";
 import { Empty, Icon, Screen, SearchField, Loading } from "@/ui/ui";
@@ -25,7 +25,10 @@ export function endpointFromParam(p: string | null, books: { slug: string; book:
     const key = rest.slice(0, at), markId = rest.slice(at + 1);
     return at > 0 && markId && parseVerseKey(key) ? { type: "annotation", markId, verseKey: key, label: label || "Annotation" } : null;
   }
-  if (p.startsWith("note:") && parseVerseKey(p.slice(5))) return { type: "note", verseKey: p.slice(5), label: `Note on ${verseLabel([p.slice(5)], books)}` };
+  if (p.startsWith("note:")) {
+    const [key, noteId] = p.slice(5).split(":");
+    return parseVerseKey(key) ? { type: "note", verseKey: key, ...(noteId ? { noteId } : {}), label: label || `Note on ${verseLabel([key], books)}` } : null;
+  }
   if (p.startsWith("dictionary:")) return { type: "dictionary", slug: p.slice(11), label: label || p.slice(11) };
   if (p.startsWith("entry:")) return { type: "entry", url: p.slice(6), kind: "", label: label || p.slice(6) };
   if (p.startsWith("link:") && /^https?:\/\//i.test(p.slice(5))) return { type: "link", url: p.slice(5), label: label || p.slice(5) };
@@ -86,7 +89,7 @@ export function Relations() {
   if (!endpoint) return <Screen title="Your precepts">{saved.length ? <div className="nt-list">{saved.map((r) => <button type="button" className="nt-item" key={r.id} onClick={() => {
     // Open from a passage end when there is one; a relation between two other items opens from its first end.
     const e = r.endpoints.find((x) => x.type === "verse" || x.type === "note" || x.type === "annotation") ?? r.endpoints[0];
-    const key = e.type === "verse" ? e.verseKeys.join(",") : e.type === "note" ? `note:${e.verseKey}` : e.type === "annotation" ? annotationParam(e) : e.type === "dictionary" ? `dictionary:${e.slug}` : e.type === "entry" ? `entry:${e.url}` : `link:${e.url}`;
+    const key = e.type === "verse" ? e.verseKeys.join(",") : e.type === "note" ? `note:${e.verseKey}${e.noteId ? `:${e.noteId}` : ""}` : e.type === "annotation" ? annotationParam(e) : e.type === "dictionary" ? `dictionary:${e.slug}` : e.type === "entry" ? `entry:${e.url}` : `link:${e.url}`;
     const label = e.type === "verse" || e.type === "note" ? "" : `&label=${encodeURIComponent(e.label)}`;
     navigate(`/relations?endpoint=${encodeURIComponent(key)}${label}`);
   }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note, a dictionary entry or a link, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
@@ -154,18 +157,18 @@ export function RelationTargetPicker({ source, onClose, onCreated }: { source: E
   const library = useQuery({ queryKey: ["search", debounced, ""], enabled: debounced.length >= 2 && !refKeys, queryFn: () => api<{ ok: boolean; hits: { kind: string; title: string; url: string; sub: string; snippet: string }[] }>(`/api/search?q=${encodeURIComponent(debounced)}&limit=8`) });
   const dict = useQuery({ queryKey: ["dict", debounced, ""], enabled: debounced.length >= 2, queryFn: () => fetch(`/api/dictionary?q=${encodeURIComponent(debounced)}`).then((r) => r.json() as Promise<{ rows: { slug: string; term: string }[] }>) });
   const [notes, setNotes] = useState<Target[]>([]);
-  // The reader's notes (bs_n_, keyed "16/17" by verse) and any left in the older per-verse store (nt_).
+  // The reader's notes and any left in the older per-verse store (nt_).
   useEffect(() => { void store.keys().then(async (keys) => {
     const out: Target[] = []; const seen = new Set<string>();
-    const add = (key: string, text: string) => { if (!text || seen.has(key)) return; seen.add(key); out.push({ id: `note:${key}`, type: "note", title: text, subtitle: "Note", description: verseLabel([key], books.data), endpoint: { type: "note", verseKey: key, label: text.slice(0, 60) } }); };
+    const add = (key: string, text: string, noteId?: string) => { const id = `note:${noteId ?? key}`; if (!text || seen.has(id)) return; seen.add(id); out.push({ id, type: "note", title: text, subtitle: "Note", description: verseLabel([key], books.data), endpoint: { type: "note", verseKey: key, ...(noteId ? { noteId } : {}), label: text.slice(0, 60) } }); };
     for (const k of keys) {
       const m = /^(bs_n|nt)_(.+)_(\d+)$/.exec(k); if (!m) continue;
       try {
         const v = JSON.parse((await store.get(k)) ?? "{}") as Record<string, Note | string>;
         for (const [verses, note] of Object.entries(v)) {
-          const first = versesOfKey(verses)[0];
+          const first = (typeof note === "string" ? versesOfKey(verses) : note ? noteVerses(verses, note) : [])[0];
           if (!Number.isFinite(first) || !note) continue;
-          add(verseKey(m[2], +m[3], first), typeof note === "string" ? note : note.title || note.description);
+          add(verseKey(m[2], +m[3], first), typeof note === "string" ? note : note.title || note.description, typeof note !== "string" && verses === note.id ? note.id : undefined);
         }
       } catch { /* ignore */ }
     }
