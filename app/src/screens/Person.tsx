@@ -18,9 +18,11 @@ import { FamilyGraph, relationsOf } from "./FamilyGraph";
 /**
  * A person of the Bible, laid out as Bible Strong's entity page (StrongEntityPage): the summary
  * card (their picture, what they are, their name and their Strong's numbers, then who they were),
- * the Relationships graph under a rule, and then, as cards with the King James text, what the
+ * then the classes and the King James Bible first: as cards with the King James text, what the
  * classes taught where they come up (the Bishops' and Deacons' first) and every verse that names
- * them. Each card goes to its verse. Names, family and verses are STEPBible's TIPNR (CC BY 4.0).
+ * them, each card going to its verse. After them come the Relationships graph (only the family
+ * the King James text states) and the related case studies. Names, family and verses start from
+ * STEPBible's TIPNR (CC BY 4.0), with its family links checked against the King James text.
  */
 const TAUGHT_FIRST = 3, TAUGHT_MORE = 6, VERSES_FIRST = 5, VERSES_MORE = 10;
 const fold = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
@@ -65,20 +67,6 @@ export function Person() {
         {d.names.length > 1 ? <p className="entity__aka">Also called {d.names.filter((n) => n !== d.name).join(", ")}</p> : null}
       </header>
 
-      {relationsOf(d).length ? (
-        <EntitySection title="Relationships">
-          <FamilyGraph person={d} onOpenProfile={(pid) => { haptic("select"); navigate(`/person/${pid}`); }} />
-        </EntitySection>
-      ) : null}
-
-      {d.cases?.length ? (
-        <EntitySection title="Related case studies" count={d.cases.length}>
-          <div className="entity__cards">
-            {d.cases.map((c) => <CaseCard key={c.slug} to={c.url} name={c.name} preview={c.preview} kind={c.kind} meta={[c.kind === "blessing" ? "Blessing" : "Judgment", c.era, c.verdictLabel].join(" · ")} />)}
-          </div>
-        </EntitySection>
-      ) : null}
-
       <EntitySection title="What the classes taught" count={taught.length}>
         {taught.length ? (
           <div className="entity__cards">
@@ -109,7 +97,21 @@ export function Person() {
         <EntityMore shown={versesShown} total={verses.length} step={VERSES_MORE} onMore={setVersesShown} />
       </EntitySection>
 
-      <p className="entity__source">Names, family and verses: <button type="button" onClick={() => openLink(d.source.url)}>{d.source.name}</button> ({d.source.license}).</p>
+      {relationsOf(d).length ? (
+        <EntitySection title="Relationships">
+          <FamilyGraph person={d} onOpenProfile={(pid) => { haptic("select"); navigate(`/person/${pid}`); }} />
+        </EntitySection>
+      ) : null}
+
+      {d.cases?.length ? (
+        <EntitySection title="Related case studies" count={d.cases.length}>
+          <div className="entity__cards">
+            {d.cases.map((c) => <CaseCard key={c.slug} to={c.url} name={c.name} preview={c.preview} kind={c.kind} meta={[c.kind === "blessing" ? "Blessing" : "Judgment", c.era, c.verdictLabel].join(" · ")} />)}
+          </div>
+        </EntitySection>
+      ) : null}
+
+      <p className="entity__source">Family as the King James Bible states it. Names and verses from <button type="button" onClick={() => openLink(d.source.url)}>{d.source.name}</button> ({d.source.license}).</p>
     </Screen>
   );
 }
