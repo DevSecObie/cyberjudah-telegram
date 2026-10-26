@@ -122,9 +122,9 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
   }, [motions]);
   useEffect(() => { if (isResetting && !history.length && !motions.length) setIsResetting(false); }, [isResetting, history.length, motions.length]);
   const [root, setRoot] = useState(person.id);
-  useLayoutEffect(() => { resetSequence.current++; timers.current.forEach(clearTimeout); timers.current = []; nextZIndex.current = 0; }, [person.id]);
+  useLayoutEffect(() => { latestRelationRequestId.current += 1; resetSequence.current++; timers.current.forEach(clearTimeout); timers.current = []; nextZIndex.current = 0; }, [person.id]);
   if (root !== person.id) {
-    latestRelationRequestId.current += 1; setBusy(null);
+    setBusy(null);
     setRoot(person.id); setActive(person); setHistory([]); setPage(0);
     setMotions([]); setIsResetting(false); setLayers(createLayers(buildScene({ active: person, history: [], page: 0 })));
   }
