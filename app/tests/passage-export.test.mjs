@@ -20,6 +20,13 @@ test('export options remove excluded content and whole-book exports deduplicate 
   assert.equal(text.match(/explains/g)?.length, 1);
   for (const excluded of ['In the beginning', 'A note', 'Faith', 'https://', 'underline']) assert.ok(!text.includes(excluded), excluded);
 });
+test('ID-keyed notes on the same passage export independently alongside legacy ranges', () => {
+  const notes = { ...chapter.notes, first: { id: 'first', verses: [1], title: 'First', description: 'First saved words', tags: { faith: true } }, second: { id: 'second', verses: [1, 2], title: 'Second', description: 'Second saved words' }, outside: { id: 'outside', verses: [9], title: 'Outside ID', description: 'Must not appear' } };
+  const text = passageExport('Genesis 1:1', [{ ...chapter, notes }], all, { faith: { name: 'Faith' } });
+  for (const included of ['A note', 'Genesis 1:1 — First [Tags: Faith]', 'First saved words', 'Genesis 1:1,2 (also covers verses outside this selection) — Second', 'Second saved words']) assert.ok(text.includes(included), included);
+  assert.ok(!text.includes('Outside ID'));
+  assert.equal(Object.keys(notes).length, 5);
+});
 test('reader session is isolated by tab and passage, retaining focus context on reopening', () => {
   saveReaderSession('one:john:3:16-18', { selected: [17], contextMode: 'fullChapter', fullscreen: true });
   assert.deepEqual(readerSession('one:john:3:16-18', true), { selected: [17], contextMode: 'fullChapter', fullscreen: true });

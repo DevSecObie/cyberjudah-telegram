@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
+import { byCaptivity } from "../../shared/captivities.mjs";
 
 /**
  * The Bible Timeline at 390×844: Bible Strong's periods, canvas, date bar, line and year,
@@ -8,6 +9,8 @@ import fs from "node:fs";
  */
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const DATA_ORIGIN = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
+/** The periods as the Timeline lists them: by the captivities (shared/captivities.mjs). */
+const SECTIONS: { id: string; title: string }[] = byCaptivity(JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8")).sections);
 // Reduced motion skips the opening of a period (its own test below shows it).
 test.use({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
 
@@ -26,11 +29,11 @@ test("the periods, as Bible Strong lists them, without their prophecy period", a
   await page.goto("/timeline");
   await expect(page.getByRole("heading", { name: "The Bible Timeline" })).toBeVisible();
   const items = page.locator(".tl-item");
-  // Bible Strong's twelve, then The Final Captivity's periods (app/scripts/final-captivity), last.
-  const periods = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8")).sections.length;
+  // Bible Strong's periods, from the Exile on under the captivities, The American Captivity last.
+  const periods = SECTIONS.length;
   expect(periods).toBeGreaterThan(12);
   await expect(items).toHaveCount(periods);
-  await expect(items.last()).toContainText("The Final Captivity");
+  await expect(items.last()).toContainText("The American Captivity");
   await expect(items.first()).toContainText("Age of Patriarchs");
   await expect(items.first()).toContainText("First Generation");
   await expect(items.first()).toContainText("Creation–c.2500 BC");
@@ -91,9 +94,12 @@ test("search finds the two kings Ahaziah, each with the reign Who's Who gives an
 });
 
 test("their prophetic interpretation is not on the timeline", async ({ page }) => {
-  await page.goto("/timeline/7"); // The Exile, where their 2300-day and Daniel prophecies stood
-  await expect(page.getByRole("heading", { name: "The Exile" })).toBeVisible();
-  for (const t of ["2300 Day Prophecy", "The Seventy-Weeks Prophecy", "Daniel's Rome Prophecies"]) await expect(page.getByText(t, { exact: true })).toHaveCount(0);
+  // The Exile, where their 2300-day and Daniel prophecies stood, now cut at the captivities.
+  for (const title of ["Assyria", "Babylon", "Persia", "Greece"]) {
+    await page.goto(`/timeline/${SECTIONS.findIndex((s) => s.title === title)}`);
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
+    for (const t of ["2300 Day Prophecy", "The Seventy-Weeks Prophecy", "Daniel's Rome Prophecies"]) await expect(page.getByText(t, { exact: true })).toHaveCount(0);
+  }
   await page.goto("/timeline/search");
   await page.getByRole("searchbox").fill("prophecy");
   await expect(page.locator(".tl-search__list a")).toHaveCount(0);
@@ -218,10 +224,9 @@ test("search keeps its words: in the address, and on coming back from an event",
 });
 
 test("The Final Captivity: a period's events by category, and an event's history, teaching, sources and where they differ", async ({ page }) => {
-  const data = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8"));
-  const index = data.sections.findIndex((s: { id: string }) => s.id === "fc-house-of-bondage");
-  // After every Bible Strong period.
-  expect(index).toBeGreaterThanOrEqual(data.sections.filter((s: { id: string }) => !String(s.id).startsWith("fc-")).length);
+  const index = SECTIONS.findIndex((s) => s.id === "fc-house-of-bondage");
+  // In The American Captivity, after the periods before it.
+  expect(index).toBeGreaterThanOrEqual(SECTIONS.filter((s) => !String(s.id).startsWith("fc-")).length);
   await page.goto("/timeline/event/kimpa-vita-1706");
   await expect(page.locator(".tl-event__title")).toHaveText("Kimpa Vita burned in Kongo");
   await expect(page.getByRole("region", { name: "Summary" })).toBeVisible();

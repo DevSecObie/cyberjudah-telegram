@@ -4,19 +4,20 @@ import { useStored } from "@/tg/hooks";
 import { json, store } from "@/tg/store";
 import { parseHl, type Highlights } from "@/lib/marks";
 import { parseVerseKey, verseKey } from "@/lib/relations";
+import { noteVerses, type Note } from "./note-records";
+export { noteVerses, type Note } from "./note-records";
 
 /**
  * The reader's study data, shaped as Bible Strong's `user.bible` (highlights, notes, links,
  * bookmarks, tags) and kept in CloudStorage per chapter so each value stays under 4 KB:
  *   bs_h_<book>_<chapter>   highlights: verse number -> { color, date, tags }
- *   bs_n_<book>_<chapter>   notes: "16/17" (verse numbers) -> { id, title, description, date, tags }
+ *   bs_n_<book>_<chapter>   notes: id -> { id, verses, title, description, date, tags }; legacy range keys stay readable
  *   bs_l_<book>_<chapter>   links: "16" -> { id, url, title, linkType, date, tags }
  *   bs_bm                   bookmarks (8 at most, as Bible Strong's MAX_BOOKMARKS)
  *   bs_tags                 tags: id -> { id, name, date }
  * Verse keys are `<book>-<chapter>-<verse>`, the app's own (lib/relations).
  */
 export type Highlight = { color: string; date: number; tags?: Record<string, true> };
-export type Note = { id: string; title: string; description: string; date: number; tags?: Record<string, true> };
 export type Link = { id: string; url: string; title: string; linkType: string; date: number; tags?: Record<string, true> };
 export type Bookmark = { id: string; name: string; color: string; book: string; chapter: number; verse?: number; date: number };
 export type Tag = { id: string; name: string; date: number };
@@ -54,12 +55,15 @@ export const useTags = () => useStored<Record<string, Tag>>("bs_tags", {});
 export const versesOfKey = (k: string) => k.split("/").map(Number);
 export const keyOfVerses = (vs: number[]) => [...vs].sort((a, b) => a - b).join("/");
 
-export async function readNote(verseKeyOrKey: string): Promise<{ slug: string; chapter: number; key: string; note: Note } | null> {
+export async function readNote(verseKeyOrKey: string, noteId?: string): Promise<{ slug: string; chapter: number; key: string; note: Note } | null> {
   const p = parseVerseKey(verseKeyOrKey);
   if (!p) return null;
   const notes = await json.get<Record<string, Note>>(nKey(p.slug, p.chapter), {});
-  const key = Object.keys(notes).find((k) => versesOfKey(k).includes(p.verse));
+  const key = Object.keys(notes).find((k) => noteId ? notes[k].id === noteId : k !== notes[k].id && noteVerses(k, notes[k]).includes(p.verse));
   return key ? { slug: p.slug, chapter: p.chapter, key, note: notes[key] } : null;
+}
+export function noteEndpoint(slug: string, chapter: number, key: string, note: Note): import("@/lib/relations").NoteEndpoint {
+  return { type: "note", verseKey: verseKey(slug, chapter, noteVerses(key, note)[0]), ...(key === note.id ? { noteId: note.id } : {}), label: note.title || note.description.slice(0, 60) || "Untitled note" };
 }
 export async function writeNote(slug: string, ch: number, key: string, note: Note | null) {
   const notes = await json.get<Record<string, Note>>(nKey(slug, ch), {});

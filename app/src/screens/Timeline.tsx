@@ -8,6 +8,7 @@ import {
   calculateLabel, dateMarks, flatten, geometry, hasDetails, linkedEvents, rowToPx, searchEvents,
   type TimelineData, type TimelineEvent, type TimelineSection,
 } from "@shared/timeline.mjs";
+import { byCaptivity, captivityOf } from "@shared/captivities.mjs";
 import raw from "@/data/timeline.json";
 import { data, type ResolvedRef } from "@/api/data";
 import { Feather } from "@/bible/icons";
@@ -39,7 +40,8 @@ import "@/styles/screens/timeline.css";
  * docs/TIMELINE_PARITY.md is the checklist of their behaviour, item by item.
  */
 const TL = raw as TimelineData;
-const SECTIONS = TL.sections;
+/** The periods ordered by the captivities, each under its captivity (shared/captivities.mjs). */
+const SECTIONS = byCaptivity(TL.sections);
 const ALL = flatten(SECTIONS);
 /** The Final Captivity, the last age (app/scripts/final-captivity): its name and the date its sources were reviewed through. */
 const FINAL_CAPTIVITY = TL.finalCaptivity;
@@ -142,7 +144,8 @@ function About() {
     <div className="tl-about">
       <p>The periods, the events and their years are Bible Strong's Bible Timeline. Only its history is kept here: its descriptions, articles, pictures and prophetic interpretation are not.</p>
       <p>The pictures are ours, painted for CyberJudah under the assembly's depiction brief: each period's scene, and on an event the approved portrait of the person it is about. A period still waiting on direction shows its colour.</p>
-      <p>A king's reign, where shown, is from <i>Who's Who in the Bible</i> (Joan Comay and Ronald Brownrigg), its chronology of the kings.</p>
+      <p>A king's reign, where shown, is from <i>Who's Who in the Bible</i> (Joan Comay and Ronald Brownrigg), its chronology of the kings. The Caesars' reigns, from Julius to Domitian, are from IPM's chart <i>Birth of an Empire: Coins of the "Twelve Caesars"</i>.</p>
+      <p>The periods from the Exile on are ordered by the captivities, Assyrian, Babylonian, Persian and Mede, Greek, Roman and American, with each one's prophets and main people, as the assembly's captivity packets (written and compiled by Nathanyel Ben Israel, Israel United in Christ) give them. Their dates are, in their own words, "at best approximates".</p>
       <p>An event opens to our case studies on it, with their scripture in the KJV. An event with no case study yet stays on the line, greyed, as Bible Strong shows an event without details.</p>
       {FINAL_CAPTIVITY ? <>
         <h3 className="tl-about__h">{FINAL_CAPTIVITY.age}</h3>
@@ -174,7 +177,23 @@ function SectionCard({ s, direction }: { s: TimelineSection; direction?: "previo
   );
 }
 
-/** TimelineHomeScreen: the periods, each as its card (TimelineItem) over its picture. */
+/**
+ * A captivity's period details carry, where Bible Strong's carry the period's description, the
+ * captivity's description: its years, its prophets and the main people of its time, as the
+ * assembly's captivity packets name them (shared/captivities.mjs).
+ */
+function CaptivityDescription({ s }: { s: TimelineSection }) {
+  const c = captivityOf(s);
+  if (!c) return null;
+  return (
+    <div className="tl-about">
+      <p>{c.age}, {c.years}.{c.prophets.length ? ` Its prophets: ${c.prophets.join(", ")}.` : ""}{c.figures.length ? ` In this time: ${c.figures.join(", ")}.` : ""}</p>
+      {c.note ? <p>{c.note}</p> : null}
+    </div>
+  );
+}
+
+/** TimelineHomeScreen: the periods, each as its card (TimelineItem) over its picture; a captivity's periods carry it as their age. */
 export function Timeline() {
   useBackButton();
   const navigate = useNavigate();
@@ -331,6 +350,7 @@ function PeriodDetails({ s }: { s: TimelineSection }) {
     <div className="tl-details">
       <SectionCard s={s} />
       <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
+      <CaptivityDescription s={s} />
       {withCases.length ? (
         <>
           <h2 className="entity__eyebrow">Case Studies in This Period<span> · {withCases.reduce((n, e) => n + e.cases!.length, 0)}</span></h2>
@@ -350,6 +370,7 @@ function AgeGroupedPeriodDetails({ s }: { s: TimelineSection }) {
     <div className="tl-details">
       <SectionCard s={s} />
       <PhotoEdit slot={`period:${s.id}`} label="Period cover" shape="cover" hasPhoto={PERIOD_PICTURES.has(s.id)} />
+      <CaptivityDescription s={s} />
       <p className="hint">More events are being added to this period as each one is checked against the classes and the sources.</p>
       {[...groups].map(([g, list]) => (
         <section key={g}>
@@ -484,7 +505,7 @@ export function TimelineSearch() {
   );
 }
 
-const reignLabel = (r: NonNullable<TimelineEvent["reign"]>) => `${r.approx ? "c. " : ""}${r.from === r.to ? r.from : `${r.from}–${r.to}`} BC, ${r.kingdom === "United" ? "the united kingdom" : r.kingdom}`;
+const reignLabel = (r: NonNullable<TimelineEvent["reign"]>) => r.label ? `${r.label}, ${r.kingdom}` : `${r.approx ? "c. " : ""}${r.from === r.to ? r.from : `${r.from}–${r.to}`} BC, ${r.kingdom === "United" ? "the united kingdom" : r.kingdom}`;
 
 /**
  * EventScreen and EventDetails: the title and date; in place of their description, the
@@ -532,7 +553,9 @@ export function TimelineEventScreen() {
         {e.reign ? (
           <section className="tl-event__section" aria-label="Reign">
             <h2>Reign</h2>
-            <p>{reignLabel(e.reign)} <span className="tl-event__src">Who's Who in the Bible</span></p>
+            <p>{reignLabel(e.reign)} <span className="tl-event__src">{e.reign.source ? "IPM, Coins of the Twelve Caesars" : "Who's Who in the Bible"}</span></p>
+            {e.reign.born ? <p>Born {e.reign.born}, died {e.reign.died}</p> : null}
+            {e.reign.notes?.length ? <ul>{e.reign.notes.map((n) => <li key={n}>{n}</li>)}</ul> : null}
           </section>
         ) : null}
 
