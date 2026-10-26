@@ -1,13 +1,13 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
-async function setup(page: Page) {
+async function setup(page: Page, rootCycle = false) {
   const ref = (id: string) => ({ id, name: id });
   const make = (id: string, family = {}) => ({ id, name: id, names: [id], type: "Male", description: "", tribe: "", father: [], mother: [], siblings: [], partners: [], children: [], verses: [], taught: [], source: { name: "Motion fixture", license: "", url: "" }, ...family });
   const people: Record<string, ReturnType<typeof make>> = {
     root: make("root", { children: [ref("one"), ...Array.from({ length: 7 }, (_, i) => ref(`child${i}`))] }),
     one: make("one", { father: [ref("root")], children: [ref("two"), ref("extra")] }),
-    two: make("two", { father: [ref("one")], children: [ref("three")] }),
+    two: make("two", { father: [ref("one")], children: [ref("three")], ...(rootCycle ? { partners: [ref("root")] } : {}) }),
     three: make("three", { father: [ref("two")] }),
     child6: make("child6", { father: [ref("root")] }),
   };
@@ -109,6 +109,32 @@ test("family motion: overlapping selections and Back reuse at most three layers 
   await expect(page.locator(".fg__static-center b")).toHaveText("root");
   await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
 });
+
+for (const theme of ["light", "dark"] as const) {
+  test(`family motion: a root cycle clears history during overlapping transitions (${theme})`, async ({ page }) => {
+    await setup(page, true);
+    await page.emulateMedia({ colorScheme: theme, reducedMotion: "no-preference" });
+    const initial = await current(page).locator(".fg__sat b").allTextContents();
+    for (const id of ["one", "two", "root"]) {
+      await walk(page, id);
+      await page.clock.runFor(176);
+    }
+    await expect(current(page).locator(".fg__label--center b")).toHaveText("root");
+    expect(await page.locator(".fg__layer").count()).toBeLessThanOrEqual(3);
+    await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Start again from root", exact: true })).toHaveCount(0);
+    await expect(current(page).locator(".fg__line--back")).toHaveCount(0);
+    await expect(current(page).locator(".fg__sat b")).toHaveText(initial);
+    await expect(page.locator(".fg__foot")).toHaveAttribute("aria-label", "Page 1 of 2");
+    await page.clock.runFor(800);
+    await expect(page.locator(".fg__layer")).toHaveCount(1);
+    await expect(page.locator(".fg__static-center b")).toHaveText("root");
+    await press(page.getByRole("button", { name: "Next page", exact: true }));
+    await page.clock.runFor(400);
+    await expect(page.locator(".fg__foot")).toHaveAttribute("aria-label", "Page 2 of 2");
+    await expect(current(page).locator(".fg__sat")).toHaveCount(2);
+  });
+}
 
 test("family motion: Start again retraces each history entry350ms apart and blocks interaction until the final camera finishes", async ({ page }) => {
   await setup(page);
