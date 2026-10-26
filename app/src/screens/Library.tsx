@@ -156,14 +156,14 @@ export function DoctrineScreen() {
   } : null} />;
 }
 
-function DoctrineWatch({ moment }: { moment: Pick<DoctrineEntry["answers"][number]["sense"][number], "video" | "note" | "t" | "ts"> }) {
+function DoctrineWatch({ moment, label }: { moment: Pick<DoctrineEntry["answers"][number]["sense"][number], "video" | "note" | "t" | "ts">; label?: string }) {
   let to = `/watch/${encodeURIComponent(moment.video)}?t=${moment.t}`;
   if (moment.note) {
     const note = new URL(moment.note, "https://cyberjudah.io");
     note.searchParams.set("t", String(moment.t));
     to = `${toApp(note.pathname)}${note.search}${note.hash}`;
   }
-  return <Link className="doctrine-watch" to={to}>Watch at {moment.ts}</Link>;
+  return <Link className="doctrine-watch" to={to}>{label ? <>{label}<span aria-hidden="true"> · </span></> : null}<span className="doctrine-time">Watch at {moment.ts}</span></Link>;
 }
 
 function DoctrineBookQuotes({ page, title }: { page: DoctrineBookPage; title: string }) {
@@ -180,23 +180,30 @@ function DoctrineBookQuotes({ page, title }: { page: DoctrineBookPage; title: st
 export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
   return <div className="doctrine-content">
     <Section title="False claim"><p className="doctrine-claim">{entry.claim}</p></Section>
-    {entry.answers.map((answer, i) => <Section key={i} title={`Answer ${i + 1}`}>
-      <List>{answer.refs.map((r, n) => <div key={n} className="lawrow"><Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}</div>)}</List>
-      {answer.sense.map((s, n) => <div key={n} className="doctrine-teaching">
-        <blockquote className="verse-quote" style={{ whiteSpace: "pre-wrap" }}>{s.text}</blockquote>
-        <div className="doctrine-source">{s.teacher ? <p className="hint">{s.teacher}</p> : null}<DoctrineWatch moment={s} /></div>
-      </div>)}
-    </Section>)}
-    {entry.scriptures?.length ? <Section title="Scriptures against it"><List>{entry.scriptures.map((r, i) => <div key={i} className="lawrow">
+    <nav className="doctrine-jump" aria-label="On this page">
+      {entry.answers.length ? <a href="#doctrine-study">Scripture &amp; teaching</a> : null}
+      {entry.scriptures?.length ? <a href="#doctrine-scriptures">Scriptures <span>{entry.scriptures.length}</span></a> : null}
+      {entry.books?.length ? <a href="#doctrine-books">Books <span>{entry.books.length}</span></a> : null}
+    </nav>
+    {entry.answers.length ? <div id="doctrine-study"><Section title="Scripture & teaching">
+      {entry.answers.map((answer, i) => <article key={i} className="doctrine-evidence">
+        <List>{answer.refs.map((r, n) => <div key={n} className="lawrow"><Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}</div>)}</List>
+        {answer.sense.map((s, n) => <figure key={n} className="doctrine-teaching">
+          <blockquote className="verse-quote">{s.text}</blockquote>
+          <figcaption className="doctrine-source"><DoctrineWatch moment={s} label={s.teacher} /></figcaption>
+        </figure>)}
+      </article>)}
+    </Section></div> : null}
+    {entry.scriptures?.length ? <div id="doctrine-scriptures"><Section title="Scriptures against it"><List>{entry.scriptures.map((r, i) => <div key={i} className="lawrow">
       <Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}
       {r.points.length ? <ul className="doctrine-points">{r.points.map((p, n) => <li key={n}>
-        {p.read ? <>Read in {p.title}{" "}<DoctrineWatch moment={p} /></> : <>
+        {p.read ? <DoctrineWatch moment={p} label={`Read in ${p.title}`} /> : <>
           <p className="doctrine-explanation">{p.text}</p>
-          <div className="hint">{p.teacher ? `${p.teacher} · ` : null}{p.title}{" "}<DoctrineWatch moment={p} /></div>
+          <DoctrineWatch moment={p} label={[p.teacher, p.title].filter(Boolean).join(" · ")} />
         </>}
       </li>)}</ul> : null}
-    </div>)}</List></Section> : null}
-    {entry.books?.length ? <Section title="Books against it"><List>{entry.books.map((book, i) => <div key={i} className="lawrow">
+    </div>)}</List></Section></div> : null}
+    {entry.books?.length ? <div id="doctrine-books"><Section title="Books against it"><List>{entry.books.map((book, i) => <div key={i} className="lawrow">
       <h3 style={{ margin: "0 0 4px" }}>{book.url ? <Link to={toApp(book.url)}>{book.title}</Link> : book.title}</h3>
       {book.author || book.year !== null ? <p className="hint">{book.author}{book.author && book.year !== null ? " · " : null}{book.year}</p> : null}
       {book.pages ? book.pages.map((page, n) => <div key={n} className="doctrine-book-page">
@@ -204,16 +211,15 @@ export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
         <span className="hint"> · read in {page.classes} {page.classes === 1 ? "class" : "classes"}</span>
         <DoctrineBookQuotes page={page} title={book.title} />
         {page.reads.length ? <ul className="doctrine-points">{page.reads.slice(0, 3).map((read, k) => <li key={k}>
-          <span className="hint">{read.teacher ? `${read.teacher} · ` : null}{read.title}</span>{" "}<DoctrineWatch moment={read} />
+          <DoctrineWatch moment={read} label={[read.teacher, read.title].filter(Boolean).join(" · ")} />
         </li>)}</ul> : null}
       </div>) : <>
         <div className="refs">{book.said.ref.url ? <Link to={toApp(book.said.ref.url)}>{book.said.ref.label}</Link> : <span>{book.said.ref.label}</span>}</div>
         <blockquote className="verse-quote" style={{ whiteSpace: "pre-wrap" }}>{book.said.text}</blockquote>
-        <p className="hint">{book.said.teacher ? `${book.said.teacher} · ` : null}{book.said.title}</p>
-        <DoctrineWatch moment={book.said} />
+        <DoctrineWatch moment={book.said} label={[book.said.teacher, book.said.title].filter(Boolean).join(" · ")} />
       </>}
-    </div>)}</List></Section> : null}
-    {([['precepts', 'Related precepts'], ['cases', 'Related cases'], ['topics', 'Related topics']] as const).map(([kind, title]) => entry.related[kind].length ? <Section key={kind} title={title}><Chips>{entry.related[kind].map((r) => <Link key={r.slug} className="chip" to={toApp(r.url)}>{r.title ?? r.name ?? r.label ?? r.slug}</Link>)}</Chips></Section> : null)}
+    </div>)}</List></Section></div> : null}
+    {([['precepts', 'Related precepts'], ['cases', 'Related cases'], ['topics', 'Related topics']] as const).map(([kind, title]) => entry.related[kind].length ? <Section key={kind} title={title}><div className="doctrine-related">{entry.related[kind].map((r) => <Link key={r.slug} to={toApp(r.url)}>{r.title ?? r.name ?? r.label ?? r.slug}</Link>)}</div></Section> : null)}
   </div>;
 }
 

@@ -33,7 +33,7 @@
 /* A desktop action menu occupies its own anchor, leaving the rest of the page usable. */
 .sheet__scrim[data-anchored] { inset: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left); display: block; background: transparent; pointer-events: none; animation: none; }
 .sheet__scrim[data-anchored] .sheet { position: absolute; pointer-events: auto; margin: 0; width: min(320px, calc(100% - 16px)); max-height: calc(100% - 16px); border-radius: var(--r-xl); }
-.sheet__scrim[data-anchored] .sheet:not([data-placed]) { visibility: hidden; }
+.sheet__scrim[data-anchored] .sheet[data-actions]:not([data-placed]) { visibility: hidden; }
 .sheet__scrim[data-anchored] .sheet__grip { display: none; }
 
 /* Bible Strong's reference preview (ReferencePreviewHost): 440 wide, a one-line header with Back

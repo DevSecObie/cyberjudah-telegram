@@ -6,12 +6,18 @@
   font: 400 1.0625rem/1.65 var(--font-read);
   overflow-wrap: anywhere;
 }
-.doctrine-content > .section { gap: 16px; margin: 0; padding: 28px 0; border-bottom: 1px solid var(--hairline); }
+.doctrine-content > .section, .doctrine-content > [id] > .section { gap: 20px; margin: 0; padding: 28px 0; border-bottom: 1px solid var(--hairline); }
 .doctrine-content > .section:first-child { padding-top: 8px; }
-.doctrine-content > .section:last-child { border-bottom: 0; }
+.doctrine-content > .section:last-child, .doctrine-content > [id]:last-child > .section { border-bottom: 0; }
 .doctrine-content .section__head { padding: 0; }
 .doctrine-content .section__head h2 { font: 700 1rem/1.4 var(--font-title); letter-spacing: 0; }
-.doctrine-content .doctrine-claim { margin: 0; white-space: pre-wrap; }
+.doctrine-content > .section:first-child .section__head h2 { color: var(--text-3); font: 600 .75rem/1.5 var(--font-ui); }
+.doctrine-content .doctrine-claim { margin: 0; font-size: 1.25rem; line-height: 1.5; white-space: pre-wrap; }
+.doctrine-jump { display: flex; flex-wrap: wrap; gap: 0 20px; padding: 8px 0; border-bottom: 1px solid var(--hairline); }
+.doctrine-jump a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--accent); font: 500 .8125rem/1.4 var(--font-ui); }
+.doctrine-jump span { color: var(--text-3); font: 400 .6875rem/1 var(--font-mono); }
+.doctrine-content > [id] { scroll-margin-top: 80px; }
+.doctrine-evidence + .doctrine-evidence { margin-top: 8px; padding-top: 28px; border-top: 1px solid var(--hairline); }
 #root .doctrine-content .list { border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
 .doctrine-content .list__box, .doctrine-content .list__body { border-radius: 0; background: transparent; box-shadow: none; }
 .doctrine-content .lawrow { padding: 16px 0; border: 0; }
@@ -21,9 +27,10 @@
 .doctrine-content .lawrow:last-child { padding-bottom: 0; }
 .doctrine-content .refs { margin: 0 0 8px; gap: 12px; font: 600 .875rem/1.5 var(--font-ui); }
 .doctrine-content .refs a { padding: 0; border: 0; background: none; color: var(--accent); }
+.doctrine-content .doctrine-evidence .refs { font: 600 1.0625rem/1.5 var(--font-read); }
 .doctrine-content .verse-quote { margin: 0; padding: 0; border: 0; font: 400 1.0625rem/1.55 var(--font-read); color: var(--text-1); white-space: pre-wrap; }
 .doctrine-content .verse-quote sup { font: 500 .625rem/1 var(--font-ui); color: var(--text-3); }
-.doctrine-content .doctrine-teaching { padding: 0 0 0 16px; border-left: 2px solid var(--hairline); }
+.doctrine-content .doctrine-teaching { margin: 20px 0 0; padding: 0 0 0 16px; border-left: 2px solid var(--hairline); }
 .doctrine-content .doctrine-teaching .verse-quote, .doctrine-content .doctrine-ocr .verse-quote { font-size: 1.0625rem; }
 .doctrine-content .doctrine-source { margin-top: 8px; }
 .doctrine-content .hint { margin: 0; color: var(--text-3); font: 400 .8125rem/1.6 var(--font-ui); }
@@ -34,21 +41,23 @@
 .doctrine-content .doctrine-points li::marker { color: var(--text-3); font-size: .65em; }
 .doctrine-content .doctrine-explanation { margin: 0 0 6px; white-space: pre-wrap; }
 .doctrine-content .doctrine-watch, #root .doctrine-content .doctrine-scan {
-  display: inline-flex; align-items: center; min-height: 44px; max-width: 100%; padding: 0;
+  display: inline-block; min-height: 44px; max-width: 100%; padding: 10px 0;
   border: 0; border-radius: 0; background: none; box-shadow: none;
-  color: var(--accent); font: 600 .8125rem/1.4 var(--font-ui); text-align: left;
-  text-decoration: none; cursor: pointer; vertical-align: middle;
+  color: var(--accent); font: 500 .8125rem/1.6 var(--font-ui); text-align: left;
+  cursor: pointer; vertical-align: middle;
 }
-.doctrine-content .hint .doctrine-watch { display: flex; width: fit-content; }
-.doctrine-content .doctrine-watch:hover, #root .doctrine-content .doctrine-scan:hover { text-decoration: underline; }
+.doctrine-content .doctrine-time { font: 400 .75rem/1.6 var(--font-mono); white-space: nowrap; }
+#root .doctrine-content a { color: var(--accent); }
+#root .doctrine-content a, #root .doctrine-content .doctrine-scan { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
+#root .doctrine-content a:hover, #root .doctrine-content .doctrine-scan:hover { text-decoration-thickness: 2px; }
 .doctrine-content :is(a, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .doctrine-content h3 { color: var(--text-1); font: 700 1.0625rem/1.5 var(--font-title); }
-.doctrine-content h3 a { color: inherit; text-decoration: none; }
+.doctrine-content h3 a { color: var(--accent); }
 .doctrine-content h3 a:hover { color: var(--accent); }
 .doctrine-content .doctrine-book-page { margin-top: 20px; }
-.doctrine-content .doctrine-book-page > a { color: var(--accent); font: 600 .875rem/1.5 var(--font-ui); text-decoration: none; }
+.doctrine-content .doctrine-book-page > a { color: var(--accent); font: 600 .875rem/1.5 var(--font-ui); }
 .doctrine-content .doctrine-ocr { margin-top: 16px; padding-left: 16px; border-left: 2px solid var(--hairline); }
 .doctrine-content .doctrine-book-page .doctrine-points { margin-top: 12px; }
-.doctrine-content .chips { gap: 8px; }
-.doctrine-content .chip { padding: 7px 12px; border: 0; background: var(--surface-2); box-shadow: none; color: var(--text-2); font: 400 .8125rem/1.5 var(--font-ui); }
+.doctrine-related { display: flex; flex-wrap: wrap; gap: 0 24px; }
+.doctrine-related a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font: 500 .875rem/1.5 var(--font-ui); }
 @media (min-width: 700px) { .doctrine-content { padding-inline: 8px; } }

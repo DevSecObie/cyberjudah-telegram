@@ -27,7 +27,8 @@ test("doctrine renders the supplied KJV, Apocrypha and complete teacher words wi
     for (const sense of answer.sense) { assert.ok(html.includes(sense.text)); assert.ok(html.includes(sense.teacher)); }
   }
   for (const link of ["/read/genesis/1?v=1", "/read/2-esdras/6?v=38", "/note/classes/2026/fixture?t=65", "/watch/fixture0002?t=0", "/precepts/fixture-precept", "/cases/fixture-case", "/topics/fixture-topic"]) assert.ok(html.includes(`href="${link}"`), link);
-  assert.ok(html.indexOf(fixture.claim) < html.indexOf("Answer 1"));
+  assert.ok(html.indexOf(fixture.claim) < html.indexOf('id="doctrine-study"'));
+  assert.ok(!/Answer \d+/.test(html));
   assert.ok(html.includes("Watch at 1:05")); assert.ok(html.includes("Watch at 0:00"));
   assert.deepEqual(fixture, before);
 });
@@ -41,12 +42,13 @@ test("scripture rows preserve KJV and exact class bullets, read markers, times a
   for (const ref of fixture.scriptures) for (const verse of ref.text) assert.ok(scripture.includes(verse.text));
   assert.ok(scripture.includes('href="/read/job/3?v=17"'));
   assert.ok(scripture.includes(fixture.scriptures[0].points[0].text));
-  assert.ok(scripture.includes(">Fixture explanation class "));
+  assert.ok(scripture.includes(">Fixture explanation class<span"));
   assert.ok(scripture.includes("Read in Fixture reading class"));
-  assert.ok(scripture.includes('href="/note/classes/2026/fixture-scripture?t=821">Watch at 13:41'));
-  assert.ok(scripture.includes('href="/watch/fixture0004?t=3725">Watch at 1:02:05'));
+  assert.ok(scripture.includes('href="/note/classes/2026/fixture-scripture?t=821"'));
+  assert.ok(scripture.includes('href="/watch/fixture0004?t=3725"'));
+  assert.ok(scripture.includes("Watch at 13:41") && scripture.includes("Watch at 1:02:05"));
   assert.ok(!html.includes("undefined") && !html.includes("62:05") && !html.includes('class="hint"></p>'));
-  assert.ok(html.indexOf("Answer 1") < html.indexOf("Scriptures against it"));
+  assert.ok(html.indexOf('id="doctrine-study"') < html.indexOf("Scriptures against it"));
   assert.deepEqual(fixture, before);
 });
 
@@ -60,7 +62,7 @@ test("doctrine guards empty arrays and formats teachers and query-bearing note l
   const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry }));
   assert.ok(html.includes("Fixture teacher · Fixture explanation class"));
   assert.ok(html.includes('href="/note/classes/2026/fixture-scripture?source=fixture&amp;t=821#moment"'));
-  assert.ok(html.includes('href="/watch/fixture0002?t=4520">Watch at 1:15:20'));
+  assert.ok(html.includes('href="/watch/fixture0002?t=4520"') && html.includes("Watch at 1:15:20"));
   assert.ok(!html.includes("Related cases") && !html.includes("Related topics"));
   entry.scriptures = [];
   assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes("Scriptures against it"));
@@ -91,7 +93,7 @@ test("book lists cap class reads at three, hide empty books, and allow linked ci
   assert.ok(html.includes("Fixture reader · Fixture book class 1") && html.includes("Fixture book class 3") && !html.includes("Fixture book class 4"));
   assert.ok(html.includes('href="/books/fixture-citation">Fixture cited book</a>'));
   assert.ok(html.includes("Fixture citation author"));
-  assert.ok(html.includes('class="hint">Fixture citing class</p>'));
+  assert.ok(html.includes('>Fixture citing class<span aria-hidden="true"> · </span>'));
   assert.ok(html.includes('href="/note/classes/2026/fixture-citation?source=fixture&amp;t=4520#moment"'));
   entry.books = [];
   assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes("Books against it"));
