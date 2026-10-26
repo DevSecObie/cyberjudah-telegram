@@ -14,6 +14,7 @@ import { listStudies, subscribeStudies } from "@/studies/storage";
 import { AlphabetList, firstLetter } from "@/ui/alphabet";
 import { useSettled } from "@/ui/search-bar";
 import { flatten, hasDetails } from "@shared/timeline.mjs";
+import { byCaptivity } from "@shared/captivities.mjs";
 import type { TimelineData } from "@shared/timeline.mjs";
 import { parseReference } from "../../../bot/src/refs.mjs";
 import bookRows from "../../../bot/data/bs-books.json";
@@ -50,7 +51,8 @@ const BROWSE: Partial<Record<Scope, { label: string; placeholder: string; icon: 
 };
 const PLACEHOLDER: Partial<Record<Scope, string>> = { bible: "A passage, for example Gen 1:2-5…", timeline: "Search in Timeline…" };
 const PREVIEW = 5, MORE = 10, PAGE = 20;
-const TIMELINE = raw as unknown as TimelineData;
+/** The periods as the Timeline lists them, by the captivities (shared/captivities.mjs), so a period's index opens the same period. */
+const TIMELINE = { ...(raw as unknown as TimelineData), sections: byCaptivity((raw as unknown as TimelineData).sections) };
 
 /** matchesQuery: every word of the query, accents aside, somewhere in the values. */
 const matches = (query: string, ...values: (string | undefined)[]) => {
@@ -228,7 +230,7 @@ function useNotes(enabled: boolean, text: string) {
 function timelineItems(text: string): Item[] {
   const events = flatten(TIMELINE.sections);
   return TIMELINE.sections.flatMap((section, index) => [
-    ...(matches(text, section.title, section.sectionTitle) ? [{ id: `period:${section.id}`, kind: "timeline" as const, title: section.title, subtitle: "Period", path: `/timeline/${index}` }] : []),
+    ...(matches(text, section.title, section.sectionTitle) ? [{ id: `period:${section.id}`, kind: "timeline" as const, title: section.title, subtitle: `Period · ${section.subTitle}`, path: `/timeline/${index}` }] : []),
     ...(text.trim() ? events.filter((e) => e.sectionIndex === index && hasDetails(e) && matches(text, e.title))
       .map((e) => ({ id: `event:${section.id}:${e.slug}`, kind: "timeline" as const, title: e.title, subtitle: `Event · ${section.title}`, path: `/timeline/event/${e.slug}` })) : []),
   ]);
