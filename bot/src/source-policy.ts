@@ -1,6 +1,6 @@
 import type { Env } from "./env";
 import configured from "../data/ask-sources.json";
-export const DEFAULT_SOURCES = ["israelunite.org", "wikipedia.org", "archive.org", "gutenberg.org", "loc.gov", "archives.gov", "nps.gov", "si.edu", "blackpast.org", "slavevoyages.org", "jewishencyclopedia.com"];
+export const DEFAULT_SOURCES = ["israelunite.org", "wikipedia.org", "archive.org", "gutenberg.org", "loc.gov", "archives.gov", "nps.gov", "si.edu", "blackpast.org", "slavevoyages.org", "jewishencyclopedia.com", "biblehub.com", "blueletterbible.org", "britannica.com", "merriam-webster.com", "dictionary.com", "jewishvirtuallibrary.org"];
 export const HOST = /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
 export type SourceRevision = { revision: number; hosts: string[] };
 export function validSourceRevision(value: unknown): value is SourceRevision {
