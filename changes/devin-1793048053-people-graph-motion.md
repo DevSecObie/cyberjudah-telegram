@@ -1,0 +1,1 @@
+- Family relationships now move the selected person into the centre, retrace each step on Start again and rotate relationship pages with Bible Strong's shared transition engine.
