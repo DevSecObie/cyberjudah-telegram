@@ -34,17 +34,17 @@ test("the canvas is laid out with their constants: 100/interval px a year, 24 ro
 });
 
 test("the data keeps their history and leaves out their prophetic teaching", () => {
-  // Bible Strong's periods up to the end of the New Testament (their Middle Ages and Reformation are
-  // church history the classes do not teach), then The Final Captivity's (app/scripts/final-captivity), last.
+  // Bible Strong's twelve periods, then The Final Captivity's (app/scripts/final-captivity), last.
   const theirs = DATA.sections.filter((s) => !String(s.id).startsWith("fc-"));
-  assert.equal(theirs.length, 10);
-  assert.ok(DATA.sections.slice(10).every((s) => s.sectionTitle === "The Final Captivity"));
+  assert.equal(theirs.length, 12);
+  assert.ok(DATA.sections.slice(12).every((s) => s.sectionTitle === "The Final Captivity"));
   assert.ok(!DATA.sections.some((s) => s.title === "Revelation Prophecies"));
   const titles = DATA.sections.flatMap((s) => s.events.map((e) => e.title));
   for (const t of ["2300 Day Prophecy", "1260 Day Prophecy", "The Two Beasts of Revelation 13", "Church of Laodicea, Age of Judgment"]) assert.ok(!titles.includes(t), t);
   assert.ok(titles.includes("Isaiah Prophecy Concerning Cyrus II"), "a prophecy that is an event in the text stays");
-  // Prophecy drawn as history, and dates or readings the KJV does not give, are left out or set right.
-  for (const t of ["Seven Trumpets", "Immanuel", "Judah Falls, Aug 15", "Ham's Sin and Curse", "Fall of Jerusalem July 19"]) assert.ok(!titles.includes(t), t);
+  // Prophecy drawn as history and readings against the KJV are left out or set right; history stays.
+  for (const t of ["Seven Trumpets", "Immanuel", "Ham's Sin and Curse"]) assert.ok(!titles.includes(t), t);
+  for (const t of ["Martin Luther", "The Council of Trent", "Fall of Jerusalem July 19", "Judah Falls, Aug 15"]) assert.ok(titles.includes(t), t);
   assert.ok(!titles.some((t) => /^Daniel (2|8|11) - /.test(t)), "Daniel's visions are not drawn as history");
   assert.ok(titles.includes("Ham's Sin; Canaan Cursed"), "Genesis 9:25: cursed be Canaan");
   // No pictures or links from their servers: the only link is the Who's Who citation.

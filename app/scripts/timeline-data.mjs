@@ -39,28 +39,20 @@ const NOT_DOCTRINE = new Set(["Isaiah Prophecy Concerning Cyrus II"]);
 const isDoctrine = (title) => DOCTRINE.test(title) && !NOT_DOCTRINE.has(title.trim());
 const DOCTRINE_SECTIONS = new Set(["13"]);
 /**
- * Set right by the KJV and the classes (doctrine audit, 2026-10-26). Bible Strong's prophecy
- * spans (the trumpets and Daniel's visions drawn as history to 2020) are interpretation; the
- * "Immanuel" of 734 BC goes against Matthew 1:22-23; "Judah Falls, Aug 15" doubles the fall of
- * Jerusalem; and the Middle Ages and the Reformation (11, 12) are church history the classes
- * do not teach. Titles name what the KJV says: Noah cursed Canaan (Genesis 9:25), and the KJV
- * dates by its own months (2 Kings 25:1-8; Esther 3:7-13), not Roman ones.
+ * Set right by the KJV and the classes (doctrine audit, 2026-10-26). Only false doctrine is
+ * left out; history that happened stays, church history and calendar dates included. Bible
+ * Strong's prophecy spans (the trumpets and Daniel's visions drawn as history to 2020) are
+ * interpretation, and the "Immanuel" of 734 BC goes against Matthew 1:22-23. Noah cursed
+ * Canaan, not Ham (Genesis 9:25).
  */
 const INTERPRETATION = /^seven trumpets$|^daniel (2|8|11) - /i;
-const NOT_KEPT = new Set(["Immanuel", "Judah Falls, Aug 15"]);
-const NOT_TAUGHT_SECTIONS = new Set(["11", "12"]);
-export const TITLES = {
-  "Ham's Sin and Curse": "Ham's Sin; Canaan Cursed",
-  "Jerusalem's Final Siege Begins Jan 15": "Jerusalem's Final Siege Begins",
-  "Fall of Jerusalem July 19": "Fall of Jerusalem",
-  "Cyrus II Conquers Babylon Oct 29": "Cyrus II Conquers Babylon",
-  "Haman's Death Decree April 474": "Haman's Death Decree",
-};
+const NOT_KEPT = new Set(["Immanuel"]);
+export const TITLES = { "Ham's Sin and Curse": "Ham's Sin; Canaan Cursed" };
 export const notKept = (title) => INTERPRETATION.test(title.trim()) || NOT_KEPT.has(title.trim());
 
-/** The KJV and class corrections above, on sections already in the timeline's shape. */
+/** The KJV corrections above, on sections already in the timeline's shape. */
 export function setRight(sections) {
-  return sections.filter((s) => !NOT_TAUGHT_SECTIONS.has(String(s.id))).map((s) => ({
+  return sections.map((s) => ({
     ...s,
     events: s.events.filter((e) => !notKept(e.title)).map((e) => (TITLES[e.title.trim()] ? { ...e, title: TITLES[e.title.trim()] } : e)),
   }));
@@ -77,7 +69,7 @@ export function keepHistory(sections) {
     events: s.events.filter((e) => { const doctrine = isDoctrine(e.titleEn); if (doctrine) dropped.push(e.titleEn); return !doctrine; })
       .map((e) => ({ id: e.id, slug: e.slug, title: e.titleEn.trim(), start: e.start, end: e.end, row: e.row, type: e.type, ...(e.approx ? { approx: true } : {}), ...(e.isFixed ? { isFixed: true } : {}) })),
   }));
-  return { kept: setRight(kept), dropped: [...new Set(dropped)], droppedSections: sections.filter((s) => DOCTRINE_SECTIONS.has(String(s.id)) || NOT_TAUGHT_SECTIONS.has(String(s.id))).map((s) => s.titleEn) };
+  return { kept: setRight(kept), dropped: [...new Set(dropped)], droppedSections: sections.filter((s) => DOCTRINE_SECTIONS.has(String(s.id))).map((s) => s.titleEn) };
 }
 
 /**
