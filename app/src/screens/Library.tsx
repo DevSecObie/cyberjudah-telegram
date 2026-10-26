@@ -154,6 +154,16 @@ export function DoctrineScreen() {
   } : null} />;
 }
 
+function DoctrineWatch({ moment }: { moment: Pick<DoctrineEntry["answers"][number]["sense"][number], "video" | "note" | "t" | "ts"> }) {
+  let to = `/watch/${encodeURIComponent(moment.video)}?t=${moment.t}`;
+  if (moment.note) {
+    const note = new URL(moment.note, "https://cyberjudah.io");
+    note.searchParams.set("t", String(moment.t));
+    to = `${toApp(note.pathname)}${note.search}${note.hash}`;
+  }
+  return <Link className="chip" to={to}>Watch at {moment.ts}</Link>;
+}
+
 export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
   return <>
     <Section title="False claim"><p style={{ whiteSpace: "pre-wrap" }}>{entry.claim}</p></Section>
@@ -161,10 +171,19 @@ export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
       <List>{answer.refs.map((r, n) => <div key={n} className="lawrow"><Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}</div>)}</List>
       {answer.sense.map((s, n) => <div key={n}>
         <blockquote className="verse-quote" style={{ whiteSpace: "pre-wrap" }}>{s.text}</blockquote>
-        <p className="hint">{s.teacher}</p>
-        <Link className="chip" to={s.note ? `${toApp(s.note)}?t=${s.t}` : `/watch/${encodeURIComponent(s.video)}?t=${s.t}`}>Watch at {Math.floor(s.t / 60)}:{String(Math.floor(s.t % 60)).padStart(2, "0")}</Link>
+        {s.teacher ? <p className="hint">{s.teacher}</p> : null}
+        <DoctrineWatch moment={s} />
       </div>)}
     </Section>)}
+    {entry.scriptures?.length ? <Section title="Scriptures against it"><List>{entry.scriptures.map((r, i) => <div key={i} className="lawrow">
+      <Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}
+      {r.points.length ? <ul style={{ margin: "8px 0 0", paddingInlineStart: 20 }}>{r.points.map((p, n) => <li key={n} style={{ marginBlock: 8 }}>
+        {p.read ? <>Read in {p.title}{" "}<DoctrineWatch moment={p} /></> : <>
+          <p style={{ whiteSpace: "pre-wrap", margin: "0 0 4px" }}>{p.text}</p>
+          <div className="hint">{p.teacher ? `${p.teacher} · ` : null}{p.title}{" "}<DoctrineWatch moment={p} /></div>
+        </>}
+      </li>)}</ul> : null}
+    </div>)}</List></Section> : null}
     {([['precepts', 'Related precepts'], ['cases', 'Related cases'], ['topics', 'Related topics']] as const).map(([kind, title]) => entry.related[kind].length ? <Section key={kind} title={title}><Chips>{entry.related[kind].map((r) => <Link key={r.slug} className="chip" to={toApp(r.url)}>{r.title ?? r.name ?? r.label ?? r.slug}</Link>)}</Chips></Section> : null)}
   </>;
 }

@@ -1,1 +1,2 @@
 - Added False Doctrines to More: search the A–Z index and read each claim with the published KJV verses, class breakdowns, timed recording links and related subjects. Unpublished content shows Retry instead of a broken page.
+- Added compact Scriptures against it rows with the supplied KJV text and class bullets, including readings without commentary, unnamed teachers and hour-long watch timestamps.

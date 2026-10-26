@@ -15,7 +15,7 @@ const source = readFileSync(new URL("../src/screens/Library.tsx", import.meta.ur
 const library = {};
 const wrap = tag => ({ children, title }) => createElement(tag, null, title, children);
 runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, {
-  exports: library,
+  exports: library, URL,
   require: name => name === "react/jsx-runtime" ? require(name) : name === "react-router" ? { Link: ({ to, children, ...rest }) => createElement("a", { ...rest, href: to }, children) } : name === "@/ui/ui" ? { Section: wrap("section"), List: wrap("div"), Chips: wrap("div") } : name === "@shared/links.mjs" ? { toAppPath: p => p.startsWith("/classes/") ? `/note${p}` : p } : {},
 });
 
@@ -30,6 +30,40 @@ test("doctrine renders the supplied KJV, Apocrypha and complete teacher words wi
   assert.ok(html.indexOf(fixture.claim) < html.indexOf("Answer 1"));
   assert.ok(html.includes("Watch at 1:05")); assert.ok(html.includes("Watch at 0:00"));
   assert.deepEqual(fixture, before);
+});
+
+test("scripture rows preserve KJV and exact class bullets, read markers, times and links", () => {
+  const before = structuredClone(fixture);
+  const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
+  const scripture = html.slice(html.indexOf("Scriptures against it"), html.indexOf("Related precepts"));
+  assert.equal((scripture.match(/class="lawrow"/g) ?? []).length, fixture.scriptures.length);
+  assert.equal((scripture.match(/<li /g) ?? []).length, 2);
+  for (const ref of fixture.scriptures) for (const verse of ref.text) assert.ok(scripture.includes(verse.text));
+  assert.ok(scripture.includes('href="/read/job/3?v=17"'));
+  assert.ok(scripture.includes(fixture.scriptures[0].points[0].text));
+  assert.ok(scripture.includes(">Fixture explanation class "));
+  assert.ok(scripture.includes("Read in Fixture reading class"));
+  assert.ok(scripture.includes('href="/note/classes/2026/fixture-scripture?t=821">Watch at 13:41'));
+  assert.ok(scripture.includes('href="/watch/fixture0004?t=3725">Watch at 1:02:05'));
+  assert.ok(!html.includes("undefined") && !html.includes("62:05") && !html.includes('class="hint"></p>'));
+  assert.ok(html.indexOf("Answer 1") < html.indexOf("Scriptures against it"));
+  assert.deepEqual(fixture, before);
+});
+
+test("doctrine guards empty arrays and formats teachers and query-bearing note links", () => {
+  const entry = structuredClone(fixture);
+  entry.related.cases = []; entry.related.topics = [];
+  entry.answers[0].sense[1].t = 4520; entry.answers[0].sense[1].ts = "1:15:20";
+  const point = entry.scriptures[0].points[0];
+  point.teacher = "Fixture teacher";
+  point.note = "/classes/2026/fixture-scripture?source=fixture&t=1#moment";
+  const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry }));
+  assert.ok(html.includes("Fixture teacher · Fixture explanation class"));
+  assert.ok(html.includes('href="/note/classes/2026/fixture-scripture?source=fixture&amp;t=821#moment"'));
+  assert.ok(html.includes('href="/watch/fixture0002?t=4520">Watch at 1:15:20'));
+  assert.ok(!html.includes("Related cases") && !html.includes("Related topics"));
+  entry.scriptures = [];
+  assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes("Scriptures against it"));
 });
 
 test("Doctrine share links return to the list and the entry rather than the Bible", () => {

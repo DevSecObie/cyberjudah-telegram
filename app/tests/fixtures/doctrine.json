@@ -11,8 +11,30 @@
       ],
       "sense": [
         { "video": "fixture0001", "ts": "1:05", "t": 65, "teacher": "Fixture teacher", "text": "Fixture breakdown — keep every word.\n\nSecond fixture paragraph; no shortening or corrections.", "note": "/classes/2026/fixture" },
-        { "video": "fixture0002", "ts": "0:00", "t": 0, "teacher": "Second fixture teacher", "text": "Second fixture breakdown (test only).", "note": null }
+        { "video": "fixture0002", "ts": "0:00", "t": 0, "teacher": "", "text": "Second fixture breakdown (test only).", "note": null }
       ]
+    }
+  ],
+  "scriptures": [
+    {
+      "label": "Job 3:17", "book": "Job", "chapter": 3, "verses": "17", "slug": "job",
+      "url": "/bible/job/3#v17", "study": { "range": "Job 3", "url": "/study/job/3" },
+      "text": [{ "verse": 17, "text": "There the wicked cease from troubling; and there the weary be at rest." }],
+      "more": 0,
+      "points": [
+        { "video": "fixture0003", "ts": "13:41", "t": 821, "teacher": "",
+          "title": "Fixture explanation class", "date": "2026-01-01",
+          "text": "  Fixture scripture point — keep every word.\n\nSecond fixture paragraph; preserve its spacing.  ",
+          "note": "/classes/2026/fixture-scripture?t=821" },
+        { "video": "fixture0004", "ts": "1:02:05", "t": 3725,
+          "title": "Fixture reading class", "date": "2026-01-02", "read": true, "note": null }
+      ]
+    },
+    {
+      "label": "2 Esdras 6:38", "book": "2 Esdras", "chapter": 6, "verses": "38", "slug": "2-esdras",
+      "url": "/bible/2-esdras/6?v=38", "study": null,
+      "text": [{ "verse": 38, "text": "And I said, O Lord, thou spakest from the beginning of the creation, even the first day, and saidst thus; Let heaven and earth be made; and thy word was a perfect work." }],
+      "more": 0, "points": []
     }
   ],
   "related": {
