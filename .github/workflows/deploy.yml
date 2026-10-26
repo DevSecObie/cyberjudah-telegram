@@ -130,6 +130,12 @@ jobs:
           # Stage the built app at both / and /app/ so the SPA loads on
           # workers.dev and on cyberjudah.io/app (see the script header).
           bash scripts/prepare-assets.sh
+          # Note the version serving readers now, so a failed release can be put back to it.
+          # Every `wrangler secret put` below makes a new version of the new code, so a bare
+          # `wrangler rollback` would only step back to one of those, not to this release.
+          PREVIOUS=$(npx wrangler deployments status --json 2>/dev/null | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const v=JSON.parse(s).versions??[];console.log(v.length===1?v[0].version_id:"")}catch{console.log("")}})') || PREVIOUS=""
+          echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
+          echo "Serving before this deploy: ${PREVIOUS:-unknown}"
           npx wrangler deploy 2>&1 | tee deploy.log
           # The Worker's public URL, from wrangler's own output, unless the repo names one.
           URL="${{ vars.WORKER_URL }}"
@@ -200,7 +206,7 @@ jobs:
         run: |
           set -e
           # The Bible's content feed answers, the Apocrypha included.
-          curl -sf -o /dev/null "$URL/bs/v1/bibles/KJV/books/69/chapters/1"
+          curl -sf --retry 5 --retry-all-errors --retry-delay 3 -o /dev/null "$URL/bs/v1/bibles/KJV/books/69/chapters/1"
           echo "Bible feed: ok"
       - name: Verify the deployed app and authenticated search
         working-directory: bot
@@ -219,9 +225,14 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PREVIOUS: ${{ steps.deploy.outputs.previous }}
         run: |
-          npx wrangler rollback --message "Automatic rollback: run ${{ github.run_id }} failed after deploying" --yes
-          echo "::error::This release failed after going live and was rolled back to the previous version."
+          if [ -z "$PREVIOUS" ]; then
+            echo "::error::This release failed after going live, and the version serving before it is unknown, so it was not rolled back. Roll back by hand (docs/OPERATIONS.md#rollback)."
+            exit 1
+          fi
+          npx wrangler rollback "$PREVIOUS" --message "Automatic rollback: run ${{ github.run_id }} failed after deploying" --yes
+          echo "::error::This release failed after going live and was rolled back to version $PREVIOUS, the one serving before it."
 
   refresh-search:
     # The library changes when the cyberjudah repo publishes; keep the search index fresh.
