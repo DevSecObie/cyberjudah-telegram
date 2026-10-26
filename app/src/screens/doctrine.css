@@ -13,10 +13,15 @@
 .doctrine-content .section__head h2 { font: 700 1rem/1.4 var(--font-title); letter-spacing: 0; }
 .doctrine-content > .section:first-child .section__head h2 { color: var(--text-3); font: 600 .75rem/1.5 var(--font-ui); }
 .doctrine-content .doctrine-claim { margin: 0; font-size: 1.25rem; line-height: 1.5; white-space: pre-wrap; }
-.doctrine-jump { display: flex; flex-wrap: wrap; gap: 0 20px; padding: 8px 0; border-bottom: 1px solid var(--hairline); }
-.doctrine-jump a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--accent); font: 500 .8125rem/1.4 var(--font-ui); }
-.doctrine-jump span { color: var(--text-3); font: 400 .6875rem/1 var(--font-mono); }
-.doctrine-content > [id] { scroll-margin-top: 80px; }
+.doctrine-toc { padding: 0; border-bottom: 1px solid var(--hairline); font: 400 .875rem/1.5 var(--font-ui); }
+.doctrine-toc summary { padding: 14px 0; color: var(--text-2); font-weight: 600; cursor: pointer; }
+.doctrine-toc summary::marker { color: var(--accent); }
+.doctrine-toc nav { padding-bottom: 16px; }
+.doctrine-toc ul { margin: 0; padding: 0; list-style: none; }
+.doctrine-toc a { display: inline-flex; align-items: center; min-height: 44px; max-width: 100%; }
+.doctrine-toc-sections > li > a { font-weight: 600; }
+.doctrine-toc .doctrine-toc-refs { display: flex; flex-wrap: wrap; column-gap: 20px; margin-bottom: 12px; font-size: .8125rem; }
+.doctrine-content [id] { scroll-margin-top: 80px; }
 .doctrine-evidence + .doctrine-evidence { margin-top: 8px; padding-top: 28px; border-top: 1px solid var(--hairline); }
 #root .doctrine-content .list { border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
 .doctrine-content .list__box, .doctrine-content .list__body { border-radius: 0; background: transparent; box-shadow: none; }
@@ -50,7 +55,7 @@
 #root .doctrine-content a { color: var(--accent); }
 #root .doctrine-content a, #root .doctrine-content .doctrine-scan { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .2em; }
 #root .doctrine-content a:hover, #root .doctrine-content .doctrine-scan:hover { text-decoration-thickness: 2px; }
-.doctrine-content :is(a, button):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.doctrine-content :is(a, button, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .doctrine-content h3 { color: var(--text-1); font: 700 1.0625rem/1.5 var(--font-title); }
 .doctrine-content h3 a { color: var(--accent); }
 .doctrine-content h3 a:hover { color: var(--accent); }

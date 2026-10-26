@@ -33,10 +33,20 @@ test("doctrine renders the supplied KJV, Apocrypha and complete teacher words wi
   assert.deepEqual(fixture, before);
 });
 
+test("contents uses supplied labels and unique local anchors, and omits absent sections", () => {
+  const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
+  assert.ok(html.includes('<details class="doctrine-toc"><summary>Contents</summary>'));
+  for (const [, id] of html.matchAll(/href="#([^"]+)"/g)) assert.ok(html.includes(`id="${id}"`), id);
+  const ids = [...html.matchAll(/ id="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(ids.length, new Set(ids).size);
+  const entry = { ...fixture, answers: [], scriptures: [], books: [], related: { precepts: [], cases: [], topics: [] } };
+  assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes('class="doctrine-toc"'));
+});
+
 test("scripture rows preserve KJV and exact class bullets, read markers, times and links", () => {
   const before = structuredClone(fixture);
   const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
-  const scripture = html.slice(html.indexOf("Scriptures against it"), html.indexOf("Books against it"));
+  const scripture = html.slice(html.indexOf('id="doctrine-scriptures"'), html.indexOf('id="doctrine-books"'));
   assert.equal((scripture.match(/class="lawrow"/g) ?? []).length, fixture.scriptures.length);
   assert.equal((scripture.match(/<li(?: |>)/g) ?? []).length, 2);
   for (const ref of fixture.scriptures) for (const verse of ref.text) assert.ok(scripture.includes(verse.text));
@@ -48,7 +58,7 @@ test("scripture rows preserve KJV and exact class bullets, read markers, times a
   assert.ok(scripture.includes('href="/watch/fixture0004?t=3725"'));
   assert.ok(scripture.includes("Watch at 13:41") && scripture.includes("Watch at 1:02:05"));
   assert.ok(!html.includes("undefined") && !html.includes("62:05") && !html.includes('class="hint"></p>'));
-  assert.ok(html.indexOf('id="doctrine-study"') < html.indexOf("Scriptures against it"));
+  assert.ok(html.indexOf('id="doctrine-study"') < html.indexOf('id="doctrine-scriptures"'));
   assert.deepEqual(fixture, before);
 });
 
@@ -71,13 +81,13 @@ test("doctrine guards empty arrays and formats teachers and query-bearing note l
 test("doctrine books show library pages, class reads and exact cited paragraphs before Related", () => {
   const before = structuredClone(fixture);
   const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
-  const books = html.slice(html.indexOf("Books against it"), html.indexOf("Related precepts"));
+  const books = html.slice(html.indexOf('id="doctrine-books"'), html.indexOf('id="doctrine-related-precepts"'));
   assert.equal((books.match(/class="lawrow"/g) ?? []).length, 2);
   for (const href of ["/books/fixture-book", "/books/fixture-book/p/1-93", "/books/fixture-book/p/2-140", "/read/job/3#v17", "/note/classes/2026/fixture-book?t=2862", "/watch/fixture0006?t=4520"]) assert.ok(books.includes(`href="${href}"`), href);
   for (const text of ["Fixture book author", "1871", "p. 93", "vol. 2, p. 140", "read in 8 classes", "read in 1 class", "Fixture book-reading class", "Fixture citation teacher · Fixture citing class", "Watch at 47:42", "Watch at 1:15:20", fixture.books[1].said.text]) assert.ok(books.includes(text), text);
   assert.match(books, /<h3[^>]*>Fixture cited book<\/h3>/);
   assert.ok(!books.includes("null") && !books.includes("undefined") && !books.includes('class="hint"> · Fixture'));
-  assert.ok(html.indexOf("Scriptures against it") < html.indexOf("Books against it"));
+  assert.ok(html.indexOf('id="doctrine-scriptures"') < html.indexOf('id="doctrine-books"'));
   assert.deepEqual(fixture, before);
 });
 
