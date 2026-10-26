@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 
-import { compressVerses, data, fmtDate, type ConcordanceBook, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
+import { compressVerses, data, fmtDate, type ConcordanceBook, type DoctrineEntry, type GlossaryEntry, type ResolvedRef, type ThreadStop } from "@/api/data";
 import { Feather } from "@/bible/icons";
 import { PALETTES } from "@/bible/theme";
 import { useEndpointRelations, type EntryEndpoint } from "@/lib/relations";
@@ -36,7 +36,7 @@ function Quote({ r }: { r: ResolvedRef }) {
  * rows of one letter filed under its disc, the alphabet along the bottom, and a search that
  * replaces the letters. The letter is kept in the address, so Back returns to it.
  */
-function NaveList({ title, rows, tone, failed, retry, searchInHeader = false }: { title: string; rows: { key: string; name: string; href: string }[] | undefined; tone: "quart" | "quint"; failed: boolean; retry: () => void; searchInHeader?: boolean }) {
+function NaveList({ title, rows, tone, failed, retry, searchInHeader = false, failureTitle }: { title: string; rows: { key: string; name: string; href: string }[] | undefined; tone: "quart" | "quint"; failed: boolean; retry: () => void; searchInHeader?: boolean; failureTitle?: string }) {
   // The theme's own colour, darkened only where its white letter would not read (night's quart, the dark themes' quint).
   const color = readableColor(PALETTES[useAppTheme().name][tone], [[255, 255, 255]]);
   const [params, setParams] = useSearchParams();
@@ -51,7 +51,7 @@ function NaveList({ title, rows, tone, failed, retry, searchInHeader = false }: 
     <Screen title={title} className="bs-list" headerChildren={searchInHeader ? search : undefined}>
       {!searchInHeader ? search : null}
       {!rows && !failed ? <p className="bs-list__loading">Loading...</p> : failed && !rows ? (
-        <Empty title={`The ${title.toLowerCase()} did not load`} action={{ label: "Retry", onClick: retry }}>Check your connection.</Empty>
+        <Empty title={failureTitle ?? `The ${title.toLowerCase()} did not load`} action={{ label: "Retry", onClick: retry }}>{failureTitle ? null : "Check your connection."}</Empty>
       ) : shown.length ? (
         <div className="bs-list__body" style={{ ["--section-top" as string]: `${top}px` }}>
           {sections(shown, (r) => r.name).map((section) => (
@@ -75,7 +75,7 @@ function NaveList({ title, rows, tone, failed, retry, searchInHeader = false }: 
 function NaveDetail({ query, list, kind, page }: {
   query: { isPending: boolean; isError: boolean; refetch: () => unknown };
   list: string;
-  kind: "precept" | "topic";
+  kind: "precept" | "topic" | "doctrine";
   page: { title: string; kicker: string; url: string; text: () => string; body: ReactNode } | null;
 }) {
   const navigate = useNavigate();
@@ -131,6 +131,42 @@ export function PreceptScreen() {
     text: () => [d.title, ...d.refs.map((r) => [r.label, r.text.map((v) => v.text).join(" ")].filter(Boolean).join("\n"))].join("\n\n"),
     body: <List>{d.refs.map((r) => <div key={r.label} className="lawrow"><b>{r.label}{r.key ? " · key" : ""}</b>{r.text.length ? <Quote r={r} /> : null}<Refs refs={[r]} /></div>)}</List>,
   } : null} />;
+}
+
+export function Doctrine() {
+  useBackButton();
+  const rows = useQuery({ queryKey: ["doctrine"], queryFn: data.doctrine, retry: false });
+  const list = useMemo(() => rows.data ? [...rows.data].sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ key: p.slug, name: p.name, href: `/doctrine/${p.slug}` })) : undefined, [rows.data]);
+  return <NaveList title="Doctrine" rows={list} tone="quart" failed={rows.isError} retry={() => void rows.refetch()} failureTitle={rows.error?.message.startsWith("404 ") ? "The doctrine section is not published yet" : undefined} />;
+}
+
+export function DoctrineScreen() {
+  const { slug = "" } = useParams();
+  useBackButton();
+  useBottomButtons(null, null);
+  const p = useQuery({ queryKey: ["doctrine", slug], queryFn: () => data.doctrineEntry(slug), retry: false });
+  const d = p.data;
+  if (!d && p.isError) return <Screen title="Doctrine"><Empty title={p.error.message.startsWith("404 ") ? "The doctrine section is not published yet" : "This doctrine did not load"} action={{ label: "Retry", onClick: () => void p.refetch() }} /></Screen>;
+  return <NaveDetail query={p} list="Doctrine" kind="doctrine" page={d ? {
+    title: d.name, kicker: "Doctrine", url: d.url,
+    text: () => [d.name, d.claim, ...d.answers.flatMap((a) => [...a.refs.map((r) => `${r.label}\n${r.text.map((v) => v.text).join(" ")}`), ...a.sense.map((s) => `${s.teacher}\n${s.text}`)])].join("\n\n"),
+    body: <DoctrineAnswers entry={d} />,
+  } : null} />;
+}
+
+export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
+  return <>
+    <Section title="False claim"><p style={{ whiteSpace: "pre-wrap" }}>{entry.claim}</p></Section>
+    {entry.answers.map((answer, i) => <Section key={i} title={`Answer ${i + 1}`}>
+      <List>{answer.refs.map((r, n) => <div key={n} className="lawrow"><Refs refs={[r]} />{r.text.length ? <Quote r={r} /> : null}</div>)}</List>
+      {answer.sense.map((s, n) => <div key={n}>
+        <blockquote className="verse-quote" style={{ whiteSpace: "pre-wrap" }}>{s.text}</blockquote>
+        <p className="hint">{s.teacher}</p>
+        <Link className="chip" to={s.note ? `${toApp(s.note)}?t=${s.t}` : `/watch/${encodeURIComponent(s.video)}?t=${s.t}`}>Watch at {Math.floor(s.t / 60)}:{String(Math.floor(s.t % 60)).padStart(2, "0")}</Link>
+      </div>)}
+    </Section>)}
+    {([['precepts', 'Related precepts'], ['cases', 'Related cases'], ['topics', 'Related topics']] as const).map(([kind, title]) => entry.related[kind].length ? <Section key={kind} title={title}><Chips>{entry.related[kind].map((r) => <Link key={r.slug} className="chip" to={toApp(r.url)}>{r.title ?? r.name ?? r.label ?? r.slug}</Link>)}</Chips></Section> : null)}
+  </>;
 }
 
 export function Topics() {

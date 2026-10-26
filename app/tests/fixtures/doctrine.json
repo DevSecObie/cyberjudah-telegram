@@ -1,0 +1,23 @@
+{
+  "slug": "alpha-fixture",
+  "name": "Alpha fixture (test only)",
+  "claim": "Fixture claim — not doctrine content.",
+  "url": "/doctrine/alpha-fixture",
+  "answers": [
+    {
+      "refs": [
+        { "label": "Genesis 1:1", "book": "Genesis", "chapter": 1, "verses": "1", "slug": "genesis", "url": "/bible/genesis/1?v=1", "study": null, "text": [{ "verse": 1, "text": "In the beginning God created the heaven and the earth." }], "more": 0 },
+        { "label": "2 Esdras 6:38", "book": "2 Esdras", "chapter": 6, "verses": "38", "slug": "2-esdras", "url": "/bible/2-esdras/6?v=38", "study": null, "text": [{ "verse": 38, "text": "And I said, O Lord, thou spakest from the beginning of the creation, even the first day, and saidst thus; Let heaven and earth be made; and thy word was a perfect work." }], "more": 0 }
+      ],
+      "sense": [
+        { "video": "fixture0001", "ts": "1:05", "t": 65, "teacher": "Fixture teacher", "text": "Fixture breakdown — keep every word.\n\nSecond fixture paragraph; no shortening or corrections.", "note": "/classes/2026/fixture" },
+        { "video": "fixture0002", "ts": "0:00", "t": 0, "teacher": "Second fixture teacher", "text": "Second fixture breakdown (test only).", "note": null }
+      ]
+    }
+  ],
+  "related": {
+    "precepts": [{ "slug": "fixture-precept", "title": "Fixture precept", "url": "/precepts/fixture-precept" }],
+    "cases": [{ "slug": "fixture-case", "name": "Fixture case", "url": "/cases/fixture-case" }],
+    "topics": [{ "slug": "fixture-topic", "label": "Fixture topic", "url": "/topics/fixture-topic" }]
+  }
+}

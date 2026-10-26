@@ -1,0 +1,1 @@
+- Added Doctrine to More: search the A–Z index and read each claim with the published KJV verses, class breakdowns, timed recording links and related subjects. Unpublished content shows Retry instead of a broken page.

@@ -68,6 +68,8 @@ const LawIndex = lazy(() => import("@/screens/Laws").then((m) => ({ default: m.L
 const LawSectionScreen = lazy(() => import("@/screens/Laws").then((m) => ({ default: m.LawSectionScreen })));
 const Precepts = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Precepts })));
 const PreceptScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.PreceptScreen })));
+const Doctrine = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Doctrine })));
+const DoctrineScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.DoctrineScreen })));
 const Cases = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.Cases })));
 const CaseScreen = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.CaseScreen })));
 const Topics = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Topics })));
@@ -148,6 +150,8 @@ const routes = (
     <Route path="/law/:part" element={<LawIndex />} />
     <Route path="/precepts" element={<Precepts />} />
     <Route path="/precepts/:slug" element={<PreceptScreen />} />
+    <Route path="/doctrine" element={<Doctrine />} />
+    <Route path="/doctrine/:slug" element={<DoctrineScreen />} />
     <Route path="/timeline" element={<Timeline />} />
     <Route path="/timeline/search" element={<TimelineSearch />} />
     <Route path="/timeline/event/:slug" element={<TimelineEventScreen />} />
