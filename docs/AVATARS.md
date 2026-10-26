@@ -83,7 +83,7 @@ the sons of Adam". This is the assembly's chart of the nations, and portraits fo
   (Genesis 19).
 - **Before the nations were divided** (Adam to Noah, and Shem, Ham and Japheth themselves): dark.
   Cain: fully leprous, blond and blue-eyed; Cain's line as recorded below.
-- **Cain's line:** the classes teach that Cain's line was cursed with lack of melanin and came back as Esau (*We Are Born In Babylon*, 2026-08-02; *Economic Collapse & Uncertain Riches*, 2026-08-08). Enoch, son of Cain (Genesis 4:17), is left blank as directed (2026-10-01). Naamah, Tubal-cain's sister (Genesis 4:22), is also left blank: her fair portrait was taken down when the owner said it was wrong (2026-10-26), and the classes do not describe her.
+- **Cain's line:** the classes teach that Cain's line was cursed with lack of melanin and came back as Esau (*We Are Born In Babylon*, 2026-08-02; *Economic Collapse & Uncertain Riches*, 2026-08-08). Enoch, son of Cain (Genesis 4:17), is left blank as directed (2026-10-01). Naamah, Tubal-cain's sister (Genesis 4:22), is also left blank: her fair portrait was taken down when the owner said it was wrong (2026-10-26), and the classes do not describe her. The owner then had all of Cain's line taken down the same day (Cain, Enoch, Irad, Mehujael, Lamech, Adah, Zillah, Jabal, Jubal): each shows the lettered avatar until the owner directs how Cain's line is drawn.
 - **No information, no portrait:** a person whose tribe or people today the chart and the classes do
   not give (for example Remaliah, Nimshi) is left blank until directed. *As directed 2 October 2026, the
   approved portraits of Abraham, Isaac, Jacob, Sarah, Lot and Laban are kept and reused wherever they
