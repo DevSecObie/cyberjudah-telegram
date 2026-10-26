@@ -41,15 +41,15 @@ export function relationsOf(p: Person): Rel[] {
   return out;
 }
 
-/** What a relation is called, by who they are: a wife or a husband, a brother or a sister, a son or a daughter. */
+/** Bible Strong specializes partner and sibling labels only when the target's gender is known. */
 export function relationLabel(relation: Relation, kind: AvatarKind): string {
   const f = kind === "female", m = kind === "male";
   switch (relation) {
     case "father": return "Father";
     case "mother": return "Mother";
-    case "partner": return f ? "Wife" : m ? "Husband" : "Spouse";
+    case "partner": return f ? "Wife" : m ? "Husband" : "Partner";
     case "sibling": return f ? "Sister" : m ? "Brother" : "Sibling";
-    case "offspring": return f ? "Daughter" : m ? "Son" : "Child";
+    case "offspring": return "Offspring";
   }
 }
 
@@ -223,7 +223,7 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
             {s.nodes.map(({ r, position }) => {
               const kind = kindOf(r.id, r.relation, s.active);
               return <Satellite key={position} at={positionOf(position, width)} id={r.id} name={r.name} src={r.image?.src} kind={kind}
-                label={relationLabel(r.relation, kind)} relation={r.relation} loading={busy === r.id} onPress={() => void walk(r, position)}
+                label={relationLabel(r.relation, avatarKind(types.get(r.id)))} relation={r.relation} loading={busy === r.id} onPress={() => void walk(r, position)}
                 selectedProgress={exit?.kind === "camera" && exit.selectedId === r.id ? exit.progress : undefined}
                 motionStyle={motionStyle(nodeFrame(entry, exit, "relation", r.id, positionOf(position, width), center))} />;
             })}

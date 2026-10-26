@@ -1036,14 +1036,14 @@ test("People: who is named in a verse, a page per person with family, the classe
   await expect(graph.getByRole("button", { name: "Wife, Sarah" })).toBeVisible();
   await expect(graph.locator(".fg__foot")).toContainText("1 / 3");
   await graph.getByRole("button", { name: "Next page" }).click();
-  await graph.getByRole("button", { name: /^(Son|Child), Isaac$/ }).click();
+  await graph.getByRole("button", { name: "Offspring, Isaac", exact: true }).click();
   await expect(centerName).toHaveText("Isaac");
   await expect(graph.getByRole("button", { name: "Back to Abraham" })).toBeVisible();
   await expect(graph.getByRole("button", { name: "Wife, Rebekah" })).toBeVisible();
   await graph.getByRole("button", { name: "Back", exact: true }).click();
   await expect(centerName).toHaveText("Abraham");
   await expect(graph.locator(".fg__foot")).toContainText("2 / 3");
-  await graph.getByRole("button", { name: /^(Son|Child), Isaac$/ }).click();
+  await graph.getByRole("button", { name: "Offspring, Isaac", exact: true }).click();
   await graph.getByRole("button", { name: "Wife, Rebekah" }).click();
   await expect(centerName).toHaveText("Rebekah");
   await graph.getByRole("button", { name: "Start again from Abraham" }).click();
