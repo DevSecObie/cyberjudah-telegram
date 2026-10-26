@@ -1,0 +1,1 @@
+- Timeline: the Middle Ages and Reformation periods, the second date for Judah's fall and the calendar days in titles are back. Only false doctrine is left out (the Seven Trumpets, Daniel 2, 8 and 11 prophecy bars and the Immanuel bar); history that happened stays.
