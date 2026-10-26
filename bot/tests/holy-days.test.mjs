@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { coordsOf, DEFAULT_ZONE, eveOfHolyDay, fullDark, fullDarkIn, HOLY_DAYS, holyDay, pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
+import { coordsOf, DEFAULT_ZONE, eveOfHolyDay, fullDark, fullDarkIn, sunsetIn, HOLY_DAYS, holyDay, pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
 import { compare, parseTime, pickDays, RULE, SOURCE, summary, worthWriting } from "../scripts/holy-days.mjs";
 
 const at = (iso) => Date.parse(iso);
@@ -39,27 +39,32 @@ test("a time zone gives its principal place; an unknown one falls back to New Yo
   assert.equal(zoneOf("Europe/London"), "Europe/London");
 });
 
-test("the Sabbath: top-ups pause from full dark on Friday to full dark on Saturday, where the reader is", () => {
+test("the Sabbath: top-ups pause from sunset on Friday to full dark on Saturday, where the reader is", () => {
   const none = [];
-  const friDark = fullDarkIn("2026-10-30", "America/New_York");
+  const friSunset = sunsetIn("2026-10-30", "America/New_York");
   const satDark = fullDarkIn("2026-10-31", "America/New_York");
-  // Friday afternoon: still open.
-  assert.equal(topupPause(at("2026-10-30T22:00:00Z"), "America/New_York", none), null);
-  // Friday 9:30 pm EDT, after full dark: paused until Saturday's full dark.
-  const p = topupPause(at("2026-10-31T01:30:00Z"), "America/New_York", none);
+  // Sunset comes before full dark, about 5:55 pm EDT on that Friday.
+  near(friSunset, "2026-10-30T21:55:00Z", 4, "New York sunset, October 30");
+  assert.ok(friSunset < fullDarkIn("2026-10-30", "America/New_York"));
+  // Friday afternoon: still open, up to sunset.
+  assert.equal(topupPause(at("2026-10-30T20:00:00Z"), "America/New_York", none), null);
+  assert.equal(topupPause(friSunset - 60000, "America/New_York", none), null);
+  // From sunset, when the Sabbath begins: paused until Saturday's full dark.
+  const p = topupPause(friSunset + 60000, "America/New_York", none);
   assert.equal(p?.kind, "sabbath");
-  assert.equal(p.from, friDark);
+  assert.equal(p.from, friSunset);
   assert.equal(p.until, satDark);
   assert.equal(pauseMessage(p), "Top-ups pause for the Sabbath — they open again after dark on Saturday");
   // Saturday noon: still paused. Saturday after full dark: open again.
   assert.ok(topupPause(at("2026-10-31T16:00:00Z"), "America/New_York", none));
   assert.equal(topupPause(satDark + 60000, "America/New_York", none), null);
   assert.equal(topupPause(satDark - 60000, "America/New_York", none)?.kind, "sabbath");
-  // The same moment is still Friday afternoon in Los Angeles: open there.
-  assert.equal(topupPause(at("2026-10-31T01:30:00Z"), "America/Los_Angeles", none), null);
+  // Friday 6:30 pm in New York is still Friday afternoon in Los Angeles: open there.
+  assert.ok(topupPause(at("2026-10-30T22:30:00Z"), "America/New_York", none));
+  assert.equal(topupPause(at("2026-10-30T22:30:00Z"), "America/Los_Angeles", none), null);
 });
 
-test("a day in holy-days.json pauses top-ups from full dark the evening before to full dark on its own evening", () => {
+test("a day in holy-days.json pauses top-ups from sunset the evening before to full dark on its own evening", () => {
   // The Day of Atonement, Tuesday 6 October 2026, from the IUIC calendar.
   assert.ok(HOLY_DAYS.some((d) => d.date === "2026-10-06" && d.kind === "feast"));
   assert.equal(holyDay("2026-10-06")?.kind, "feast");
