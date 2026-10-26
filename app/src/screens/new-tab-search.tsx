@@ -230,7 +230,7 @@ function useNotes(enabled: boolean, text: string) {
 function timelineItems(text: string): Item[] {
   const events = flatten(TIMELINE.sections);
   return TIMELINE.sections.flatMap((section, index) => [
-    ...(matches(text, section.title, section.sectionTitle) ? [{ id: `period:${section.id}`, kind: "timeline" as const, title: section.title, subtitle: "Period", path: `/timeline/${index}` }] : []),
+    ...(matches(text, section.title, section.sectionTitle) ? [{ id: `period:${section.id}`, kind: "timeline" as const, title: section.title, subtitle: `Period · ${section.subTitle}`, path: `/timeline/${index}` }] : []),
     ...(text.trim() ? events.filter((e) => e.sectionIndex === index && hasDetails(e) && matches(text, e.title))
       .map((e) => ({ id: `event:${section.id}:${e.slug}`, kind: "timeline" as const, title: e.title, subtitle: `Event · ${section.title}`, path: `/timeline/event/${e.slug}` })) : []),
   ]);
