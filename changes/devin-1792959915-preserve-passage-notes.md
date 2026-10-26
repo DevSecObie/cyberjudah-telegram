@@ -1,1 +1,2 @@
 - Keep multiple notes on the same Bible passage without replacing earlier notes, while preserving existing notes and their tags, references, exports and backups.
+- Show the saved passage rather than the note ID when editing a Bible note.

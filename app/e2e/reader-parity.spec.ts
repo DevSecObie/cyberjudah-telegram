@@ -74,6 +74,7 @@ for (const theme of ["light", "dark"]) test(`same-passage notes keep independent
     await expect(note).toContainText(title);
     await note.getByRole("button", { name: "Open", exact: true }).click();
     await expect(note.getByRole("textbox", { name: "Title", exact: true })).toHaveValue(title);
+    await expect(note.locator(".bs-sheet__titles small")).toHaveText("Genesis 1:1");
     await note.getByRole("textbox", { name: "Description", exact: true }).fill(words);
     await note.getByRole("button", { name: "Save", exact: true }).click();
     await expect(note).toBeHidden();
@@ -113,6 +114,33 @@ for (const theme of ["light", "dark"]) test(`same-passage notes keep independent
   await page.getByText("Download a backup", { exact: true }).click();
   const backup = JSON.parse(await fs.readFile((await (await backupDownload).path())!, "utf8"));
   expect(JSON.parse(backup.keys.bs_n_genesis_1)).toEqual(await records());
+});
+
+for (const theme of ["light", "dark"]) test(`note editor headings use saved passages for ID-keyed and legacy range notes (${theme})`, async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(theme => {
+    localStorage.setItem("cj:bs", JSON.stringify({ press: "longPress", preferredColorScheme: theme, preferredLightTheme: "default", preferredDarkTheme: "dark" }));
+    const id = "724a8fa2-e4d1-4cb6-9621-7a25c4618438";
+    localStorage.setItem("cj:bs_n_genesis_1", JSON.stringify({
+      "1/2/4": { id: "legacy", title: "Legacy range note", description: "Legacy words", date: 1 },
+      [id]: { id, verses: [1, 2, 4], title: "Independent range note", description: "Independent words", date: 2 },
+    }));
+    localStorage.setItem("cj:rel_genesis_1", JSON.stringify([undefined, id].map(noteId => ({
+      id: noteId ?? "legacy-relation", type: "linked", direction: "none",
+      endpoints: [{ type: "verse", verseKeys: ["genesis-1-1"], label: "Genesis 1:1" }, { type: "note", verseKey: "genesis-1-1", ...(noteId ? { noteId } : {}), label: noteId ? "Independent range note" : "Legacy range note" }],
+      createdAt: 1, updatedAt: 1,
+    }))));
+  }, theme);
+  await page.goto("/read/genesis/1");
+  const note = page.getByRole("dialog", { name: "Note", exact: true });
+  for (const title of ["Independent range note", "Legacy range note"]) {
+    await page.locator("#verset-1 .rel-tag", { hasText: title }).click();
+    await note.getByRole("button", { name: "Open", exact: true }).click();
+    await expect(note.getByRole("textbox", { name: "Title", exact: true })).toHaveValue(title);
+    await expect(note.locator(".bs-sheet__titles small")).toHaveText("Genesis 1:1-2,4");
+    await note.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(note).toBeHidden();
+  }
 });
 
 test("the relation picker and note relation pages distinguish notes on the same passage", async ({ page }) => {

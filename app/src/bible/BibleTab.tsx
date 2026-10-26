@@ -20,7 +20,7 @@ import { useToast } from "@/ui/toast";
 import { useOpenInNewTab } from "@/ui/open-in-new-tab";
 import { useReferencePreview, verseSpec } from "@/ui/refpreview";
 import { popoverTrigger } from "@/ui/popover";
-import { keyOfVerses, noteEndpoint, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
+import { keyOfVerses, noteEndpoint, noteVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { VerseJump } from "./ui/VerseJump";
 import { StrongModeSheet, StrongSelectionSheet, useStrongModeShortcut } from "./ui/StrongMode";
@@ -456,7 +456,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} theme={theme} />
       <BookmarkSheet open={sheet === "bookmark"} onClose={() => setSheet(null)} reference={bookmarkTarget.verse ? reference([bookmarkTarget.verse]) : chapterLabel} location={{ book: slug, chapter: ch, verse: bookmarkTarget.verse }} existing={bookmarkTarget.existing} bookmarks={bookmarks} setBookmarks={setBookmarks} formatReference={formatBookmark} />
       <TagsPanel open={sheet === "tags"} onClose={() => setSheet(null)} reference={reference(tagsTarget)} tags={tags} setTags={setTags} selected={tagsSelected} onToggle={toggleTag} />
-      <NoteSheet open={sheet === "note"} onClose={() => { setSheet(null); setNoteEdit(null); }} reference={noteEdit ? `${bookName(slug)} ${ch}:${noteEdit.key.replace("/", ",")}` : selectedReference ?? ""} initial={noteEdit?.note} onSave={(v) => void saveNote(v)} onRemove={noteEdit ? () => void removeNote() : undefined} />
+      <NoteSheet open={sheet === "note"} onClose={() => { setSheet(null); setNoteEdit(null); }} reference={noteEdit ? reference(noteVerses(noteEdit.key, noteEdit.note)) : selectedReference ?? ""} initial={noteEdit?.note} onSave={(v) => void saveNote(v)} onRemove={noteEdit ? () => void removeNote() : undefined} />
       <LinkSheet open={sheet === "link"} onClose={() => setSheet(null)} reference={selectedReference ?? ""} onSave={(v) => void saveLink(v)} />
       {sheet === "relation" ? <RelationTargetPicker source={verseEndpoint() as Endpoint} onClose={() => setSheet(null)} onCreated={() => { setSheet(null); setSelected([]); }} /> : null}
       {compared.length ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verses={compared} reference={reference(compared.map((v) => v.verse))} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}
