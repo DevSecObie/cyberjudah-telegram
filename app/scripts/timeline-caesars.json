@@ -1,0 +1,164 @@
+{
+ "source": "IPM, Birth of an Empire: Coins of the \"Twelve Caesars\" (chart sent by Obie, 2026-10-26)",
+ "note": "The Twelve Caesars' reigns. A Caesar already on the timeline (Julius, Augustus) keeps his life span and gets his reign; the other ten are drawn as their reigns, on rows left free in the Life of Christ and Early Church periods. Titles follow the KJV where it names them (Luke 3:1, Acts 11:28). The notes are the chart's own bullets, word for word.",
+ "reigns": [
+  {
+   "slug": "julius-caesar",
+   "label": "49–44 BC",
+   "notes": [
+    "Dictator of the Roman Republic",
+    "Among history's greatest military commanders"
+   ]
+  },
+  {
+   "slug": "augustus-caesar",
+   "label": "27 BC–AD 14",
+   "notes": [
+    "Founder of the Roman Empire",
+    "Oversaw an Era of Peace"
+   ]
+  }
+ ],
+ "events": [
+  {
+   "slug": "tiberius-caesar",
+   "title": "Tiberius Caesar",
+   "born": "42 BC",
+   "died": "AD 37",
+   "start": 14,
+   "end": 37,
+   "row": 22,
+   "label": "AD 14–37",
+   "notes": [
+    "Stepson of Augustus",
+    "Reclusive, yet effective military General"
+   ]
+  },
+  {
+   "slug": "caligula",
+   "title": "Caligula",
+   "born": "AD 12",
+   "died": "AD 41",
+   "start": 37,
+   "end": 41,
+   "row": 23,
+   "label": "AD 37–41",
+   "notes": [
+    "First Roman Emperor to be assassinated",
+    "Initiated construction of Roman aqueducts"
+   ]
+  },
+  {
+   "slug": "claudius-caesar",
+   "title": "Claudius Caesar",
+   "born": "10 BC",
+   "died": "AD 54",
+   "start": 41,
+   "end": 54,
+   "row": 22,
+   "label": "AD 41–54",
+   "notes": [
+    "Began the conquest of Britain",
+    "Presided at public trials"
+   ]
+  },
+  {
+   "slug": "nero",
+   "title": "Nero",
+   "born": "AD 37",
+   "died": "AD 68",
+   "start": 54,
+   "end": 68,
+   "row": 23,
+   "label": "AD 54–68",
+   "notes": [
+    "Great Fire of Rome - 64 AD",
+    "Built theaters and promoted cultural activities"
+   ]
+  },
+  {
+   "slug": "galba",
+   "title": "Galba",
+   "born": "3 BC",
+   "died": "AD 69",
+   "start": 68,
+   "end": 69,
+   "row": 19,
+   "label": "AD 68–69",
+   "notes": [
+    "First in the Year of the Four Emperors",
+    "Imposed heavy taxes on districts opposing his rule"
+   ]
+  },
+  {
+   "slug": "otho",
+   "title": "Otho",
+   "born": "AD 32",
+   "died": "AD 69",
+   "start": 69,
+   "end": 69,
+   "row": 20,
+   "label": "January–April AD 69",
+   "notes": [
+    "Reckless and extravagant",
+    "Ruled for only three months"
+   ]
+  },
+  {
+   "slug": "vitellius",
+   "title": "Vitellius",
+   "born": "AD 15",
+   "died": "AD 69",
+   "start": 69,
+   "end": 69,
+   "row": 21,
+   "label": "April–December AD 69",
+   "notes": [
+    "Unambitious and self-indulgent",
+    "Executed by Vespasian's soldiers"
+   ]
+  },
+  {
+   "slug": "vespasian",
+   "title": "Vespasian",
+   "born": "AD 9",
+   "died": "AD 79",
+   "start": 69,
+   "end": 79,
+   "row": 22,
+   "label": "AD 69–79",
+   "notes": [
+    "Founded the Flavian Dynasty",
+    "Equestrian with immense military success"
+   ]
+  },
+  {
+   "slug": "titus-caesar",
+   "title": "Titus Caesar",
+   "born": "AD 39",
+   "died": "AD 81",
+   "start": 79,
+   "end": 81,
+   "row": 23,
+   "label": "AD 79–81",
+   "notes": [
+    "First Emperor to take power after biological father",
+    "Completed construction of Colosseum"
+   ]
+  },
+  {
+   "slug": "domitian",
+   "title": "Domitian",
+   "born": "AD 51",
+   "died": "AD 96",
+   "start": 81,
+   "end": 96,
+   "row": 22,
+   "label": "AD 81–96",
+   "notes": [
+    "Rebuilt the economy and restored Rome",
+    "Known as a totalitarian who ruled for fifteen years"
+   ]
+  }
+ ]
+}
