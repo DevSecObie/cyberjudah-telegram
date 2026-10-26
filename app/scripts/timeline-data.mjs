@@ -80,11 +80,11 @@ export function keepHistory(sections) {
  */
 export const CAESAR_ID_BASE = 700000;
 export function addCaesars(sections, { source, reigns, events }) {
-  const reign = (label) => ({ kingdom: "Rome", label, source });
-  for (const r of reigns) for (const s of sections) for (const e of s.events) if (e.slug === r.slug) e.reign = reign(r.label);
+  const reign = (label, notes) => ({ kingdom: "Rome", label, source, notes });
+  for (const r of reigns) for (const s of sections) for (const e of s.events) if (e.slug === r.slug) e.reign = reign(r.label, r.notes);
   events.forEach((c, i) => {
     for (const s of sections) if (c.start <= s.endYear && c.end >= s.startYear && !s.events.some((e) => e.slug === c.slug)) {
-      s.events.push({ id: CAESAR_ID_BASE + i, slug: c.slug, title: c.title, start: c.start, end: c.end, row: c.row, type: "major", reign: { ...reign(c.label), born: c.born, died: c.died } });
+      s.events.push({ id: CAESAR_ID_BASE + i, slug: c.slug, title: c.title, start: c.start, end: c.end, row: c.row, type: "major", reign: { ...reign(c.label, c.notes), born: c.born, died: c.died } });
     }
   });
   return sections;

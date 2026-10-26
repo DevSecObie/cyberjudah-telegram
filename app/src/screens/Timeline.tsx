@@ -534,6 +534,7 @@ export function TimelineEventScreen() {
             <h2>Reign</h2>
             <p>{reignLabel(e.reign)} <span className="tl-event__src">{e.reign.source ? "IPM, Coins of the Twelve Caesars" : "Who's Who in the Bible"}</span></p>
             {e.reign.born ? <p>Born {e.reign.born}, died {e.reign.died}</p> : null}
+            {e.reign.notes?.length ? <ul>{e.reign.notes.map((n) => <li key={n}>{n}</li>)}</ul> : null}
           </section>
         ) : null}
 

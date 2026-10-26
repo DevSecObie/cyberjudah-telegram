@@ -108,14 +108,14 @@ test("the Twelve Caesars are on the line with their reigns, each on a row of its
   const all = flatten(DATA.sections);
   for (const name of caesars) {
     const e = all.find((x) => x.title === name);
-    assert.ok(e?.reign?.label && e.reign.kingdom === "Rome", name);
+    assert.ok(e?.reign?.label && e.reign.kingdom === "Rome" && e.reign.notes?.length === 2, name);
     assert.ok(hasDetails(e), name);
   }
   // A Caesar's bar never covers another event on its row (bars are at least 200px wide).
   for (const s of DATA.sections) {
     const g = geometry(s, 390);
     const span = (e) => { const left = g.yearsToPx(e.start); return [left, left + (e.type === "minor" ? 200 : g.eventWidth(e.start, e.end, e.isFixed))]; };
-    for (const c of s.events.filter((e) => e.reign?.kingdom === "Rome" && e.id >= 700000)) {
+    for (const c of s.events.filter((e) => e.reign?.kingdom === "Rome" && caesars.includes(e.title))) {
       const [a, b] = span(c);
       for (const o of s.events) if (o !== c && o.row === c.row) { const [x, y] = span(o); assert.ok(b <= x || y <= a, `${c.title} covers ${o.title} in ${s.title}`); }
     }
