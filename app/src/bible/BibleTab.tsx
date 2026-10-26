@@ -20,7 +20,7 @@ import { useToast } from "@/ui/toast";
 import { useOpenInNewTab } from "@/ui/open-in-new-tab";
 import { useReferencePreview, verseSpec } from "@/ui/refpreview";
 import { popoverTrigger } from "@/ui/popover";
-import { keyOfVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
+import { keyOfVerses, noteEndpoint, noteVerses, readNote, useBookmarks, useChapterHighlights, useChapterLinks, useChapterNotes, useTags, uuid, versesContent, verseToReference, writeNote, type Bookmark, type Highlight, type Note } from "./store";
 import { BookSelectorSheet, VersePopup } from "./ui/BookSelectorSheet";
 import { VerseJump } from "./ui/VerseJump";
 import { StrongModeSheet, StrongSelectionSheet, useStrongModeShortcut } from "./ui/StrongMode";
@@ -271,9 +271,9 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       await writeNote(slug, ch, noteEdit.key, n); setNotes({ ...notes, [noteEdit.key]: n });
       setNoteEdit(null); setSheet(null); say("Note saved"); return;
     }
-    const key = keyOfVerses(selectedSorted); const n: Note = { id: uuid(), title: v.title, description: v.description, date: Date.now() };
+    const n: Note = { id: uuid(), verses: selectedSorted, title: v.title, description: v.description, date: Date.now() }; const key = n.id;
     await writeNote(slug, ch, key, n); setNotes({ ...notes, [key]: n });
-    await createRelation([verseEndpoint(), { type: "note", verseKey: selectedKeys[0], label: v.title || v.description.slice(0, 60) || "Untitled note" }]);
+    await createRelation([verseEndpoint(), noteEndpoint(slug, ch, key, n)]);
     setSheet(null); setSelected([]); haptic("success");
   };
   const removeNote = async () => {
@@ -295,7 +295,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     if (isWhy(it.relation)) { setWhyAt(whyVerse(it.relation)); setSheet("why"); return; }
     if (t.type === "note") {
       const anchor = popoverTrigger();
-      const found = await readNote(t.verseKey);
+      const found = await readNote(t.verseKey, t.noteId);
       const edit = () => { if (found) { setNoteEdit({ key: found.key, note: found.note, relation: it.relation }); setSheet("note"); } else void alert("This note no longer exists"); };
       if (!preview({ kind: "note", note: found?.note ?? null, open: edit }, anchor)) edit();
       return;
@@ -456,7 +456,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       <ParamsSheet open={sheet === "params"} onClose={() => setSheet(null)} settings={settings} set={setSettings} palette={palette} theme={theme} />
       <BookmarkSheet open={sheet === "bookmark"} onClose={() => setSheet(null)} reference={bookmarkTarget.verse ? reference([bookmarkTarget.verse]) : chapterLabel} location={{ book: slug, chapter: ch, verse: bookmarkTarget.verse }} existing={bookmarkTarget.existing} bookmarks={bookmarks} setBookmarks={setBookmarks} formatReference={formatBookmark} />
       <TagsPanel open={sheet === "tags"} onClose={() => setSheet(null)} reference={reference(tagsTarget)} tags={tags} setTags={setTags} selected={tagsSelected} onToggle={toggleTag} />
-      <NoteSheet open={sheet === "note"} onClose={() => { setSheet(null); setNoteEdit(null); }} reference={noteEdit ? `${bookName(slug)} ${ch}:${noteEdit.key.replace("/", ",")}` : selectedReference ?? ""} initial={noteEdit?.note} onSave={(v) => void saveNote(v)} onRemove={noteEdit ? () => void removeNote() : undefined} />
+      <NoteSheet open={sheet === "note"} onClose={() => { setSheet(null); setNoteEdit(null); }} reference={noteEdit ? reference(noteVerses(noteEdit.key, noteEdit.note)) : selectedReference ?? ""} initial={noteEdit?.note} onSave={(v) => void saveNote(v)} onRemove={noteEdit ? () => void removeNote() : undefined} />
       <LinkSheet open={sheet === "link"} onClose={() => setSheet(null)} reference={selectedReference ?? ""} onSave={(v) => void saveLink(v)} />
       {sheet === "relation" ? <RelationTargetPicker source={verseEndpoint() as Endpoint} onClose={() => setSheet(null)} onCreated={() => { setSheet(null); setSelected([]); }} /> : null}
       {compared.length ? <CompareSheet open={sheet === "compare"} onClose={() => setSheet(null)} slug={slug} chapter={ch} verses={compared} reference={reference(compared.map((v) => v.verse))} books={list} onRead={(s, c, v) => go({ slug: s, ch: c }, v)} /> : null}

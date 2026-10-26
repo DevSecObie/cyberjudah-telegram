@@ -26,3 +26,12 @@ test('malformed saved data aborts conversion instead of treating it as an empty 
   await assert.rejects(readerRecords({ bs_bm: '[{"name":"missing id"}]' }));
   await assert.rejects(deviceRecords({ localValues: {}, studies: [{}], annotations: [] }, 'tg_77'));
 });
+test('legacy and independent same-passage notes round-trip without changing their IDs, passages or tags', async () => {
+  const notes = { '1/2': { id: 'legacy', title: 'Old', description: 'Original', date: 1, tags: { faith: true } }, first: { id: 'first', verses: [1, 2], title: 'First', description: 'Keep first', date: 2 }, second: { id: 'second', verses: [1, 2], title: 'Second', description: 'Keep second', date: 3, tags: { faith: true } } };
+  const key = 'bs_n_genesis_1', raw = JSON.stringify(notes);
+  const rows = await readerRecords({ [key]: raw });
+  assert.equal(new Set(rows.map(r => r.id)).size, 3);
+  assert.deepEqual(Object.fromEntries(rows.map(r => [r.data.entry, r.data.value])), notes);
+  assert.deepEqual(JSON.parse(readerValue(key, readerEntries(key, raw))), notes);
+  assert.deepEqual(await deviceRecords({ localValues: { [key]: raw }, studies: [], annotations: [] }, 'tg_77'), rows);
+});

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 
 import { data, type Book } from "@/api/data";
 import { Feather } from "@/bible/icons";
-import { useAllNotes } from "@/bible/store";
+import { noteVerses, useAllNotes } from "@/bible/store";
 import { Sheet } from "@/bible/ui/Sheet";
 import { SheetSearchInput } from "@/bible/ui/SheetSearchInput";
 import raw from "@/data/timeline.json";
@@ -220,7 +220,7 @@ function useStudies(enabled: boolean, text: string) {
 function useNotes(enabled: boolean, text: string) {
   const all = useAllNotes(enabled);
   const items: Item[] = all.rows.map((n) => ({ id: `note:${n.slug}/${n.chapter}/${n.key}`, kind: "notes", title: n.note.title || "Untitled note", subtitle: "Note",
-    description: n.note.description || undefined, path: `/read/${n.slug}/${n.chapter}?v=${n.key.split("/")[0]}` }));
+    description: n.note.description || undefined, path: `/read/${n.slug}/${n.chapter}?v=${noteVerses(n.key, n.note)[0]}` }));
   return { items: text ? searchWithMatches(items, text) : items, loading: !all.loaded };
 }
 

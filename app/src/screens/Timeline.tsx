@@ -142,7 +142,7 @@ function About() {
     <div className="tl-about">
       <p>The periods, the events and their years are Bible Strong's Bible Timeline. Only its history is kept here: its descriptions, articles, pictures and prophetic interpretation are not.</p>
       <p>The pictures are ours, painted for CyberJudah under the assembly's depiction brief: each period's scene, and on an event the approved portrait of the person it is about. A period still waiting on direction shows its colour.</p>
-      <p>A king's reign, where shown, is from <i>Who's Who in the Bible</i> (Joan Comay and Ronald Brownrigg), its chronology of the kings.</p>
+      <p>A king's reign, where shown, is from <i>Who's Who in the Bible</i> (Joan Comay and Ronald Brownrigg), its chronology of the kings. The Caesars' reigns, from Julius to Domitian, are from IPM's chart <i>Birth of an Empire: Coins of the "Twelve Caesars"</i>.</p>
       <p>An event opens to our case studies on it, with their scripture in the KJV. An event with no case study yet stays on the line, greyed, as Bible Strong shows an event without details.</p>
       {FINAL_CAPTIVITY ? <>
         <h3 className="tl-about__h">{FINAL_CAPTIVITY.age}</h3>
@@ -484,7 +484,7 @@ export function TimelineSearch() {
   );
 }
 
-const reignLabel = (r: NonNullable<TimelineEvent["reign"]>) => `${r.approx ? "c. " : ""}${r.from === r.to ? r.from : `${r.from}–${r.to}`} BC, ${r.kingdom === "United" ? "the united kingdom" : r.kingdom}`;
+const reignLabel = (r: NonNullable<TimelineEvent["reign"]>) => r.label ? `${r.label}, ${r.kingdom}` : `${r.approx ? "c. " : ""}${r.from === r.to ? r.from : `${r.from}–${r.to}`} BC, ${r.kingdom === "United" ? "the united kingdom" : r.kingdom}`;
 
 /**
  * EventScreen and EventDetails: the title and date; in place of their description, the
@@ -532,7 +532,9 @@ export function TimelineEventScreen() {
         {e.reign ? (
           <section className="tl-event__section" aria-label="Reign">
             <h2>Reign</h2>
-            <p>{reignLabel(e.reign)} <span className="tl-event__src">Who's Who in the Bible</span></p>
+            <p>{reignLabel(e.reign)} <span className="tl-event__src">{e.reign.source ? "IPM, Coins of the Twelve Caesars" : "Who's Who in the Bible"}</span></p>
+            {e.reign.born ? <p>Born {e.reign.born}, died {e.reign.died}</p> : null}
+            {e.reign.notes?.length ? <ul>{e.reign.notes.map((n) => <li key={n}>{n}</li>)}</ul> : null}
           </section>
         ) : null}
 
