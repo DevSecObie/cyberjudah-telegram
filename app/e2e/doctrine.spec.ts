@@ -18,11 +18,11 @@ async function setup(page: Page, status = 200) {
   return { publish: () => { responseStatus = 200; }, requests: () => requests };
 }
 
-test("Doctrine opens from More, searches A–Z and renders the fixture with scripture, moments, related chips and share", async ({ page }) => {
+test("False Doctrines opens from More, searches A–Z and renders the fixture with scripture, moments, related chips and share", async ({ page }) => {
   await setup(page);
   await page.goto("/more");
-  await page.getByRole("link", { name: /Doctrine False doctrines answered from scripture and the classes/ }).click();
-  await expect(page.getByRole("heading", { name: "Doctrine", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: /False Doctrines False doctrines answered from scripture and the classes/ }).click();
+  await expect(page.getByRole("heading", { name: "False Doctrines", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: fixture.name, exact: true })).toBeVisible();
   const search = page.getByPlaceholder("Search by word");
   await search.fill("zulu");
@@ -48,7 +48,8 @@ test("Doctrine opens from More, searches A–Z and renders the fixture with scri
 for (const path of ["/doctrine", fixture.url]) test(`unpublished Doctrine has Empty and Retry at ${path}`, async ({ page }) => {
   const feed = await setup(page, 404);
   await page.goto(path);
-  await expect(page.getByText("The doctrine section is not published yet", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "False Doctrines", exact: true })).toBeVisible();
+  await expect(page.getByText("The false doctrines section is not published yet", { exact: true })).toBeVisible();
   const before = feed.requests(); feed.publish();
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect.poll(feed.requests).toBeGreaterThan(before);
@@ -58,6 +59,6 @@ for (const path of ["/doctrine", fixture.url]) test(`unpublished Doctrine has Em
 
 test("a connection failure is not described as unpublished Doctrine", async ({ page }) => {
   await setup(page, 503); await page.goto("/doctrine");
-  await expect(page.getByText(/^The doctrine did not load/)).toBeVisible();
-  await expect(page.getByText("The doctrine section is not published yet", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/^The false doctrines did not load/)).toBeVisible();
+  await expect(page.getByText("The false doctrines section is not published yet", { exact: true })).toHaveCount(0);
 });

@@ -137,7 +137,7 @@ export function Doctrine() {
   useBackButton();
   const rows = useQuery({ queryKey: ["doctrine"], queryFn: data.doctrine, retry: false });
   const list = useMemo(() => rows.data ? [...rows.data].sort((a, b) => a.name.localeCompare(b.name)).map((p) => ({ key: p.slug, name: p.name, href: `/doctrine/${p.slug}` })) : undefined, [rows.data]);
-  return <NaveList title="Doctrine" rows={list} tone="quart" failed={rows.isError} retry={() => void rows.refetch()} failureTitle={rows.error?.message.startsWith("404 ") ? "The doctrine section is not published yet" : undefined} />;
+  return <NaveList title="False Doctrines" rows={list} tone="quart" failed={rows.isError} retry={() => void rows.refetch()} failureTitle={rows.error?.message.startsWith("404 ") ? "The false doctrines section is not published yet" : undefined} />;
 }
 
 export function DoctrineScreen() {
@@ -146,9 +146,9 @@ export function DoctrineScreen() {
   useBottomButtons(null, null);
   const p = useQuery({ queryKey: ["doctrine", slug], queryFn: () => data.doctrineEntry(slug), retry: false });
   const d = p.data;
-  if (!d && p.isError) return <Screen title="Doctrine"><Empty title={p.error.message.startsWith("404 ") ? "The doctrine section is not published yet" : "This doctrine did not load"} action={{ label: "Retry", onClick: () => void p.refetch() }} /></Screen>;
-  return <NaveDetail query={p} list="Doctrine" kind="doctrine" page={d ? {
-    title: d.name, kicker: "Doctrine", url: d.url,
+  if (!d && p.isError) return <Screen title="False Doctrines"><Empty title={p.error.message.startsWith("404 ") ? "The false doctrines section is not published yet" : "This false doctrine did not load"} action={{ label: "Retry", onClick: () => void p.refetch() }} /></Screen>;
+  return <NaveDetail query={p} list="False Doctrines" kind="doctrine" page={d ? {
+    title: d.name, kicker: "False Doctrines", url: d.url,
     text: () => [d.name, d.claim, ...d.answers.flatMap((a) => [...a.refs.map((r) => `${r.label}\n${r.text.map((v) => v.text).join(" ")}`), ...a.sense.map((s) => `${s.teacher}\n${s.text}`)])].join("\n\n"),
     body: <DoctrineAnswers entry={d} />,
   } : null} />;
