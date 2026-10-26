@@ -184,6 +184,22 @@ export function DoctrineAnswers({ entry }: { entry: DoctrineEntry }) {
         </>}
       </li>)}</ul> : null}
     </div>)}</List></Section> : null}
+    {entry.books?.length ? <Section title="Books against it"><List>{entry.books.map((book, i) => <div key={i} className="lawrow">
+      <h3 style={{ margin: "0 0 4px" }}>{book.url ? <Link to={toApp(book.url)}>{book.title}</Link> : book.title}</h3>
+      {book.author || book.year !== null ? <p className="hint">{book.author}{book.author && book.year !== null ? " · " : null}{book.year}</p> : null}
+      {book.pages ? book.pages.map((page, n) => <div key={n} style={{ marginBlock: 8 }}>
+        <Link to={toApp(page.url)}>{page.vol === 1 ? `p. ${page.page}` : `vol. ${page.vol}, p. ${page.page}`}</Link>
+        <span className="hint"> · read in {page.classes} {page.classes === 1 ? "class" : "classes"}</span>
+        {page.reads.length ? <ul style={{ margin: "8px 0 0", paddingInlineStart: 20 }}>{page.reads.slice(0, 3).map((read, k) => <li key={k} style={{ marginBlock: 8 }}>
+          <span className="hint">{read.teacher ? `${read.teacher} · ` : null}{read.title}</span>{" "}<DoctrineWatch moment={read} />
+        </li>)}</ul> : null}
+      </div>) : <>
+        <div className="refs">{book.said.ref.url ? <Link to={toApp(book.said.ref.url)}>{book.said.ref.label}</Link> : <span>{book.said.ref.label}</span>}</div>
+        <blockquote className="verse-quote" style={{ whiteSpace: "pre-wrap" }}>{book.said.text}</blockquote>
+        <p className="hint">{book.said.teacher ? `${book.said.teacher} · ` : null}{book.said.title}</p>
+        <DoctrineWatch moment={book.said} />
+      </>}
+    </div>)}</List></Section> : null}
     {([['precepts', 'Related precepts'], ['cases', 'Related cases'], ['topics', 'Related topics']] as const).map(([kind, title]) => entry.related[kind].length ? <Section key={kind} title={title}><Chips>{entry.related[kind].map((r) => <Link key={r.slug} className="chip" to={toApp(r.url)}>{r.title ?? r.name ?? r.label ?? r.slug}</Link>)}</Chips></Section> : null)}
   </>;
 }

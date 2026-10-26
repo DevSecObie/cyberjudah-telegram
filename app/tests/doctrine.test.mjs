@@ -7,7 +7,7 @@ import ts from "typescript";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { build } from "esbuild";
-import { launchPath, pathToStartParam, sitePathOf } from "../../shared/links.mjs";
+import { launchPath, pathToStartParam, sitePathOf, toAppPath } from "../../shared/links.mjs";
 
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/doctrine.json", import.meta.url), "utf8"));
 const require = createRequire(import.meta.url);
@@ -16,7 +16,7 @@ const library = {};
 const wrap = tag => ({ children, title }) => createElement(tag, null, title, children);
 runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 } }).outputText, {
   exports: library, URL,
-  require: name => name === "react/jsx-runtime" ? require(name) : name === "react-router" ? { Link: ({ to, children, ...rest }) => createElement("a", { ...rest, href: to }, children) } : name === "@/ui/ui" ? { Section: wrap("section"), List: wrap("div"), Chips: wrap("div") } : name === "@shared/links.mjs" ? { toAppPath: p => p.startsWith("/classes/") ? `/note${p}` : p } : {},
+  require: name => name === "react/jsx-runtime" ? require(name) : name === "react-router" ? { Link: ({ to, children, ...rest }) => createElement("a", { ...rest, href: to }, children) } : name === "@/ui/ui" ? { Section: wrap("section"), List: wrap("div"), Chips: wrap("div") } : name === "@shared/links.mjs" ? { toAppPath } : {},
 });
 
 test("doctrine renders the supplied KJV, Apocrypha and complete teacher words without rewriting data", () => {
@@ -35,7 +35,7 @@ test("doctrine renders the supplied KJV, Apocrypha and complete teacher words wi
 test("scripture rows preserve KJV and exact class bullets, read markers, times and links", () => {
   const before = structuredClone(fixture);
   const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
-  const scripture = html.slice(html.indexOf("Scriptures against it"), html.indexOf("Related precepts"));
+  const scripture = html.slice(html.indexOf("Scriptures against it"), html.indexOf("Books against it"));
   assert.equal((scripture.match(/class="lawrow"/g) ?? []).length, fixture.scriptures.length);
   assert.equal((scripture.match(/<li /g) ?? []).length, 2);
   for (const ref of fixture.scriptures) for (const verse of ref.text) assert.ok(scripture.includes(verse.text));
@@ -64,6 +64,37 @@ test("doctrine guards empty arrays and formats teachers and query-bearing note l
   assert.ok(!html.includes("Related cases") && !html.includes("Related topics"));
   entry.scriptures = [];
   assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes("Scriptures against it"));
+});
+
+test("doctrine books show library pages, class reads and exact cited paragraphs before Related", () => {
+  const before = structuredClone(fixture);
+  const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry: fixture }));
+  const books = html.slice(html.indexOf("Books against it"), html.indexOf("Related precepts"));
+  assert.equal((books.match(/class="lawrow"/g) ?? []).length, 2);
+  for (const href of ["/books/fixture-book", "/books/fixture-book/p/1-93", "/books/fixture-book/p/2-140", "/read/job/3#v17", "/note/classes/2026/fixture-book?t=2862", "/watch/fixture0006?t=4520"]) assert.ok(books.includes(`href="${href}"`), href);
+  for (const text of ["Fixture book author", "1871", "p. 93", "vol. 2, p. 140", "read in 8 classes", "read in 1 class", "Fixture book-reading class", "Fixture citation teacher · Fixture citing class", "Watch at 47:42", "Watch at 1:15:20", fixture.books[1].said.text]) assert.ok(books.includes(text), text);
+  assert.match(books, /<h3[^>]*>Fixture cited book<\/h3>/);
+  assert.ok(!books.includes("null") && !books.includes("undefined") && !books.includes('class="hint"> · Fixture'));
+  assert.ok(html.indexOf("Scriptures against it") < html.indexOf("Books against it"));
+  assert.deepEqual(fixture, before);
+});
+
+test("book lists cap class reads at three, hide empty books, and allow linked citations without teachers", () => {
+  const entry = structuredClone(fixture);
+  const page = entry.books[0].pages[0];
+  page.reads = Array.from({ length: 4 }, (_, i) => ({ ...page.reads[0], title: `Fixture book class ${i + 1}`, teacher: i === 0 ? "Fixture reader" : "" }));
+  entry.books[1].url = "/books/fixture-citation";
+  entry.books[1].author = "Fixture citation author";
+  entry.books[1].said.teacher = "";
+  entry.books[1].said.note = "/classes/2026/fixture-citation?source=fixture&t=1#moment";
+  const html = renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry }));
+  assert.ok(html.includes("Fixture reader · Fixture book class 1") && html.includes("Fixture book class 3") && !html.includes("Fixture book class 4"));
+  assert.ok(html.includes('href="/books/fixture-citation">Fixture cited book</a>'));
+  assert.ok(html.includes("Fixture citation author"));
+  assert.ok(html.includes('class="hint">Fixture citing class</p>'));
+  assert.ok(html.includes('href="/note/classes/2026/fixture-citation?source=fixture&amp;t=4520#moment"'));
+  entry.books = [];
+  assert.ok(!renderToStaticMarkup(createElement(library.DoctrineAnswers, { entry })).includes("Books against it"));
 });
 
 test("Doctrine share links return to the list and the entry rather than the Bible", () => {

@@ -11,8 +11,8 @@ async function setup(page: Page, status = 200) {
     requests++;
     if (responseStatus !== 200) return r.fulfill({ status: responseStatus });
     return r.fulfill({ json: path.endsWith("/index.json") ? [
-      { slug: "zulu-fixture", name: "Zulu fixture", claim: "", refs: 0, scriptures: 0, url: "/doctrine/zulu-fixture" },
-      { slug: fixture.slug, name: fixture.name, claim: fixture.claim, refs: 2, scriptures: fixture.scriptures.length, url: fixture.url },
+      { slug: "zulu-fixture", name: "Zulu fixture", claim: "", refs: 0, scriptures: 0, books: 0, url: "/doctrine/zulu-fixture" },
+      { slug: fixture.slug, name: fixture.name, claim: fixture.claim, refs: 2, scriptures: fixture.scriptures.length, books: fixture.books.length, url: fixture.url },
     ] : fixture });
   });
   return { publish: () => { responseStatus = 200; }, requests: () => requests };
@@ -49,6 +49,19 @@ test("False Doctrines opens from More, searches A–Z and renders the fixture wi
   await expect(scriptures.getByText("Read in Fixture reading class", { exact: false })).toBeVisible();
   await expect(scriptures.getByRole("link", { name: "Watch at 13:41", exact: true })).toHaveAttribute("href", "/note/classes/2026/fixture-scripture?t=821");
   await expect(scriptures.getByRole("link", { name: "Watch at 1:02:05", exact: true })).toHaveAttribute("href", "/watch/fixture0004?t=3725");
+  const books = page.locator("section").filter({ has: page.getByRole("heading", { name: "Books against it", exact: true }) }).last();
+  await expect(books.locator(".lawrow")).toHaveCount(2);
+  await expect(books.getByRole("link", { name: "Fixture library book", exact: true })).toHaveAttribute("href", "/books/fixture-book");
+  await expect(books.getByText("Fixture book author · 1871", { exact: true })).toBeVisible();
+  await expect(books.getByRole("link", { name: "p. 93", exact: true })).toHaveAttribute("href", "/books/fixture-book/p/1-93");
+  await expect(books.getByRole("link", { name: "vol. 2, p. 140", exact: true })).toHaveAttribute("href", "/books/fixture-book/p/2-140");
+  await expect(books.getByText("· read in 8 classes", { exact: true })).toBeVisible();
+  await expect(books.getByRole("link", { name: "Watch at 47:42", exact: true })).toHaveAttribute("href", "/note/classes/2026/fixture-book?t=2862");
+  await expect(books.getByRole("heading", { name: "Fixture cited book", exact: true })).toBeVisible();
+  await expect(books.getByRole("link", { name: "Fixture cited book", exact: true })).toHaveCount(0);
+  await expect(books.locator("blockquote")).toHaveJSProperty("textContent", fixture.books[1].said!.text);
+  await expect(books.getByRole("link", { name: "Watch at 1:15:20", exact: true })).toHaveAttribute("href", "/watch/fixture0006?t=4520");
+  await expect(books.getByRole("link", { name: "Job 3:17", exact: true })).toHaveAttribute("href", "/read/job/3#v17");
   for (const kind of ["precepts", "cases", "topics"] as const) await expect(page.locator(`a.chip[href="${fixture.related[kind][0].url}"]`)).toBeVisible();
   await page.getByRole("button", { name: "More options", exact: true }).click();
   await expect(page.getByRole("button", { name: "Share the link", exact: true })).toBeVisible();
