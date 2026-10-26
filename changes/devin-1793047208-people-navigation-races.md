@@ -1,0 +1,1 @@
+- Family relationships now honor the latest selection, Back, Start again or page change instead of being replaced by an older response.

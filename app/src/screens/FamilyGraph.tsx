@@ -94,6 +94,8 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
   const [history, setHistory] = useState<Step[]>([]);
   const [page, setPage] = useState(0);
   const [busy, setBusy] = useState<string | null>(null);
+  const latestRelationRequestId = useRef(0);
+  useEffect(() => () => { latestRelationRequestId.current += 1; }, []);
   const [layers, setLayers] = useState(() => createLayers(buildScene({ active: person, history: [], page: 0 })));
   const [motions, setMotions] = useState<Motion[]>([]);
   const [, frame] = useState(0);
@@ -122,6 +124,7 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
   const [root, setRoot] = useState(person.id);
   useLayoutEffect(() => { resetSequence.current++; timers.current.forEach(clearTimeout); timers.current = []; nextZIndex.current = 0; }, [person.id]);
   if (root !== person.id) {
+    latestRelationRequestId.current += 1; setBusy(null);
     setRoot(person.id); setActive(person); setHistory([]); setPage(0);
     setMotions([]); setIsResetting(false); setLayers(createLayers(buildScene({ active: person, history: [], page: 0 })));
   }
@@ -142,21 +145,24 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
     setActive(to.active); setHistory(to.history); setPage(to.page);
   };
   const walk = async (r: Rel, position: number) => {
-    if (busy) return;
+    const requestId = ++latestRelationRequestId.current;
     cancelReset(); haptic("select"); setBusy(r.id);
     try {
       const next = await client.fetchQuery({ queryKey: ["person", r.id], queryFn: () => data.person(r.id), staleTime: Infinity });
+      if (requestId !== latestRelationRequestId.current) return;
       beginTransition({ active: next, history: [...history, { person: active, via: r, position, page: shownPage }], page: 0 }, { kind: "camera", selectedId: next.id, selectedPosition: position });
     } catch { /* the person did not load: stay where we are */ }
-    finally { setBusy(null); }
+    finally { if (requestId === latestRelationRequestId.current) setBusy(null); }
   };
   const back = () => {
     if (!prev) return;
+    latestRelationRequestId.current += 1; setBusy(null);
     cancelReset(); haptic("select");
     beginTransition({ active: prev.person, history: history.slice(0, -1), page: prev.page }, { kind: "camera", selectedId: prev.person.id, selectedPosition: previousPosition });
   };
   const reset = () => {
     if (!history.length) return;
+    latestRelationRequestId.current += 1; setBusy(null);
     cancelReset(); haptic("select"); setIsResetting(true);
     const sequence = resetSequence.current;
     let source = current;
@@ -171,6 +177,7 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
   };
   const turn = (p: number) => {
     if (p === shownPage) return;
+    latestRelationRequestId.current += 1; setBusy(null);
     cancelReset(); haptic("select");
     beginTransition({ active, history, page: p }, { kind: "pagination", direction: p > shownPage ? 1 : -1 });
   };

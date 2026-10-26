@@ -9,13 +9,14 @@ async function setup(page: Page) {
     one: make("one", { father: [ref("root")], children: [ref("two"), ref("extra")] }),
     two: make("two", { father: [ref("one")], children: [ref("three")] }),
     three: make("three", { father: [ref("two")] }),
+    child6: make("child6", { father: [ref("root")] }),
   };
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: "" }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
   await page.route(`${DATA}/**`, r => r.fulfill({ status: 404, body: "" }));
-  await page.route(/\/api\/people\/(index|root|one|two|three)\.json$/, r => {
+  await page.route(/\/api\/people\/(index|root|one|two|three|child6)\.json$/, r => {
     const id = new URL(r.request().url()).pathname.split("/").pop()!.slice(0, -5);
     return r.fulfill({ json: id === "index" ? Object.values(people) : people[id] });
   });
@@ -123,6 +124,25 @@ test("family motion: Start again retraces each history entry350ms apart and bloc
   await expect(page.locator(".fg")).not.toHaveAttribute("inert");
   await expect(page.locator(".fg__layer")).toHaveCount(1);
   await expect(page.locator(".fg__static-center b")).toHaveText("root");
+  await expect(page.getByRole("button", { name: "Start again from root", exact: true })).toHaveCount(0);
+});
+
+test("family motion: Start again restores the root's departure page", async ({ page }) => {
+  await setup(page);
+  await press(page.getByRole("button", { name: "Next page", exact: true }));
+  await page.clock.runFor(400);
+  await expect(page.locator(".fg__foot")).toContainText("2 / 2");
+  await walk(page, "child6");
+  await page.clock.runFor(700);
+  await press(page.getByRole("button", { name: "Start again from root", exact: true }));
+  await page.clock.runFor(1);
+  await expect(current(page).locator(".fg__label--center b")).toHaveText("root");
+  await expect(page.locator(".fg__foot")).toContainText("2 / 2");
+  await page.clock.runFor(700);
+  await expect(page.locator(".fg__static-center b")).toHaveText("root");
+  await expect(page.locator(".fg__foot")).toContainText("2 / 2");
+  await expect(satellite(page, "child6")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Start again from root", exact: true })).toHaveCount(0);
 });
 

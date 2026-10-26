@@ -1048,6 +1048,9 @@ test("People: who is named in a verse, a page per person with family, the classe
   await expect(centerName).toHaveText("Rebekah");
   await graph.getByRole("button", { name: "Start again from Abraham" }).click();
   await expect(centerName).toHaveText("Abraham");
+  // Upstream getResetSteps restores each departure page, including the root's.
+  await expect(graph.locator(".fg__foot")).toContainText("2 / 3");
+  await graph.getByRole("button", { name: "Previous page" }).click();
   await expect(graph.locator(".fg__foot")).toContainText("1 / 3");
   await graph.getByRole("button", { name: "Father, Terah" }).click();
   await expect(centerName).toHaveText("Terah");
