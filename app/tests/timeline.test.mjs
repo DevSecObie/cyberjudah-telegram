@@ -102,3 +102,22 @@ test("an event's picture is only an approved portrait of its own person, and the
     if (!ids.has(id)) assert.equal(all.find((e) => e.slug === slug)?.portrait, undefined, `${slug} waits for ${id}`);
   }
 });
+
+test("the Twelve Caesars are on the line with their reigns, each on a row of its own", () => {
+  const caesars = ["Julius Caesar", "Augustus Caesar", "Tiberius Caesar", "Caligula", "Claudius Caesar", "Nero", "Galba", "Otho", "Vitellius", "Vespasian", "Titus Caesar", "Domitian"];
+  const all = flatten(DATA.sections);
+  for (const name of caesars) {
+    const e = all.find((x) => x.title === name);
+    assert.ok(e?.reign?.label && e.reign.kingdom === "Rome", name);
+    assert.ok(hasDetails(e), name);
+  }
+  // A Caesar's bar never covers another event on its row (bars are at least 200px wide).
+  for (const s of DATA.sections) {
+    const g = geometry(s, 390);
+    const span = (e) => { const left = g.yearsToPx(e.start); return [left, left + (e.type === "minor" ? 200 : g.eventWidth(e.start, e.end, e.isFixed))]; };
+    for (const c of s.events.filter((e) => e.reign?.kingdom === "Rome" && e.id >= 700000)) {
+      const [a, b] = span(c);
+      for (const o of s.events) if (o !== c && o.row === c.row) { const [x, y] = span(o); assert.ok(b <= x || y <= a, `${c.title} covers ${o.title} in ${s.title}`); }
+    }
+  }
+});

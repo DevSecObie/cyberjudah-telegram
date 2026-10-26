@@ -1,0 +1,20 @@
+{
+ "source": "IPM, Birth of an Empire: Coins of the \"Twelve Caesars\" (chart sent by Obie, 2026-10-26)",
+ "note": "The Twelve Caesars' reigns. A Caesar already on the timeline (Julius, Augustus) keeps his life span and gets his reign; the other ten are drawn as their reigns, on rows left free in the Life of Christ and Early Church periods. Titles follow the KJV where it names them (Luke 3:1, Acts 11:28).",
+ "reigns": [
+  { "slug": "julius-caesar", "label": "49–44 BC" },
+  { "slug": "augustus-caesar", "label": "27 BC–AD 14" }
+ ],
+ "events": [
+  { "slug": "tiberius-caesar", "title": "Tiberius Caesar", "born": "42 BC", "died": "AD 37", "start": 14, "end": 37, "row": 22, "label": "AD 14–37" },
+  { "slug": "caligula", "title": "Caligula", "born": "AD 12", "died": "AD 41", "start": 37, "end": 41, "row": 23, "label": "AD 37–41" },
+  { "slug": "claudius-caesar", "title": "Claudius Caesar", "born": "10 BC", "died": "AD 54", "start": 41, "end": 54, "row": 22, "label": "AD 41–54" },
+  { "slug": "nero", "title": "Nero", "born": "AD 37", "died": "AD 68", "start": 54, "end": 68, "row": 23, "label": "AD 54–68" },
+  { "slug": "galba", "title": "Galba", "born": "3 BC", "died": "AD 69", "start": 68, "end": 69, "row": 19, "label": "AD 68–69" },
+  { "slug": "otho", "title": "Otho", "born": "AD 32", "died": "AD 69", "start": 69, "end": 69, "row": 20, "label": "January–April AD 69" },
+  { "slug": "vitellius", "title": "Vitellius", "born": "AD 15", "died": "AD 69", "start": 69, "end": 69, "row": 21, "label": "April–December AD 69" },
+  { "slug": "vespasian", "title": "Vespasian", "born": "AD 9", "died": "AD 79", "start": 69, "end": 79, "row": 22, "label": "AD 69–79" },
+  { "slug": "titus-caesar", "title": "Titus Caesar", "born": "AD 39", "died": "AD 81", "start": 79, "end": 81, "row": 23, "label": "AD 79–81" },
+  { "slug": "domitian", "title": "Domitian", "born": "AD 51", "died": "AD 96", "start": 81, "end": 96, "row": 22, "label": "AD 81–96" }
+ ]
+}

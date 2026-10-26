@@ -28,6 +28,8 @@ const OUT = path.join(ROOT, "app/src/data/timeline.json");
 const PORTRAITS = path.join(ROOT, "app/scripts/timeline-portraits.json");
 /** The kings' reigns from Who's Who in the Bible (its Chronology), as facts: name, kingdom, years BC. */
 const REIGNS = path.join(ROOT, "app/scripts/whoswho-reigns.json");
+/** The Twelve Caesars' reigns (a chart Obie sent): history, added to the periods they fall in. */
+const CAESARS = path.join(ROOT, "app/scripts/timeline-caesars.json");
 
 /**
  * Their prophetic interpretation (the 2300 days, the beasts, the church ages, the end of
@@ -70,6 +72,22 @@ export function keepHistory(sections) {
       .map((e) => ({ id: e.id, slug: e.slug, title: e.titleEn.trim(), start: e.start, end: e.end, row: e.row, type: e.type, ...(e.approx ? { approx: true } : {}), ...(e.isFixed ? { isFixed: true } : {}) })),
   }));
   return { kept: setRight(kept), dropped: [...new Set(dropped)], droppedSections: sections.filter((s) => DOCTRINE_SECTIONS.has(String(s.id))).map((s) => s.titleEn) };
+}
+
+/**
+ * The Caesars: a reign on each one already on the timeline, and the rest as bars of their
+ * reigns in every period their years touch (as Bible Strong repeats an event across periods).
+ */
+export const CAESAR_ID_BASE = 700000;
+export function addCaesars(sections, { source, reigns, events }) {
+  const reign = (label) => ({ kingdom: "Rome", label, source });
+  for (const r of reigns) for (const s of sections) for (const e of s.events) if (e.slug === r.slug) e.reign = reign(r.label);
+  events.forEach((c, i) => {
+    for (const s of sections) if (c.start <= s.endYear && c.end >= s.startYear && !s.events.some((e) => e.slug === c.slug)) {
+      s.events.push({ id: CAESAR_ID_BASE + i, slug: c.slug, title: c.title, start: c.start, end: c.end, row: c.row, type: "major", reign: { ...reign(c.label), born: c.born, died: c.died } });
+    }
+  });
+  return sections;
 }
 
 /**
@@ -185,6 +203,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (!src) { console.error("usage: node app/scripts/timeline-data.mjs <cases dir or URL>"); process.exit(1); }
   const { kept, dropped, droppedSections } = keepHistory(JSON.parse(fs.readFileSync(SOURCE, "utf8")));
   const cases = await readCases(src);
+  addCaesars(kept, JSON.parse(fs.readFileSync(CAESARS, "utf8")));
   const reigns = JSON.parse(fs.readFileSync(REIGNS, "utf8"));
   const { placed, unplaced } = attachReigns(kept, reigns.reigns);
   const people = await readPeople(src);
