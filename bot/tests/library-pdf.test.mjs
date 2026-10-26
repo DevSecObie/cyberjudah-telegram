@@ -72,6 +72,7 @@ test("a signed 15-minute link resolves the filename from Archive's files list, n
   const download = await f.call(new Request(`${link.url}&download=1`));
   assert.equal(download.status, 200);
   assert.equal(download.headers.get("content-type"), "application/pdf");
+  assert.equal(download.headers.get("access-control-expose-headers"), "Accept-Ranges, Content-Length, Content-Range");
   assert.match(download.headers.get("content-disposition"), /^attachment/);
   assert.equal(await download.text(), "%PDF-1.7\nfixture");
   assert.equal(f.fetched.at(-1).url, `https://archive.org/download/${item}/different-name.pdf`);

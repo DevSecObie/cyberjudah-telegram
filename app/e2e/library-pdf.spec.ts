@@ -18,9 +18,11 @@ for (const [index, color] of [rgb(.8, .1, .1), rgb(.1, .6, .2), rgb(.1, .2, .8)]
   p.drawRectangle({ x: 40, y: 185, width: 220, height: 80, color });
   p.drawText("Generated in memory for the browser test.", { x: 24, y: 100, size: 11 });
 }
+// Keep the fixture large enough for PDF.js to use byte ranges rather than loading it whole.
+pdf.context.register(pdf.context.stream(new Uint8Array(768 * 1024)));
 const bytes = Buffer.from(await pdf.save());
 
-async function library(page: Page, license = "Public domain.", items = book.items) {
+async function library(page: Page, license = "Public domain.", items = book.items, pdfOrigin?: string) {
   const fixtureBook = { ...book, license, items, volumes: items.length };
   await setup(page);
   await page.route(`${DATA_ORIGIN}/**`, r => {
@@ -37,15 +39,26 @@ async function library(page: Page, license = "Public domain.", items = book.item
     const request = new Request(req.url(), { method: req.method(), headers: req.headers(), ...(req.method() === "POST" ? { body: req.postData() } : {}) });
     const response = await libraryPdf(request, "100:local-pdf-test", async <T>(path: string) => (path.endsWith("index.json") ? [{ slug: book.slug }] : path.endsWith("chapter/0.json") ? chapter : fixtureBook) as T,
       async stream => { await new Response(stream).arrayBuffer(); },
-      async input => {
+      async (input, init) => {
         archiveFetches++;
         const url = String(input);
-        if (url.includes("/metadata/")) return Response.json({ files: [{ name: "original-printing.pdf", format: "Text PDF", size: String(bytes.length) }, { name: `${item}_page_numbers.json` }] });
-        if (url.endsWith("_page_numbers.json")) return Response.json({ pages: [{ leafNum: 1, pageNumber: "" }, { leafNum: 3, pageNumber: "7" }, { leafNum: 4, pageNumber: "8" }] });
+        if (url.includes("/metadata/")) return Response.json({ files: [{ name: "original-printing.pdf", format: "Text PDF", size: String(bytes.length) }] });
         expect(items.some(i => url === `https://archive.org/download/${i.id}/original-printing.pdf`)).toBe(true);
+        const range = /^bytes=(\d+)-(\d+)$/.exec(new Headers(init?.headers).get("range") ?? "");
+        if (range) {
+          const start = Number(range[1]), end = Math.min(Number(range[2]), bytes.length - 1);
+          const part = bytes.subarray(start, end + 1);
+          return new Response(part, { status: 206, headers: { "content-type": "application/pdf", "content-length": String(part.length), "content-range": `bytes ${start}-${end}/${bytes.length}`, "accept-ranges": "bytes" } });
+        }
         return new Response(bytes, { headers: { "content-type": "application/pdf", "content-length": String(bytes.length), "accept-ranges": "bytes" } });
       });
-    await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
+    const headers = { ...Object.fromEntries(response.headers), "access-control-allow-origin": req.headers().origin ?? "*" };
+    if (pdfOrigin && req.method() === "POST" && response.ok && !req.postDataJSON()?.send) {
+      const link = await response.json() as { url: string };
+      link.url = link.url.replace(new URL(req.url()).origin, pdfOrigin);
+      return route.fulfill({ status: response.status, headers, json: link });
+    }
+    await route.fulfill({ status: response.status, headers, body: Buffer.from(await response.arrayBuffer()) });
   });
   return () => archiveFetches;
 }
@@ -140,6 +153,30 @@ test("a direct PDF page link starts at the requested page", async ({ page }) => 
   await library(page);
   await page.goto(`/books/josephus/pdf?vol=1&page=3${LAUNCH}`);
   await expect(page.locator(".bookpdf canvas")).toHaveAttribute("data-page", "3");
+});
+
+test("a cross-origin PDF exposes range headers and renders through partial requests", async ({ page }) => {
+  const origin = "https://pdf-proxy.example.test";
+  await library(page, "Public domain.", book.items, origin);
+  const ranges: string[] = [];
+  let pdfUrl = "";
+  page.on("request", req => {
+    if (!req.url().startsWith(origin)) return;
+    pdfUrl = req.url();
+    if (req.headers().range) ranges.push(req.headers().range);
+  });
+  await page.goto(`/books/josephus/pdf${LAUNCH}`);
+  await expect(page.locator(".bookpdf canvas")).toHaveAttribute("data-page", "1");
+  expect(ranges.length).toBeGreaterThan(0);
+  const headers = await page.evaluate(async url => {
+    const res = await fetch(url, { headers: { range: "bytes=0-31" } });
+    const result = { status: res.status, ranges: res.headers.get("accept-ranges"), length: res.headers.get("content-length"), range: res.headers.get("content-range") };
+    await res.body?.cancel();
+    return result;
+  }, pdfUrl);
+  expect(headers).toEqual({ status: 206, ranges: "bytes", length: "32", range: `bytes 0-31/${bytes.length}` });
+  await page.getByRole("button", { name: "Next page", exact: true }).click();
+  await expect(page.locator(".bookpdf canvas")).toHaveAttribute("data-page", "2");
 });
 
 test("the requested volume opens and the volume selector resets to its first page", async ({ page }) => {

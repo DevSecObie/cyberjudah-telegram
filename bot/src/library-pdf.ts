@@ -62,7 +62,7 @@ export async function libraryPdf(request: Request, token: string, read: ReadJson
       const upstream = await archive(doc.url, { headers: range ? { range } : {} }, fetcher);
       if (upstream.status === 416) return new Response(null, { status: 416, headers: { "content-range": upstream.headers.get("content-range") ?? `bytes */${doc.pdf.size}` } });
       if (!upstream.ok || !upstream.body || !/^application\/pdf\b/i.test(upstream.headers.get("content-type") ?? "")) { await upstream.body?.cancel(); throw unavailable(); }
-      const headers = new Headers({ "content-type": "application/pdf", "content-disposition": `${url.searchParams.has("download") ? "attachment" : "inline"}; filename="${doc.item}.pdf"`, "cache-control": "private, no-store", "x-content-type-options": "nosniff" });
+      const headers = new Headers({ "content-type": "application/pdf", "content-disposition": `${url.searchParams.has("download") ? "attachment" : "inline"}; filename="${doc.item}.pdf"`, "cache-control": "private, no-store", "x-content-type-options": "nosniff", "access-control-expose-headers": "Accept-Ranges, Content-Length, Content-Range" });
       for (const key of ["content-length", "content-range", "accept-ranges", "etag", "last-modified"]) { const value = upstream.headers.get(key); if (value) headers.set(key, value); }
       return new Response(upstream.body, { status: upstream.status, headers });
     }
