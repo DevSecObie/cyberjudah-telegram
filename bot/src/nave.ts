@@ -36,7 +36,7 @@ export function createNave(fetcher: typeof fetch = fetch) {
     const upstream = name !== undefined ? `topics/${encodeURIComponent(name)}` : suffix;
     const url = `${ORIGIN}/v1/naves/${language.data}/${upstream}${params.size ? `?${params}` : ""}`;
     try {
-      const response = await fetcher(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000), redirect: "error" });
+      const response = await fetcher(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000), redirect: "manual" });
       if (response.status === 404 && name !== undefined) return c.json({ error: "not-found" }, 404);
       if (!response.ok) return c.json({ error: "nave-unavailable" }, 503);
       const result = schema.safeParse(await response.json());

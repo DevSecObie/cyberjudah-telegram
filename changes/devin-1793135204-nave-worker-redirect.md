@@ -1,0 +1,1 @@
+- Fix Nave showing a temporary-unavailable message instead of loading its topics and articles.
