@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { DATA_ORIGIN, LAUNCH, setup, goInApp } from "./telegram-harness";
+import aaronSnapshot from "./nave-aaron-snapshot.json" with { type: "json" };
 
 /**
  * The app driven inside a stand-in for Telegram's SDK: a script served in place of
@@ -669,6 +670,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
 });
 
 test("welcome keeps Search and Ask separate, with the dashboard in the Home drawer", async ({ page }) => {
+  await page.route("**/api/nave/en/random", route => route.fulfill({ json: aaronSnapshot }));
   await page.goto(`/${LAUNCH}`);
   const welcome = page.locator(".welcome");
   const search = welcome.getByRole("searchbox", { name: "Search the teachings" });
@@ -693,7 +695,8 @@ test("welcome keeps Search and Ask separate, with the dashboard in the Home draw
   await expect(home.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
   // Bible Strong's Courses & videos card opens the classes.
   await expect(home.getByRole("link", { name: "Open courses and videos" })).toHaveAttribute("href", "/classes");
-  await expect(home.locator(".widget")).toHaveCount(6);
+  await expect(home.locator(".widget__label")).toHaveText(["Greek", "Hebrew", "Topic", "Nave", "Word", "Person", "Precept"]);
+  await expect(home.getByRole("link", { name: "Nave Aaron", exact: true })).toHaveAttribute("href", "/nave/en/aaron");
   await home.getByRole("button", { name: "Close Home" }).click();
   await search.fill("Seattle");
   await search.press("Enter");
