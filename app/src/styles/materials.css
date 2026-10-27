@@ -167,10 +167,11 @@ html[data-drawer="home"] #shell .route, html[data-drawer="home"] .tabs, html[dat
 html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[data-drawer="more"] .pageactions { transform: translateX(calc(-1 * var(--drawer-w))); }
 .drawer { position: fixed; top: 0; bottom: 0; z-index: var(--z-drawer); width: var(--drawer-w); display: flex; flex-direction: column;
   background: var(--surface-1); color: var(--text-2); overscroll-behavior: contain;
-  box-shadow: var(--shadow-3); transition: transform var(--drawer-dur) var(--drawer-ease), visibility 0s linear var(--drawer-dur); visibility: hidden; }
+  transition: transform var(--drawer-dur) var(--drawer-ease), visibility 0s linear var(--drawer-dur); visibility: hidden; }
 .drawer[data-open] { visibility: visible; transition: transform var(--drawer-dur) var(--drawer-ease); }
-.drawer--home { left: 0; transform: translateX(-100%); border-right: .5px solid var(--mat-edge); }
-.drawer--more { right: 0; transform: translateX(100%); border-left: .5px solid var(--mat-edge); }
+/* Bible Strong slides the row with no shadow; its menu has a 1px left border (MoreScreen), Home none. */
+.drawer--home { left: 0; transform: translateX(-100%); }
+.drawer--more { right: 0; transform: translateX(100%); border-left: 1px solid var(--bs-border, var(--hairline)); }
 .drawer[data-open] { transform: none; }
 .drawer__scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .drawer--home .drawer__scroll { padding-bottom: calc(100px + var(--safe-bottom)); }
@@ -179,10 +180,12 @@ html[data-drawer="more"] #shell .route, html[data-drawer="more"] .tabs, html[dat
 .drawer__head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; min-height: 54px; padding: var(--safe-top) 0 0; background: var(--canvas); border-bottom: 1px solid var(--hairline); }
 .drawer__head h2 { margin: 0; font: 700 14px var(--font-ui); color: var(--text-1); }
 #root button.drawer__back, .drawer__back { display: grid; place-items: center; width: 54px; height: 54px; padding: 0; border: 0; background: none; color: var(--text-1); cursor: pointer; }
-#root button.drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(var(--sp-6) + var(--safe-bottom)); display: grid; place-items: center; width: 52px; height: 52px; margin-left: -26px; padding: 0;
-  border-radius: var(--r-pill); border: .5px solid var(--mat-edge); background: var(--mat-overlay); color: var(--text-1); box-shadow: var(--mat-highlight), var(--shadow-2); cursor: pointer; }
+/* Bible Strong's Home close: 50px, reverse colour, a grey ✕ and a faint blue shadow. */
+#root button.drawer__x, .drawer__x { position: absolute; left: 50%; bottom: calc(var(--sp-6) + var(--safe-bottom)); display: grid; place-items: center; width: 50px; height: 50px; margin-left: -25px; padding: 0;
+  border-radius: 30px; border: 0; background: var(--bs-reverse, var(--surface-1)); color: grey; box-shadow: 0 2px 7px rgba(89, 131, 240, .1); cursor: pointer; }
 .drawer-scrim { position: fixed; inset: 0; z-index: calc(var(--z-drawer) - 5); pointer-events: none; background: transparent; transition: none; }
-.drawer-scrim[data-open] { pointer-events: auto; background: var(--scrim-soft); }
+/* No dimming, as Bible Strong; the uncovered tab still closes the drawer on a tap or a swipe. */
+.drawer-scrim[data-open] { pointer-events: auto; }
 .drawer-scrim[data-side="home"] { left: var(--drawer-w); }
 .drawer-scrim[data-side="more"] { right: var(--drawer-w); }
 
