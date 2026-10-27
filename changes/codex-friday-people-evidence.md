@@ -1,0 +1,2 @@
+- People profiles now show the evidence for lineage, priestly courses, identity links, titles and textual variants, with their scripture and source references. Ask preserves these distinctions when reading a person's entry.
+- A family graph stays underneath a profile opened over it instead of covering the new person's details.
