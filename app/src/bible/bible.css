@@ -146,16 +146,17 @@
 
 /* Book selector */
 .bs-filterbtn { width: 40px; height: 40px; border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; }
-.bs-filters { display: flex; flex-direction: column; gap: 8px; padding: 6px 16px 10px; border-bottom: 1px solid var(--bs-border); }
-.bs-filter { display: flex; align-items: center; gap: 10px; }
-.bs-filter__label { display: inline-flex; align-items: center; gap: 6px; width: 74px; font-size: 12px; color: var(--bs-tertiary); }
-.bs-filter__opts { display: flex; gap: 6px; flex: 1; }
-.bs-filter__opts button { height: 30px; padding: 0 12px; border: 1px solid var(--bs-border); border-radius: 15px; background: none; font-size: 12px; cursor: pointer; }
-.bs-filter__opts button[aria-checked="true"] { background: var(--bs-light-primary); color: var(--bs-primary); border-color: transparent; font-weight: 600; }
 .bs-tip { margin: 8px 20px; font-size: 12px; color: var(--bs-tertiary); }
 .bs-booklist { padding-bottom: 24px; }
 .bs-bookrow { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 46px; padding: 0 20px; border: 0; background: none; font-size: 16px; cursor: pointer; text-align: left; }
 .bs-accordion { overflow: hidden; transition: none; }
+/* BookItem's accordion: the chapters fold open under their book in 300 ms, the chevron turning with them. */
+.bs-accordion { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 300ms ease; }
+.bs-accordion[data-open] { grid-template-rows: 1fr; }
+.bs-accordion__body { min-height: 0; overflow: hidden; }
+.bs-bookrow__chevron { display: grid; flex: none; opacity: .5; transition: transform 300ms ease; }
+.bs-bookrow[aria-expanded="true"] .bs-bookrow__chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .bs-accordion, .bs-bookrow__chevron { transition: none; } }
 .bs-chaptertiles { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 0; max-width: 500px; margin: 0 auto; justify-content: center; }
 .bs-chaptertile { width: 60px; height: 60px; border: 0; border-radius: 6px; background: var(--bs-opacity5); color: var(--bs-default); font-size: 16px; cursor: pointer; display: grid; place-items: center; }
 .bs-chaptertile--48 { width: 48px; height: 48px; }
