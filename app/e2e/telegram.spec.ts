@@ -195,7 +195,18 @@ test("the header's selectors are Bible Strong's sheets: they search, keep chapte
   await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
   await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
-  await expect(page.getByRole("menuitem")).toHaveText(["Font and settings", "Search the Scriptures", "Recently viewed", "Add bookmark", "Export…", "Open in new tab"]);
+  await expect(page.getByRole("menuitem")).toHaveText(["Font and settings", "Search the Scriptures", "Recently viewed", "Add bookmark", "Share the link", "Export…", "Open in new tab"]);
+  // Bible Strong's menu has no title, and each item's icon sits after its label.
+  await expect(page.getByRole("menu", { name: "Passage options" })).not.toContainText("Passage options");
+  const item = page.getByRole("menuitem", { name: "Share the link" });
+  const [label, icon] = await Promise.all([item.locator("span").boundingBox(), item.locator("svg").boundingBox()]);
+  expect(icon!.x).toBeGreaterThan(label!.x);
+  // The header's buttons sit side by side at 40px, with no capsule behind them.
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".bs-header__right")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(page.locator('.bs-iconbtn[aria-label="Scripture options"]')).toHaveCSS("width", "40px");
+  // The chapter buttons are flat circles: no shadow.
+  await expect(page.locator('.bs-chapterbtn[aria-label="Next chapter"]')).toHaveCSS("box-shadow", "none");
 });
 
 test("Font and settings: night theme, verse mode, text size, fonts, all kept in the cloud", async ({ page }) => {
