@@ -1,3 +1,4 @@
+import { linkedFirebase } from "./account-links";
 import { importPKCS8, SignJWT } from "jose";
 import type { Env } from "./env";
 import { telegramFirebaseUid } from "./firebase-auth";
@@ -106,9 +107,10 @@ function syncConfigured(env: Env): boolean {
  */
 export async function exportAccountSyncMarks(env: Env, uid: number): Promise<Record<string, unknown[]> | null> {
   if (!syncConfigured(env)) return null;
-  const firebaseUid = telegramFirebaseUid(uid);
+  const canonical = await linkedFirebase(env, uid) ?? telegramFirebaseUid(uid);
+  const identities = [...new Set([canonical, telegramFirebaseUid(uid)])].map(encodeURIComponent);
   const out: Record<string, unknown[]> = {};
-  for (const name of SYNC_COLLECTIONS) {
+  for (const firebaseUid of identities) for (const name of SYNC_COLLECTIONS) {
     const documents = await listCollection(env, `users/${firebaseUid}/${name}`);
     if (!documents.length) continue;
     const rows: Record<string, unknown>[] = [];
@@ -120,7 +122,7 @@ export async function exportAccountSyncMarks(env: Env, uid: number): Promise<Rec
       }
       rows.push(row);
     }
-    out[name] = rows;
+    out[firebaseUid === encodeURIComponent(canonical) ? name : `legacyTelegram.${name}`] = rows;
   }
   return Object.keys(out).length ? out : null;
 }
@@ -133,9 +135,10 @@ export async function exportAccountSyncMarks(env: Env, uid: number): Promise<Rec
  */
 export async function deleteAccountSyncMarks(env: Env, uid: number): Promise<number> {
   if (!syncConfigured(env)) return 0;
-  const firebaseUid = telegramFirebaseUid(uid);
+  const canonical = await linkedFirebase(env, uid) ?? telegramFirebaseUid(uid);
+  const identities = [...new Set([canonical, telegramFirebaseUid(uid)])].map(encodeURIComponent);
   const names: string[] = [];
-  for (const name of SYNC_COLLECTIONS) {
+  for (const firebaseUid of identities) for (const name of SYNC_COLLECTIONS) {
     const documents = await listCollection(env, `users/${firebaseUid}/${name}`);
     for (const doc of documents) {
       if (HAS_REVISIONS_SUBCOLLECTION.has(name)) {

@@ -1,9 +1,12 @@
+import { onlineManager } from "@tanstack/react-query";
+import { cachedResponse } from "@/lib/offline";
+import { searchOfflineChapters, type OfflinePage } from "../offline-search";
 import { useInfiniteQuery, useQuery, type InfiniteData } from "@tanstack/react-query";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { Empty, SearchField } from "@/ui/ui";
 import { useEffect, useRef, useState } from "react";
 
-import { data, type Book } from "@/api/data";
+import { data, DATA_ORIGIN, type Chapter, type Book } from "@/api/data";
 import { useNavigate } from "react-router";
 import { haptic } from "@/tg/sdk";
 import { findBook, parseReference } from "../../../../bot/src/refs.mjs";
@@ -13,7 +16,7 @@ import bookRows from "../../../../bot/data/bs-books.json";
 import { SEARCH_DEBOUNCE_MS, SEARCH_PAGE_SIZE, ScriptureSearchError, searchRateLimitSeconds, searchRetry, uniquePassages, type PassagePage } from "../search";
 import "./search.css";
 
-type SearchPage = PassagePage & { query: string };
+type SearchPage = PassagePage & { query: string; offline?: OfflinePage["offline"] };
 
 /**
  * Search the Scriptures: a reference goes straight there ("john 3:16", "ps 23", "ruth"), and
@@ -21,6 +24,8 @@ type SearchPage = PassagePage & { query: string };
  * together. A result opens the chapter at that verse.
  */
 export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open: boolean; initial?: string; onClose: () => void; books: Book[]; onGo: (slug: string, chapter: number, verse?: number, verseEnd?: number) => void }) {
+  const [online, setOnline] = useState(() => onlineManager.isOnline());
+  useEffect(() => onlineManager.subscribe(setOnline), []);
   const [q, setQ] = useState("");
   const [text, setText] = useState("");
   // Bible Strong's search filters: the canon (Old Testament, New Testament, Apocrypha) and one book.
@@ -40,12 +45,20 @@ export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open
   const words = ref ? "" : text;
   const enabled = open && words.length >= 3;
   const found = useInfiniteQuery<SearchPage, Error, InfiniteData<SearchPage>, string[], number>({
-    queryKey: ["bible-search", words, canon, bookFilter, sort], enabled,
+    queryKey: ["bible-search", words, canon, bookFilter, sort, online ? "online" : "offline"], enabled, networkMode: "always",
     initialPageParam: 0, staleTime: 5 * 60_000,
     ...searchRetry,
     // 27.2.0 keeps a previous query usable while its replacement loads, within the same filters.
-    placeholderData: (previous, query) => enabled && JSON.stringify(query?.queryKey.slice(2)) === JSON.stringify([canon, bookFilter, sort]) ? previous : undefined,
+    placeholderData: (previous, query) => enabled && JSON.stringify(query?.queryKey.slice(2)) === JSON.stringify([canon, bookFilter, sort, online ? "online" : "offline"]) ? previous : undefined,
     queryFn: async ({ pageParam, signal }) => {
+      if (!online) return { ...await searchOfflineChapters(words, {
+        books, canon, book: bookFilter, offset: pageParam, limit: SEARCH_PAGE_SIZE, sort, signal,
+        read: async (slug, chapter) => {
+          const response = await cachedResponse(`${DATA_ORIGIN}/api/kjv/${slug}/${chapter}.json`);
+          if (!response) return null;
+          try { return await response.json() as Chapter; } catch { return null; }
+        },
+      }), query: words };
       const query = new URLSearchParams({ q: words, limit: String(SEARCH_PAGE_SIZE), offset: String(pageParam), sortOrder: sort });
       const id = bookRows.find(b => b.slug === bookFilter)?.id;
       if (id) query.set("book", String(id));
@@ -79,6 +92,7 @@ export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open
     return b ? [{ slug: b.slug, chapter: h.chapter, verse: h.verse, label: `${name(b.slug)} ${h.chapter}:${h.verse}`, snippet: h.text }] : [];
   });
   const count = found.data?.pages[0]?.count ?? 0;
+  const offline = found.data?.pages[0]?.offline;
   const canons: ["" | Book["testament"], string][] = [["", "All"], ["Old Testament", "Old Testament"], ["New Testament", "New Testament"], ["Apocrypha", "Apocrypha"]];
   const bookChoices = canon ? books.filter((b) => b.testament === canon) : books;
   const terms = (found.data?.pages[0]?.query ?? words).toLowerCase().replace(/"/g, "").split(/\s+/).filter((w) => w.length > 2);
@@ -101,6 +115,7 @@ export function SearchSheet({ open, initial = "", onClose, books, onGo }: { open
           <select className="bs-chip bs-chip--select" aria-label="Result order" value={sort} onChange={e => setSort(e.target.value)}><option value="relevance">Relevance</option><option value="book">Bible order</option></select>
         </div>
       ) : null}
+      {offline ? <p className="bs-search__hint" role="status">Offline · searched {offline.chapters} saved {offline.chapters === 1 ? "chapter" : "chapters"} in {offline.books} {offline.books === 1 ? "book" : "books"}.{offline.missing ? " Chapters not saved on this device are excluded. Download books while online to include them." : ""}</p> : null}
       {limited !== undefined ? <p className="reader-search__limit" role="status">{found.isFetching ? `Too many searches in a short time. Retrying automatically after ${limited} seconds.` : `The search limit has been reached. Wait ${limited} seconds before trying again.`}</p> : null}
       <div ref={list} className="bs-search__list">
         {ref ? <Row icon="arrow-right-circle" title={`Go to ${ref.label.replace(ref.book, name(ref.slug))}`} sub={ref.verseEnd ? "Open this passage" : "Open the chapter at this verse"} onClick={() => go(ref.slug, ref.chapter, ref.verse, ref.verseEnd)} /> : null}

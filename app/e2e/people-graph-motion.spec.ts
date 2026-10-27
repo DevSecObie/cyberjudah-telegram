@@ -22,8 +22,11 @@ async function setup(page: Page, rootCycle = false) {
   });
   await page.goto("/person/root");
   await expect(page.locator(".fg__static-center b")).toHaveText("root");
-  await page.clock.install();
-  await page.clock.pauseAt(new Date());
+  // Host and browser clocks can differ by milliseconds in CI. Anchor both clock
+  // operations to a fixed instant, then pause ahead of it instead of in the past.
+  const clockStart = new Date("2026-01-01T12:00:00Z");
+  await page.clock.install({ time: clockStart });
+  await page.clock.pauseAt(new Date(clockStart.getTime() + 60_000));
 }
 const current = (page: Page) => page.locator(".fg__layer[data-current]");
 const satellite = (page: Page, name: string) => current(page).locator(".fg__sat").filter({ has: page.locator("b", { hasText: new RegExp(`^${name}$`) }) });

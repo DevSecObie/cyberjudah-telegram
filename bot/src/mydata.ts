@@ -1,3 +1,4 @@
+import { removeAccountLink } from "./account-links";
 import { revokeBrowserSessions } from "./browser-auth";
 import { readStudyBackup, deleteStudyBackup } from "./study-backup";
 import type { Env } from "./env";
@@ -98,6 +99,7 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   ]);
   const accountSyncRecords = await deleteAccountSyncMarks(env, uid);
   await revokeBrowserSessions(env, uid);
+  await removeAccountLink(env, uid);
   return { savedChats, readingReminder, dailyVerse, classNoteRequests: reqs.length, askBalanceUsd: billing.balanceUsd, topupReminder, accountSyncRecords };
 }
 

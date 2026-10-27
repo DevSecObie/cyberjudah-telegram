@@ -1,3 +1,4 @@
+import { goBack, topOpenSheet } from "@/tg/hooks";
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { native } from "./platform";
@@ -9,8 +10,8 @@ export function NativeLifecycle() {
     let stopped = false;
     const handle = import("@capacitor/app").then(async ({ App }) => {
       const listener = await App.addListener("backButton", ({ canGoBack }) => {
-        // The existing Back/Escape handler closes sheets first.
-        if (document.querySelector("[data-sheet-open]")) { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })); return; }
+        // Use the reader's own sheet stack and per-tab history floor, as Bible Strong does.
+        if ((topOpenSheet() || location.pathname !== "/") && goBack()) return;
         if (canGoBack && location.pathname !== "/") navigate(-1);
         else if (location.pathname !== "/") navigate("/");
         else void App.minimizeApp();
