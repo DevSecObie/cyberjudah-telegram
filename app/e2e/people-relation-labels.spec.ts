@@ -29,6 +29,7 @@ for (const theme of ["light", "dark"] as const) for (const [type, partner, sibli
     const graph = page.locator(".fg");
     await expect(graph.getByRole("button", { name: `${partner}, partner`, exact: true })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
+    await graph.locator(".fg__sat").evaluateAll(nodes => Promise.all(nodes.flatMap(node => node.getAnimations({ subtree: true })).map(animation => animation.finished)));
     await page.screenshot({ path: testInfo.outputPath(`family-labels-${type.toLowerCase()}-${theme}.png`), fullPage: true });
     await expect(graph.locator(".fg__chip")).toHaveText(["Father", "Mother", partner, sibling, child]);
     for (const name of ["Father, father", "Mother, mother", `${partner}, partner`, `${sibling}, sibling`, `${child}, child`]) {
