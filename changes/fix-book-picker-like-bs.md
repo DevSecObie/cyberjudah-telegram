@@ -1,0 +1,1 @@
+- The book picker works like Bible Strong's: in the list, a book opens its chapters under it (one book at a time), and order, verses and display sit behind the filters button. Opening the picker no longer pushes its header off the top.
