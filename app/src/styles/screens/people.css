@@ -25,11 +25,14 @@
 .fg { overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
 .fg__stage { position: relative; overflow: hidden; }
 .fg__lines { position: absolute; inset: 0; pointer-events: none; }
-.fg__lines line { stroke: var(--hairline); stroke-width: 1.4; animation: fade-in var(--dur-3) ease backwards; }
+.fg__lines line { stroke: var(--hairline); stroke-width: 1.4; }
 .fg__lines .fg__line--back { stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-dasharray: 4 4; }
 .fg__scene { position: absolute; inset: 0; }
-.fg__center { position: absolute; width: 82px; height: 82px; animation: fg-center var(--dur-3) var(--ease-spring) backwards; }
-.fg__sat { position: absolute; width: 58px; height: 58px; animation: fg-out var(--dur-3) var(--ease-spring) backwards; }
+.fg__layer { position: absolute; inset: 0; }
+.fg__static-center { position: absolute; inset: 0; z-index: 1000; pointer-events: none; }
+.fg__static-center button { pointer-events: auto; }
+.fg__center { position: absolute; width: 82px; height: 82px; }
+.fg__sat { position: absolute; width: 58px; height: 58px; }
 #root button.fg__node { position: relative; display: block; margin: 0; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; transition: transform var(--dur-1) ease, opacity var(--dur-1) ease; }
 #root button.fg__node[data-pressed] { transform: scale(.96); opacity: .8; }
 #root button.fg__node:disabled { cursor: default; }
@@ -50,8 +53,6 @@
 #root button.fg__hist { position: absolute; background: var(--fill-1); animation: fade-in var(--dur-2) ease backwards; }
 .fg__hist--left { left: 10px; }
 .fg__hist--right { right: 10px; }
-@keyframes fg-out { from { opacity: 0; transform: translate(var(--fg-dx), var(--fg-dy)) scale(.4); } }
-@keyframes fg-center { from { opacity: 0; transform: scale(.7); } }
 
 /* Case studies: the list, era by era. */
 .case__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-3); }

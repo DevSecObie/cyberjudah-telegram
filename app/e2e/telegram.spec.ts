@@ -1031,25 +1031,29 @@ test("People: who is named in a verse, a page per person with family, the classe
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/person.png` });
   // The family graph (Bible Strong's relationship graph): walk it, page it, go back, start again, open a profile.
   const graph = page.locator(".fg");
+  const centerName = graph.locator('.fg__layer[data-current] .fg__label--center b, .fg__static-center .fg__label--center b');
   await expect(graph.getByRole("button", { name: "Father, Terah" })).toBeVisible();
   await expect(graph.getByRole("button", { name: "Wife, Sarah" })).toBeVisible();
   await expect(graph.locator(".fg__foot")).toContainText("1 / 3");
   await graph.getByRole("button", { name: "Next page" }).click();
   await graph.getByRole("button", { name: "Offspring, Isaac", exact: true }).click();
-  await expect(graph.locator(".fg__label--center b")).toHaveText("Isaac");
+  await expect(centerName).toHaveText("Isaac");
   await expect(graph.getByRole("button", { name: "Back to Abraham" })).toBeVisible();
   await expect(graph.getByRole("button", { name: "Wife, Rebekah" })).toBeVisible();
   await graph.getByRole("button", { name: "Back", exact: true }).click();
-  await expect(graph.locator(".fg__label--center b")).toHaveText("Abraham");
+  await expect(centerName).toHaveText("Abraham");
   await expect(graph.locator(".fg__foot")).toContainText("2 / 3");
   await graph.getByRole("button", { name: "Offspring, Isaac", exact: true }).click();
   await graph.getByRole("button", { name: "Wife, Rebekah" }).click();
-  await expect(graph.locator(".fg__label--center b")).toHaveText("Rebekah");
+  await expect(centerName).toHaveText("Rebekah");
   await graph.getByRole("button", { name: "Start again from Abraham" }).click();
-  await expect(graph.locator(".fg__label--center b")).toHaveText("Abraham");
+  await expect(centerName).toHaveText("Abraham");
+  // Upstream getResetSteps restores each departure page, including the root's.
+  await expect(graph.locator(".fg__foot")).toContainText("2 / 3");
+  await graph.getByRole("button", { name: "Previous page" }).click();
   await expect(graph.locator(".fg__foot")).toContainText("1 / 3");
   await graph.getByRole("button", { name: "Father, Terah" }).click();
-  await expect(graph.locator(".fg__label--center b")).toHaveText("Terah");
+  await expect(centerName).toHaveText("Terah");
   await graph.getByRole("button", { name: "View Terah's profile" }).click();
   await expect(page).toHaveURL(/\/person\/terah-gen-11-24/);
   await expect(page.locator(".entity__name")).toHaveText("Terah");

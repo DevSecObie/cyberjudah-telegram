@@ -79,7 +79,8 @@ for (const action of ["Back", "Reset", "Page", "New relation", "Cached relation"
     else await relation(page, "father").click();
     const expected = action === "New relation" || action === "Cached relation" ? "father" : "root";
     await expect(center(page)).toHaveText(expected);
-    const expectedPage = action === "Back" || action === "Page" ? "Page 2 of 2" : action === "Reset" ? "Page 1 of 2" : "Page 1 of 1";
+    // Upstream getResetSteps restores the root's departure page as well as intermediate pages.
+    const expectedPage = action === "Back" || action === "Page" || action === "Reset" ? "Page 2 of 2" : "Page 1 of 1";
     await expect(footer(page)).toHaveAttribute("aria-label", expectedPage);
     await pending.release();
     await expect(center(page)).toHaveText(expected);
