@@ -245,7 +245,9 @@ test("by default a verse with precepts shows one badge with their count, and the
   const badge = page.locator('.bs-badge[aria-label$="precept"], .bs-badge[aria-label$="precepts"]').first();
   await expect(badge).toBeVisible();
   await expect(page.locator(".rel-tag")).toHaveCount(0);
-  await badge.click();
+  // A real button: the keyboard opens it too.
+  await badge.focus();
+  await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/relations\?endpoint=isaiah-11-\d+/);
 });
 
