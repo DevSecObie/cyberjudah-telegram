@@ -59,17 +59,31 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          PRIVACY_KEY: ${{ secrets.PRIVACY_KEY }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          TELEGRAM_LOGIN_CLIENT_ID: ${{ secrets.TELEGRAM_LOGIN_CLIENT_ID }}
+          TELEGRAM_LOGIN_CLIENT_SECRET: ${{ secrets.TELEGRAM_LOGIN_CLIENT_SECRET }}
         run: |
           # Fail here, by name, rather than three minutes later inside wrangler.
           missing=""
-          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BOT_TOKEN WEBHOOK_SECRET; do
+          for k in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BOT_TOKEN WEBHOOK_SECRET PRIVACY_KEY; do
             [ -n "${!k}" ] || missing="$missing $k"
           done
           if [ -n "$missing" ]; then
             echo "::error::Missing repository secrets:$missing. Add them under Settings → Secrets and variables → Actions → Repository secrets (not Variables, and not an Environment)."
             exit 1
           fi
-          echo "All four secrets are set."
+          # Validate optional groups before replacing the Worker, not after it is live.
+          n=0; for k in VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT; do [ -n "${!k}" ] && n=$((n+1)); done
+          if [ "$n" != 0 ] && [ "$n" != 3 ]; then
+            echo "::error::Set all three VAPID secrets, or none."; exit 1
+          fi
+          if { [ -n "$TELEGRAM_LOGIN_CLIENT_ID" ] && [ -z "$TELEGRAM_LOGIN_CLIENT_SECRET" ]; } || { [ -z "$TELEGRAM_LOGIN_CLIENT_ID" ] && [ -n "$TELEGRAM_LOGIN_CLIENT_SECRET" ]; }; then
+            echo "::error::Set both TELEGRAM_LOGIN_CLIENT_ID and TELEGRAM_LOGIN_CLIENT_SECRET, or neither."; exit 1
+          fi
+          echo "Required secrets and optional secret groups are set."
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
@@ -137,11 +151,20 @@ jobs:
           echo "previous=$PREVIOUS" >> "$GITHUB_OUTPUT"
           echo "Serving before this deploy: ${PREVIOUS:-unknown}"
           npx wrangler deploy 2>&1 | tee deploy.log
+          # A later command in this same step can still fail. Record the successful
+          # replacement immediately so rollback does not depend on the step's outcome.
+          echo "live=true" >> "$GITHUB_OUTPUT"
           # The Worker's public URL, from wrangler's own output, unless the repo names one.
           URL="${{ vars.WORKER_URL }}"
           [ -n "$URL" ] || URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.log | head -1)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Worker: $URL"
+      - name: Load the search index
+        working-directory: bot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
           # The search index follows the library: reload it from the data set on every deploy.
           node scripts/load-search.mjs
       - name: Register the webhook, commands and menu button
@@ -220,7 +243,7 @@ jobs:
       # above) is put back to the version that was serving before, so readers never stay on a
       # release that did not pass. The job still ends red.
       - name: Roll back a release that failed after going live
-        if: failure() && steps.deploy.outcome == 'success'
+        if: failure() && steps.deploy.outputs.live == 'true'
         working-directory: bot
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
