@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { saveFile } from "@/studies/files";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -155,34 +156,34 @@ export function Settings() {
           })}</List> : <p className="hint">Save the text to read without a connection. Available narration is an optional extra download.</p>}
         </Section>
       ) : null}
-      <Section title="Reading Reminders">
-        <List><Row title="Reading reminders" sub="Today's reading, at your time, in Telegram or as a push notification" onClick={() => navigate("/settings/reminders")} /></List>
+      <Section title={nativeReader ? "Privacy and terms" : "Reading Reminders"}>
+        {!nativeReader && <List><Row title="Reading reminders" sub="Today's reading, at your time, in Telegram or as a push notification" onClick={() => navigate("/settings/reminders")} /></List>}
         <List><Row title="Privacy" sub="What is kept, who sees it, and your choices: download or delete your data" onClick={() => navigate("/privacy")} /></List>
-        <List><Row title="Terms" sub="What your Ask balance buys, refunds, and what happens to it when you delete your data" onClick={() => navigate("/terms")} /></List>
+        <List><Row title="Terms" sub={"What your Ask balance buys, refunds, and what happens to it when you delete your data"} onClick={() => navigate("/terms")} /></List>
       </Section>
-      <Section title="Daily Verse">
+      {!nativeReader && <Section title="Daily Verse">
         <List>
           {/* Outside Telegram there is no chat for the bot to send to: said here, at the switch. */}
           <Toggle on={!!daily} disabled={!app} onChange={(v) => void subscribe(v)} title="A verse every morning" sub={!app ? "Sent by the CyberJudah bot in Telegram. Open CyberJudah in Telegram to turn it on." : daily === null ? "Checking…" : daily ? `The bot sends it at ${hour}:00` : "Sent by the CyberJudah bot, with a button to read the chapter"} />
           {app ? <Row onClick={() => void pickHour()} title="Time" sub="In your time zone" trailing={<Value>{`${hour}:00`}</Value>} /> : null}
         </List>
-      </Section>
+      </Section>}
       {features.biometrics && features.secureStorage ? (
         <Section title="Privacy"><List><Toggle on={lock} onChange={(v) => void toggleLock(v)} title="Lock with biometrics" sub="Ask for your fingerprint or face when the app opens" /></List></Section>
       ) : null}
-      <List><Row icon="gear" title="Account & personal studies" onClick={() => navigate("/settings/account")} /></List>
+      <List><Row icon="gear" title={"Account & personal studies"} onClick={() => navigate("/settings/account")} /></List>
       <List><Row icon="book" title="Help & reading guide" sub="Navigation, study tools, offline reading and keyboard controls" onClick={() => navigate("/settings/help")} /></List>
       <BackupSection />
-      <Section title="Support CyberJudah">
+      {!nativeReader && <Section title="Support CyberJudah">
         <List><Row title="Support CyberJudah" sub="Telegram Stars, any amount, or give another way" onClick={() => navigate("/settings/donate")} /></List>
-      </Section>
+      </Section>}
       {me?.admin ? <Section title="Content"><List><Row title="Admin" sub="Edit content, check reviews and publish approved changes" onClick={() => navigate("/settings/admin")} /></List></Section> : null}
       {me?.admin ? <AskUsage /> : null}
       {me?.admin ? <Section title="Notes"><List><Row title="Requested notes" sub="Classes readers asked notes for, the most asked first" onClick={() => navigate("/settings/requests")} /></List></Section> : null}
       <Section title="This App">
         <List><Row title="Credits" sub="Narrators, recordings and licences" onClick={() => navigate("/settings/credits")} /></List>
         {me ? <List><Row title="Your Telegram id" sub={me.canEdit ? "You can edit notes from the app" : me.admin ? "Admin; editing needs the CYBERJUDAH_TOKEN secret on the deploy" : "Notes are read-only for this account"} trailing={<span className="pill">{me.user.id}</span>} onClick={() => { void navigator.clipboard?.writeText(String(me.user.id)).then(() => haptic("success")).catch(() => undefined); }} /></List> : null}
-        <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ${Object.entries(features).filter(([, v]) => v).length} of ${Object.keys(features).length} Mini App features available here.` : "Open in a browser: reading, the classes and the library all work here. Searching the classes, Ask, the daily verse and Stars work when CyberJudah is opened in Telegram."}</p>
+        <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ${Object.entries(features).filter(([, v]) => v).length} of ${Object.keys(features).length} Mini App features available here.` : nativeReader ? "Free reading and study. Your notes stay on this device; export backups before changing devices. Download books before reading or searching offline." : "Reading, classes, the library and search work in this browser. Sign in to use Ask. Daily verses and Stars are available in Telegram."}</p>
       </Section>
     </Screen>
   );

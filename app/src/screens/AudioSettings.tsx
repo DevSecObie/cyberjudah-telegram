@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -58,19 +59,19 @@ export function AudioSettings() {
     <Screen title="Audio settings">
       <Section title="Reading voice">
         <List>
-          <Row onClick={() => setVoiceSheet(true)} title="Voice" sub="Licensed narrators, generated reading voices, and this device's own voices" trailing={<Value>{voiceLabel}</Value>} />
+          <Row onClick={() => setVoiceSheet(true)} title="Voice" sub={nativeReader ? "Licensed narrators and this device’s own voices" : "Licensed narrators, generated reading voices, and this device’s own voices"} trailing={<Value>{voiceLabel}</Value>} />
         </List>
         {unavailable ? (
           <p className="hint" role="status">
             {narratorGone ? "The licensed narrator you chose is no longer listed. " : aiGone ? "The generated voice you chose is no longer listed. " : "The device voice you chose is no longer on this device. "}
             Your reading continues with a fallback when you play; nothing has been changed here.{" "}
             <button type="button" className="link" onClick={() => setVoiceSheet(true)}>Choose again</button>{" "}
-            <button type="button" className="link" onClick={() => speech.setVoice(defaultAiVoice)}>Use the free generated voice</button>
+            {!nativeReader ? <button type="button" className="link" onClick={() => speech.setVoice(defaultAiVoice)}>Use the free generated voice</button> : null}
           </p>
         ) : null}
         <p className="hint">
           <b>Licensed narrators</b> are human recordings; they cover some chapters and need a connection unless you save a book's narration for offline use.{" "}
-          <b>Generated voices</b> are read aloud for every chapter; they need a connection the first time a verse is heard, then replay from this device.{" "}
+          {!nativeReader ? <><b>Generated voices</b> are read aloud for every chapter; they need a connection the first time a verse is heard, then replay from this device.{" "}</> : null}
           <b>Device voices</b> come from this phone or browser and work fully offline, but which voices exist depends on the device.
         </p>
       </Section>
@@ -95,13 +96,15 @@ export function AudioSettings() {
           <h3 className="bs-audio__group">Licensed narrators</h3>
           {narrators.isPending ? <p className="bs-audio__notice">Finding recordings…</p> : narrators.isError ? <p className="bs-audio__notice">Recordings are unavailable right now. <button type="button" className="link" onClick={() => void narrators.refetch()}>Retry</button></p> : !narrators.data?.length ? <p className="bs-audio__notice">No licensed narrators yet.</p> : null}
           {narrators.data?.map((n) => <button key={n.id} type="button" role="radio" aria-checked={speech.voice === `narrator:${n.id}`} className="bs-fontrow" onClick={() => { speech.setVoice(`narrator:${n.id}`); setVoiceSheet(false); }}><span>{n.reader}<small className="bs-audio__detail">Licensed narration · KJV · plays when this reader recorded the chapter</small></span>{speech.voice === `narrator:${n.id}` ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>)}
-          <h3 className="bs-audio__group">AI reading voices</h3>
+          {!nativeReader ? <>
+<h3 className="bs-audio__group">AI reading voices</h3>
           {aiVoices.isError ? <p className="bs-audio__notice">Reading voices are unavailable right now. <button type="button" className="link" onClick={() => void aiVoices.refetch()}>Retry</button></p> : aiVoices.isPending ? <p className="bs-audio__notice">Finding reading voices…</p> : null}
           {aiVoices.data?.map((v) => {
             const id = `ai:${v.id}`, on = speech.voice === id;
             return <button key={id} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(id); setVoiceSheet(false); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>Generated reading voice · {v.note}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;
           })}
-          <h3 className="bs-audio__group">Device voices</h3>
+          </> : null}
+<h3 className="bs-audio__group">Device voices</h3>
           {!speech.voices.length ? <p className="bs-audio__notice">No English voice found on this device.</p> : null}
           {speech.voices.map((v) => {
             const on = speech.voice === v.name;

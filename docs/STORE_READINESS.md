@@ -20,14 +20,28 @@ Public Timeline reading does not need GitHub credentials. Its administrative edi
 
 ## Native build evidence and remaining release gates
 
-Run `npm run native:sync --workspace app` after web changes. CI compiles Android debug/lint and an unsigned iOS simulator app. Android uses API 36 and Java 21; iOS uses Swift Package Manager. The provisional application identifier is `io.cyberjudah.app`; register/confirm ownership before signing. No signing keys or store account credentials are committed.
+Run `npm run native:sync --workspace app` after web changes. CI compiles Android debug/lint plus an unsigned release AAB, and an unsigned iOS simulator app plus a device archive. The debug APK can be used for Android testing; the release AAB/device archive still require owner signing and store validation. No CI step submits them. Android uses API 36 and Java 21; iOS uses Swift Package Manager. The provisional application identifier is `io.cyberjudah.app`; register/confirm ownership before signing. No signing keys or store account credentials are committed.
+
+The owner superseded the earlier free-only decision on October 27, 2026: paid Ask must work through all linked sign-ins. Native builds now expose Ask and account sign-in. Google, Apple and email use Firebase; linking requires fresh Telegram and Firebase proof. The stable Telegram wallet remains the Ask owner, so no credit transfer or duplicate grant occurs. Native sign-in opens the system browser and redeems an explicitly approved, short-lived, one-use handoff with a separate device secret. Existing browser and Telegram sessions continue to work.
+
+Native top-ups remain disabled. Store products are not configured; the owner requested preparation of their setup. [STORE_BILLING_SETUP.md](STORE_BILLING_SETUP.md) contains proposed consumables, the owner pricing worksheet, verification contract and required sandbox evidence. Native paid release is **NO-GO** until store billing, Firebase Auth account deletion/recovery and physical-device sign-in checks are complete. Existing free-reader APKs/archives are superseded candidates, not evidence for this scope.
+
+Reading, downloaded-chapter search and reference tools remain available without an account. Native content uses the public read-only `/api/reader/*` routes and a separate `READER_LIMIT` binding. AI search answers, generated audio, Telegram delivery, donations and admin controls remain excluded from the native profile. These exclusions are independent of paid Ask access. Cloud study backup shares the linked owner; automatic Firestore sync remains controlled by `VITE_ACCOUNT_SYNC`. Linking does not silently merge existing Firestore documents or reassign previously bound local study data.
+
 
 These builds are development artifacts. Before store submission:
 
 - Enroll the owner in Apple Developer and Google Play Console, register the app IDs, and configure protected signing credentials.
-- Implement and verify native Telegram authentication with a secure app return flow. Browser cookies and Telegram Mini App launch data are not native app authentication.
-- Decide the native Ask/payment offering and implement the required store billing path if paid digital features ship. The Telegram Stars payment flow is not proof of native billing support.
+- Verify native Ask on physical iPhone and Android: sign in in the system browser, match the device code, link Telegram once, verify the same balance/chats from each connected provider, sign out, and confirm no private history leaks. Confirm purchase controls remain unavailable until verified store billing is configured.
+- Verify Report this answer with each linked sign-in and confirm administrator delivery using an intended test report. The native/web reason chooser stays inside the app and does not send the question, answer text or reporter identity. Review the [Google Play AI-generated content requirements](https://support.google.com/googleplay/android-developer/answer/13985936?hl=en) against the final candidate.
 - Verify reader, saved studies after process/device restarts, import/export, offline downloads, audio, accessibility and back navigation on physical iPhone and Android devices. Browser viewport/engine tests are not physical-device tests.
 - Complete listing assets, privacy/data-safety disclosures, age/content ratings, support details and account deletion review. Audit bundled SDKs and iOS privacy declarations against the actual final app.
 
 Official implementation references: [Capacitor iOS deployment](https://capacitorjs.com/docs/ios/deploying-to-app-store), [Android deployment](https://capacitorjs.com/docs/android/deploying-to-google-play), [Apple review guidelines](https://developer.apple.com/app-store/review/guidelines/), [Google Play policy center](https://play.google.com/about/developer-content-policy/). Recheck these at submission. CI compilation alone is not store approval or full Bible Strong feature parity.
+
+
+## Bible Strong reference
+
+The current upstream reviewed for the Friday fixes is [`39d8780`](https://github.com/smontlouis/bible-strong/tree/39d878091d12c0f8074464f5ff79fa4bb94f737f), including `apps/expo/app.config.ts`, `eas.json`, `src/helpers/FireAuth.ts`, `authSessionRecovery.ts`, and `features/search/usePassageSearch.ts`. Its separated development/staging/production profiles and native authentication inform this checklist. CyberJudah keeps its own application ID, reader, Telegram identity model and content. Never copy upstream signing identifiers, Firebase accounts or store submission IDs into CyberJudah.
+
+Physical-device checks and evidence fields are in [FRIDAY_DEVICE_CHECK.md](FRIDAY_DEVICE_CHECK.md). A green archive build demonstrates packaging, not authenticated native account support, payment approval, or successful store review.

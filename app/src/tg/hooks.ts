@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router";
 import { app, features, haptic, has } from "./sdk";
 import { UnderSheetContext, sheetStep } from "@/ui/sheetRoute";
 import { json, store } from "./store";
-import { useTabFloor } from "@/lib/tabs";
+import { tabHistoryFloor, useTabFloor } from "@/lib/tabs";
 
 /**
  * React hooks over the SDK. Buttons are declared by the screen that owns them and cleaned up
@@ -48,7 +48,10 @@ export function parentPath(path: string): string {
 
 /** The current screen's back, for the ← in its header (ui/ui.tsx). */
 let backNow: (() => void) | null = null;
-export const goBack = () => backNow?.();
+export const goBack = () => { if (!backNow) return false; backNow(); return true; };
+/** Hidden/inert sheets remain mounted for transitions but must never consume Back. */
+export const topOpenSheet = () => [...document.querySelectorAll<HTMLElement>("[data-sheet-open]")]
+  .filter(el => !el.closest('[inert], [aria-hidden="true"]') && el.getClientRects().length > 0).at(-1);
 
 /**
  * Telegram's back button walks the app's own history. On a main place it hides, unless a sheet is
@@ -71,8 +74,7 @@ export function useBackButton(onBack?: () => boolean | void, pending = false, hi
     const cb = () => {
       haptic("select");
       // An open sheet closes first, like a phone app.
-      const all = document.querySelectorAll<HTMLElement>("[data-sheet-open]");
-      const sheet = all[all.length - 1];
+      const sheet = topOpenSheet();
       if (sheet) {
         // A route sheet a screen deep steps back within itself, as Bible Strong's sheet stack does.
         if (sheet.classList.contains("route-sheet") && sheetStep.back) { sheetStep.back(); return; }
@@ -82,7 +84,10 @@ export function useBackButton(onBack?: () => boolean | void, pending = false, hi
         return;
       }
       if (handler.current?.() === true) return;
-      if (canGoBack) navigate(-1); else navigate(root ? "/" : parentPath(pathname), { replace: true });
+      // A lazy route updates browser history before React replaces the visible screen.
+      // Read the current entry here so a quick Back cannot skip its parent using stale state.
+      if ((window.history.state?.idx ?? 0) > tabHistoryFloor()) navigate(-1);
+      else navigate(root ? "/" : parentPath(pathname), { replace: true });
     };
     backNow = cb;
     if (has("6.1")) {
