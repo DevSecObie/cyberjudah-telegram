@@ -1,3 +1,5 @@
+import { firebaseAccount } from "./firebase-auth";
+import { IdentityError } from "./account-links";
 import { Hono } from "hono";
 import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
@@ -46,8 +48,12 @@ export async function revokeBrowserSessions(env: Env, uid: number) { await schem
 export const browserAuth = new Hono<{ Bindings: Env }>();
 browserAuth.use("*", async (c, next) => { c.header("cache-control", "no-store"); c.header("referrer-policy", "no-referrer"); await next(); });
 browserAuth.get("/status", async c => {
-  const session = await browserSession(c.req.raw, c.env);
-  return c.json({ available: configured(c.env), user: session?.user ?? null });
+  try {
+    const firebase = await firebaseAccount(c.req.raw, c.env);
+    if (firebase) return c.json({ available: configured(c.env), user: firebase.user, firebaseUid: firebase.identity.uid, telegramLinked: !!firebase.user, provider: "firebase" });
+    const session = await browserSession(c.req.raw, c.env);
+    return c.json({ available: configured(c.env), user: session?.user ?? null });
+  } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : "sign_in_unavailable" }, error instanceof IdentityError ? error.status : 503); }
 });
 browserAuth.get("/start", async c => {
   if (!configured(c.env)) return c.json({ error: "Telegram sign-in is not available yet." }, 503);

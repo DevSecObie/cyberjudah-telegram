@@ -1,4 +1,8 @@
-import { useEffect, useState } from "react";
+import { AccountSignIn } from "@/components/AccountSignIn";
+import { nativeReader } from "@/native/platform";
+import { useQueryClient } from "@tanstack/react-query";
+import { ACCOUNT_SESSION_KEY, useAccountSession } from "@/lib/account-session";
+import { useState } from "react";
 import { Screen, List, Row, Icon } from "@/ui/ui";
 import { Button } from "@/ui/Button";
 import { useBackButton } from "@/tg/hooks";
@@ -11,17 +15,19 @@ import "@/studies/studies.css";
 
 export function Account() {
   useBackButton();
-  const [state, setState] = useState<{ available: boolean; user: { first_name: string } | null }>(), [error, setError] = useState(""), [message, setMessage] = useState("");
-  useEffect(() => { if (app) { setState({ available: true, user: app.initDataUnsafe.user ?? null }); return; } void api<typeof state>("/api/auth/status").then(setState).catch(() => setError("Account status could not be loaded. Try again when you are online.")); }, []);
-  const logout = async () => { try { await api("/api/auth/logout", { method: "POST" }); if (import.meta.env.VITE_ACCOUNT_SYNC === "true") await (await import("@/sync/account")).stopAccountSync(); setState(s => s ? { ...s, user: null } : s); setError(""); } catch { setError("Sign-out could not finish. Please try again."); } };
+  const session = useAccountSession(), state = session.data, queries = useQueryClient();
+  const [error, setError] = useState(""), [message, setMessage] = useState("");
+  const logout = async () => { try { await api("/api/auth/logout", { method: "POST" }); await (await import("@/sync/account")).stopAccountSync(); queries.setQueryData(ACCOUNT_SESSION_KEY, { available: state?.available ?? true, user: null });
+      (await import("./Ask")).clearAskSession(); setError(""); } catch { setError("Sign-out could not finish. Please try again."); } };
   return <Screen title="Account" className="study-screen"><div className="personal-study">
     {new URLSearchParams(location.search).has("login") && <StudyNotice error>Telegram sign-in did not finish. Please try again.</StudyNotice>}
-    <section className="study-panel"><div className="study-account-identity"><span className="study-emblem"><Icon name="shield" size={26} /></span><div><h2>{state?.user ? state.user.first_name : "Your study, your space"}</h2><p>{state?.user ? "Connected with Telegram" : "Read and study without an account."}</p></div></div>
-      {state?.user ? !app && <div className="study-toolbar"><Button appearance="bordered" onClick={() => void logout()}>Sign out</Button></div> : state?.available ? <div className="study-toolbar"><a className="btn btn--prominent" href="/api/auth/start">Sign in with Telegram<Icon name="chevron" size={16} /></a></div> : state ? <p>Telegram sign-in is not available here yet. You can still use your personal studies on this device.</p> : !error && <p role="status">Checking account…</p>}
+    <section className="study-panel"><div className="study-account-identity"><span className="study-emblem"><Icon name="shield" size={26} /></span><div><h2>{state?.user ? state.user.first_name : "Your study, your space"}</h2><p>{state?.user ? "Connected to your CyberJudah account" : "Read and study without an account."}</p></div></div>
+      {nativeReader ? <p>Reading and local studies work without an account. Sign in below to use your linked Ask balance and chats.</p> : state?.user ? !app && <div className="study-toolbar"><Button appearance="bordered" onClick={() => void logout()}>Sign out</Button></div> : state?.available ? <div className="study-toolbar"><a className="btn btn--prominent" href="/api/auth/start">Sign in with Telegram<Icon name="chevron" size={16} /></a></div> : state ? <p>Telegram sign-in is not available here yet. You can still use your personal studies on this device.</p> : !error && <p role="status">Checking account…</p>}
     </section>
-    {error && <StudyNotice error>{error}</StudyNotice>}
+    <AccountSignIn />
+    {(error || session.isError) && <StudyNotice error>{error || "Account status could not be loaded. Try again when you are online."}</StudyNotice>}
     {message && <StudyNotice>{message}</StudyNotice>}
-    {state?.user && <CloudBackup />}
+    {state?.user && <CloudBackup key={state.user.id} />}
     <section className="study-panel"><h2><Icon name="download" size={20} />Keep a copy of your studies</h2><p>Your personal studies and phrase marks are saved on this device. Export a backup before changing devices or clearing browser data.</p><div className="study-toolbar">
       <Button onClick={async () => { try { const archive = await exportPersonalStudies(); await saveFile("cyberjudah-personal-studies.json", JSON.stringify(archive, null, 2)); setError(""); } catch { setError("The backup could not be exported. Your local work is unchanged."); } }}><Icon name="download" size={18} />Export all personal studies</Button>
       <StudyFilePicker label="Restore backup" onFile={async file => { try { if (file.size > 10_000_000) throw new Error("Choose a backup smaller than 10 MB."); const n = await importPersonalStudies(await file.text()); setError(""); setMessage(`Restored ${n} studies as new copies. Existing work is unchanged.`); } catch { setError("This personal-study backup could not be restored. Your existing work is unchanged."); } }} />

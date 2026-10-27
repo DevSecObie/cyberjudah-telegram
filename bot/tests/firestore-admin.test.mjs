@@ -9,6 +9,8 @@ await build({ entryPoints: [new URL("../src/firestore-admin.ts", import.meta.url
 // module-level access-token cache), the same trick bot/tests/mydata.test.mjs uses for storage state.
 const load = (tag) => import(`${out}?case=${tag}`);
 
+const identityEnv = { BOT_TOKEN: "firestore-identity-fixture", DB: { prepare: () => ({ bind() { return this; }, run: async () => ({}), first: async () => null }) } };
+
 function field(v) { return { stringValue: v }; }
 function doc(name, fields) { return { name, fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, field(String(v))])) }; }
 
@@ -58,7 +60,7 @@ test("an invalid signing secret rejects export and deletion instead of silently 
   globalThis.fetch = () => { throw new Error("must not reach the network with an invalid secret"); };
   try {
     for (const bad of ["not json", JSON.stringify({ type: "service_account", project_id: "other-project", client_email: "x@other-project.iam.gserviceaccount.com", private_key: "x" })]) {
-      const env = { FIREBASE_SERVICE_ACCOUNT: bad };
+      const env = { ...identityEnv, FIREBASE_SERVICE_ACCOUNT: bad };
       await assert.rejects(exportAccountSyncMarks(env, 1));
       await assert.rejects(deleteAccountSyncMarks(env, 1));
     }
@@ -86,7 +88,7 @@ test("the end-to-end emulator needs no signing secret, is addressed as demo-cybe
   const originalFetch = globalThis.fetch;
   globalThis.fetch = fetchFn;
   try {
-    const env = { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" };
+    const env = { ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" };
     const exported = await exportAccountSyncMarks(env, 5);
     assert.deepEqual(Object.keys(exported).sort(), ["highlights", "notes"]);
     assert.equal(exported.highlights.length, 2, "the current mark and its sibling revision history doc both come back");
@@ -112,7 +114,7 @@ test("an emulator host that is not loopback is refused, the same as no configura
 test("production mints a Google access token from the signing secret, scoped to Firestore, and reuses it", async () => {
   const { exportAccountSyncMarks } = await load("production");
   const keys = await generateKeyPair("RS256", { extractable: true });
-  const env = { FIREBASE_SERVICE_ACCOUNT: JSON.stringify({ type: "service_account", project_id: "cyberjudah-app", client_email: "bridge@cyberjudah-app.iam.gserviceaccount.com", private_key: await exportPKCS8(keys.privateKey) }) };
+  const env = { ...identityEnv, FIREBASE_SERVICE_ACCOUNT: JSON.stringify({ type: "service_account", project_id: "cyberjudah-app", client_email: "bridge@cyberjudah-app.iam.gserviceaccount.com", private_key: await exportPKCS8(keys.privateKey) }) };
   let mints = 0;
   const byPath = Object.fromEntries(["highlights", "notes", "links", "bookmarks", "tags", "relations", "studies", "wordAnnotations"]
     .map((name) => [`users/tg_9/${name}`, [{ documents: [] }]]));
@@ -157,12 +159,12 @@ test("deletion follows pagination through every page before writing, and a faile
   const originalFetch = globalThis.fetch;
   globalThis.fetch = fetchFn;
   try {
-    const deleted = await deleteAccountSyncMarks({ FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, 7);
+    const deleted = await deleteAccountSyncMarks({ ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, 7);
     assert.equal(deleted, 2, "pagination across two pages is followed before any deletion happens");
     assert.equal(batches.length, 1);
   } finally { globalThis.fetch = originalFetch; }
 
   globalThis.fetch = async (url, init) => { if (new URL(url).pathname.endsWith(":batchWrite")) return new Response("", { status: 500 }); return fetchFn(url, init); };
-  try { await assert.rejects(deleteAccountSyncMarks({ FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, 7), /deletion failed/i); }
+  try { await assert.rejects(deleteAccountSyncMarks({ ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, 7), /deletion failed/i); }
   finally { globalThis.fetch = originalFetch; }
 });

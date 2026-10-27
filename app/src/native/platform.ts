@@ -1,8 +1,15 @@
 import { Capacitor } from "@capacitor/core";
 
 export const native = Capacitor.isNativePlatform();
+/** Bundled native profile: public reading plus linked-account Ask; purchases require a store billing integration. */
+export const nativeReader = native || import.meta.env.VITE_NATIVE_BUILD === "true";
+export const readerRouteAllowed = (path: string) => !nativeReader || !/^\/(settings\/(donate|reminders|admin|requests))(?:[/?#]|$)/.test(path);
 export const nativePlatform = Capacitor.getPlatform();
-export const apiURL = (path: string) => native && path.startsWith("/api/") ? `https://cyberjudah.io${path}` : path;
+const publicReading = /^\/api\/(?:(search|teachings|live|recent)(?:[?]|$)|(taught|transcript|visuals)\/)/;
+export const apiURL = (path: string) => {
+  const target = nativeReader && publicReading.test(path) ? path.replace("/api/", "/api/reader/") : path;
+  return native && target.startsWith("/api/") ? `https://cyberjudah.io${target}` : target;
+};
 
 /** External pages use the system browser, keeping untrusted pages out of the app webview. */
 export async function nativeOpen(url: string) {
