@@ -72,6 +72,7 @@ function chips(c: TagCounts) {
   if (highlights) out.push(`${highlights} ${highlights === 1 ? "highlight" : "highlights"}`);
   if (c.notes) out.push(`${c.notes} ${c.notes === 1 ? "note" : "notes"}`);
   if (c.links) out.push(`${c.links} ${c.links === 1 ? "link" : "links"}`);
+  if (c.naves) out.push(`${c.naves} ${c.naves === 1 ? "Nave" : "Naves"}`);
   return out;
 }
 

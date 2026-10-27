@@ -55,6 +55,7 @@ import { browserAuth, browserSession } from "./browser-auth";
 import { studyBackup } from "./study-backup";
 import { firebaseAuth } from "./firebase-auth";
 import { cors } from "hono/cors";
+import { nave } from "./nave";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -65,6 +66,7 @@ app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://lo
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
 app.route("/api/auth", browserAuth);
+app.route("/api/nave", nave);
 app.on(["GET", "HEAD"], "/api/audio/*", (c) => recordingAudio(c.req.raw, c.env));
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 

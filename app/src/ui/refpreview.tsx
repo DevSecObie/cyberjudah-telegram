@@ -9,10 +9,13 @@ import { native } from "@/native/platform";
 import { useModal } from "./modal";
 import { popoverTrigger, usePopover } from "./popover";
 import { RefText } from "./reftext";
+import { useNaveTopic } from "@/api/nave";
+import { NaveHTML } from "./nave-html";
 
 export type PreviewRequest =
   | { kind: "bible"; slug: string; chapter: number; verses: string; open: () => void }
-  | { kind: "note"; note: Note | null; open: () => void };
+  | { kind: "note"; note: Note | null; open: () => void }
+  | { kind: "nave"; name: string; open: () => void };
 
 /** "1,2,3,5" -> "1-3,5". */
 export function verseSpec(verses: number[]) {
@@ -124,6 +127,7 @@ export function ReferencePreviewProvider({ children }: { children: ReactNode }) 
   const title = useMemo(() => {
     if (!current) return "";
     if (current.kind === "note") return "Note";
+    if (current.kind === "nave") return current.name;
     const book = books.data?.find((b) => b.slug === current.slug)?.book ?? current.slug;
     return `${book} ${current.chapter}${current.verses ? `:${current.verses}` : ""} · KJV`;
   }, [current, books.data]);
@@ -142,7 +146,7 @@ export function ReferencePreviewProvider({ children }: { children: ReactNode }) 
               <button type="button" className="refpreview__btn" data-primary="" aria-label="Open" title="Open" onClick={openFull}><Feather name="external-link" size={18} /></button>
             </div>
             <div className="refpreview__body">
-              {current.kind === "bible" ? <Passage slug={current.slug} chapter={current.chapter} verses={current.verses} /> : <NoteBody note={current.note} />}
+              {current.kind === "bible" ? <Passage slug={current.slug} chapter={current.chapter} verses={current.verses} /> : current.kind === "nave" ? <NavePreview name={current.name} /> : <NoteBody note={current.note} />}
             </div>
           </div>
         </div>
@@ -166,4 +170,11 @@ function NoteBody({ note }: { note: Note | null }) {
     {note.title.trim() ? <b className="refpreview__notetitle">{note.title}</b> : null}
     <p className="refpreview__text"><RefText text={note.description} /></p>
   </>;
+}
+
+function NavePreview({ name }: { name: string }) {
+  const query = useNaveTopic("en", name);
+  if (query.isPending) return <p className="refpreview__state">Loading…</p>;
+  if (!query.data || query.isError) return <div className="refpreview__state"><p>This resource can't be shown.</p><button type="button" className="refpreview__retry" onClick={() => void query.refetch()}>Retry</button></div>;
+  return <NaveHTML compact html={query.data.description} />;
 }

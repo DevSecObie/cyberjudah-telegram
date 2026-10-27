@@ -1009,6 +1009,11 @@ test.describe("verse resources navigation", () => {
       const word = new URL(r.request().url()).searchParams.get("word")!;
       return r.fulfill({ json: { slug: word.toLowerCase(), term: `${word} entry`, definitions: [`${word} definition`] } });
     });
+    await page.route("**/api/nave/en/verses/*/topics", r => {
+      const verseKey = new URL(r.request().url()).pathname.split("/").at(-2)!;
+      const verse = Number(verseKey.split("-").at(-1));
+      return r.fulfill({ json: { resource: { kind: "nave", language: "en", revision: "test" }, verseKey, verseTopics: [{ normalizedName: `verse-${verse}`, name: `Theme for verse ${verse}` }], chapterTopics: [] } });
+    });
     await page.route(`${DATA}/api/concordance/genesis/1.json`, r => r.fulfill({ json: {
       book: "Genesis", chapter: 1,
       cited_by: passage.flatMap(v => [
@@ -1034,8 +1039,8 @@ test.describe("verse resources navigation", () => {
       await expect(selected).toHaveAttribute("aria-selected", "true");
       await expect(sheet.locator(tab === "Lexicon" ? ".bs-vdetail__text" : ".bs-resources__verse")).toHaveText(passage[verse - 1].text);
       if (tab !== "Lexicon") {
-        await expect(sheet.getByRole("button", { name: content(verse), exact: false })).toBeVisible();
-        for (const other of passage.filter(v => v.verse !== verse)) await expect(sheet.getByRole("button", { name: content(other.verse), exact: false })).toHaveCount(0);
+        await expect(sheet.getByRole(tab === "Themes" ? "link" : "button", { name: content(verse), exact: false })).toBeVisible();
+        for (const other of passage.filter(v => v.verse !== verse)) await expect(sheet.getByRole(tab === "Themes" ? "link" : "button", { name: content(other.verse), exact: false })).toHaveCount(0);
       }
       await expect(page).toHaveURL(/\/read\/genesis\/1$/);
       await expect(previous).toHaveCount(verse === 1 ? 0 : 1);

@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { data, type StrongsRow } from "@/api/data";
+import { navePath, randomNave } from "@/api/nave";
+import { ResourceUnavailable } from "@/bible/ui/ResourceUnavailable";
 import { useBookmarks, useTags, type Highlight } from "@/bible/store";
 import { listStudies, subscribeStudies } from "@/studies/storage";
 import { useSavedRelations } from "@/lib/relations";
@@ -58,6 +60,13 @@ export function TopicOfTheDay() {
   const at = i ?? pickOfDay(rows.length, 3);
   const t = rows[at];
   return <Widget label="Topic" title={t?.label} sub={t ? `${t.notes} ${t.notes === 1 ? "class" : "classes"}${t.cases ? ` · ${t.cases} cases` : ""}` : undefined} to={t ? `/topics/${t.slug}` : "/topics"} resource="Topics" resourceTo="/topics" icon="tag" colors={["rgba(155,89,182,1)", "rgba(108,52,131,1)"]} loading={topics.isPending} onShuffle={rows.length ? () => setI(pickRandom(rows.length)) : undefined} />;
+}
+
+export function NaveOfTheDay() {
+  const [seed, setSeed] = useState(0);
+  const query = useQuery({ queryKey: ["home-nave-random", "en", seed], queryFn: ({ signal }) => randomNave("en", signal), retry: false, staleTime: Infinity });
+  if (query.isError) return <ResourceUnavailable onRetry={() => void query.refetch()} />;
+  return <Widget label="Nave" title={query.data?.name} to={query.data ? navePath("en", query.data.normalizedName) : "/nave"} resource="Nave Topics" resourceTo="/nave" icon="tag" colors={["rgba(155,89,182,1)", "rgba(108,52,131,1)"]} loading={query.isPending} onShuffle={() => setSeed((value) => value + 1)} />;
 }
 
 /** Word of the day from Easton's Bible Dictionary (Bible Strong's WordOfTheDay). */

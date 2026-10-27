@@ -45,7 +45,7 @@ export function History() {
  * chip; a Strong's word over its original, Strong; a dictionary word over its dictionary, Word;
  * a topic, Nave.
  */
-const CHIP: Record<NonNullable<HistoryRow["type"]>, string> = { bible: "Verse", strong: "Strong", dictionary: "Word", topic: "Nave" };
+const CHIP: Record<NonNullable<HistoryRow["type"]>, string> = { bible: "Verse", strong: "Strong", dictionary: "Word", topic: "Nave", nave: "Nave" };
 function HistoryItem({ row, now }: { row: HistoryRow; now: number }) {
   const type = row.type ?? "bible";
   const title = row.type === undefined || row.type === "bible" ? `${(row.verse ?? 1) > 1 ? `${row.name}:${row.verse}` : row.name} KJV` : row.name;

@@ -74,6 +74,8 @@ const DoctrineScreen = lazy(() => import("@/screens/Library").then((m) => ({ def
 const Cases = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.Cases })));
 const CaseScreen = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.CaseScreen })));
 const Topics = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Topics })));
+const Nave = lazy(() => import("@/screens/Nave").then((m) => ({ default: m.Nave })));
+const NaveEntry = lazy(() => import("@/screens/Nave").then((m) => ({ default: m.NaveEntry })));
 const TopicScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.TopicScreen })));
 const PersonalStudies = lazy(() => import("@/screens/PersonalStudies").then(m => ({ default: m.PersonalStudies })));
 const Study = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Study })));
@@ -161,6 +163,8 @@ const routes = (
     <Route path="/cases" element={<Cases />} />
     <Route path="/cases/:era/:slug" element={<CaseScreen />} />
     <Route path="/topics" element={<Topics />} />
+    <Route path="/nave" element={<Nave />} />
+    <Route path="/nave/en/:name" element={<NaveEntry />} />
     <Route path="/topics/:slug" element={<TopicScreen />} />
     <Route path="*" element={<Home />} />
   </>

@@ -19,6 +19,7 @@ const EXPLORE: Kind = { snapPoints: [0.45, 1], dimFrom: 1 };
 const STRONG: Kind = { snapPoints: [1], dimFrom: 0 };
 const ROUTES: [RegExp, Kind][] = [
   [/^\/dictionary\/[^/]+$/, EXPLORE],
+  [/^\/nave\/en\/[^/]+$/, EXPLORE],
   [/^\/topics\/[^/]+$/, EXPLORE],
   [/^\/precepts\/[^/]+$/, EXPLORE],
   [/^\/tags\/[^/]+$/, EXPLORE],
