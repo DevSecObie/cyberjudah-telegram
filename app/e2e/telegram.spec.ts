@@ -140,6 +140,9 @@ test("the book pill opens Books; a book opens its chapters under it; a chapter t
   await psalms.click();
   await expect(psalms).toHaveAttribute("aria-expanded", "true");
   await expect(page.locator('.bs-accordion[data-open] .bs-chaptertile[aria-label="Chapter 23"]')).toHaveCSS("width", "60px");
+  // The chapter being read is marked in its book's tiles, as in the chapter grid.
+  await page.locator(".bs-bookrow[data-current]").click();
+  await expect(page.locator('.bs-accordion[data-open] .bs-chaptertile[aria-pressed="true"]')).toHaveText("3");
   await page.locator(".bs-bookrow", { hasText: /^Proverbs/ }).click();
   await expect(psalms).toHaveAttribute("aria-expanded", "false");
   await psalms.click();

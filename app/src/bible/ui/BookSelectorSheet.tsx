@@ -92,7 +92,7 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, onL
                   <span className="bs-bookrow__chevron"><Feather name="chevron-down" size={24} color="var(--bs-grey)" /></span>
                 </button>
                 <div className="bs-accordion" data-open={isOpen ? "" : undefined} inert={!isOpen || undefined}>
-                  <div className="bs-accordion__body">{isOpen || closing === b.slug ? <ChapterTiles book={b} read={readOf(b)} onPick={(c) => void pick(b, c)} onLongPick={onLongSelect ? (c) => { onLongSelect(b.slug, c, 1); onClose(); } : undefined} /> : null}</div>
+                  <div className="bs-accordion__body">{isOpen || closing === b.slug ? <ChapterTiles book={b} read={readOf(b)} selectedChapter={isCurrent ? current.chapter : undefined} onPick={(c) => void pick(b, c)} onLongPick={onLongSelect ? (c) => { onLongSelect(b.slug, c, 1); onClose(); } : undefined} /> : null}</div>
                 </div>
               </div>;
             })}
@@ -115,9 +115,9 @@ function ChapterGrid({ book, read, selectedChapter, onPick, onLongPick }: { book
   return <div className="bs-chaptergrid">{book.chapterIds.map((c) => <button key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} aria-pressed={c === selectedChapter} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile bs-chaptertile--48" style={{ background: c === selectedChapter ? "var(--bs-light-grey)" : undefined, color: c === selectedChapter ? "var(--bs-primary)" : undefined, fontWeight: c === selectedChapter ? "bold" : undefined }} onClick={() => onPick(c)} {...longPress(onLongPick && (() => onLongPick(c)))}>{c}</button>)}</div>;
 }
 
-/** BookItem's chapters under an opened book: 60 px tiles, 10 px apart, centred within 500 px. */
-function ChapterTiles({ book, read, onPick, onLongPick }: { book: Book; read: Set<number>; onPick: (c: number) => void; onLongPick?: (c: number) => void }) {
-  return <div className="bs-chaptertiles">{book.chapterIds.map((c) => <button key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile" onClick={() => onPick(c)} {...longPress(onLongPick ? () => onLongPick(c) : undefined)}>{c}</button>)}</div>;
+/** BookItem's chapters under an opened book: 60 px tiles, 10 px apart, centred within 500 px; the chapter being read marked as in ChapterGrid. */
+function ChapterTiles({ book, read, selectedChapter, onPick, onLongPick }: { book: Book; read: Set<number>; selectedChapter?: number; onPick: (c: number) => void; onLongPick?: (c: number) => void }) {
+  return <div className="bs-chaptertiles">{book.chapterIds.map((c) => <button key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} aria-pressed={c === selectedChapter} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile" style={{ background: c === selectedChapter ? "var(--bs-light-grey)" : undefined, color: c === selectedChapter ? "var(--bs-primary)" : undefined, fontWeight: c === selectedChapter ? "bold" : undefined }} onClick={() => onPick(c)} {...longPress(onLongPick ? () => onLongPick(c) : undefined)}>{c}</button>)}</div>;
 }
 
 /** How far through a book: "18/50" beside a small ring, a check when it is all read. */
