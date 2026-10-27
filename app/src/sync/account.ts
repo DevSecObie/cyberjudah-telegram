@@ -1,6 +1,6 @@
-import { initializeApp } from "firebase/app";
-import { connectAuthEmulator, getAuth, onAuthStateChanged, signInWithCustomToken, signOut } from "firebase/auth";
-import { connectFirestoreEmulator, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { onAuthStateChanged, signInWithCustomToken, signOut } from "firebase/auth";
+import { auth, db } from "../lib/firebase-client";
+import { apiURL } from "../native/platform";
 import { app, features } from "../tg/sdk";
 import { connectPersonalStore, receivePersonalValue } from "../tg/store";
 import { DEVICE_MIGRATION_OWNER_KEY, migrateTelegramSource } from "./migration";
@@ -8,15 +8,6 @@ import { deviceRecords, readerRecords } from "./records";
 import { readLegacyDeviceSnapshot, readTelegramCloudSnapshot } from "./sources";
 import { connectReader } from "./reader";
 
-const emulator = import.meta.env.VITE_FIREBASE_EMULATOR === "true" && ["localhost", "127.0.0.1"].includes(location.hostname);
-const firebase = initializeApp({
-  apiKey: emulator ? "demo-key" : "AIzaSyAqCIfm78KkoFq0UOszT5YJdpvD6jWqG9U",
-  authDomain: "cyberjudah-app.firebaseapp.com", projectId: emulator ? "demo-cyberjudah" : "cyberjudah-app",
-  appId: "1:979802439968:web:67bc0435f68d70a4959745",
-});
-const auth = getAuth(firebase);
-const db = initializeFirestore(firebase, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
-if (emulator) { connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); connectFirestoreEmulator(db, "127.0.0.1", 8089); }
 const report = (message: string) => window.dispatchEvent(new CustomEvent("cj:sync-error", { detail: message }));
 let generation = 0, pending: ReturnType<typeof start> | undefined;
 
@@ -32,7 +23,8 @@ async function start() {
   // An unverified launch may only block access here; it never supplies the Firebase UID.
   if (!navigator.onLine && restored && app?.initDataUnsafe.user && restored.uid !== `tg_${app.initDataUnsafe.user.id}`) return changedAccount();
   if (!navigator.onLine && restored?.uid === localStorage.getItem(DEVICE_MIGRATION_OWNER_KEY)) return connectReader(db, restored.uid, receivePersonalValue, report);
-  const response = await fetch(`/api/firebase/${restored ? "identity" : "token"}`, {
+  const providerSession = restored && !app;
+  const response = providerSession ? await fetch(apiURL("/api/auth/status"), { headers: { authorization: `Bearer ${await restored.getIdToken()}` }, cache: "no-store" }) : await fetch(apiURL(`/api/firebase/${restored ? "identity" : "token"}`), {
     method: "POST", headers: app?.initData ? { authorization: `tma ${app.initData}` } : {},
     cache: "no-store", credentials: "same-origin",
   });
@@ -43,12 +35,13 @@ async function start() {
     return null;
   }
   if (!response.ok) throw new Error("Account sync is unavailable. Your saved marks are unchanged.");
-  const result = await response.json() as { uid: string; token?: string };
-  if (!/^tg_[1-9][0-9]*$/.test(result.uid)) throw new Error("Invalid account identity");
+  const payload = await response.json() as { uid: string; firebaseUid?: string; token?: string };
+  const result = providerSession ? { uid: payload.firebaseUid ?? "" } : payload;
+  if (!result.uid || result.uid === "." || result.uid === ".." || result.uid.length > 128 || /[\u0000-\u001f/]/.test(result.uid)) throw new Error("Invalid account identity");
   if (restored && restored.uid !== result.uid) return changedAccount();
   if (run !== generation) return null;
   if (!restored) {
-    if (!result.token) throw new Error("Missing sign-in token");
+    if (!("token" in result) || !result.token) throw new Error("Missing sign-in token");
     await signInWithCustomToken(auth, result.token);
   }
   if (run !== generation) { await signOut(auth); return null; }

@@ -21,6 +21,8 @@ export type Env = {
   /** Server-only signing credential for the existing Telegram account. */
   FIREBASE_SERVICE_ACCOUNT?: string;
   FIREBASE_AUTH_LIMIT?: RateLimit;
+  /** Verification of Firebase sessions, separate from infrequent link/token issuance. */
+  FIREBASE_SESSION_LIMIT?: RateLimit;
   /** End-to-end tests only: a loopback Firestore emulator (127.0.0.1:…, app/firebase/firebase.json), read
    * and written by mydata.ts's account-sync export and deletion instead of real Firestore. Ignored unless
    * loopback. */
@@ -84,6 +86,8 @@ export type Env = {
   PUSH_TEST_ORIGIN?: string;
   /** Workers Rate Limiting binding for the reading-reminder endpoints (wrangler.jsonc "ratelimits"). */
   REMIND_LIMIT?: RateLimit;
+  /** Public, read-only native library requests; 60 per IP per minute at each edge location. */
+  READER_LIMIT?: RateLimit;
 };
 
 /** A daily-verse subscription, KV key sub:<userId>. hour is local, tz the offset in minutes. */

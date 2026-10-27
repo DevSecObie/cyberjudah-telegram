@@ -68,6 +68,21 @@ test("phone, computer and web share highlights while original marks remain intac
       await route.fulfill({ response });
     };
     await c.route("**/api/firebase/*", withSession);
+    // The Auth emulator issues demo-project tokens that Google's production verifier
+    // correctly rejects. For this Firestore-sync fixture, bind the restored SDK token
+    // to the identity returned by the real encrypted browser-session bridge instead.
+    // Production token/revocation checks are exercised in account-links.test.mjs.
+    await c.route("**/api/auth/status", async route => {
+      const authorization = route.request().headers().authorization;
+      if (!authorization?.startsWith("Bearer ")) return withSession(route);
+      const response = await request.post(`${origin}/api/firebase/identity`, {
+        headers: { cookie: `__Host-cj-session=${session}`, origin },
+      });
+      expect(response.ok()).toBeTruthy();
+      const { uid } = await response.json();
+      expect(JSON.parse(Buffer.from(authorization.slice(7).split(".")[1], "base64url").toString()).sub).toBe(uid);
+      await route.fulfill({ json: { available: true, provider: "firebase", firebaseUid: uid, user: { id, first_name: "Sync reader" } } });
+    });
     // Download and Delete my data (docs/PRIVACY.md) reach this same browser session.
     await c.route("**/api/privacy/*", withSession);
     await c.goto(`${origin}/read/genesis/1`);

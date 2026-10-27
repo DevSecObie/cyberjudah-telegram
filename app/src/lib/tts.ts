@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { AudioIntent, audioRate } from "./audio-intent.mjs";
 import { ambient } from "./ambient";
 import { useEffect, useRef, useState } from "react";
@@ -17,12 +18,13 @@ export type AiVoice = { id: string; name: string; note: string };
 export const isAiVoice = (name: string | null) => !!name && name.startsWith("ai:");
 const authed = (path: string) => fetch(path, { headers: { Authorization: `tma ${app?.initData ?? ""}` } });
 async function verseAudio(slug: string, ch: number, verse: number, voice: string): Promise<string> {
+  if (nativeReader) throw new Error("Generated voices are unavailable in the free reader");
   const res = await authed(`/api/tts/${encodeURIComponent(slug)}/${ch}/${verse}?voice=${encodeURIComponent(voice)}`);
   if (!res.ok) throw new Error(`tts ${res.status}`);
   return URL.createObjectURL(await res.blob());
 }
 export function useAiVoices() {
-  return useQuery({ queryKey: ["voices"], queryFn: () => authed("/api/voices").then((r) => { if (!r.ok) throw new Error(`voices ${r.status}`); return r.json() as Promise<{ voices: AiVoice[] }>; }).then((r) => r.voices), staleTime: Infinity, retry: 1 });
+  return useQuery({ queryKey: ["voices"], queryFn: () => nativeReader ? Promise.resolve([] as AiVoice[]) : authed("/api/voices").then((r) => { if (!r.ok) throw new Error(`voices ${r.status}`); return r.json() as Promise<{ voices: AiVoice[] }>; }).then((r) => r.voices), staleTime: Infinity, retry: 1 });
 }
 
 /** Device / AI verse playback and one seekable human recording per chapter. */
@@ -33,7 +35,7 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   const [audible, setAudible] = useState(false), [loading, setLoading] = useState(false);
   const [current, setCurrent] = useState<number | null>(null), [completed, setCompleted] = useState(false);
   const [rate, setRate] = useState(() => audioRate(saved("ttsRate"))), [pitch, setPitch] = useState(() => audioRate(saved("ttsPitch")));
-  const [voiceName, setVoiceName] = useState<string | null>(() => saved("ttsVoice"));
+  const [voiceName, setVoiceName] = useState<string | null>(() => { const voice = saved("ttsVoice"); return nativeReader && isAiVoice(voice) ? null : voice; });
   const [fallback, setFallback] = useState(() => saved("ttsAiVoice") ?? "ai:asteria");
   const [available, setAvailable] = useState<SpeechSynthesisVoice[]>([]);
   const [notice, setNotice] = useState("");
@@ -102,7 +104,7 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
   };
   const readVerses = (from: number, generation: number, voice: string | null) => {
     clearAudio(); activeVoice.current = voice;
-    const ai = isAiVoice(voice) && !!where;
+    const ai = !nativeReader && isAiVoice(voice) && !!where;
     const queue = [...(from === 1 && !ai ? [{ verse: 0, text: intro }] : []), ...verses.filter((v) => v.verse >= from)];
     const next = () => {
       if (generation !== intent.current.generation) return;
@@ -126,7 +128,7 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
         }).catch(() => fail(generation, "Reading voice is unavailable. Please try again."));
         return;
       }
-      if (!ttsSupported) { fail(generation, "Choose a reading voice to listen."); return; }
+      if (!ttsSupported || (nativeReader && !speechSynthesis.getVoices().some(v => /^en/i.test(v.lang)))) { fail(generation, "No English device voice is available. Choose a licensed recording or install an English voice in your device settings."); return; }
       const u = new SpeechSynthesisUtterance(item.text); utterance.current = u;
       const vs = speechSynthesis.getVoices();
       const selected = vs.find((v) => v.name === voice) ?? vs.find((v) => /^en/i.test(v.lang) && /natural|premium|enhanced|neural|siri/i.test(v.name)) ?? vs.find((v) => /^en/i.test(v.lang));
@@ -164,13 +166,13 @@ export function useSpeech(verses: { verse: number; text: string }[], intro: stri
       }
       if (generation !== intent.current.generation) return;
       if (!narrator) {
-        if (requestedHuman) setNotice("No recording for this chapter. Using your chosen AI reading voice.");
+        if (requestedHuman) setNotice(nativeReader ? "No recording for this chapter. Using this device’s voice." : "No recording for this chapter. Using your chosen AI reading voice.");
         else if (requestedVoice && !isAiVoice(requestedVoice) && ttsSupported) {
           const vs = speechSynthesis.getVoices();
           // A saved device voice can vanish after an OS update; say so once, keep the preference, and read with the device's own default.
           if (vs.length && !vs.some((v) => v.name === requestedVoice)) setNotice("Your chosen voice is no longer on this device. Reading with this device's default voice instead.");
         }
-        readVerses(from, generation, requestedHuman ? fallback : requestedVoice); return;
+        readVerses(from, generation, requestedHuman ? (nativeReader ? null : fallback) : requestedVoice); return;
       }
       const verse = narrator.verses.find((v) => v[0] === from);
       if (!verse) { fail(generation, "This verse has no verified recording timing."); return; }

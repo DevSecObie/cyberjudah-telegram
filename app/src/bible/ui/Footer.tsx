@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { useAudioPlayer } from "@/lib/AudioPlayer";
 import { useNavigate } from "react-router";
 import { AUDIO_RATES } from "@/lib/audio-intent.mjs";
@@ -101,17 +102,19 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
               <h3 className="bs-audio__group">Narrators</h3>
               {speech.narratorsLoading ? <p className="bs-audio__notice">Finding recordings…</p> : !speech.narrators.length ? (
                 <p className="bs-audio__notice">
-                  {speech.narratorsError ? <>Recordings are unavailable right now. <button type="button" className="link" onClick={speech.narratorsRefetch}>Retry</button></> : "No recording for this chapter. Choose an AI reading voice below."}
+                  {speech.narratorsError ? <>Recordings are unavailable right now. <button type="button" className="link" onClick={speech.narratorsRefetch}>Retry</button></> : nativeReader ? "No recording for this chapter. Choose a device voice below." : "No recording for this chapter. Choose an AI reading voice below."}
                 </p>
               ) : null}
               {speech.narrators.map((n) => <button key={n.id} type="button" role="radio" aria-checked={speech.voice === `narrator:${n.id}`} className="bs-fontrow" onClick={() => { speech.setVoice(`narrator:${n.id}`); setVoices(false); }}><span>{n.reader}<small className="bs-audio__detail">Licensed narration · KJV</small></span>{speech.voice === `narrator:${n.id}` ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>)}
-              <h3 className="bs-audio__group">AI reading voices</h3>
+              {!nativeReader ? <>
+<h3 className="bs-audio__group">AI reading voices</h3>
               {aiVoices.isError ? <p className="bs-audio__notice">Reading voices are unavailable right now. <button type="button" className="link" onClick={() => void aiVoices.refetch()}>Retry</button></p> : aiVoices.isPending ? <p className="bs-audio__notice">Finding reading voices…</p> : null}
               {aiVoices.data?.map((v) => {
                 const id = `ai:${v.id}`, on = speech.voice === id;
                 return <button key={id} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(id); setVoices(false); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>Reading voice · {v.note}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;
               })}
-              <h3 className="bs-audio__group">Device voices</h3>
+              </> : null}
+<h3 className="bs-audio__group">Device voices</h3>
               {speech.voices.map((v) => {
                 const on = (speech.voice ?? speech.currentVoice) === v.name;
                 return <button key={v.name} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(v.name); setVoices(false); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name.replace(/^Microsoft |^Google /, "")}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>{v.lang}{/natural|premium|enhanced|neural|siri/i.test(v.name) ? " · high quality" : ""}{v.localService ? "" : " · online"}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;

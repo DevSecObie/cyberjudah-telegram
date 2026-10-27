@@ -1,3 +1,4 @@
+import { readerRouteAllowed } from "@/native/platform";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
@@ -33,11 +34,11 @@ export function WorkspaceCommands() {
   useEffect(() => { setRecent(rows => [tabs.current, ...rows.filter(id => id !== tabs.current)].slice(0, 80)); }, [tabs.current]);
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity, enabled: !!mode });
   const passage = parseReference(query, books.data ?? []);
-  const openTabs: Choice[] = tabs.groups.flatMap(group => group.tabs.filter(t => t.path !== "/new").map(tab => ({ id: tab.id, tab: tab.id, group: group.id, title: tabTitle(tab.path), detail: group.name, path: tab.path })));
+  const openTabs: Choice[] = tabs.groups.flatMap(group => group.tabs.filter(t => t.path !== "/new" && readerRouteAllowed(t.path)).map(tab => ({ id: tab.id, tab: tab.id, group: group.id, title: tabTitle(tab.path), detail: group.name, path: tab.path })));
   const rank = (id: string) => id === tabs.current ? -1 : recent.includes(id) ? recent.indexOf(id) : 100;
   const normalize = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f’']/g, "");
   const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
-  const tools: Choice[] = destinations.map(([title, path, keywords]) => ({ id: path, title, path, keywords, detail: "Open in a new tab" }));
+  const tools: Choice[] = destinations.filter(([, path]) => readerRouteAllowed(path)).map(([title, path, keywords]) => ({ id: path, title, path, keywords, detail: "Open in a new tab" }));
   const choices = mode === "recent" ? openTabs.sort((a, b) => rank(a.id) - rank(b.id)) : [
     ...(passage ? [{ id: "passage", title: passage.label, detail: "Open passage", path: `/read/${passage.slug}/${passage.chapter}${passage.verse ? `?v=${passage.verse}${passage.verseEnd ? `-${passage.verseEnd}` : ""}` : ""}` }] : []),
     ...[...openTabs, ...tools].filter(c => terms.every(term => normalize(`${c.title} ${c.detail} ${c.keywords ?? ""}`).includes(term))),

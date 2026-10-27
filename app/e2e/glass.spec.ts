@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs";
 import { filteredSurfaces } from "./material-surfaces";
+import { LAUNCH as SIGNED_LAUNCH } from "./telegram-harness";
 
 test.use({ hasTouch: true });
 
@@ -824,7 +825,8 @@ for (const theme of ["default", "dark", "sepia"]) {
       expect(box.x + box.width - frame.x - frame.width).toBeGreaterThanOrEqual(20);
     }
     await page.keyboard.press("Escape");
-    await page.goto(`/ask${LAUNCH}`); await page.getByRole("button", { name: "Your chats", exact: true }).click();
+    // The chat sheet is private; use the existing signed local-account fixture for its layout.
+    await page.goto(`/ask${SIGNED_LAUNCH}`); await page.getByRole("button", { name: "Your chats", exact: true }).click();
     const chats = page.getByRole("dialog", { name: "Your chats", exact: true });
     await expect(chats).toHaveCSS("border-top-left-radius", "36px"); await expect(chats).toHaveCSS("border-bottom-left-radius", "0px");
     await page.keyboard.press("Escape");
@@ -847,7 +849,7 @@ for (const theme of ["default", "dark", "sepia"]) {
       for (const [width, scale] of [[390, 100], [390, 200], [1280, 100], [1280, 200]]) {
         await page.setViewportSize({ width, height: 844 });
         const path = scene === "reminders" ? "/settings/reminders" : scene === "chats" ? "/ask" : `/${scene}`;
-        await page.goto(`${path}${LAUNCH}`);
+        await page.goto(`${path}${scene === "chats" ? SIGNED_LAUNCH : LAUNCH}`);
         await page.locator(".route").getByRole("heading").first().waitFor();
         await page.addStyleTag({ content: `html { font-size: ${scale}% !important; }` });
         if (scene === "chats") { await page.getByRole("button", { name: "Your chats", exact: true }).click(); await page.locator(".chats__open").waitFor();

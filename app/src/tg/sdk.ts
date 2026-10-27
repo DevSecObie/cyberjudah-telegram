@@ -1,4 +1,4 @@
-import { native, nativePlatform, apiURL, nativeOpen } from "@/native/platform";
+import { native, nativeReader, nativePlatform, apiURL, nativeOpen } from "@/native/platform";
 import type { HomeScreenStatus, InvoiceStatus, PopupParams, WebApp } from "./types";
 
 /**
@@ -8,6 +8,7 @@ import type { HomeScreenStatus, InvoiceStatus, PopupParams, WebApp } from "./typ
  * build serves as a plain mobile web app and can be developed in a browser.
  */
 export const app: WebApp | null = (() => {
+  if (nativeReader) return null;
   const w = typeof window !== "undefined" ? window.Telegram?.WebApp : undefined;
   // The SDK exists on any page that loads it; a real launch has a platform and init data.
   return w && w.platform !== "unknown" && w.initData ? w : null;
@@ -95,6 +96,7 @@ export function homeScreenStatus(): Promise<HomeScreenStatus> {
 export const addToHomeScreen = () => { if (features.homeScreen) app!.addToHomeScreen(); };
 
 export function openInvoice(link: string): Promise<InvoiceStatus> {
+  if (nativeReader) return Promise.resolve("cancelled");
   return new Promise((resolve) => { if (features.invoices) app!.openInvoice(link, resolve); else { openLink(link); resolve("pending"); } });
 }
 
@@ -136,13 +138,23 @@ export const hideKeyboard = () => { if (features.hideKeyboard) app!.hideKeyboard
 export class ApiError extends Error {
   constructor(public status: number, public path: string, public reason?: string) { super(`${status} ${path}${reason ? ` (${reason})` : ""}`); }
 }
+/** A real Telegram launch takes precedence; otherwise use the current Firebase login. */
+export async function accountAuthorization(): Promise<string | undefined> {
+  if (app?.initData) return `tma ${app.initData}`;
+  return (await import("@/lib/firebase-session")).firebaseAuthorization();
+}
 /** The bot backend, authenticated with the launch data. */
 export async function api<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
+  if (nativeReader && /^\/api\/(?:ask\/buy(?:[/?#]|$)|invoice(?:[/?#]|$)|donations(?:[/?#]|$)|search\/answer(?:[/?#]|$))/.test(path)) throw new ApiError(403, path, "reader-only");
   const headers = new Headers(init?.headers);
-  if (app?.initData) headers.set("Authorization", `tma ${app.initData}`);
+  const target = apiURL(path);
+  const publicPath = new URL(target, location.origin).pathname;
+  const publicContent = /^\/api\/(?:reader(?:\/|$)|dictionary(?:\/|$)|recordings(?:\/|$)|resources(?:\/|$)|photos(?:\/|$)|img(?:\/|$)|health$)/.test(publicPath);
+  const authorization = publicContent ? undefined : await accountAuthorization();
+  if (authorization && !headers.has("authorization")) headers.set("Authorization", authorization);
   let body = init?.body;
   if (init?.json !== undefined) { headers.set("content-type", "application/json"); body = JSON.stringify(init.json); }
-  const res = await fetch(apiURL(path), { ...init, headers, body });
+  const res = await fetch(target, { ...init, headers, body });
   if (!res.ok) {
     let reason: string | undefined;
     try { reason = ((await res.json()) as { reason?: string; error?: string }).reason; } catch { /* no body */ }

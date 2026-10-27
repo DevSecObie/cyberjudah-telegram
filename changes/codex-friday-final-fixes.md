@@ -1,0 +1,7 @@
+- Ask now works after browser Telegram sign-in, keeps conversations separate by account, and clears the active chat on sign-out. Stars top-ups remain in Telegram.
+- Class notes cancel interrupted gestures without changing their position, and a new drag takes over a settling sheet without an older animation resetting it.
+- Downloaded Bible chapters can be searched offline, with book/testament filters, paging, and an explicit count of the saved chapters searched. Reconnecting restores live search.
+- Android Back uses the reader’s existing sheet stack and tab history; hidden sheets no longer intercept Back. Account deletion also clears the active Ask session.
+- The owner superseded the free-reader-only decision: native Ask and linked Firebase sign-in are now included. Native purchases remain unavailable until store billing is configured and verified; see changes/friday-linked-accounts.md and docs/STORE_BILLING_SETUP.md.
+- A quick Back while a page is loading returns to its actual previous page instead of skipping its parent.
+- Native reading uses a rate-limited public content API for search, teaching passages and transcripts. Private APIs still require authentication. Audio offers licensed recordings and device voices without calling authenticated AI services.

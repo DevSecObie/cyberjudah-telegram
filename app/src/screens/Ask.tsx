@@ -1,7 +1,10 @@
+import { apiURL, nativeReader } from "@/native/platform";
+import { accountAuthorization } from "@/tg/sdk";
+import { useAccountSession } from "@/lib/account-session";
 import { resourcePins } from "@/resources/client";
 import { marked } from "marked";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { fmtDate } from "@/api/data";
 import { useBackButton, useBottomButtons } from "@/tg/hooks";
@@ -39,7 +42,8 @@ const EXAMPLES: [string, string][] = [
   ["How is the Sabbath kept?", "The day, the rest and the assembly"],
 ];
 /** Kept per account: a phone shared by two readers never shows one the other's conversation. */
-const STORE = `cj:ask:${user?.id ?? "guest"}`;
+let conversationOwner: number | null = user?.id ?? null;
+const storeKey = () => conversationOwner === null ? null : `cj:ask:${conversationOwner}`;
 
 /**
  * The conversation lives outside the screen, for as long as the app is open: an answer keeps
@@ -54,7 +58,8 @@ const readStore = (): Conv => {
   try {
     // The old shared key held whoever asked last on this device: it is not carried over.
     localStorage.removeItem("cj:ask");
-    const raw = localStorage.getItem(STORE);
+    const key = storeKey();
+    const raw = key ? localStorage.getItem(key) : null;
     const saved = raw ? JSON.parse(raw) as { turns?: Turn[]; chatId?: string | null } : null;
     const turns = (saved?.turns ?? []).filter((t) => t && !t.thinking && !t.waiting);
     return { turns, chatId: saved?.chatId ?? null, busy: false, gen: 0 };
@@ -64,11 +69,20 @@ let conv: Conv = readStore();
 const convListeners = new Set<() => void>();
 const setConv = (next: Partial<Conv> | ((c: Conv) => Partial<Conv>)) => {
   conv = { ...conv, ...(typeof next === "function" ? next(conv) : next) };
-  try { localStorage.setItem(STORE, JSON.stringify({ turns: conv.turns.filter((t) => !t.thinking && !t.waiting), chatId: conv.chatId })); } catch { /* private mode */ }
+  try { if (storeKey()) localStorage.setItem(storeKey()!, JSON.stringify({ turns: conv.turns.filter((t) => !t.thinking && !t.waiting), chatId: conv.chatId })); } catch { /* private mode */ }
   convListeners.forEach((l) => l());
 };
 const useConv = () => useSyncExternalStore((l) => { convListeners.add(l); return () => { convListeners.delete(l); }; }, () => conv);
 let convAbort: AbortController | null = null;
+const EMPTY_CONVERSATION: Conv = { turns: [], chatId: null, busy: false, gen: 0 };
+function selectAskOwner(id: number | null) {
+  if (conversationOwner === id) return;
+  convAbort?.abort(); convAbort = null;
+  conversationOwner = id;
+  conv = { ...readStore(), gen: conv.gen + 1 };
+  convListeners.forEach(l => l());
+}
+export function clearAskSession() { selectAskOwner(null); }
 /** Replace the conversation (a new chat, or a saved one opened): whatever was arriving for the old one is let go. */
 const replaceConv = (next: { turns: Turn[]; chatId: string | null }) => { convAbort?.abort(); convAbort = null; setConv({ ...next, busy: false, gen: conv.gen + 1 }); };
 /** Patch the last turn of conversation `gen` only (the answer being written); a replaced conversation is left alone. */
@@ -107,7 +121,10 @@ async function runQuestion(q: string, opts: AskOpts) {
   const watch = setInterval(() => { if (Date.now() - heard > STALL_MS) { stalled = true; ctl.abort(); } }, 5000);
   try {
     const resources = await resourcePins();
-    const res = await fetch("/api/ask", { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", Authorization: `tma ${app?.initData ?? ""}` }, body: JSON.stringify({ q, history, resources, stream: true, chat: id, retry: !!opts.retry, consent: consented(), request: newId(), ...(chosenModel() ? { model: chosenModel() } : {}), caps: readCaps() }) });
+    if (ctl.signal.aborted || conv.gen !== gen) return;
+    const authorization = await accountAuthorization();
+    if (ctl.signal.aborted || conv.gen !== gen) return;
+    const res = await fetch(apiURL("/api/ask"), { method: "POST", signal: ctl.signal, headers: { "content-type": "application/json", ...(authorization ? { Authorization: authorization } : {}) }, body: JSON.stringify({ q, history, resources, stream: true, chat: id, retry: !!opts.retry, consent: consented(), request: newId(), ...(chosenModel() ? { model: chosenModel() } : {}), caps: readCaps() }) });
     heard = Date.now();
     if (!res.ok || !res.body) {
       const body = await res.text().then((t) => { try { return JSON.parse(t.split("\n")[0]) as AskFail; } catch { return null; } }).catch(() => null);
@@ -221,9 +238,17 @@ export const passageLabel = (p: Passage) => p.video ? `${showOf(p.title) ?? KIND
  * citation is a tap into its source. The conversation outlives a trip to a source and back.
  */
 export function Ask() {
+  const session = useAccountSession();
+  const accountId = session.data?.user?.id ?? null;
+  return <AccountAsk key={accountId ?? "guest"} accountId={accountId} checking={session.isPending} />;
+}
+function AccountAsk({ accountId, checking }: { accountId: number | null; checking: boolean }) {
+  const signedIn = accountId !== null;
   const [params, setParams] = useSearchParams();
   const first = params.get("q") ?? "";
-  const { turns, chatId, busy } = useConv();
+  const stored = useConv();
+  const { turns, chatId, busy } = conversationOwner === accountId ? stored : EMPTY_CONVERSATION;
+  useLayoutEffect(() => { selectAskOwner(accountId); }, [accountId]);
   const [history, setHistory] = useState(false);
   const [plans, setPlans] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -234,7 +259,7 @@ export function Ask() {
   const loadAccount = () => { setAcctFailed(false); return api<AskAccount>(`/api/ask/account?tz=${encodeURIComponent(timeZone())}`).then(setAcct).catch(() => setAcctFailed(true)); };
   /** The model picker opens whatever state the account is in: it loads the list if it has not come yet. */
   const openPicker = () => { haptic("select"); if (!acct || acctFailed) void loadAccount(); setPicking(true); };
-  useEffect(() => { void loadAccount(); }, []);
+  useEffect(() => { if (signedIn) void loadAccount(); }, [signedIn]);
   const model = acct?.models?.find((m) => m.id === modelId) ?? acct?.models?.find((m) => m.id === acct.model);
   const [input, setInput] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -270,7 +295,7 @@ export function Ask() {
   const setWallet = (w: Wallet) => setAcct((a) => (a ? { ...a, wallet: w } : a));
   const [usageOpen, setUsageOpen] = useState(false);
   // The composer keeps what was typed unless the question went (an answer still coming holds it back).
-  const send = (text: string, retry = false) => { stick.current = true; if (askQuestion(text, { retry, onAccount: () => void loadAccount(), setWallet }) && text === input) setInput(""); };
+  const send = (text: string, retry = false) => { stick.current = true; if (signedIn && conversationOwner === accountId && askQuestion(text, { retry, onAccount: () => void loadAccount(), setWallet }) && text === input) setInput(""); };
   const stop = () => { haptic("select"); stopAsking(); };
   const newChat = () => { haptic("select"); startNewChat(); setInput(""); boxRef.current?.focus(); };
   const openChat = (c: SavedChat) => { replaceConv({ chatId: c.id, turns: fromSaved(c.turns) }); setHistory(false); stick.current = true; void recoverChat(); };
@@ -279,22 +304,22 @@ export function Ask() {
   // the app or from an answer on this screen.
   const linked = params.get("chat");
   useEffect(() => {
-    if (!linked) return;
+    if (!linked || checking) return;
     setParams({}, { replace: true });
-    if (!app || !/^[a-z0-9]{8,40}$/.test(linked)) return;
+    if (!signedIn || !/^[a-z0-9]{8,40}$/.test(linked)) return;
     if (linked === conv.chatId) { void recoverChat(); return; }
     void api<{ chat: SavedChat | null; pending?: { q: string } | null }>(`/api/chats/${linked}`)
       .then((r) => openChat(r.chat ?? { id: linked, title: "", updated: "", turns: r.pending ? [{ role: "user", content: r.pending.q }] : [] }))
       .catch(() => undefined);
-  }, [linked]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [linked, checking, signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
   const asked = useRef(false);
   useEffect(() => {
-    if (asked.current || linked) return;
+    if (asked.current || linked || checking) return;
     asked.current = true;
     // While an answer is still coming the question waits in the composer, rather than being dropped.
-    if (first) { setParams({}, { replace: true }); if (!app || conv.busy) setInput(first); else { startNewChat(); send(first); } }
-    else void recoverChat();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (first) { setParams({}, { replace: true }); if (!signedIn || conv.busy) setInput(first); else { startNewChat(); send(first); } }
+    else if (signedIn) void recoverChat();
+  }, [checking, signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
   // Coming back to the app, or back online: an answer the server finished meanwhile is fetched.
   useEffect(() => {
     const again = () => { if (document.visibilityState === "visible") void recoverChat(); };
@@ -303,13 +328,13 @@ export function Ask() {
     return () => { document.removeEventListener("visibilitychange", again); window.removeEventListener("online", again); };
   }, []);
 
-  // Outside Telegram there is no launch data to sign a question with: say so before anything is typed.
-  const outside = !app;
+  // Both Telegram launch data and a verified browser session can ask.
+  const outside = !signedIn;
   const lastUser = [...turns].reverse().find((t) => t.role === "user")?.content ?? "";
   return (
     <main className="chat2" ref={mainRef}>
       <header className="chat2__bar">
-        <button type="button" className="chat2__new" aria-label="Your chats" disabled={!app} title={app ? "Your chats" : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
+        <button type="button" className="chat2__new" aria-label="Your chats" disabled={outside} title={signedIn ? "Your chats" : "Your chats are kept with your Telegram account"} onClick={() => { haptic("select"); setHistory(true); }}><Icon name="history" size={21} /></button>
         {/* The model is chosen here, at the top, as in ChatGPT and Claude: the title, then the model and what is left. */}
         <button type="button" className="chat2__heading" title={model ? `Model: ${model.name}. Change` : "Ask CyberJudah"} disabled={!acct?.models?.length} onClick={() => { haptic("select"); setPicking(true); }}>
           <b>Ask CyberJudah</b>
@@ -325,7 +350,8 @@ export function Ask() {
           <p>Ask about anything that was taught. Every answer comes from the classes, the notes, the law and the Scripture, and shows where it came from.</p>
           {outside ? (
             <div className="chat2__outside" role="note">
-              <p><b>Ask CyberJudah answers inside Telegram.</b> Telegram signs each question, which is how your balance is kept. In this browser the Bible, the classes and the rest of the library still work.</p>
+              <p>{checking ? "Checking your account…" : "Sign in to your linked CyberJudah account to use Ask and keep your chats."}</p>
+              {!checking && <Link className="btn" to="/settings/account">Sign in</Link>}
               <button type="button" className="btn" onClick={() => openLink(APP_URL)}><Icon name="link" size={16} />Open in Telegram</button>
             </div>
           ) : null}
@@ -348,12 +374,12 @@ export function Ask() {
       {history ? <ChatsSheet current={chatId} onClose={() => setHistory(false)} onOpen={openChat} onDeleted={(id) => { if (id === conv.chatId) startNewChat(); }} /> : null}
       <form ref={formRef} className="composer2" onSubmit={(e) => { e.preventDefault(); send(input); }}>
         <div className="composer2__box">
-          <textarea ref={boxRef} value={input} rows={1} placeholder={outside ? "Open in Telegram to ask" : turns.length ? "Ask a follow-up" : "Ask CyberJudah"} disabled={outside} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
+          <textarea ref={boxRef} value={input} rows={1} placeholder={outside ? "Sign in to ask" : turns.length ? "Ask a follow-up" : "Ask CyberJudah"} disabled={outside} aria-label="Your question" enterKeyHint="send" onChange={(e) => setInput(e.target.value)} onFocus={() => typing(true)} onBlur={() => typing(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} />
           {busy
             ? <button type="button" className="composer2__go composer2__go--stop" aria-label="Stop" title="Stop" onClick={stop}><span /></button>
             // Pressing Send keeps the focus in the question: a blur would bring the tab bar back and
             // move the composer under the finger before the tap ends, and the tap would be lost.
-            : <button type="submit" className="composer2__go" aria-label="Send" title="Send" disabled={!input.trim()} onPointerDown={(e) => e.preventDefault()}><Icon name="arrowUp" size={20} /></button>}
+            : <button type="submit" className="composer2__go" aria-label="Send" title="Send" disabled={outside || !input.trim()} onPointerDown={(e) => e.preventDefault()}><Icon name="arrowUp" size={20} /></button>}
         </div>
         <p className="composer2__note">{acct?.metered && !acct.unlimited ? <><button type="button" className="composer2__model" onClick={() => { haptic("select"); setPlans(true); }}>{meterLine(acct)}<span aria-hidden="true"> ›</span></button> · </> : null}Answers can be wrong. Check them against the sources.</p>
       </form>
@@ -386,7 +412,7 @@ const PLAIN_ERRORS: Record<string, string> = {
   offline: "You are offline. Your question is kept; try again when you are connected.",
   network: "The connection dropped before the answer came. Try again.",
   interrupted: "This answer was interrupted before it was saved. Try again.",
-  signin: "Open CyberJudah from Telegram to ask questions: your answers are saved to your Telegram account.",
+  signin: "Sign in from Account or open CyberJudah in Telegram to ask questions. Your answers stay with your account.",
 };
 
 function AssistantTurn({ t, index, question, last, busy, chatId, onRetry, onFollow, onPlans, onModel, onUsage, acct, onUseModel, onAccept }: { t: Turn; index: number; question: string; last: boolean; busy: boolean; chatId: string | null; onRetry: () => void; onFollow: (q: string) => void; onPlans: () => void; onModel: () => void; onUsage: () => void; acct: AskAccount | null; onUseModel: (id: string) => void; onAccept: (model: string, mc: number) => void }) {
@@ -610,7 +636,7 @@ function ShortCard({ m, acct, last, onPlans, onRetry, onUseModel }: { m?: MeterI
       <p className="creditcard__text">Your question is kept here. Ask it with the free model, or top up and ask again.</p>
       {last ? <div className="consent__actions">
         {free && free.id !== m?.model ? <button type="button" className="btn consent__go" onClick={() => onUseModel(free.id)}>Ask with {free.name} (free)</button> : null}
-        <button type="button" className={free && free.id !== m?.model ? "consent__alt" : "btn consent__go"} onClick={onPlans}>Top Up</button>
+        <button type="button" className={free && free.id !== m?.model ? "consent__alt" : "btn consent__go"} onClick={onPlans}>{nativeReader ? "View balance" : "Top Up"}</button>
         <button type="button" className="consent__alt" onClick={onRetry}>Ask again</button>
       </div> : null}
     </div>
@@ -668,7 +694,7 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
           <button type="button" className="msg__link" onClick={onUsage}>Usage history</button>
         </section>
 
-        {sale ? (
+        {sale && !app ? <p className="credits__closed">{nativeReader ? "Your linked balance and the free model work here. In-app top-ups are not available in this test build." : "Top-ups are available inside Telegram. Your existing balance and the free model work here."}</p> : sale ? (
           <>
             <h3 className="credits__label">Top Up</h3>
             {sale.pause ? <p className="credits__pause" role="status"><Icon name="clock" size={16} />{sale.pause.message}</p>
@@ -686,7 +712,7 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
           </>
         ) : null}
         {why ? <p className="credits__closed" role="alert">{why}</p> : null}
-        <p className="hint">Your chats, search, reading and PDFs stay free. Stars purchases are handled by Telegram. Your balance never expires. <a href="/terms" onClick={(e) => { e.preventDefault(); onClose(); navigate("/terms"); }}>Terms</a></p>
+        <p className="hint">Your chats, search, reading and PDFs stay free. Your balance never expires. <a href="/terms" onClick={(e) => { e.preventDefault(); onClose(); navigate("/terms"); }}>Terms</a></p>
       </div>
     </Sheet>
   );
