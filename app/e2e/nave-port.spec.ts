@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import aaronSnapshot from "./nave-aaron-snapshot.json" with { type: "json" };
 
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const resource = { kind: "nave", language: "en", revision: "nave-test" };
@@ -52,6 +53,25 @@ async function action(page: Page, name: string) {
 }
 
 for (const theme of ["light", "dark"]) {
+  test(`Nave displays the full Aaron article (${theme})`, async ({ page }) => {
+    await setup(page, theme);
+    // Full public English article from api.bible-strong.app/v1/naves/en/topics/aaron, revision nave-en-a3ca283196d0eb084276.
+    await page.route("**/api/nave/en/topics/aaron", route => route.fulfill({ json: aaronSnapshot }));
+    await page.goto("/nave/en/aaron");
+    const article = page.locator(".bs-nave-html");
+    await expect(article.locator('a[href^="v="]')).toHaveCount(77);
+    await expect(article).toContainText("Lineage of");
+    await expect(article).toContainText("Age of, at death");
+    await expect(article).toContainText("Death and burial of");
+    const lastLink = article.getByRole("link", { name: "PRIEST, HIGH", exact: true });
+    await expect(lastLink).toHaveAttribute("href", "w=priest");
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: test.info().outputPath(`nave-aaron-top-${theme}.png`) });
+    await lastLink.scrollIntoViewIfNeeded();
+    await expect(lastLink).toBeInViewport();
+    await page.screenshot({ path: test.info().outputPath(`nave-aaron-bottom-${theme}.png`) });
+  });
+
   test(`Nave renders and copies English Bible-reference labels without changing their destinations (${theme})`, async ({ page }) => {
     await setup(page, theme);
     const html = '<p><ul><li>Lineage of <br><a href="v=2-6-16,17,18,19,20">Exode 6:16-20</a>; <a href="v=13-6-2,3">1 Chroniques 6:2–3</a><p><li>Descendants of <br><a href="v=13-24">1 Chroniques 24</a><p><li>See <a href="w=adam">Adam</a> and <a href="v=1-1-1,2">Genesis 1:1–2</a></ul></p>';
