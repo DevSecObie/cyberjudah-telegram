@@ -19,7 +19,7 @@ test('Nave forwards English list, search and opaque cursor reads without user he
   assert.equal(new URL(url).pathname, '/v1/naves/en/topics');
   assert.equal(new URL(url).searchParams.get('cursor'), '%5B%22x%22%5D');
   assert.deepEqual(init.headers, { accept: 'application/json' });
-  assert.equal(init.redirect, 'error');
+  assert.equal(init.redirect, 'manual');
   assert.deepEqual((await response.json()).topics, [{ normalizedName: 'aaron', name: 'Aaron', initial: 'a' }]);
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
 });
