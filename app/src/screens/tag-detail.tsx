@@ -158,6 +158,7 @@ export function TagSections({ d }: { d: TagData | undefined }) {
     marks.length ? { id: "highlights", title: "Highlights", count: marks.length, body: () => marks.map((m, i) => m.kind === "highlight" ? <HighlightItem key={`h${i}`} item={m.h} now={now} /> : <AnnotationItem key={m.a.id} item={m.a} now={now} />) } : null,
     d.notes.length ? { id: "notes", title: "Notes", count: d.notes.length, body: () => d.notes.map((n) => <NoteItem key={n.note.id ?? `${n.slug}${n.chapter}${n.key}`} item={n} now={now} />) } : null,
     d.links.length ? { id: "links", title: "Links", count: d.links.length, body: () => d.links.map((l) => <LinkItem key={l.link.id ?? `${l.slug}${l.chapter}${l.key}`} item={l} now={now} />) } : null,
+    d.naves?.length ? { id: "naves", title: "Nave", count: d.naves.length, body: () => d.naves!.map((n) => <div className="tagd-item" key={n.normalizedName}><Link className="tagd-item__open" to={`/nave/en/${encodeURIComponent(n.normalizedName)}`}>{n.name}</Link><EntityChipList tags={n.tags} /></div>) } : null,
   ].filter((s): s is NonNullable<typeof s> => !!s);
   if (!sections.length) return null;
   return (

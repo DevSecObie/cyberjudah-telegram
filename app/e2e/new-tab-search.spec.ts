@@ -38,6 +38,7 @@ async function setup(page: Page) {
     return r.fulfill({ status: 404, body: "" });
   });
   await page.route("**/api/dictionary?*", r => r.fulfill({ json: { count: 2, page: 1, pages: 1, rows: [{ slug: "aaron", term: "Aaron" }, { slug: "abel", term: "Abel" }], related: [], total: 2 } }));
+  await page.route("**/api/nave/en/topics?*", r => r.fulfill({ json: { resource: { kind: "nave", language: "en", revision: "test" }, topics: [{ normalizedName: "abraham", name: "Abraham", initial: "a" }], limit: 20 } }));
   await page.goto(`/new${LAUNCH}`);
   await expect(page.locator(".nt-heading")).toBeVisible();
 }
@@ -108,9 +109,11 @@ test("Strong browses by letter with the alphabet; a code typed finds the word an
   await expect.poll(() => tabs(page)).toEqual(["b:/read/exodus/2", "n:/lexicon/G26"]);
 });
 
-test("Topics and the dictionary list their letter in their colour", async ({ page }) => {
+test("Nave and the dictionary list their letter in their colour", async ({ page }) => {
   await setup(page);
-  await page.getByRole("button", { name: "Topics", exact: true }).click();
+  const request = page.waitForRequest((r) => new URL(r.url()).pathname === "/api/nave/en/topics");
+  await page.getByRole("button", { name: "Nave", exact: true }).click();
+  expect(new URL((await request).url()).searchParams.get("limit")).toBe("20");
   await expect(sheet(page).getByRole("textbox", { name: "Search in Nave" })).toBeVisible();
   await expect(sheet(page).locator(".spick__title b")).toHaveText(["Abraham"]);
   await page.keyboard.press("Escape");
@@ -146,4 +149,20 @@ test("the Notes card never says there are none while the notes are read", async 
   await page.getByRole("button", { name: "Kept", exact: true }).click();
   await expect(sheet(page)).toContainText("Light was the first");
   expect(await page.evaluate(() => !!(window as unknown as { __empty?: boolean }).__empty)).toBe(false);
+});
+
+test("CyberJudah class Topics stay separate from the real Nave resource", async ({ page }) => {
+  await setup(page);
+  await page.getByRole("button", { name: "Topics", exact: true }).click();
+  await expect(page).toHaveURL(/\/topics$/);
+  await expect(page.getByRole("heading", { name: "Topics", exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Abraham", exact: true })).toHaveAttribute("href", /\/topics\/abraham$/);
+  await page.getByRole("searchbox", { name: "Search by word" }).fill("Babylon");
+  await expect(page.getByRole("link", { name: "Babylon", exact: true })).toHaveAttribute("href", /\/topics\/babylon$/);
+  await expect(page.getByRole("link", { name: "Abraham", exact: true })).toHaveCount(0);
+  await page.goto("/more");
+  await expect(page.getByRole("link", { name: /^Topics/ })).toHaveAttribute("href", /\/topics$/);
+  await page.getByRole("link", { name: "Nave Thematic Bible", exact: true }).click();
+  await expect(page).toHaveURL(/\/nave$/);
+  await expect(page.getByRole("heading", { name: "Nave thematic", exact: true })).toBeVisible();
 });

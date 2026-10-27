@@ -4,6 +4,13 @@ import { build } from 'esbuild';
 const bundle = await build({ entryPoints: ['src/lib/history.ts'], bundle: true, platform: 'node', format: 'esm', write: false });
 const { getHistoryItemKey, normalizeHistory, pushHistory, historyHref, MAX_HISTORY_BYTES, MAX_HISTORY_ITEMS } = await import(`data:text/javascript;base64,${Buffer.from(bundle.outputFiles[0].text).toString('base64')}`);
 const bible = (chapter = 1, at = 1) => ({ slug: 'genesis', chapter, name: `Genesis ${chapter}`, at });
+test('Nave has its own identity and encoded article route without replacing class-topic history', () => {
+  const rows = normalizeHistory([{ type: 'nave', slug: "aaron's rod", name: "Aaron's rod", at: 3 }, { type: 'topic', slug: 'aaron', name: 'Aaron', at: 2 }]);
+  assert.equal(rows.length, 2);
+  assert.equal(getHistoryItemKey(rows[0]), "nave:aaron's rod");
+  assert.equal(historyHref(rows[0]), "/nave/en/aaron's%20rod");
+  assert.equal(historyHref(rows[1]), '/topics/aaron');
+});
 test('legacy Bible records default to Bible, deduplicate by verse and keep chapter-at-verse routes', () => {
   const rows = normalizeHistory([bible(1, 2), { ...bible(1, 8), verse: 1 }, { ...bible(1, 6), verse: 2 }]);
   assert.equal(rows.length, 2);

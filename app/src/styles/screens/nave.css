@@ -1,0 +1,26 @@
+.bs-nave-theme { display: contents; }
+.screen.bs-list.bs-nave-list, .screen.bs-nave-detail { --gutter: 0px; gap: 0; }
+.bs-nave-detail > .bs-nave-html, .bs-nave-detail > .bs-nave-chips { max-width: 600px; width: 100%; margin-inline: auto; box-sizing: border-box; }
+.bs-nave-list .bs-section { margin-inline: 20px; }
+.bs-nave-list .bs-dictitem { margin-inline: 20px; border-color: var(--bs-border); }
+.bs-nave-list .bs-nave-item span { font-weight: 400; white-space: normal; text-overflow: clip; }
+.bs-nave-chips { padding-inline: 20px; }
+.bs-nave-html { padding: 8px 28px 48px; font-size: var(--nave-font-size, 19px); line-height: var(--nave-line-height, 32px); color: var(--bs-default); overflow-wrap: break-word; user-select: text; }
+.bs-nave-html--compact { padding: 0; }
+.bs-nave-html p { margin-block: var(--nave-font-size, 19px); }
+#root .bs-nave-html a, .bs-nave-html a { color: var(--bs-primary); text-decoration: underline; cursor: pointer; }
+.bs-nave-html :is(strong, b, bold) { color: var(--bs-quart); font-weight: bold; }
+.bs-nave-html :is(em, i) { font-style: italic; }
+.bs-nave-html ul { margin: 0; padding: 0; list-style-type: none; }
+.bs-nave-html ol { margin-block: var(--nave-font-size, 19px); padding-left: calc(var(--nave-font-size, 19px) * 2); }
+.bs-nave-html :is(h1, h2, h3) { font-family: inherit; font-weight: bold; margin-block: var(--nave-font-size, 19px); }
+.bs-nave-html h1 { font-size: 2em; line-height: calc(var(--nave-line-height) * 2); }
+.bs-nave-html h2 { font-size: 1.5em; line-height: calc(var(--nave-line-height) * 1.5); }
+.bs-nave-html h3 { font-size: 1.17em; line-height: calc(var(--nave-line-height) * 1.17); }
+.bs-nave-html img { max-width: 100%; height: auto; }
+.bs-nave-html blockquote { margin: var(--nave-font-size, 19px) 24px; }
+.bs-nave-verse { display: grid; gap: 20px; padding: 20px 20px 32px; }
+.bs-nave-verse__group { padding: 13px 14px; border-radius: 20px; background: var(--bs-reverse); box-shadow: 0 2px 7px color-mix(in srgb, var(--bs-primary) 10%, transparent); }
+.bs-nave-verse__group > p { margin: 0; font: 400 14px var(--font-title); color: var(--bs-grey); }
+.bs-nave-verse__links { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+#root .bs-nave-verse__links a { padding: 5px 12px; border-radius: 5px; background: color-mix(in srgb, var(--bs-quint) 10%, transparent); color: var(--bs-quint); font: 400 14px var(--font-title); text-decoration: none; }

@@ -8,7 +8,7 @@ export function readerCollection(key: string): MigrationRecord["collection"] | u
   if (/^(bs_n|nt)_.+_\d+$/.test(key)) return "notes";
   if (/^bs_l_.+_\d+$/.test(key)) return "links";
   if (key === "bs_bm" || key === "bm") return "bookmarks";
-  if (key === "bs_tags") return "tags";
+  if (key === "bs_tags" || /^bs_nv_[a-f0-9]{64}$/.test(key)) return "tags";
   if (/^rel_.+_\d+$/.test(key) || key === "rel_other") return "relations";
 }
 const isList = (key: string) => key === "bs_bm" || key === "bm" || /^rel_.+_\d+$/.test(key) || key === "rel_other";

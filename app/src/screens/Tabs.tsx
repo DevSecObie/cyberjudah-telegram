@@ -35,6 +35,7 @@ const PERSONAL: Item[] = [
 const LIBRARY: Item[] = [
   ["/lexicon", "Strong", "Explore Greek and Hebrew words"],
   ["/topics", "Topics", "Explore what the classes taught, by theme"],
+  ["/nave", "Nave", "Nave thematic"],
   ["/dictionary", "Dictionary", "Look up definitions"],
   ["/concordance", "Concordance", "Who cites each chapter, book by book"],
   ["/precepts", "Precepts", "Every subject scripture speaks to"],
@@ -329,7 +330,7 @@ function GroupHeader({ group, width }: { group: Group; width: number }) {
  */
 const BS_ICONS: [RegExp, string, string][] = [
   [/^\/new/, "plus", "grey"], [/^\/(bible|read)/, "book-open", "tertiary"], [/^\/search/, "search", "tertiary"], [/^\/lexicon/, "lexique", "primary"],
-  [/^\/dictionary/, "dictionary", "secondary"], [/^\/topics/, "nave", "quint"], [/^\/studies/, "feather", "tertiary"], [/^\/(bookmarks|tags)/, "file-text", "color2"],
+  [/^\/dictionary/, "dictionary", "secondary"], [/^\/nave/, "nave", "quint"], [/^\/topics/, "nave", "quint"], [/^\/studies/, "feather", "tertiary"], [/^\/(bookmarks|tags)/, "file-text", "color2"],
 ];
 const MATERIAL: [RegExp, string][] = [
   [/^\/(plans?|study)(\/|\?|$)/, "M14 10H2v2h12v-2zm0-4H2v2h12V6zM2 16h8v-2H2v2zm19.5-4.5L23 13l-6.99 7-4.51-4.5L13 14l3.01 3 5.49-5.5z"],

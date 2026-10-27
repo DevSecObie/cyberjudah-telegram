@@ -4,6 +4,14 @@ import { build } from 'esbuild';
 const out = new URL('./.build/sync-records.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/sync/records.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
 const { readerRecords, readerEntries, readerValue, deviceRecords } = await import(out);
+test('English Nave tag records retain their identity through personal-data conversion', async () => {
+  const key = `bs_nv_${'a'.repeat(64)}`;
+  const value = { normalizedName: 'aaron', name: 'Aaron', date: 123, tags: { study: true } };
+  const rows = await readerRecords({ [key]: JSON.stringify(value) });
+  assert.ok(rows.length);
+  assert.ok(rows.every(row => row.collection === 'tags' && row.data.key === key));
+  assert.deepEqual(JSON.parse(readerValue(key, Object.fromEntries(rows.map(row => [row.data.entry, row.data.value])))), value);
+});
 test('reader values retain their shape and deterministic identity across both source passes', async () => {
   const values = { bs_h_genesis_1: JSON.stringify({ 1: { color: 'color3', date: 123, tags: { creation: true } } }), bs_n_genesis_1: JSON.stringify({ '1/2': { id: 'old-note', title: 'Saved', description: 'Unchanged words', date: 456 } }), bs_bm: JSON.stringify([{ id: 'a', name: 'Creation', book: 'genesis', chapter: 1, date: 1 }]), hl: JSON.stringify({ 'john/3': '16:y' }), rel_genesis_1: JSON.stringify([{ id: 'z', endpoints: [] }, { id: 'a', endpoints: [] }]), palette: 'night' };
   const original = JSON.stringify(values), cloud = await readerRecords(values);

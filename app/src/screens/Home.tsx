@@ -16,7 +16,7 @@ import { Feather } from "@/bible/icons";
 import { Card, Icon, Img, Screen, Section, thumbOf, type IconName } from "@/ui/ui";
 import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
-import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
+import { NaveOfTheDay, PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
 
 import { seriesLabel, seriesOf, showMatcher, showOf, type Series } from "@/lib/series";
 import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
@@ -239,6 +239,7 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
         <StrongOfTheDay lang="greek" compact={drawer} />
         <StrongOfTheDay lang="hebrew" compact={drawer} />
         <TopicOfTheDay />
+        <NaveOfTheDay />
         <WordOfTheDay />
         <PersonOfTheDay />
         <PreceptOfTheDay />

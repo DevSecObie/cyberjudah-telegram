@@ -19,6 +19,7 @@ import type { TimelineData } from "@shared/timeline.mjs";
 import { parseReference } from "../../../bot/src/refs.mjs";
 import bookRows from "../../../bot/data/bs-books.json";
 import { findStrongs, gloss, useStrongsIndex } from "./Lexicon";
+import { navePath, useNavePage } from "@/api/nave";
 
 /**
  * Bible Strong's scoped Search sheet (commandPalette/GlobalCommandPalette over
@@ -28,7 +29,7 @@ import { findStrongs, gloss, useStrongsIndex } from "./Lexicon";
  */
 export type Scope = "bible" | "timeline" | "study" | "notes" | "strong" | "nave" | "dictionary";
 /** The cards that open the sheet (Bible Strong's paletteScopes), by the page each one would open. */
-export const SCOPES: Record<string, Scope> = { "/bible": "bible", "/timeline": "timeline", "/studies": "study", "/bookmarks": "notes", "/lexicon": "strong", "/topics": "nave", "/dictionary": "dictionary" };
+export const SCOPES: Record<string, Scope> = { "/bible": "bible", "/timeline": "timeline", "/studies": "study", "/bookmarks": "notes", "/lexicon": "strong", "/nave": "nave", "/dictionary": "dictionary" };
 
 type Kind = "passages" | "timeline" | "studies" | "notes" | "strong" | "nave" | "dictionary";
 type Item = { id: string; kind: Kind; title: string; chip?: string; subtitle?: string; description?: string; lines?: number; path: string };
@@ -177,15 +178,11 @@ function useStrongs(enabled: boolean, settled: string, letter: string) {
   return { items, loading: enabled && idx.isPending && !idx.isError, hasMore: rows.length > limit, more: () => setLimit((l) => l + PAGE), failed: enabled && idx.isError ? { retry: () => void idx.refetch() } : null };
 }
 
-/** The topics (Bible Strong's Nave) under the letter, or those whose name holds what is typed. */
+/** Bible Strong's real Nave resource, under the letter or matching the search. */
 function useTopics(enabled: boolean, settled: string, letter: string) {
-  const all = useQuery({ queryKey: ["topics"], queryFn: data.topics, enabled });
-  const [limit, setLimit] = useState(PAGE);
-  useEffect(() => setLimit(PAGE), [settled, letter]);
-  const rows = useMemo(() => (all.data ?? []).filter((t) => (t.notes || t.cases) && !t.slug.startsWith("verdict-"))
-    .filter((t) => settled ? t.label.toLowerCase().includes(settled.toLowerCase()) : firstLetter(t.label) === letter), [all.data, settled, letter]);
-  const items: Item[] = rows.slice(0, limit).map((t) => ({ id: `nave:${t.slug}`, kind: "nave", title: t.label, subtitle: "Nave", path: `/topics/${t.slug}` }));
-  return { items, loading: enabled && all.isPending, hasMore: rows.length > limit, more: () => setLimit((l) => l + PAGE), failed: all.isError ? { retry: () => void all.refetch() } : null };
+  const query = useNavePage("en", settled, letter, enabled, 20);
+  const items: Item[] = (query.data?.pages.flatMap((p) => p.topics) ?? []).map((t) => ({ id: `nave:${t.normalizedName}`, kind: "nave", title: t.name, subtitle: "Nave", path: navePath("en", t.normalizedName) }));
+  return { items, loading: enabled && query.isPending, hasMore: query.hasNextPage, more: () => { if (!query.isFetchingNextPage) void query.fetchNextPage(); }, failed: query.isError ? { retry: () => void query.refetch() } : null };
 }
 
 /** The dictionary's words under the letter, or found by the server, a page at a time. */
