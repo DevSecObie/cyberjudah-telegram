@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { ACCOUNT_SESSION_KEY, useAccountSession } from "@/lib/account-session";
+import { useQueryClient } from "@tanstack/react-query";
 import { saveFile } from "@/studies/files";
 import { useState } from "react";
 import { useNavigate } from "react-router";
@@ -28,7 +29,7 @@ export function Privacy() {
   const [agreed, setAgreed] = useState(consented);
   const inTelegram = !!app?.initData;
   const syncing = import.meta.env.VITE_ACCOUNT_SYNC === "true";
-  const session = useQuery({ queryKey: ["browser-session"], enabled: !inTelegram, queryFn: () => api<{ user: unknown }>("/api/auth/status"), retry: false });
+  const session = useAccountSession(), queries = useQueryClient();
   const signedIn = inTelegram || !!session.data?.user;
 
   const sendCopy = async () => {
@@ -43,12 +44,14 @@ export function Privacy() {
   };
   const deleteAll = async () => {
     const synced = syncing ? ", your synced highlights, notes, bookmarks, tags, links and personal studies" : "";
-    if (!(await confirm(`Delete everything CyberJudah keeps about you? Your saved Ask chats, reading reminder, daily verse, Ask balance (any balance left is lost), top-up reminder, class-note requests, cloud study backup${synced} and browser sign-ins. This cannot be undone.`))) return;
+    if (!(await confirm(`Delete everything CyberJudah keeps about you? Your saved Ask chats, reading reminder, daily verse, Ask balance (any balance left is lost), top-up reminder, class-note requests, cloud study backup${synced} and browser sign-ins and linked sign-in access. This cannot be undone.`))) return;
     setBusy("delete"); setStatus("");
     try {
       const r = await api<{ ok: boolean; summary: string; deleted: Deleted }>("/api/privacy/delete", { method: "POST", json: { confirm: "delete" } });
       // The Ask conversation kept on this device for the reader goes too.
       try { for (const k of Object.keys(localStorage)) if (k.startsWith("cj:ask")) localStorage.removeItem(k); } catch { /* nothing kept */ }
+      (await import("./Ask")).clearAskSession();
+      if (!inTelegram) queries.setQueryData(ACCOUNT_SESSION_KEY, { available: session.data?.available ?? true, user: null });
       haptic("success"); setStatus(r.summary);
     } catch { setStatus("Deletion could not finish. Some data may already have been removed. Please try again."); }
     finally { setBusy(""); }
@@ -69,7 +72,7 @@ export function Privacy() {
 
       <Section title="What Stays with You">
         <p>Personal study documents and phrase marks are stored on your device. Account → Export all personal studies makes a file backup; Account also lets you delete these local records. If you choose Save cloud backup, an encrypted snapshot is kept on CyberJudah’s servers under your coded account ID until you replace or delete it. Account-data deletion removes that cloud snapshot and revokes browser sign-ins; it does not delete local documents or files you exported.</p>
-        <p>Browser sign-in uses Telegram to verify your account. An encrypted session record and a secure, HTTP-only browser cookie keep you signed in for up to one day. Signing out removes that browser’s session; deleting your account data revokes all browser sessions.</p>
+        <p>Sign in through Telegram or a linked Firebase account using Google, Apple or email. Linking requires a recent sign-in to both accounts; matching email addresses alone never joins accounts. Your linked sign-ins share the same Ask balance and encrypted chats. Firebase verifies and refreshes its own sign-in tokens. An encrypted session record and a secure, HTTP-only browser cookie keep you signed in for up to one day. Signing out removes that browser’s session; deleting your account data revokes all browser sessions.</p>
         <p>{syncing ? "Signed in, your highlights, notes, bookmarks, tags, links and personal studies also follow your account between your devices and the website, kept in Google Firebase under your Telegram ID until Delete my data removes them. " : ""}Your reading history, reading plan and settings are kept on your device and in Telegram's own cloud storage for this app, not on CyberJudah's servers. A backup from Settings goes to your own chat with the bot.</p>
         <p>If you use the Sabbath screen, your location, rounded to three decimal places (about 100 metres), is kept the same way, in Telegram's cloud storage (in this browser when CyberJudah is opened outside Telegram), until you tap Forget. Sunset is worked out on your device, and the location is not kept on CyberJudah's servers; like your settings, it goes into a backup you send to your chat.</p>
       </Section>

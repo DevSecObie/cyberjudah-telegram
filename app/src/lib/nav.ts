@@ -1,10 +1,11 @@
+import { readerRouteAllowed } from "@/native/platform";
 import type { IconName } from "@/ui/ui";
 
 /** The app's main sections, each with the paths it covers. */
 export type NavId = "home" | "search" | "bible" | "classes" | "ask" | "tabs" | "library" | "plan" | "bookmarks" | "sabbath" | "precepts" | "law" | "people" | "lexicon" | "history";
 export type NavItem = { id: NavId; label: string; icon: IconName | "count"; path: string; match: RegExp };
 
-export const NAV_ITEMS: NavItem[] = [
+const ALL_NAV_ITEMS: NavItem[] = [
   { id: "home", label: "Home", icon: "home", path: "/", match: /^\/$/ },
   { id: "search", label: "Search", icon: "search", path: "/search", match: /^\/search/ },
   { id: "bible", label: "Bible", icon: "book-open", path: "/bible", match: /^\/(bible|read)(\/|$)/ },
@@ -21,3 +22,5 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "lexicon", label: "Lexicon", icon: "spark", path: "/lexicon", match: /^\/lexicon/ },
   { id: "history", label: "History", icon: "clock", path: "/history", match: /^\/history/ },
 ];
+
+export const NAV_ITEMS = ALL_NAV_ITEMS.filter(item => readerRouteAllowed(item.path));

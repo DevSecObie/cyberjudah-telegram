@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
@@ -301,7 +302,7 @@ function Top({ term, aiQ, refPath, taught, library, spoken, hits, counts, onScop
   const scopeOf = (k: string): Scope => (Object.entries(SCOPE_KINDS).find(([, ks]) => ks.includes(k))?.[0] ?? "notes") as Scope;
   return (
     <>
-      <AiAnswer q={aiQ} />
+      {!nativeReader && <AiAnswer q={aiQ} />}
       {refPath ? (
         <button type="button" data-result="" className="srch__ref" onClick={onOpenRef}>
           <span className="srch__refIcon"><Icon name="book" size={22} /></span>

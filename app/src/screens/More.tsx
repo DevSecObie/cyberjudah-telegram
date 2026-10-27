@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 
@@ -66,7 +67,7 @@ export function MoreBody() {
       {/* Bible Strong's account card at the top of the menu: who is signed in (here, the Telegram user). */}
       <Link className="more__account" to="/settings/account" onClick={() => haptic("select")}>
         <span className="more__avatar" aria-hidden="true">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? "?")}</span>
-        <span><b>{user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "Your account"}</b><small>{user?.username ? `@${user.username}` : "Synced with your Telegram account"}</small></span>
+        <span><b>{user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "Your account"}</b><small>{user?.username ? `@${user.username}` : user ? "Connected with Telegram" : "Sign in or keep studies on this device"}</small></span>
         <Icon name="chevron" size={20} />
       </Link>
       <Card icon="bookmark" title="Yours" items={[
@@ -95,8 +96,8 @@ export function MoreBody() {
         { icon: "book", label: "Help & reading guide", color: C.teal, href: "/settings/help" },
         // Bible Strong's "Contact the developer": here, a chat with the bot (the Mini App's own bot).
         { icon: "chat", label: "Contact us", color: C.blue, onClick: () => openLink(APP_URL.replace(/\/[^/]+$/, "")) },
-        { icon: "star", label: "Support CyberJudah", color: C.amber, href: "/settings/donate" },
-        { icon: "share", label: "Share the app", color: C.teal, onClick: () => void share({ kind: "app", title: "CyberJudah", text: "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" }) },
+        nativeReader ? null : { icon: "star", label: "Support CyberJudah", color: C.amber, href: "/settings/donate" },
+        { icon: "share", label: "Share the app", color: C.teal, onClick: () => void share({ kind: "app", title: "CyberJudah", text: nativeReader ? "The KJV with the Apocrypha, your notes and study resources." : "The KJV with the Apocrypha, and everything taught from it, in Telegram.", sitePath: "/" }) },
         { icon: "link", label: "Open the full website", color: C.blue, onClick: () => openLink(SITE_URL) },
         { icon: "link", label: "The notes on GitHub", color: C.slate, onClick: () => openLink("https://github.com/DevSecObie/cyberjudah") },
       ]} />
