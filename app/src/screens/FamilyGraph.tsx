@@ -9,18 +9,19 @@ import { advanceMotion, avatarFrame, connectionFrame, createLayers, finishLayers
 
 /**
  * Bible Strong's relationship graph (StrongEntityRelationGraph), on our people: the person in the
- * middle, their father, mother, spouses, brothers and sisters and children around them. A tap on
+ * middle, their father, mother, spouses, brothers and sisters and children around them, and the
+ * forefathers and descendants the KJV names without the generations between. A tap on
  * one walks the family: they come to the middle with their own family around them, the one you
  * came from left at the opposite side with a way back. More than fit are paged; the footer goes
  * back a step, back to the start, or through the pages; "View profile" opens whoever is in the
  * middle.
  */
-type Relation = "father" | "mother" | "partner" | "sibling" | "offspring";
+type Relation = "father" | "mother" | "forefather" | "partner" | "sibling" | "offspring" | "descendant";
 type Rel = { relation: Relation; id: string; name: string; image?: Person["image"] };
 type Step = { person: Person; via: Rel; position: number; page: number };
 
 const HEIGHT = 410, CENTER_Y = 188, CENTER = 82, NODE = 58, NODE_W = 92;
-const PRIORITY: Relation[] = ["father", "mother", "partner", "sibling", "offspring"];
+const PRIORITY: Relation[] = ["father", "mother", "forefather", "partner", "sibling", "offspring", "descendant"];
 // Where relations go, in order, and the side opposite each place (where the one you came from sits).
 const ORDER = [3, 1, 5, 2, 4, 0], OPPOSITE = [5, 4, 3, 2, 1, 0];
 const ROOT_PAGE = 6, NESTED_PAGE = 5;
@@ -28,14 +29,14 @@ const positionOf = (i: number, w: number) => [
   { x: w / 2, y: 52 }, { x: 54, y: 284 }, { x: w - 54, y: 284 }, { x: 54, y: 92 }, { x: w - 54, y: 92 }, { x: w / 2, y: 324 },
 ][i] ?? { x: w / 2, y: 324 };
 const VISUAL: Record<Relation, { icon: FeatherName; tone: string }> = {
-  father: { icon: "arrow-up", tone: "var(--accent)" }, mother: { icon: "arrow-up", tone: "var(--accent)" },
-  partner: { icon: "heart", tone: "var(--danger)" }, offspring: { icon: "arrow-down", tone: "var(--success, #34d399)" },
+  father: { icon: "arrow-up", tone: "var(--accent)" }, mother: { icon: "arrow-up", tone: "var(--accent)" }, forefather: { icon: "arrow-up", tone: "var(--accent)" },
+  partner: { icon: "heart", tone: "var(--danger)" }, offspring: { icon: "arrow-down", tone: "var(--success, #34d399)" }, descendant: { icon: "arrow-down", tone: "var(--success, #34d399)" },
   sibling: { icon: "users", tone: "var(--gold, #f59e0b)" },
 };
 
 /** Everyone around a person, in Bible Strong's order, each person once. */
 export function relationsOf(p: Person): Rel[] {
-  const lists: Record<Relation, Person["father"]> = { father: p.father, mother: p.mother, partner: p.partners, sibling: p.siblings, offspring: p.children };
+  const lists: Record<Relation, Person["father"]> = { father: p.father, mother: p.mother, partner: p.partners, sibling: p.siblings, offspring: p.children, forefather: p.line ?? [], descendant: p.descendants ?? [] };
   const seen = new Set<string>(); const out: Rel[] = [];
   for (const relation of PRIORITY) for (const r of lists[relation]) if (!seen.has(r.id) && r.id !== p.id) { seen.add(r.id); out.push({ relation, id: r.id, name: r.name, ...(r.image ? { image: r.image } : {}) }); }
   return out;
@@ -50,6 +51,8 @@ export function relationLabel(relation: Relation, kind: AvatarKind): string {
     case "partner": return f ? "Wife" : m ? "Husband" : "Partner";
     case "sibling": return f ? "Sister" : m ? "Brother" : "Sibling";
     case "offspring": return f ? "Daughter" : m ? "Son" : "Child";
+    case "forefather": return "Forefather";
+    case "descendant": return "Descendant";
   }
 }
 
@@ -244,7 +247,7 @@ export function FamilyGraph({ person, onOpenProfile }: { person: Person; onOpenP
 
 /** How the one you came from is related to the one in the middle now. */
 function inverse(r: Relation, kind: AvatarKind): Relation {
-  return r === "father" || r === "mother" ? "offspring" : r === "offspring" ? (kind === "female" ? "mother" : "father") : r;
+  return r === "father" || r === "mother" ? "offspring" : r === "offspring" ? (kind === "female" ? "mother" : "father") : r === "forefather" ? "descendant" : r === "descendant" ? "forefather" : r;
 }
 
 function Satellite({ at, id, name, src, kind, label, relation, back, loading, onPress, motionStyle, selectedProgress }: {

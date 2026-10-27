@@ -65,3 +65,22 @@ for (const [type, label] of [["Male", "Son"], ["Female", "Daughter"], ["Other", 
     });
   }
 }
+
+test("family labels: a forefather the KJV names without the generations between, and back as a descendant", async ({ page }) => {
+  const make = (id: string, family = {}) => ({ id, name: id, names: [id], type: "Male", description: "", tribe: "", father: [], mother: [], siblings: [], partners: [], children: [], verses: [], taught: [], source: { name: "Label fixture", license: "", url: "" }, ...family });
+  const records: Record<string, ReturnType<typeof make>> = {
+    root: make("root", { father: [{ id: "father", name: "father" }], line: [{ id: "forefather", name: "forefather", verses: ["1-maccabees/2/1"] }] }),
+    father: make("father", { children: [{ id: "root", name: "root" }] }),
+    forefather: make("forefather", { descendants: [{ id: "root", name: "root", verses: ["1-maccabees/2/1"] }, { id: "other", name: "other", verses: ["1-maccabees/14/29"] }] }),
+    other: make("other", { line: [{ id: "forefather", name: "forefather", verses: ["1-maccabees/14/29"] }] }),
+  };
+  await setup(page, { people: Object.values(records) });
+  await page.route(/\/api\/people\/(root|father|forefather)\.json$/, r => r.fulfill({ json: records[new URL(r.request().url()).pathname.split("/").pop()!.slice(0, -5)] }));
+  await page.goto("/person/root");
+  const graph = page.locator(".fg");
+  await expect(graph.locator(".fg__chip")).toHaveText(["Father", "Forefather"]);
+  await graph.getByRole("button", { name: "Forefather, forefather", exact: true }).click();
+  await expect(graph.locator(".fg__label--center b")).toHaveText("forefather");
+  await expect(graph.locator(".fg__sat .fg__chip")).toHaveText(["Descendant", "Descendant"]);
+  await expect(graph.getByRole("button", { name: "Descendant, other", exact: true })).toBeVisible();
+});

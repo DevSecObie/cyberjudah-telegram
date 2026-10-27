@@ -118,7 +118,7 @@ const lookUpWord: Tool = async (env, input, ctx, emit, line, add, resources = {}
 };
 
 type PersonRef = { id: string; name: string };
-type PersonFull = { id: string; name: string; names?: string[]; description?: string; type?: string; tribe?: string; first?: string; verses?: number; father?: PersonRef[]; mother?: PersonRef[]; siblings?: PersonRef[]; partners?: PersonRef[]; children?: PersonRef[]; summary?: string; classes?: unknown[] };
+type PersonFull = { id: string; name: string; names?: string[]; description?: string; type?: string; tribe?: string; first?: string; verses?: number; father?: PersonRef[]; mother?: PersonRef[]; siblings?: PersonRef[]; partners?: PersonRef[]; children?: PersonRef[]; line?: PersonRef[]; descendants?: PersonRef[]; summary?: string; classes?: unknown[] };
 
 const person: Tool = async (env, input, ctx, emit, line) => {
   const name = str(input.name, 80);
@@ -143,7 +143,7 @@ const person: Tool = async (env, input, ctx, emit, line) => {
   if (!p) return { content: `${name}'s entry could not be read just now.`, error: true };
   const fam = (label: string, list?: PersonRef[]) => (list?.length ? `${label}: ${list.map((x) => x.name).join(", ")}.` : "");
   const pic = await picture(env, `people/${p.id}-256.webp`);
-  const text = [p.description ? `${p.description}.` : "", p.names && p.names.length > 1 ? `Also called: ${p.names.join(", ")}.` : "", p.tribe ? `Tribe or people: ${p.tribe}.` : "", fam("Father", p.father), fam("Mother", p.mother), fam("Brothers and sisters", p.siblings), fam("Husbands and wives", p.partners), fam("Children", p.children), p.first ? `First named at ${p.first.replace(/\//g, " ")}.` : "", p.verses ? `Named in ${p.verses} verses.` : "", p.summary ?? "", pic ? `Picture: ${pic}` : ""].filter(Boolean).join(" ");
+  const text = [p.description ? `${p.description}.` : "", p.names && p.names.length > 1 ? `Also called: ${p.names.join(", ")}.` : "", p.tribe ? `Tribe or people: ${p.tribe}.` : "", fam("Father", p.father), fam("Mother", p.mother), fam("Brothers and sisters", p.siblings), fam("Husbands and wives", p.partners), fam("Children", p.children), fam("Forefathers named without the generations between", p.line), fam("Descendants named without the generations between", p.descendants), p.first ? `First named at ${p.first.replace(/\//g, " ")}.` : "", p.verses ? `Named in ${p.verses} verses.` : "", p.summary ?? "", pic ? `Picture: ${pic}` : ""].filter(Boolean).join(" ");
   return { content: line(p.name, text, `/person/${encodeURIComponent(p.id)}`) };
 };
 
