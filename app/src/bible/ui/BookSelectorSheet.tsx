@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type MouseEvent } from "react";
 
 import type { Book } from "@/api/data";
 import { expand, type Progress } from "@/lib/marks";
@@ -15,17 +15,23 @@ import { HeaderPicker } from "./HeaderPicker";
 type Sort = "classical" | "alphabetical"; type Layout = "list" | "grid"; type Verses = "without-verses" | "with-verses";
 const pref = <T extends string>(k: string, d: T): T => { try { return (localStorage.getItem(k) as T) || d; } catch { return d; } };
 const setPref = (k: string, v: string) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
-/** React Native Web's TouchableBox onLongPress (500 ms): the press that fires it does not also click. */
-function longPress(onLong?: () => void) {
-  if (!onLong) return {};
-  let timer: ReturnType<typeof setTimeout> | null = null, fired = false;
-  const clear = () => { if (timer) clearTimeout(timer); timer = null; };
-  return {
-    onPointerDown: () => { fired = false; clear(); timer = setTimeout(() => { fired = true; haptic("select"); onLong(); }, 500); },
+/**
+ * A tile with React Native Web's TouchableBox onLongPress (500 ms): the press that fires it does not
+ * also click. Its timer lives in a ref, so a render during the press cannot orphan it, and it is
+ * cleared when the tile goes.
+ */
+function PressTile({ onLong, children, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { onLong?: () => void }) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null), fired = useRef(false), long = useRef(onLong);
+  long.current = onLong;
+  const clear = () => { if (timer.current) clearTimeout(timer.current); timer.current = null; };
+  useEffect(() => clear, []);
+  const press = onLong ? {
+    onPointerDown: () => { fired.current = false; clear(); timer.current = setTimeout(() => { timer.current = null; fired.current = true; haptic("select"); long.current?.(); }, 500); },
     onPointerUp: clear, onPointerLeave: clear, onPointerCancel: clear,
-    onClickCapture: (e: { preventDefault: () => void; stopPropagation: () => void }) => { if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; } },
-    onContextMenu: (e: { preventDefault: () => void }) => e.preventDefault(),
-  };
+    onClickCapture: (e: MouseEvent<HTMLButtonElement>) => { if (fired.current) { e.preventDefault(); e.stopPropagation(); fired.current = false; } },
+    onContextMenu: (e: MouseEvent<HTMLButtonElement>) => e.preventDefault(),
+  } : {};
+  return <button type="button" {...props} {...press}>{children}</button>;
 }
 
 export function BookSelectorSheet({ open, onClose, books, current, onSelect, onLongSelect, loadVerseCount, progress = {} }: { progress?: Progress; open: boolean; onClose: () => void; books: Book[]; current: { slug: string; chapter: number }; onSelect: (slug: string, chapter: number, verse?: number) => void; onLongSelect?: (slug: string, chapter: number, verse: number) => void; loadVerseCount: (slug: string, chapter: number) => Promise<number> }) {
@@ -103,7 +109,7 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, onL
       {verseSheet ? (
         <HeaderPicker open={open} onClose={() => setVerseSheet(null)} snapPoints={[0.5]} centerTitle title="Go to verse">
           <div className="bs-versegrid">
-            {Array.from({ length: verseSheet.count }, (_, i) => i + 1).map((v) => <button key={v} type="button" aria-label={`Verse ${v}`} title={`Verse ${v}`} className="bs-versetile bs-versetile--48" onClick={() => { haptic("select"); onSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }} {...longPress(onLongSelect && (() => { onLongSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }))}>{v}</button>)}
+            {Array.from({ length: verseSheet.count }, (_, i) => i + 1).map((v) => <PressTile key={v} type="button" aria-label={`Verse ${v}`} title={`Verse ${v}`} className="bs-versetile bs-versetile--48" onClick={() => { haptic("select"); onSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); }} onLong={onLongSelect && (() => { onLongSelect(verseSheet.book.slug, verseSheet.chapter, v); setVerseSheet(null); onClose(); })}>{v}</PressTile>)}
           </div>
         </HeaderPicker>
       ) : null}
@@ -112,12 +118,12 @@ export function BookSelectorSheet({ open, onClose, books, current, onSelect, onL
 }
 
 function ChapterGrid({ book, read, selectedChapter, onPick, onLongPick }: { book: Book; read: Set<number>; selectedChapter?: number; onPick: (c: number) => void; onLongPick?: (c: number) => void }) {
-  return <div className="bs-chaptergrid">{book.chapterIds.map((c) => <button key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} aria-pressed={c === selectedChapter} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile bs-chaptertile--48" style={{ background: c === selectedChapter ? "var(--bs-light-grey)" : undefined, color: c === selectedChapter ? "var(--bs-primary)" : undefined, fontWeight: c === selectedChapter ? "bold" : undefined }} onClick={() => onPick(c)} {...longPress(onLongPick && (() => onLongPick(c)))}>{c}</button>)}</div>;
+  return <div className="bs-chaptergrid">{book.chapterIds.map((c) => <PressTile key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} aria-pressed={c === selectedChapter} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile bs-chaptertile--48" style={{ background: c === selectedChapter ? "var(--bs-light-grey)" : undefined, color: c === selectedChapter ? "var(--bs-primary)" : undefined, fontWeight: c === selectedChapter ? "bold" : undefined }} onClick={() => onPick(c)} onLong={onLongPick && (() => onLongPick(c))}>{c}</PressTile>)}</div>;
 }
 
 /** BookItem's chapters under an opened book: 60 px tiles, 10 px apart, centred within 500 px; the chapter being read marked as in ChapterGrid. */
 function ChapterTiles({ book, read, selectedChapter, onPick, onLongPick }: { book: Book; read: Set<number>; selectedChapter?: number; onPick: (c: number) => void; onLongPick?: (c: number) => void }) {
-  return <div className="bs-chaptertiles">{book.chapterIds.map((c) => <button key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} aria-pressed={c === selectedChapter} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile" style={{ background: c === selectedChapter ? "var(--bs-light-grey)" : undefined, color: c === selectedChapter ? "var(--bs-primary)" : undefined, fontWeight: c === selectedChapter ? "bold" : undefined }} onClick={() => onPick(c)} {...longPress(onLongPick ? () => onLongPick(c) : undefined)}>{c}</button>)}</div>;
+  return <div className="bs-chaptertiles">{book.chapterIds.map((c) => <PressTile key={c} type="button" aria-label={`Chapter ${c}`} title={`Chapter ${c}`} aria-pressed={c === selectedChapter} data-read={read.has(c) ? "" : undefined} className="bs-chaptertile" style={{ background: c === selectedChapter ? "var(--bs-light-grey)" : undefined, color: c === selectedChapter ? "var(--bs-primary)" : undefined, fontWeight: c === selectedChapter ? "bold" : undefined }} onClick={() => onPick(c)} onLong={onLongPick ? () => onLongPick(c) : undefined}>{c}</PressTile>)}</div>;
 }
 
 /** How far through a book: "18/50" beside a small ring, a check when it is all read. */
