@@ -41,7 +41,7 @@ export function relationsOf(p: Person): Rel[] {
   return out;
 }
 
-/** Bible Strong specializes partner and sibling labels only when the target's gender is known. */
+/** Specialize family labels only when the target's gender is known. */
 export function relationLabel(relation: Relation, kind: AvatarKind): string {
   const f = kind === "female", m = kind === "male";
   switch (relation) {
@@ -49,7 +49,7 @@ export function relationLabel(relation: Relation, kind: AvatarKind): string {
     case "mother": return "Mother";
     case "partner": return f ? "Wife" : m ? "Husband" : "Partner";
     case "sibling": return f ? "Sister" : m ? "Brother" : "Sibling";
-    case "offspring": return "Offspring";
+    case "offspring": return f ? "Daughter" : m ? "Son" : "Child";
   }
 }
 

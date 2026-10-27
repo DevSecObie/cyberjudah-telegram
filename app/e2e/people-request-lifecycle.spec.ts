@@ -78,9 +78,9 @@ async function setup(page: Page) {
     requested(); await held;
     await r.fulfill({ json: { id: "child", name: "child", type: "Male", father: [], mother: [], partners: [], siblings: [], children: [] } });
   });
-  await page.getByRole("button", { name: "Offspring, child", exact: true }).click();
+  await page.getByRole("button", { name: "Child, child", exact: true }).click();
   await arrived;
-  await expect(page.getByRole("button", { name: "Offspring, child", exact: true })).toHaveAttribute("aria-busy", "true");
+  await expect(page.getByRole("button", { name: "Child, child", exact: true })).toHaveAttribute("aria-busy", "true");
   return async () => {
     const response = page.waitForResponse("**/__people_request__/child");
     release();
