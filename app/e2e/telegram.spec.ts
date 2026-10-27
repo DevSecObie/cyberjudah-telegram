@@ -125,16 +125,28 @@ test("tapping verses selects them, the sheet highlights, notes, tags and bookmar
   await expect(page.locator(".noteitem__meta").first()).toContainText("Psalms 23:1-2 - ");
 });
 
-test("the book pill opens Books; a chapter tile opens the chapter; the chevrons jump to a verse", async ({ page }) => {
+test("the book pill opens Books; a book opens its chapters under it; a chapter tile opens the chapter; the chevrons jump to a verse", async ({ page }) => {
   await page.goto(`/read/john/3${LAUNCH}`);
   await page.click(".bs-pill--book");
   await expect(page.locator(".bs-picker-sheet .bs-sheet__titles b").last()).toHaveText("Books");
   await expect(page.locator(".bs-bookrow span", { hasText: /^John$/ })).toHaveCSS("font-weight", "700");
   // The book being read is scrolled into view, not left below the fold.
   await expect(page.locator(".bs-bookrow[data-current]")).toBeInViewport();
+  // Only the list scrolls to it: the sheet's header stays on screen.
+  expect((await page.locator(".bs-picker-sheet .bs-sheet__header").boundingBox())!.y).toBeGreaterThanOrEqual(0);
   await page.locator(".bs-bookrow", { hasText: /^Psalms$/ }).scrollIntoViewIfNeeded();
-  await page.click(".bs-bookrow >> text=Psalms");
-  await page.click('.bs-chaptertile[aria-label="Chapter 23"]');
+  // Bible Strong's BookItem: the book opens its 60 px chapter tiles under it, one book at a time.
+  const psalms = page.locator(".bs-bookrow", { hasText: /^Psalms/ });
+  await psalms.click();
+  await expect(psalms).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator('.bs-accordion[data-open] .bs-chaptertile[aria-label="Chapter 23"]')).toHaveCSS("width", "60px");
+  // The chapter being read is marked in its book's tiles, as in the chapter grid.
+  await page.locator(".bs-bookrow[data-current]").click();
+  await expect(page.locator('.bs-accordion[data-open] .bs-chaptertile[aria-pressed="true"]')).toHaveText("3");
+  await page.locator(".bs-bookrow", { hasText: /^Proverbs/ }).click();
+  await expect(psalms).toHaveAttribute("aria-expanded", "false");
+  await psalms.click();
+  await page.click('.bs-accordion[data-open] .bs-chaptertile[aria-label="Chapter 23"]');
   await expect(page).toHaveURL(/\/read\/psalms\/23/);
   await expect(page.locator(".bs-pill--book")).toHaveText("Psalms 23");
   await page.click(".bs-header__verses");
@@ -144,8 +156,11 @@ test("the book pill opens Books; a chapter tile opens the chapter; the chevrons 
   await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   // Grid layout: three-letter books, New Testament in red.
   await page.click(".bs-pill--book");
-  await page.click(".bs-filterbtn");
-  await page.click('.bs-filter__opts button >> text=Grid');
+  // Order, verses and display sit behind Bible Strong's FiltersHeader button.
+  await page.locator(".bs-picker-sheet").getByRole("button", { name: "Filter", exact: true }).click();
+  await page.getByRole("dialog", { name: "Filters" }).getByRole("button", { name: /^Display/ }).click();
+  await page.getByRole("radio", { name: "Grid" }).click();
+  await page.keyboard.press("Escape");
   await expect(page.locator(".bs-bookshort >> text=Mat")).toHaveCSS("color", "rgb(237, 191, 196)");
   await page.click(".bs-bookshort >> text=Mat");
   await expect(page.locator(".bs-picker-sheet .bs-sheet__titles b").last()).toHaveText("Matthew");
@@ -164,8 +179,8 @@ test("the header's selectors are Bible Strong's sheets: they search, keep chapte
   await page.getByRole("textbox", { name: "Search books" }).fill("maccabees");
   await expect(page.locator(".bs-bookrow")).toHaveCount(2);
   await page.locator(".bs-bookrow").first().click();
-  await expect(page.getByRole("dialog", { name: "1 Maccabees", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Back to books" }).click();
+  await expect(page.locator(".bs-bookrow").first()).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator(".bs-accordion[data-open] .bs-chaptertile")).toHaveCount(16);
   await expect(page.getByRole("textbox", { name: "Search books" })).toHaveValue("maccabees");
   await press(page, "back");
   await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
