@@ -34,3 +34,11 @@ export async function setup(page: Page) {
 
 /** In-app navigation (a reload would reset the mock's cloud storage). */
 export const goInApp = (page: Page, to: string) => page.evaluate((t) => { history.pushState({ idx: (history.state?.idx ?? 0) + 1 }, "", t); dispatchEvent(new PopStateEvent("popstate")); }, to);
+
+/** Precepts as chips under each verse (Font & settings, "Chips under the verse"), for the tests about the chips themselves. */
+export const preferChips = (page: Page) => page.addInitScript(() => {
+  const chips = (raw: string | null | undefined) => JSON.stringify({ ...JSON.parse(raw || "{}"), relationsDisplay: "inline" });
+  localStorage.setItem("cj:bs", chips(localStorage.getItem("cj:bs")));
+  const w = window as unknown as { __cloud?: Record<string, string> };
+  w.__cloud = { ...(w.__cloud ?? {}), bs: chips(w.__cloud?.bs) };
+});
