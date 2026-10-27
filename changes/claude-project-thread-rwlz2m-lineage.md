@@ -1,0 +1,1 @@
+- People's Relationships graph shows each person's forefathers: people the KJV names in their line without the generations between, such as Mattathias, "a priest of the sons of Joarib" (1 Maccabees 2:1). It also shows the forefather's descendants on the other side. Tapping either one walks the line, and Ask's person lookup names them too.
