@@ -132,3 +132,5 @@
 .edit-sheet .bs-sheet__titles b, .chats-sheet .bs-sheet__titles b { color: var(--text-1); }
 .edit-sheet .bs-sheet__footer { flex: none; }
 .edit-sheet .bs-sheet__body { overscroll-behavior: contain; }
+/* Bible Strong's header ⋮ (PopOverMenu): the page's actions, at the head's right. */
+.note-head__menu { align-self: flex-end; }

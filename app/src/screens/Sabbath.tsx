@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { countdown, sabbath } from "@/lib/sun";
-import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
+import { useBackButton, useStored } from "@/tg/hooks";
 import { app, features, haptic, popup } from "@/tg/sdk";
 import { Card, Empty, Icon, Screen, Section } from "@/ui/ui";
 
@@ -32,12 +32,11 @@ export function Sabbath() {
       navigator.geolocation.getCurrentPosition((p) => done(p.coords.latitude, p.coords.longitude), fail, { timeout: 10_000 });
     } else fail();
   };
-  useBottomButtons({ text: loc ? "Update my location" : "Use my location", onClick: locate, progress: busy }, loc ? { text: "Forget", onClick: () => setLoc(null) } : null);
 
   return (
     <Screen title="Sabbath" kicker="From even unto even · Leviticus 23:32">
       {!loc ? (
-        <Empty title="Where are you?">Sunset depends on where you are. Share your location once and the app remembers it{app ? ", on every device where you open CyberJudah in Telegram" : " in this browser"}.</Empty>
+        <Empty title="Where are you?" action={{ label: busy ? "Locating…" : "Use my location", onClick: busy ? undefined : locate }}>Sunset depends on where you are. Share your location once and the app remembers it{app ? ", on every device where you open CyberJudah in Telegram" : " in this browser"}.</Empty>
       ) : !state ? (
         <Empty title="No sunset here today">Above the polar circle the sun does not set for part of the year.</Empty>
       ) : (
@@ -57,6 +56,13 @@ export function Sabbath() {
           <p className="hint"><Icon name="sun" size={14} /> Sunset is computed from your location with the NOAA solar equations, to the minute. Local custom may keep the Sabbath from a few minutes before.</p>
         </>
       )}
+      {/* A saved location can always be updated or forgotten, the polar "no sunset" case included. */}
+      {loc ? (
+        <div className="sabbath__loc">
+          <button type="button" className="btn btn--bordered" disabled={busy} onClick={locate}>{busy ? "Locating…" : "Update my location"}</button>
+          <button type="button" className="btn btn--plain" disabled={busy} onClick={() => setLoc(null)}>Forget</button>
+        </div>
+      ) : null}
     </Screen>
   );
 }
