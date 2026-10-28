@@ -22,7 +22,7 @@
 #root .entity__source button { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 
 /* The family graph: a card, the person in the middle, the family around. */
-.fg { overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
+.fg { isolation: isolate; overflow: hidden; border-radius: var(--r-xl); background: var(--surface-1); box-shadow: var(--card-edge), var(--shadow-1); }
 .fg__stage { position: relative; overflow: hidden; }
 .fg__lines { position: absolute; inset: 0; pointer-events: none; }
 .fg__lines line { stroke: var(--hairline); stroke-width: 1.4; }

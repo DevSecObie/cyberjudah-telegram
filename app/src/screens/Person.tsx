@@ -3,14 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
-import { data, fmtDate, type Person as P } from "@/api/data";
+import { data, fmtDate, type Person as P, type PersonEvidence } from "@/api/data";
 import { Feather } from "@/bible/icons";
 import { useKeptScroll, useVisitState } from "@/lib/place";
 import { teacherRank } from "@/lib/taught";
 import { useBackButton } from "@/tg/hooks";
 import { haptic, openLink } from "@/tg/sdk";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
-import { refLabel, refOfLink, refOfPath, ScriptureCard, usePassage, type VerseRef } from "@/ui/scripture";
+import { refHref, refLabel, refOfLink, refOfPath, ScriptureCard, usePassage, type VerseRef } from "@/ui/scripture";
 import { Empty, List, Row, Screen } from "@/ui/ui";
 import { CaseCard } from "./Cases";
 import { FamilyGraph, relationsOf } from "./FamilyGraph";
@@ -75,6 +75,8 @@ export function Person() {
         </EntitySection>
       ) : null}
 
+      <PersonEvidenceSections person={d} bookName={bookName} />
+
       <EntitySection title="What the classes taught" count={taught.length}>
         {taught.length ? (
           <div className="entity__cards">
@@ -128,6 +130,34 @@ export function Person() {
       <p className="entity__source">Family as the King James Bible states it. Names and verses from <button type="button" onClick={() => openLink(d.source.url)}>{d.source.name}</button> ({d.source.license}).</p>
     </Screen>
   );
+}
+
+/** Keep priestly membership and identifications separate from the family graph. */
+function PersonEvidenceSections({ person, bookName }: { person: P; bookName: (slug: string) => string }) {
+  const groups = [
+    ["Lineage evidence", person.line], ["Descendant evidence", person.descendants],
+    ["Priestly course", person.priestly], ["Members of this priestly course", person.course],
+    ["Identity links", person.same], ["Other entries linked to this person", person.alsoNamed],
+  ] as const;
+  const evidence = (entry: PersonEvidence) => <>
+    <p className="entity__note">{entry.evidenceLabel || entry.evidence || "Evidence not labelled"}</p>
+    {entry.note ? <p>{entry.note}</p> : null}
+    {entry.verses?.length ? <p>{entry.verses.map((path, i) => {
+      const at = refOfPath(path);
+      return at ? <span key={path}>{i ? " · " : ""}<Link to={refHref(at)}>{refLabel(at, bookName)}</Link></span> : null;
+    })}</p> : null}
+    {entry.sources?.length ? <p className="entity__note">Sources: {entry.sources.map(s => `${s.id}, ${s.locator}`).join("; ")}</p> : null}
+  </>;
+  return <>
+    {groups.map(([title, entries]) => entries?.length ? <EntitySection key={title} title={title}>
+      <ul>{entries.map((entry) => <li key={entry.id}>
+        <Link to={`/person/${encodeURIComponent(entry.id)}`}>{entry.name}</Link>
+        {evidence(entry)}
+      </li>)}</ul>
+    </EntitySection> : null)}
+    {person.titles?.length ? <EntitySection title="Titles"><ul>{person.titles.map((entry, i) => <li key={i}><strong>{entry.title}</strong>{evidence(entry)}</li>)}</ul></EntitySection> : null}
+    {person.variants?.length ? <EntitySection title="Textual variants"><ul>{person.variants.map((entry, i) => <li key={i}><strong>{entry.reading}</strong>{entry.note ? <p>{entry.note}</p> : null}</li>)}</ul></EntitySection> : null}
+  </>;
 }
 
 /** Bible Strong's StrongEditorialSection: a rule, the title as an eyebrow, the content. */
