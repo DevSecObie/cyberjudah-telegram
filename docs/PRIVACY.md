@@ -77,6 +77,7 @@ one reader's documents from another's.
 | Relations | Firestore `users/tg_<id>/relations` | Typed links a reader drew between scripture, notes and library entries | Until replaced or Delete my data | Delete my data |
 | Personal studies | Firestore `users/tg_<id>/studies`, revision history in `users/tg_<id>/studies/<id>/revisions` | A study's title, writing and blocks, with its earlier versions | Until replaced or Delete my data | Delete my data |
 | Word annotations | Firestore `users/tg_<id>/wordAnnotations` | Per-word marks made while reading | Until replaced or Delete my data | Delete my data |
+| A linked login's study data | Firestore `users/<uid>`, `staging_users/<uid>`, `users-status/<uid>`, `staging_users-status/<uid>` with every subcollection, and the studies in `studies`/`staging_studies` whose `user.id` is that login | What the Bible Strong app syncs for a login linked to this Telegram account: profile, highlights, notes, Strong and Nave bookmarks, tabs, studies and their revisions | Until replaced or Delete my data | Delete my data, for the login linked when it runs (`firestore-admin.ts` `deleteAccountSyncMarks`) |
 
 Signed out of account sync, or before it is turned on, highlights, notes, bookmarks, tags,
 history, the plan and settings stay only on the device and in Telegram's CloudStorage for the

@@ -12,7 +12,8 @@ const load = (tag) => import(`${out}?case=${tag}`);
 const identityEnv = { BOT_TOKEN: "firestore-identity-fixture", DB: { prepare: () => ({ bind() { return this; }, run: async () => ({}), first: async () => null }) } };
 
 function field(v) { return { stringValue: v }; }
-function doc(name, fields) { return { name, fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, field(String(v))])) }; }
+// Firestore stamps every stored document with createTime; a "missing" parent (subcollections only) has none.
+function doc(name, fields) { return { name, createTime: "2026-10-28T00:00:00Z", fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, field(String(v))])) }; }
 
 /** A minimal stand-in for both real Firestore and the local emulator: GET lists documents (with one
  * page of pagination so the loop is exercised), POST :batchWrite records and accepts every delete. */
@@ -167,4 +168,59 @@ test("deletion follows pagination through every page before writing, and a faile
   globalThis.fetch = async (url, init) => { if (new URL(url).pathname.endsWith(":batchWrite")) return new Response("", { status: 500 }); return fetchFn(url, init); };
   try { await assert.rejects(deleteAccountSyncMarks({ ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, 7), /deletion failed/i); }
   finally { globalThis.fetch = originalFetch; }
+});
+
+test("deletion of a linked login reaches everything Bible Strong keeps for it, staging included, found by listing rather than by name", async () => {
+  const { deleteAccountSyncMarks } = await load("bible-strong");
+  const root = "projects/demo-cyberjudah/databases/(default)/documents";
+  const env = { ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089", DB: { prepare: (sql) => ({ bind() { return this; }, run: async () => ({}), first: async () => sql.startsWith("SELECT firebase_uid") ? { firebase_uid: "google-uid" } : null }) } };
+  const lists = {
+    "staging_users/google-uid/strongsHebreu": [doc(`${root}/staging_users/google-uid/strongsHebreu/H430`, { n: 1 })],
+    "staging_users/google-uid/tabGroups": [doc(`${root}/staging_users/google-uid/tabGroups/g1`, { n: 1 })],
+    // A parent kept only for its subcollection is not itself stored; its children still go.
+    "staging_users/google-uid/notes": [{ name: `${root}/staging_users/google-uid/notes/n1` }],
+    "staging_users/google-uid/notes/n1/revisions": [doc(`${root}/staging_users/google-uid/notes/n1/revisions/r1`, { n: 1 })],
+    "users/tg_8/highlights": [doc(`${root}/users/tg_8/highlights/h1`, { n: 1 })],
+    "staging_studies/s1/revisions": [doc(`${root}/staging_studies/s1/revisions/r1`, { n: 1 })],
+  };
+  const ids = { "staging_users/google-uid": ["strongsHebreu", "tabGroups", "notes"], "staging_users/google-uid/notes/n1": ["revisions"] };
+  const docs = new Set(["staging_users/google-uid", "staging_users-status/google-uid", "users/google-uid"]);
+  const queries = [];
+  const writes = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url);
+    assert.equal(u.hostname, "127.0.0.1");
+    if (u.pathname.endsWith(":batchWrite")) { writes.push(...JSON.parse(init.body).writes.map((w) => w.delete)); return Response.json({}); }
+    if (u.pathname.endsWith("/documents:runQuery")) {
+      const query = JSON.parse(init.body).structuredQuery;
+      queries.push([query.from[0].collectionId, query.where.fieldFilter.field.fieldPath, query.where.fieldFilter.value.stringValue]);
+      return Response.json(query.from[0].collectionId === "staging_studies" && query.where.fieldFilter.value.stringValue === "google-uid"
+        ? [{ document: doc(`${root}/staging_studies/s1`, { n: 1 }) }] : [{ readTime: "now" }]);
+    }
+    const path = decodeURIComponent(u.pathname.slice(u.pathname.indexOf("/documents/") + "/documents/".length));
+    if (path.endsWith(":listCollectionIds")) {
+      const found = ids[path.slice(0, -":listCollectionIds".length)];
+      return found ? Response.json({ collectionIds: found }) : new Response("", { status: 404 });
+    }
+    if (lists[path]) {
+      if (lists[path].some((d) => !d.createTime)) assert.equal(u.searchParams.get("showMissing"), "true");
+      return Response.json({ documents: lists[path] });
+    }
+    if (docs.has(path)) return Response.json(doc(`${root}/${path}`, { n: 1 }));
+    return new Response("", { status: 404 });
+  };
+  try {
+    const deleted = await deleteAccountSyncMarks(env, 8);
+    const expected = [
+      "staging_users/google-uid/strongsHebreu/H430", "staging_users/google-uid/tabGroups/g1", "staging_users/google-uid/notes/n1/revisions/r1",
+      "staging_users/google-uid", "staging_users-status/google-uid", "users/google-uid",
+      "users/tg_8/highlights/h1", "staging_studies/s1/revisions/r1", "staging_studies/s1",
+    ].map((p) => `${root}/${p}`);
+    assert.deepEqual([...writes].sort(), [...expected].sort());
+    assert.equal(deleted, expected.length);
+    assert.ok(writes.indexOf(`${root}/staging_studies/s1/revisions/r1`) < writes.indexOf(`${root}/staging_studies/s1`), "children go before their parent");
+    assert.deepEqual(queries.filter(([, , uid]) => uid === "google-uid").map(([c]) => c).sort(), ["staging_studies", "studies"]);
+    assert.ok(queries.every(([, field]) => field === "user.id"), "studies are found by their owner, never by listing other readers'");
+  } finally { globalThis.fetch = originalFetch; }
 });
