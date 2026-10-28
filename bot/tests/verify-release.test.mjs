@@ -13,6 +13,7 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ex
     if (["/app/", "/app/read/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
     if (path === "/bs/v1/dictionaries") return json({ dictionaries: [{ resource: { work: "easton-webster" } }] });
     if (path === "/bs/v1/dictionaries/easton-webster/en/entries/Aaron") return json({ entry: { word: "Aaron", definition: "Original dictionary definition" } });
+    if (path === "/bs/v1/naves/en/topics/faith") return json({ resource: { kind: "nave", revision: "nave-en-original" }, topic: { normalizedName: "faith", description: "Original Nave" } });
     if (path === "/api/auth/status") return json({ available: true });
     if (!headers.authorization) return json({}, 401);
     assert.equal((await validateInitData(headers.authorization.slice(4), "test-token")).user.id, 1);

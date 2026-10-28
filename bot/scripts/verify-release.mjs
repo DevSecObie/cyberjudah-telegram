@@ -44,6 +44,11 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
     requireStatus(entry, 200, "Bible Strong dictionary entry");
     if (!(await entry.json()).entry?.definition) throw new Error("Bible Strong dictionary entry: definition is missing.");
     log("Bible Strong original dictionary catalog and entry: available");
+    const nave = await get("/bs/v1/naves/en/topics/faith");
+    requireStatus(nave, 200, "Bible Strong Nave");
+    const topic = await nave.json();
+    if (topic.resource?.kind !== "nave" || !topic.topic?.description || topic.topic?.normalizedName !== "faith" || topic.resource?.revision?.startsWith("cj-")) throw new Error("Bible Strong Nave: the original Faith topic is missing.");
+    log("Bible Strong original Nave topic: available");
   }
   const query = "/api/search/answer?q=Melchizedek";
   requireStatus(await get(query), 401, "Unsigned search");
