@@ -16,7 +16,7 @@ test("search placement: Search is second in the bar, and the row fits every widt
   await page.goto(`/settings${LAUNCH}`);
   const nav = page.getByRole("navigation", { name: "Sections" });
   await expect(nav.locator(".tab").last()).toHaveAttribute("aria-label", "Main menu");
-  expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "ask", "tabs", "more"]);
+  expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "tabs", "more"]);
   for (const width of [320, 390, 900, 1280]) for (const scale of [100, 200]) {
     await page.setViewportSize({ width, height: 844 });
     await page.evaluate(scale => document.documentElement.style.fontSize = `${scale}%`, scale);
