@@ -9,7 +9,8 @@ import { showOf } from "@/lib/series";
 import { Link, useSearchParams } from "react-router";
 import { teachingLabel, useTeachings } from "./Home";
 import { share } from "@/lib/share";
-import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { Feather } from "@/bible/icons";
+import { useBackButton } from "@/tg/hooks";
 import { api, haptic, openLink, setClosingConfirmation, alert, downloadFile, features } from "@/tg/sdk";
 import { useSheet } from "@/ui/sheet";
 import { NoteBody, noteLede } from "@/ui/note-body";
@@ -59,10 +60,6 @@ export function NoteScreen() {
   useBackButton(() => { if (notes && video && at !== null) { setNotes(false); return true; } });
   const seek = (t: number) => { setStart(t); setPlaying(true); setNotes(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
-  useBottomButtons(
-    note.data ? { text: "Share", onClick: () => void share({ kind: "note", title: note.data!.title, text: label(note.data!.kind) ?? "CyberJudah", sitePath: path }) } : null,
-    video ? { text: "Open in YouTube", onClick: () => openLink(youtube(video, start)) } : null,
-  );
   // Reading a long note: keep a stray swipe from closing the app mid-read.
   useEffect(() => { setClosingConfirmation(true); return () => setClosingConfirmation(false); }, []);
   useEffect(() => {
@@ -94,6 +91,16 @@ export function NoteScreen() {
       void alert(a.id === "send" ? "The bot could not send the file. Open a chat with the CyberJudah bot, press Start, and try again." : "The PDF could not be made just now. Try again in a moment.");
     }
   };
+  // Bible Strong keeps a page's actions in its header's ⋮ menu (PopOverMenu), not over the tab bar.
+  const menu = async () => {
+    const a = await sheet.open({ items: [
+      { id: "share", text: "Share the link", icon: <Feather name="share-2" size={16} /> },
+      ...(video ? [{ id: "youtube", text: "Open in YouTube", icon: <Feather name="youtube" size={16} /> }] : []),
+    ] });
+    if (a?.id === "share") void share({ kind: "note", title: n.title, text: label(n.kind) ?? "CyberJudah", sitePath: path });
+    else if (a?.id === "youtube" && video) openLink(youtube(video, start));
+  };
+  const menuButton = <button type="button" className="icon-btn" aria-label="More options" title="More options" onClick={() => void menu()}><Feather name="more-vertical" size={18} /></button>;
   const pdfButton = <button type="button" className="icon-btn" aria-label="Export as PDF" title="Export as PDF" onClick={() => void exportPdf()}><Icon name="download" size={18} /></button>;
   // The verse the reader came from (a precept, a comment or a theme opened this note): a way straight back to it.
   const from = params.get("from");
@@ -106,6 +113,7 @@ export function NoteScreen() {
       <h1>{n.title}</h1>
       <div className="head__actions toolbar-group" role="group" aria-label="Note actions">
         {pdfButton}
+        {menuButton}
         {video && ["class", "captains"].includes(n.kind) ? <CmsEditLink kind="classes" id={video} label="Edit class details" /> : null}{who.isSuccess && who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}
         <button type="button" className="icon-btn" aria-pressed={kept} aria-label={kept ? "Remove bookmark" : "Bookmark"} title={kept ? "Remove bookmark" : "Bookmark"} onClick={() => { haptic(kept ? "tap" : "success"); setMarks(toggleBookmark(marks, { id: path, kind: "note", title: n.title, text: [label(n.kind), fmtDate(n.date)].filter(Boolean).join(" · "), href: path })); }}><Icon name={kept ? "bookmarkFill" : "bookmark"} size={18} /></button>
       </div>
@@ -142,7 +150,7 @@ export function NoteScreen() {
       {readFrom}
       {isHistory && episode.data?.turns?.length ? <Transcript ep={episode.data} find={params.get("find") ?? ""} onSeek={seek} /> : null}
       {upnext}
-      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{video && ["class", "captains"].includes(n.kind) ? <CmsEditLink kind="classes" id={video} label="Edit class details" /> : null}{who.isSuccess && who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
+      <NotesSheet open={notes} onClose={() => setNotes(false)} full={full} onFull={setFull} sub={n.title} action={<>{pdfButton}{menuButton}{video && ["class", "captains"].includes(n.kind) ? <CmsEditLink kind="classes" id={video} label="Edit class details" /> : null}{who.isSuccess && who.data?.admin && n.file ? <button type="button" className="icon-btn" aria-label="Edit this note" title="Edit this note" onClick={() => { haptic("select"); navigate(`/settings/admin/notes?file=${encodeURIComponent(n.file!)}`); }}><Icon name="compose" size={18} /></button> : null}</>}><NoteBody md={n.body} video={video} onSeek={seek} series={me?.series ? teachingLabel(me) : undefined} /></NotesSheet>
     </main>
   );
   return (
