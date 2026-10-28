@@ -1,0 +1,2 @@
+- The bottom bar is Bible Strong's five buttons again: Home, Search, Bible, Tabs and Menu. Classes stays on Home's Courses & videos card and in the menu.
+- Ask is a question field near the top of Home.
