@@ -14,7 +14,7 @@ import { useBackButton, useBottomButtons, useStored } from "@/tg/hooks";
 import { api } from "@/tg/sdk";
 import { haptic, user } from "@/tg/sdk";
 import { Feather } from "@/bible/icons";
-import { Card, Icon, Img, Screen, Section, thumbOf, type IconName } from "@/ui/ui";
+import { Card, Icon, Img, Screen, SearchField, Section, thumbOf, type IconName } from "@/ui/ui";
 import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
 import { NaveOfTheDay, PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
@@ -194,6 +194,9 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
   const day = dayKey(now);
   const verse = useQuery({ queryKey: ["votd", day], queryFn: async () => { const r = await fetch(`/api/verse-of-day?date=${day}`); if (!r.ok) throw new Error("Daily verse unavailable"); return r.json() as Promise<Verse>; }, staleTime: 60 * 60_000 });
   const sab = loc ? sabbath(now, loc.lat, loc.lng) : null;
+  const navigate = useNavigate();
+  const [question, setQuestion] = useState("");
+  const ask = () => { const q = question.trim(); if (!q) return; haptic("select"); setQuestion(""); navigate(`/ask?q=${encodeURIComponent(q)}`); };
 
   const random = useRandomVerse();
   const latestClass = feed.data?.find((t) => t.kind === "class");
@@ -210,6 +213,8 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
       <div className="pull" style={{ height: ps.height, opacity: ps.opacity }} aria-hidden="true">{ps.label}</div>
       <LiveBanner active={active} />
       <OfflinePill />
+      {/* Ask, near the top of Home, in Bible Strong's SearchInput. */}
+      <SearchField id="home-ask" value={question} onChange={setQuestion} onSubmit={ask} placeholder="Ask CyberJudah a question" leading={<Feather name="message-circle" size={20} />} />
       <TodayCard verse={verse.data} failed={verse.isError} stacked={drawer} />
       <StudyStats expanded={drawer} active={active} />
       <h2 className="shelf">Learn</h2>
