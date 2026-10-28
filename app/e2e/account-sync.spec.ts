@@ -146,7 +146,9 @@ test("phone, computer and web share highlights while original marks remain intac
     // Expired launch data must not silently switch a signed-in reader back to old-key writes.
     await a.goto(`${origin}/read/genesis/1#tgWebAppData=${encodeURIComponent(signed(id, 172800))}&tgWebAppVersion=9.1&tgWebAppPlatform=ios`);
     await expect(a.getByRole("alert")).toContainText("Sign-in expired");
-    await a.getByRole("alert").getByRole("button", { name: "Dismiss" }).click();
+    // Dismiss is there for the keyboard (Bible Strong's toasts have no close button).
+  await a.getByRole("alert").getByRole("button", { name: "Dismiss" }).focus();
+  await a.keyboard.press("Enter");
     await mark(a, 1, 3);
     await expect(a.getByRole("alert")).toContainText("Account sync is unavailable");
     expect(await a.evaluate(() => localStorage.getItem("cj:bs_h_genesis_1"))).toBe(old);
