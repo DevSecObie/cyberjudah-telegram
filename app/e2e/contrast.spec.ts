@@ -81,7 +81,8 @@ for (const theme of ["default", "dark", "sepia", "nature", "sunset", "black", "m
       await page.evaluate(async () => { await Promise.all(document.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished.catch(() => {}))); });
       await expect(async () => {
         const result = await page.evaluate(auditContrast, { includePanels: true, fadedContext });
-        expect(result.textNodes).toBeGreaterThan(20);
+        // A verse's precepts show as Bible Strong's one count badge, not a chip per precept.
+        expect(result.textNodes).toBeGreaterThan(15);
         expect(result.failures).toEqual([]);
       }).toPass({ timeout: 5000, intervals: [100, 250, 500] });
     };
