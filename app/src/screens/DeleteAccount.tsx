@@ -19,7 +19,7 @@ export function DeleteAccount() {
     <Screen title="Delete Your Account" kicker="CyberJudah" className="privacy">
       <Section title="In the App">
         <ul>
-          <li><b>CyberJudah for iPhone and Android:</b> open More, or your profile, and choose Delete account. You are asked to type a confirmation first.</li>
+          <li><b>CyberJudah for iPhone and Android:</b> open More, or your profile, and choose Delete account. You are asked to type a confirmation first, and to sign in again if you last signed in more than a few minutes ago. This deletes your sign-in and the study data synced to it. If you linked Telegram, your Ask balance and chats are deleted with Delete my data in Telegram.</li>
           <li><b>CyberJudah in Telegram:</b> open Settings → Privacy and choose Delete my data, or send /deletemydata to the bot.</li>
           <li><b>CyberJudah in a browser, signed in:</b> open <a href="/privacy" onClick={go("/privacy")}>Privacy</a> and choose Delete my data.</li>
         </ul>
@@ -31,9 +31,9 @@ export function DeleteAccount() {
 
       <Section title="What Is Deleted">
         <ul>
-          <li>Your sign-in to CyberJudah and the link between your Telegram and Google, Apple or email sign-ins.</li>
-          <li>Your synced highlights, notes, bookmarks, tags, links and personal studies, with their earlier versions.</li>
-          <li>Your saved Ask chats, Ask balance and its history (any balance left is lost), reading reminder, daily verse, top-up reminder, class-note requests, cloud study backup and browser sign-ins.</li>
+          <li><b>Delete account in the phone app:</b> your Google, Apple or email sign-in, and your synced highlights, notes, bookmarks, tags, links and personal studies, with their earlier versions.</li>
+          <li><b>Delete my data in Telegram or the browser:</b> your saved Ask chats, Ask balance and its history (any balance left is lost), reading reminder, daily verse, top-up reminder, class-note requests, cloud study backup, browser sign-ins, and the link between your Telegram and Google, Apple or email sign-ins.</li>
+          <li><b>A request by email:</b> all of the above.</li>
         </ul>
       </Section>
 

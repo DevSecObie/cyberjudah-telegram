@@ -111,15 +111,17 @@ or credentials, and refuses redirects. Analytics, crash reporting and the study 
 in this build (empty `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID`, `EXPO_PUBLIC_SENTRY_DSN` and
 `EXPO_PUBLIC_AI_API_URL`).
 
-**Known gap, 28 October 2026:** the app's Delete account removes only the Firebase sign-in
-(`deleteCurrentAuthUser`). The function that removes a user's Firestore data
-(`apps/api/functions/src/users.ts`) deploys to the upstream project, not `cyberjudah-app`. Until
-the deletion fix lands, a request to privacy@cyberjudah.io is completed by hand: delete
-`users/<uid>` with its subcollections, every `studies` document whose `user.id` is the UID, and
-`users-status/<uid>`, then remove the account in Firebase Authentication. A linked Telegram
-account's records go with `deleteData` (`bot/src/mydata.ts`). The page for requests without the
-app is `/delete-account` (`app/src/screens/DeleteAccount.tsx`), the link given in Google Play's
-Data safety form.
+**Depends on the deletion fix, 28 October 2026:** at `cyberjudah-app` 958052f the app's Delete
+account removes only the Firebase sign-in (`deleteCurrentAuthUser`); the function that removes a
+user's Firestore data (`apps/api/functions/src/users.ts`) deploys to the upstream project. Draft
+`cyberjudah-app#4` deletes `users/<uid>` with its subcollections, the owned `studies` with their
+revisions and `users-status/<uid>` before the sign-in, and keeps the sign-in if that fails;
+`cyberjudah-telegram#436` removes a linked login's data with Delete my data. Sign in with Apple
+token revocation is still to come. Until those land, a request to privacy@cyberjudah.io is
+completed by hand with the same steps, then the account is removed in Firebase Authentication.
+A linked Telegram account's own records (Ask balance, chats) go with `deleteData`
+(`bot/src/mydata.ts`). The page for requests without the app is `/delete-account`
+(`app/src/screens/DeleteAccount.tsx`), the link given in Google Play's Data safety form.
 
 ## Who else handles it
 

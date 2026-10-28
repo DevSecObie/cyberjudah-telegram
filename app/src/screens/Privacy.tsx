@@ -83,7 +83,7 @@ export function Privacy() {
         <p>Before some downloads, the app asks Apple or Google to confirm it is a genuine copy of CyberJudah (Firebase App Check). This check does not identify you.</p>
         <p>When you open a dictionary or Nave topic, CyberJudah's server fetches it from the Bible Strong reference service. Only what you looked up is sent: the entry, verse or search words. Your name, account and sign-in are not.</p>
         <p>The app has no advertising, no analytics, no crash reporting and nothing to buy.</p>
-        <p>To delete your account and everything synced to it, choose Delete account in the app's More screen or your profile. Without the app, see <a href="/delete-account" onClick={(e) => { e.preventDefault(); navigate("/delete-account"); }}>Delete your account</a>.</p>
+        <p>To delete your account and the study data synced to it, choose Delete account in the app's More screen or your profile. If you linked Telegram, your Ask balance and chats are deleted with Delete my data in Telegram. Without the app, see <a href="/delete-account" onClick={(e) => { e.preventDefault(); navigate("/delete-account"); }}>Delete your account</a>.</p>
       </Section>
 
       <Section title="What CyberJudah Keeps, and for How Long">
