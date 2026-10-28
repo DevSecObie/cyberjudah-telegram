@@ -46,13 +46,14 @@ export const DEFAULT_SETTINGS: BibleSettings = {
   colors: {}, defaultColorNames: {}, defaultColorTypes: {}, customHighlightColors: [],
 };
 
-export function useBibleSettings(): [BibleSettings, (patch: Partial<BibleSettings>) => void] {
-  const [stored, set] = useStored<Partial<BibleSettings>>("bs", {});
+/** The reader's settings, the setter, and whether the saved ones have been read yet. */
+export function useBibleSettings(): [BibleSettings, (patch: Partial<BibleSettings>) => void, boolean] {
+  const [stored, set, loaded] = useStored<Partial<BibleSettings>>("bs", {});
   // A reader who chose serif before the Bible kept its own face (only "font" was saved) keeps Newsreader.
   const [font] = useStored<"serif" | "sans">("font", "sans");
   const legacy = stored.fontFamily === undefined && font === "serif" ? { fontFamily: "Newsreader" } : {};
   const settings: BibleSettings = { ...DEFAULT_SETTINGS, ...stored, ...legacy, shareVerses: { ...DEFAULT_SETTINGS.shareVerses, ...stored.shareVerses } };
-  return [settings, (patch) => set({ ...stored, ...patch })];
+  return [settings, (patch) => set({ ...stored, ...patch }), loaded];
 }
 
 /** The theme in force: the scheme (Telegram's, unless forced) picks the day or the night theme. */
