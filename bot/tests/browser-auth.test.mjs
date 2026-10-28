@@ -97,3 +97,13 @@ test("study backup revisions prevent lost updates, are private per account, and 
   assert.equal((await put(2, "Deleted elsewhere" )).status, 409);
   assert.equal((await readStudyBackup(e, 77)).archive, null);
 });
+
+test('the Expo staging return destination is server-selected and sealed in OIDC state', async () => {
+  for (const expo of [false, true]) {
+    const e = env(); if (expo) e.BIBLE_STRONG_WEB = '1';
+    const response = await browserAuth.request(`${origin}/start?return=https://untrusted.example`, {}, e);
+    const loginCookie = cookie(response);
+    const pending = await open(e, 'browser-login', decodeURIComponent(loginCookie.split('=').slice(1).join('=')));
+    assert.equal(pending.returnTo, expo ? '/profile?telegram=returned' : '/app/settings/account');
+  }
+});

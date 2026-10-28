@@ -87,6 +87,24 @@ jobs:
           VITE_ACCOUNT_SYNC: "true"
           VITE_ACCOUNT_SYNC_SCOPE: staging
           CYBERJUDAH_APP_BASE: /app/
+      - name: Check out the Bible Strong app port
+        uses: actions/checkout@v4
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 7d5a788342c3ed15ef06170ac4c33cfcacccc531
+          path: bible-strong-port
+      - name: Export the actual Bible Strong app
+        working-directory: bible-strong-port
+        env:
+          EXPO_NO_TELEMETRY: '1'
+        run: |
+          corepack enable
+          yarn workspaces focus @bible-strong/expo
+          cp apps/expo/.env.cyberjudah.example apps/expo/.env.local
+          yarn workspace @bible-strong/expo typecheck
+          yarn workspace @bible-strong/expo exec expo export --platform web
+          rm -rf ../app/dist
+          cp -R apps/expo/dist ../app/dist
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
@@ -111,6 +129,14 @@ jobs:
           env = env.replace("00000000000000000000000000000000", kv)
           open(p, "w").write(head + '"env": {' + env)
           EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('wrangler.jsonc')
+          s=p.read_text().replace('"run_worker_first": [','"run_worker_first": ["/app", "/app/*", ',1)
+          head, env=s.split('"env": {',1)
+          env=env.replace('"vars": {','"vars": {"BIBLE_STRONG_WEB": "1", ',1)
+          p.write_text(head+'"env": {'+env)
+          PY
           set -o pipefail
           # Stage the built app for Workers Static Assets (see the script header).
           bash scripts/prepare-assets.sh
@@ -168,7 +194,7 @@ jobs:
           curl -sf "$URL/api/health" | head -c 400; echo
           # The app shell serves at the root (SPA fallback).
           curl -sf -o /dev/null -w "app: %{http_code}\n" "$URL/"
-          curl -sf "$URL/app/" | grep -q "/assets/"
+          curl -sfL "$URL/app/" | grep -q "_expo/static/js/web/"
       - name: Verify authenticated search and provider consent
         working-directory: bot
         env:
