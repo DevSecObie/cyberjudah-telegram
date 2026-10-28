@@ -81,3 +81,14 @@ test("the answer request has its own wait, longer than the other requests'", asy
   await assert.rejects(verifyRelease(slow(80).options), /no reply within 0.08 s, twice/);
   await verifyRelease(slow(300).options);
 });
+
+test("Bible Strong staging verifies its real reader routes", async () => {
+  const f = fixture(); const inner = f.options.fetcher; const paths = [];
+  f.options.bibleStrongApp = true;
+  f.options.fetcher = async (url, init) => {
+    const path = new URL(url).pathname;
+    if (path === "/home" || path === "/bible/kjv/genesis/1") { paths.push(path); return new Response('<div id="root"></div>', {headers:{"content-type":"text/html"}}); }
+    assert(!path.startsWith("/app/")); return inner(url, init);
+  };
+  await verifyRelease(f.options); assert.deepEqual(paths, ["/home", "/bible/kjv/genesis/1"]);
+});

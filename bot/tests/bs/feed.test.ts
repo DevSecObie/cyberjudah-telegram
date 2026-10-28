@@ -136,6 +136,8 @@ test('search uses real FTS5, applies filters before paging, counts all matches a
   assert.ok(apoc.results.length > 0); assert.ok(apoc.results.every((r: any) => r.book === 81));
   const { json: section } = await request('/v1/bibles/KJV/search?q=God&section=apoc&limit=1', Bible.BibleSearchResponseDto);
   assert.ok(section.count > 0); assert.ok(section.results.every((r: any) => r.book > 66));
+  const { json: otApoc } = await request('/v1/bibles/KJV/search?q=God&section=ot&book=81', Bible.BibleSearchResponseDto);
+  assert.ok(otApoc.results.length > 0); assert.ok(otApoc.results.every((r: any) => r.book === 81));
   const { json: phrase } = await request('/v1/bibles/KJV/search?q=%22in%20the%20beginning%22&section=nt', Bible.BibleSearchResponseDto);
   assert.ok(phrase.results.every((r: any) => r.text.toLowerCase().includes('in the beginning') && r.book === 43));
   for (const path of ['/v1/bibles/KJV/semantic-search?q=faith', '/v1/bibles/semantic-search?versions=KJV&q=faith']) {

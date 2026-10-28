@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { bible } from './bible';
 import { dictionaries } from './dictionary';
+import { readBibleStrongDictionary } from './upstream-dictionary';
 import { lexicon, strongBibles } from './strongs';
 import { naves } from './topics';
 import { commentaries } from './commentary';
@@ -15,6 +16,11 @@ bs.use('*', async (c, next) => {
     c.header('access-control-allow-headers', 'content-type');
     c.header('access-control-max-age', '86400');
     return c.body(null, 204);
+  }
+  if (c.env.BIBLE_STRONG_WEB === '1' && /^\/bs\/v1\/dictionaries(?:\/|$)/.test(c.req.path)) {
+    const response = await readBibleStrongDictionary(c.req.raw);
+    response.headers.set('access-control-allow-origin', '*');
+    return response;
   }
   await next();
   // Same public TTLs as /api/dictionary; no shared caching of POST bodies or errors.

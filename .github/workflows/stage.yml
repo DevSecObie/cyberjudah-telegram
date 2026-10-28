@@ -91,7 +91,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: DevSecObie/cyberjudah-app
-          ref: 6a40f5a7fdbb87da5bdd5755a496eb5c9997c127
+          ref: ed7203bda999b0206f27f861f0f1541340b40430
           path: bible-strong-port
       - name: Export the actual Bible Strong app
         working-directory: bible-strong-port
@@ -202,6 +202,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
           EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
           VERIFY_ACCOUNT_SYNC: "true"
+          BIBLE_STRONG_WEB: "1"
           # Staging's small free answer budget is shared by every run; a spent day is reported, not failed.
           ALLOW_FREE_PAUSED: "1"
         run: node scripts/verify-release.mjs
@@ -240,6 +241,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
           EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
           VERIFY_ACCOUNT_SYNC: "true"
+          BIBLE_STRONG_WEB: "1"
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           DIAGNOSE_LOGIN: ${{ inputs.diagnose_login }}
