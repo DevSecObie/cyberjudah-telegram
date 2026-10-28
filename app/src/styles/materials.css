@@ -143,7 +143,7 @@ html:has(.pv) :is(.bs-header, .head, .srch__bar, .chat2__bar, .reader__bar, .tlh
   background: var(--accent); color: var(--on-accent); font: 600 15px var(--font-ui);
   box-shadow: inset 0 1px 0 color-mix(in srgb, #ffffff 28%, transparent), var(--shadow-2);
   transition: transform var(--dur-1) var(--ease), opacity var(--dur-2) ease; }
-#root .pageaction[data-pressed] { transform: scale(.97); }
+#root .pageaction[data-pressed] { opacity: .2; }
 #root .pageaction:disabled { opacity: var(--disabled-opacity); cursor: default; }
 /* The quiet one is a content-tinted capsule (no filter of its own: the dock is already frosted). */
 #root .pageaction--quiet { background: var(--mat-overlay); color: var(--text-1); border-color: var(--mat-edge); box-shadow: var(--mat-highlight), var(--shadow-2); }

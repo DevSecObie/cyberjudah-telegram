@@ -52,9 +52,9 @@ mark { background: color-mix(in srgb, var(--accent) 24%, transparent); color: in
 @keyframes spin { to { transform: rotate(1turn); } }
 .route { animation: fade-in var(--dur-2) ease backwards; }
 
-/* Press feedback: things you tap give a little under the finger. Transform only, never layout. */
-.pressable, .card, .tile, .shelf-card, .nt-item, .starter, .srccard, .followup, .whatsnew__card { transition: transform var(--dur-1) var(--ease); }
-.pressable[data-pressed], .card[data-pressed], .tile[data-pressed], .shelf-card[data-pressed], .nt-item[data-pressed], .starter[data-pressed], .srccard[data-pressed], .followup[data-pressed], .whatsnew__card[data-pressed] { transform: scale(.975); }
+/* Press feedback as Bible Strong's TouchableOpacity: what you tap fades (to its default 0.2), nothing moves. */
+.pressable, .card, .tile, .shelf-card, .nt-item, .starter, .srccard, .followup, .whatsnew__card { transition: opacity var(--dur-1) var(--ease); }
+.pressable[data-pressed], .card[data-pressed], .tile[data-pressed], .shelf-card[data-pressed], .nt-item[data-pressed], .starter[data-pressed], .srccard[data-pressed], .followup[data-pressed], .whatsnew__card[data-pressed] { opacity: .2; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
