@@ -646,7 +646,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 /* The tabs keep Bible Strong's 38 px look, with a 48 px touch target reaching into the track's padding. */
 .bs-selected .bs-tabsfooter__tab::after { content: ""; position: absolute; inset: -5px 0; }
 
-/* Reduced transparency: the same sheet, opaque. Reduced motion: no slide, no spring. */
+/* Reduced motion: no slide, no spring. */
 @media (prefers-reduced-motion: reduce) {
   .bs-scrim--clear > .bs-sheet.bs-selected { animation: none; }
   .bs-selected .bs-pages__track, .bs-selected .bs-tabsfooter__indicator, .bs-selected .bs-action__box { transition: none; }
