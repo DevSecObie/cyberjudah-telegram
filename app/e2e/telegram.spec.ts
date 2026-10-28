@@ -1826,6 +1826,8 @@ test("the bottom bar sits above the Bible, with Bible Strong's buttons, Classes 
 });
 
 test("Ask sits near the top of Home: a question there opens Ask with it", async ({ page }) => {
+  await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
+  await page.route("**/api/ask", (r) => r.fulfill({ contentType: "application/x-ndjson", body: ndjson({ delta: "It is commanded [1]." }, { done: true, answer: "It is commanded [1].", followups: [], sources: [SOURCE] }) }));
   await page.goto(`/read/genesis/1${LAUNCH}`);
   await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Home", exact: true }).click();
   const field = page.getByRole("searchbox", { name: "Ask CyberJudah a question" });
