@@ -34,7 +34,7 @@
 .fg__center { position: absolute; width: 82px; height: 82px; }
 .fg__sat { position: absolute; width: 58px; height: 58px; }
 #root button.fg__node { position: relative; display: block; margin: 0; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; transition: transform var(--dur-1) ease, opacity var(--dur-1) ease; }
-#root button.fg__node[data-pressed] { transform: scale(.96); opacity: .8; }
+#root button.fg__node[data-pressed] { opacity: .8; }
 #root button.fg__node:disabled { cursor: default; }
 .fg__node .avatar { border: 1px solid var(--hairline); }
 .fg__node--center .avatar { border: 2px solid var(--accent); }

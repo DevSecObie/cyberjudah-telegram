@@ -873,6 +873,22 @@ test("the pressed look waits 50 ms, a scroll cancels it, and a quick tap still s
   await expect(button).not.toHaveAttribute("data-pressed");
 });
 
+// Bible Strong's TouchableOpacity: a pressed card, button or icon button fades to 0.2; nothing shrinks.
+test("a press fades what is pressed and never scales it", async ({ page }) => {
+  await page.goto("/read/genesis/1");
+  await expect(page.locator("#verset-1")).toBeVisible();
+  const looks = await page.evaluate(async () => {
+    const out: Record<string, { opacity: string; transform: string }> = {};
+    for (const cls of ["card", "btn", "icon-btn", "nt-item"]) {
+      const el = document.createElement("button"); el.className = cls; el.textContent = cls; el.setAttribute("data-pressed", "");
+      el.style.transition = "none"; document.getElementById("root")!.appendChild(el);
+      const s = getComputedStyle(el); out[cls] = { opacity: s.opacity, transform: s.transform }; el.remove();
+    }
+    return out;
+  });
+  for (const [cls, look] of Object.entries(looks)) expect(look, cls).toEqual({ opacity: "0.2", transform: "none" });
+});
+
 // On a phone the browser takes a horizontal pan over the drawer's scroller and cancels the pointer;
 // the swipe still closes the drawer from its touchend, unless it scrolled a row of cards.
 test("a touch swipe closes Home even when the browser cancels its pointer, but not one that scrolls the shelf", async ({ page }) => {
