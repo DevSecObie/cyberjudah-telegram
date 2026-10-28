@@ -206,7 +206,18 @@ test("the header's selectors are Bible Strong's sheets: they search, keep chapte
   await expect(page.locator(".bs-header__right")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(page.locator('.bs-iconbtn[aria-label="Scripture options"]')).toHaveCSS("width", "40px");
   // The chapter buttons are flat circles: no shadow.
-  await expect(page.locator('.bs-chapterbtn[aria-label="Next chapter"]')).toHaveCSS("box-shadow", "none");
+  const next = page.locator('.bs-chapterbtn[aria-label="Next chapter"]');
+  await expect(next).toHaveCSS("box-shadow", "none");
+  // Held, it fades to Bible Strong's .2 (nothing inline overrides it).
+  await expect(next).toHaveCSS("opacity", "1");
+  const send = (type: string) => next.evaluate((el, type) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent(type, { bubbles: true, isPrimary: true, button: 0, pointerId: 4, pointerType: "touch", clientX: r.x + 5, clientY: r.y + 5 }));
+  }, type);
+  await send("pointerdown");
+  await expect(next).toHaveCSS("opacity", "0.2");
+  await send("pointercancel");
+  await expect(next).toHaveCSS("opacity", "1");
 });
 
 test("Font and settings: night theme, verse mode, text size, fonts, all kept in the cloud", async ({ page }) => {
