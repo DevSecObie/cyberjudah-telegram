@@ -65,8 +65,8 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     const box = (await bar.boundingBox())!;
     expect(box.x).toBe(0); expect(box.width).toBe(page.viewportSize()!.width);
     expect(box.y + box.height).toBe(page.viewportSize()!.height); expect(box.height).toBe(48);
-    // Bible Strong's Home, Search, Bible, Tabs and Menu, with our Classes and Ask before the tabs.
-    expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "ask", "tabs", "more"]);
+    // Bible Strong's Home, Search, Bible, Tabs and Menu.
+    expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "tabs", "more"]);
     await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
     await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
     const minimumContrast = await bar.evaluate(nav => {

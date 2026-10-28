@@ -39,18 +39,21 @@ export const DEFAULT_SETTINGS: BibleSettings = {
   alignContent: "left", lineHeight: "normal", fontSizeScale: 0, textDisplay: "inline", showVerseNumbers: true,
   preferredColorScheme: "auto", preferredLightTheme: "default", preferredDarkTheme: "dark",
   // "Long press" (Bible Strong's default): a tap selects the verse, a long press opens its resources.
-  press: "longPress", relationsDisplay: "inline", tagsDisplay: "inline", fontFamily: "Avenir",
+  // Precepts show as one badge per verse (Bible Strong's RelationsCount); the chips under the verse stay
+  // a choice in Font & settings.
+  press: "longPress", relationsDisplay: "block", tagsDisplay: "inline", fontFamily: "Avenir",
   shareVerses: { hasVerseNumbers: true, hasInlineVerses: true, hasQuotes: true, hasAppName: true },
   colors: {}, defaultColorNames: {}, defaultColorTypes: {}, customHighlightColors: [],
 };
 
-export function useBibleSettings(): [BibleSettings, (patch: Partial<BibleSettings>) => void] {
-  const [stored, set] = useStored<Partial<BibleSettings>>("bs", {});
+/** The reader's settings, the setter, and whether the saved ones have been read yet. */
+export function useBibleSettings(): [BibleSettings, (patch: Partial<BibleSettings>) => void, boolean] {
+  const [stored, set, loaded] = useStored<Partial<BibleSettings>>("bs", {});
   // A reader who chose serif before the Bible kept its own face (only "font" was saved) keeps Newsreader.
   const [font] = useStored<"serif" | "sans">("font", "sans");
   const legacy = stored.fontFamily === undefined && font === "serif" ? { fontFamily: "Newsreader" } : {};
   const settings: BibleSettings = { ...DEFAULT_SETTINGS, ...stored, ...legacy, shareVerses: { ...DEFAULT_SETTINGS.shareVerses, ...stored.shareVerses } };
-  return [settings, (patch) => set({ ...stored, ...patch })];
+  return [settings, (patch) => set({ ...stored, ...patch }), loaded];
 }
 
 /** The theme in force: the scheme (Telegram's, unless forced) picks the day or the night theme. */

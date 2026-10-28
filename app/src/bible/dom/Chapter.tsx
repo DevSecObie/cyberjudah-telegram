@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ClassMoment } from "@/api/data";
 import type { VerseRelationItem } from "@/lib/relations";
 import { verseKey as makeKey } from "@/lib/relations";
+import { WHY } from "@/lib/taught";
 import { Feather } from "../icons";
 import type { BibleSettings } from "../settings";
 import type { Bookmark, Highlight, Tag } from "../store";
@@ -297,7 +298,7 @@ export function Chapter(p: ChapterProps) {
               wordMarks={p.marks?.flatMap((m) => m.records).filter((r) => r.verseKey === vk)} colorOf={p.colorOf}
               highlightedColor={p.highlights[String(n)]?.color} bookmark={bookmarkOf.get(n)}
               isVerseToScroll={!isContextFocused && p.verseToScroll === n && n !== 1} isFocused={isFocused}
-              relationItems={items} relationCount={items?.length || undefined}
+              relationItems={items} relationCount={preceptCount(items)}
               moments={p.moments?.[n]} deck={p.deck}
               strongMode={strongOn} strongRefs={mode ? undefined : strongRefs?.get(n)} strongSelected={p.strong?.selected?.numbers[0]}
               onStrong={(r) => p.strong?.onSelect({ verse: n, occurrence: r.occurrence, word: r.word, numbers: r.numbers })}
@@ -321,3 +322,7 @@ export function Chapter(p: ChapterProps) {
     </>
   );
 }
+
+/** What the badge counts: what its page (/relations) lists, the reader's own relations and the classes'
+ * precepts, without the "why" note that leads them or the links to each class's recording. */
+const preceptCount = (items: VerseRelationItem[] | undefined) => items?.filter((it) => !it.key.startsWith(WHY) && !it.key.startsWith("taught:watch:")).length || undefined;
