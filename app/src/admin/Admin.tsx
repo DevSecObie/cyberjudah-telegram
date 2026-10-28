@@ -1,5 +1,4 @@
 import { PreceptList, PreceptEditor } from './PreceptEditor';
-import { PeopleList, PeopleEditor } from './PeopleEditor';
 import { ClassList, ClassEditor } from './ClassEditor';
 import { useState } from 'react';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,11 +28,11 @@ export function Admin() {
     <Route path="classes" element={<ClassList />} /><Route path="classes/:id" element={<ClassEditor />} /><Route path="notes" element={<NotesAdmin />} />
     <Route path="photos" element={<PhotosAdmin />} />
     <Route path="changes" element={<Changes />} /><Route path="changes/:id" element={<ChangeStatus />} />
-    <Route path="people" element={<PeopleList />} /><Route path="people/:id" element={<PeopleEditor />} /><Route path="precepts" element={<PreceptList />} /><Route path="precepts/:id" element={<PreceptEditor />} />
+    <Route path="precepts" element={<PreceptList />} /><Route path="precepts/:id" element={<PreceptEditor />} />
   </Routes></div></Screen>;
 }
 function AdminHome() {
-  return <><p>Correct the app’s content and follow each review through its checks.</p><nav className="cms-list" aria-label="Admin sections">{[['timeline', 'Timeline', 'Events, drafts, sources and pictures'], ['classes', 'Classes', 'Titles, teachers, dates and class notes'], ['people', 'People', 'Summaries and relationships'], ['precepts', 'Precepts', 'Class passages and explanations'], ['outside-sources', 'Outside sources', 'Sites Ask may read'], ['resources', 'Resources', 'Published editions and catalog rollback'], ['photos', 'Photos', 'Existing photo editor'], ['changes', 'Recent changes', 'Reviews, checks and publication']].map(([path, title, sub]) => <Link key={path} to={path}><b>{title}</b><small>{sub}</small></Link>)}</nav></>;
+  return <><p>Correct the app’s content and follow each review through its checks.</p><nav className="cms-list" aria-label="Admin sections">{[['timeline', 'Timeline', 'Events, drafts, sources and pictures'], ['classes', 'Classes', 'Titles, teachers, dates and class notes'], ['precepts', 'Precepts', 'Class passages and explanations'], ['outside-sources', 'Outside sources', 'Sites Ask may read'], ['resources', 'Resources', 'Published editions and catalog rollback'], ['photos', 'Photos', 'Existing photo editor'], ['changes', 'Recent changes', 'Reviews, checks and publication']].map(([path, title, sub]) => <Link key={path} to={path}><b>{title}</b><small>{sub}</small></Link>)}</nav></>;
 }
 function Changes() {
   const q = useInfiniteQuery({ queryKey: ['cms', 'changes'], initialPageParam: '', queryFn: ({ pageParam }) => api<{ changes: CmsChange[]; cursor: string | null }>(`/api/admin/cms/changes${pageParam ? `?cursor=${encodeURIComponent(pageParam)}` : ''}`), getNextPageParam: page => page.cursor, refetchInterval: 10_000 });

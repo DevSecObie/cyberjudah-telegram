@@ -84,3 +84,26 @@ test("family labels: a forefather the KJV names without the generations between,
   await expect(graph.locator(".fg__sat .fg__chip")).toHaveText(["Descendant", "Descendant"]);
   await expect(graph.getByRole("button", { name: "Descendant, other", exact: true })).toBeVisible();
 });
+
+test("How we know: each link shows its evidence label, its verses and, for history, its sources", async ({ page }) => {
+  const make = (id: string, type: string, family = {}) => ({ id, name: id, names: [id], type, description: "", tribe: "", father: [], mother: [], siblings: [], partners: [], children: [], verses: [], taught: [], source: { name: "The King James Bible with Apocrypha", license: "Public domain", url: "https://cyberjudah.io/bible" }, ...family });
+  const records: Record<string, ReturnType<typeof make>> = {
+    root: make("root", "Male", {
+      father: [{ id: "father", name: "father", evidence: "scripture", evidenceLabel: "Scripturally confirmed", verses: ["genesis/2/8"] }],
+      line: [{ id: "elder", name: "elder", evidence: "history", evidenceLabel: "Historically identified", verses: ["genesis/2/10"], note: "The Greek form of the name", sources: [{ title: "Jewish Encyclopedia vol. 8 p. 378", url: "https://archive.org/details/x" }] }],
+    }),
+    father: make("father", "Male", { children: [{ id: "root", name: "root", evidence: "scripture", evidenceLabel: "Scripturally confirmed", verses: ["genesis/2/8"] }] }),
+    elder: make("elder", "Male"),
+  };
+  await setup(page, { people: Object.values(records) });
+  await page.route(/\/api\/people\/(root|father|elder)\.json$/, r => r.fulfill({ json: records[new URL(r.request().url()).pathname.split("/").pop()!.slice(0, -5)] }));
+  await page.goto("/person/root");
+  const known = page.getByRole("region", { name: "How we know" });
+  await expect(known.locator("li")).toHaveCount(2);
+  await expect(known.locator("li").first()).toContainText("Father: father · Scripturally confirmed");
+  await expect(known.locator("li").first().getByRole("link", { name: /2:8$/ })).toHaveAttribute("href", /\/bible\/genesis\/2#v8$/);
+  await expect(known.locator("li").nth(1)).toContainText("Forefather: elder · Historically identified");
+  await expect(known.locator("li").nth(1)).toContainText("The Greek form of the name");
+  await expect(known.getByRole("button", { name: "Jewish Encyclopedia vol. 8 p. 378" })).toBeVisible();
+  await expect(page.locator(".entity__source")).toHaveText("Names, family and verses from the King James Bible with Apocrypha. A link the text does not state is left out.");
+});

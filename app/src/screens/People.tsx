@@ -17,7 +17,7 @@ const ORDERS = [["most", "Most spoken of"], ["az", "A to Z"]] as const;
 const PAGE = 60;
 
 /**
- * Every named person in the Bible (STEPBible TIPNR, with Easton's and Hitchcock's) as Bible
+ * Every named person in the Bible (rebuilt from the KJV with Apocrypha) as Bible
  * Strong's CommentaryLibraryScreen: the title with the filter button (the order), the search field
  * under it, then a CommentaryLibraryItem per person, their portrait, their name and who they were.
  * Searched by name, or the most spoken of first; long lists draw as their end comes into view.

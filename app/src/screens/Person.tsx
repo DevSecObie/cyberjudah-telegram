@@ -1,9 +1,8 @@
-import { CmsEditLink } from "@/admin/EditLink";
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
-import { data, fmtDate, type Person as P } from "@/api/data";
+import { data, fmtDate, type Person as P, type PersonLink } from "@/api/data";
 import { Feather } from "@/bible/icons";
 import { useKeptScroll, useVisitState } from "@/lib/place";
 import { teacherRank } from "@/lib/taught";
@@ -21,8 +20,9 @@ import { FamilyGraph, relationsOf } from "./FamilyGraph";
  * the Relationships graph (only the family the King James text states), then the classes and the
  * King James Bible: what the classes taught where they come up (the Bishops' and Deacons' first),
  * the classes that read or cite a verse naming them, and every verse that names them, each card
- * going to its verse. The related case studies come last. Names, family and verses start from
- * STEPBible's TIPNR (CC BY 4.0), with its family links checked against the King James text.
+ * going to its verse. The related case studies come last. Names, family and verses are rebuilt
+ * from the King James Bible with Apocrypha; every link carries how it is known and the verses
+ * that state it ("How we know").
  */
 const TAUGHT_FIRST = 3, TAUGHT_MORE = 6, CLASSES_FIRST = 5, CLASSES_MORE = 10, VERSES_FIRST = 5, VERSES_MORE = 10;
 const SERIES: Record<string, string> = { class: "Class", captains: "15 Minutes with the Captains", history: "Our Hidden History" };
@@ -63,7 +63,6 @@ export function Person() {
             <StrongChips person={d} first={verses[0] ?? null} />
           </div>
         </div>
-        <CmsEditLink kind="people" id={d.id} />
         {d.image ? <p className="hint">{d.image.caption} · {d.image.credit} · <a href={d.image.sourceUrl} target="_blank" rel="noopener noreferrer">{d.image.license}</a></p> : null}
         {d.description ? <p className="entity__desc">{d.description}.</p> : null}
         {d.names.length > 1 ? <p className="entity__aka">Also called {d.names.filter((n) => n !== d.name).join(", ")}</p> : null}
@@ -74,6 +73,8 @@ export function Person() {
           <FamilyGraph person={d} onOpenProfile={(pid) => { haptic("select"); navigate(`/person/${pid}`); }} />
         </EntitySection>
       ) : null}
+
+      <HowWeKnow person={d} bookName={bookName} />
 
       <EntitySection title="What the classes taught" count={taught.length}>
         {taught.length ? (
@@ -125,8 +126,30 @@ export function Person() {
         </EntitySection>
       ) : null}
 
-      <p className="entity__source">Family as the King James Bible states it. Names and verses from <button type="button" onClick={() => openLink(d.source.url)}>{d.source.name}</button> ({d.source.license}).</p>
+      <p className="entity__source">Names, family and verses from the King James Bible with Apocrypha. A link the text does not state is left out.</p>
     </Screen>
+  );
+}
+
+const KNOWN: [keyof P, string][] = [["father", "Father"], ["mother", "Mother"], ["partners", "Husband or wife"], ["siblings", "Brother or sister"], ["children", "Child"], ["line", "Forefather"], ["descendants", "Descendant"], ["tribes", "Tribe"], ["nation", "People"], ["same", "Same person as"], ["alsoNamed", "Same person as"]];
+
+/** Each link on the person with its evidence label, the verses that state it and, for history, its sources. */
+function HowWeKnow({ person, bookName }: { person: P; bookName: (slug: string) => string }) {
+  const rows = KNOWN.flatMap(([key, label]) => ((person[key] as PersonLink[] | undefined) ?? []).filter((e) => e.evidenceLabel).map((e) => ({ label, e })));
+  if (!rows.length) return null;
+  return (
+    <EntitySection title="How we know" count={rows.length}>
+      <ul className="entity__known">
+        {rows.map(({ label, e }, i) => (
+          <li key={`${label}:${e.id}:${i}`}>
+            <p>{label}: <Link to={`/person/${e.id}`} onClick={() => haptic("select")}>{e.name}</Link> · <strong>{e.evidenceLabel}</strong></p>
+            {e.verses?.length ? <p className="hint">{e.verses.map(refOfPath).filter((r): r is VerseRef => !!r).map((r, j) => <span key={j}>{j ? ", " : ""}<Link to={`/bible/${r.slug}/${r.chapter}#v${r.from}`}>{refLabel(r, bookName)}</Link></span>)}</p> : null}
+            {e.note ? <p className="hint">{e.note}</p> : null}
+            {e.sources?.map((s, j) => <p key={j} className="hint"><button type="button" onClick={() => { haptic("select"); openLink(s.url); }}>{s.title}</button></p>)}
+          </li>
+        ))}
+      </ul>
+    </EntitySection>
   );
 }
 

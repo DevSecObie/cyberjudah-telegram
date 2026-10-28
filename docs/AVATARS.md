@@ -146,7 +146,7 @@ These people are left out until the assembly's understanding is confirmed:
 - **Melchizedek** and **the Kenites** (Rechab, Jonadab): the classes do not say which nation they were.
 - **Records that may be a town** ("Man or town"), uncertain records ("Woman (?)") and plural records
   ("wives", "compatriots").
-- **Early patriarchs** (TIPNR "Early Patriarch", before Abraham) are held back until the line from
+- **Early patriarchs** (the men before Abraham) are held back until the line from
   Noah's sons is settled for depiction.
 - **Nations without a description:** Ammon, Syria, Mesopotamia, Assyria, Moab, Midian, Arabia and Sheba (Ruth, Zipporah, the Queen of
   Sheba), Babylon (Nebuchadnezzar) and Persia.
@@ -233,7 +233,7 @@ automatically. Every prompt is stored with its job in `app/public/people/manifes
 
 ### Records the data has wrong
 
-The people data comes from TIPNR, and some of its nations differ from the classes' teaching and the
+The people data first came from TIPNR (since replaced by the catalog rebuilt from the KJV), and some of its nations differed from the classes' teaching and the
 KJV. These are corrected before generating:
 
 - The Horites of Genesis 36:20-30 and 14:6 (Seir, Lotan, Shobal, Zibeon, Anah, Dishon, Ezer, Dishan,
