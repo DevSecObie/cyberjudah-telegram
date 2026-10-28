@@ -1,5 +1,8 @@
 # Store billing setup for paid Ask
 
+**Release scope, October 27, 2026:** the owner approved a free first public store release. This worksheet applies to the later paid Ask update. Internal staging continues to test linked accounts and the shared balance; neither profile authorizes real purchases.
+
+
 Owner decision, October 27, 2026: paid Ask must follow a linked CyberJudah account across Telegram, Google, Apple and email sign-in. Apple and Google purchase products have not been created. Prepare their setup; do not perform transactions, submit builds, deploy or publish.
 
 ## Current implementation and release gate

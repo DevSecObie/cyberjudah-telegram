@@ -1,0 +1,1 @@
+- Prepare a free first iPhone/Android store profile: hide paid Ask entries and return saved/direct Ask links to the Bible. Preserve linked-account Ask in the separate internal staging build, with purchases still disabled.

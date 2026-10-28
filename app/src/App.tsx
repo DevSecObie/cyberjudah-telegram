@@ -1,4 +1,4 @@
-import { nativeReader } from "@/native/platform";
+import { nativeReader, paidAskAvailable } from "@/native/platform";
 import { NativeReaderNotice } from "@/native/NativeReaderInfo";
 import { historyIdx, isOver, markOver } from "@/lib/over-page";
 import { NativeLifecycle } from "@/native/NativeLifecycle";
@@ -6,7 +6,7 @@ import { WorkspaceCommands } from "@/ui/WorkspaceCommands";
 import { AudioPlayerProvider, AudioPlayerBar } from "@/lib/AudioPlayer";
 import { useResourceSync } from "@/resources/hooks";
 import { Suspense, lazy, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Route, Routes, useHref, useLocation, useNavigate, useNavigationType } from "react-router";
+import { Navigate, Route, Routes, useHref, useLocation, useNavigate, useNavigationType } from "react-router";
 
 import { RouteSheet, sheetKind, useSheetEntry } from "@/ui/routeSheet";
 import { UnderSheetContext } from "@/ui/sheetRoute";
@@ -111,7 +111,7 @@ const routes = (
     <Route path="/read/:book/:chapter" element={<BibleTab />} />
     <Route path="/note/*" element={<NoteScreen />} />
     <Route path="/watch/:video" element={<Watch />} />
-    <Route path="/ask" element={<Ask />} />
+    <Route path="/ask" element={paidAskAvailable ? <Ask /> : <Navigate to="/bible" replace />} />
     <Route path="/resources" element={<ResourceInstaller />} />
     <Route path="/resources/:id/:release" element={<ResourceReader />} />
     <Route path="/settings/account" element={<Account />} />

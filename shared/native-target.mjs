@@ -1,7 +1,7 @@
 /** Native targets are build-time choices, never an arbitrary URL supplied by a deep link. */
 const targets = Object.freeze({
-  production: Object.freeze({ environment: "production", appId: "io.cyberjudah.app", appName: "CyberJudah", origin: "https://cyberjudah.io", syncScope: "production" }),
-  staging: Object.freeze({ environment: "staging", appId: "io.cyberjudah.app.staging", appName: "CyberJudah Staging", origin: "https://cyberjudah-telegram-staging.oisrae1.workers.dev", syncScope: "staging" }),
+  production: Object.freeze({ environment: "production", appId: "io.cyberjudah.app", appName: "CyberJudah", origin: "https://cyberjudah.io", syncScope: "production", profile: "free-study", paidAsk: false }),
+  staging: Object.freeze({ environment: "staging", appId: "io.cyberjudah.app.staging", appName: "CyberJudah Staging", origin: "https://cyberjudah-telegram-staging.oisrae1.workers.dev", syncScope: "staging", profile: "linked-ask-test", paidAsk: true }),
 });
 export function nativeTarget(environment = "production") {
   if (!Object.hasOwn(targets, environment)) throw new Error(`Unknown native environment: ${environment}`);

@@ -4,7 +4,7 @@ import { nativeTarget } from "../../shared/native-target.mjs";
 const target = nativeTarget(process.env.CYBERJUDAH_NATIVE_ENV || "production");
 const read = path => JSON.parse(readFileSync(new URL(path, import.meta.url), "utf8"));
 const manifest = read("../dist-native/native-build.json"), configured = read("../native-environment.json");
-for (const value of [manifest, configured]) for (const key of ["environment", "appId", "appName", "origin", "syncScope"]) {
+for (const value of [manifest, configured]) for (const key of ["environment", "appId", "appName", "origin", "syncScope", "profile", "paidAsk"]) {
   if (value[key] !== target[key]) throw new Error(`Native ${key} does not match the selected ${target.environment} build`);
 }
 for (const path of ["../android/app/src/main/assets/capacitor.config.json", "../ios/App/App/capacitor.config.json"]) {

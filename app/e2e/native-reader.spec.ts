@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 
+const freeStore = process.env.CYBERJUDAH_TEST_NATIVE_ENV === "production";
+
 test.skip(process.env.CYBERJUDAH_TEST_NATIVE_READER !== "1", "Requires the native build profile");
 
 test("the real Worker serves public reading search without an account and keeps private routes locked", async ({ request }) => {
@@ -15,6 +17,7 @@ test("the real Worker serves public reading search without an account and keeps 
 });
 
 test("native reading stays free and linked-account Ask is discoverable without purchase controls", async ({ page }, testInfo) => {
+  test.skip(freeStore, "Internal staging tests linked paid Ask");
   const purchases: string[] = [];
   await page.route("https://telegram.org/**", r => r.fulfill({ body: "" }));
   page.on("request", r => { if (/\/api\/(ask\/buy|invoice|donations)([/?]|$)/.test(r.url())) purchases.push(r.url()); });
@@ -36,6 +39,7 @@ test("native reading stays free and linked-account Ask is discoverable without p
 });
 
 test("native Ask requires sign-in while unavailable donation and admin routes remain gated", async ({ page }) => {
+  test.skip(freeStore, "Internal staging tests linked paid Ask");
   await page.route("https://telegram.org/**", r => r.fulfill({ body: "" }));
   await page.goto("/ask?q=John%203");
   await expect(page.getByRole("textbox", { name: "Your question" })).toBeDisabled();
@@ -48,6 +52,7 @@ test("native Ask requires sign-in while unavailable donation and admin routes re
 });
 
 test("native linked-account view can report an answer without leaving the app", async ({ page }, info) => {
+  test.skip(freeStore, "Internal staging tests linked paid Ask");
   // UI contract only: server ownership and token checks run in account-links.test.mjs.
   let reported = false;
   await page.route("https://telegram.org/**", r => r.fulfill({ body: "" }));
@@ -106,4 +111,36 @@ test("native audio offers recordings and device voices without authenticated AI 
   await expect(page.getByRole("heading", { name: "Device voices", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "AI reading voices", exact: true })).toHaveCount(0);
   expect(generated).toEqual([]);
+});
+
+
+test("the public store profile hides paid Ask from every entry and blocks saved or direct Ask routes", async ({ page }, info) => {
+  test.skip(!freeStore, "Public store builds are free study");
+  const askRequests: string[] = [];
+  await page.route("https://telegram.org/**", r => r.fulfill({ body: "" }));
+  page.on("request", r => { if (/\/api\/(ask|chats|invoice|donations)([/?]|$)/.test(r.url())) askRequests.push(r.url()); });
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Ask CyberJudah", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Main menu", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Ask CyberJudah", exact: true })).toHaveCount(0);
+  await page.goto("/new");
+  await expect(page.getByRole("button", { name: "Ask CyberJudah", exact: true })).toHaveCount(0);
+  await page.keyboard.press("ControlOrMeta+k");
+  await page.getByRole("combobox", { name: "Find a tab or tool" }).fill("Ask");
+  await expect(page.getByRole("dialog", { name: "Find a tab or tool" }).getByRole("option")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.goto("/settings/account");
+  await expect(page.getByRole("button", { name: "Sign in securely", exact: true })).toBeVisible();
+  await expect(page.getByText(/Ask balance/)).toHaveCount(0);
+  await page.screenshot({ path: info.outputPath("free-store-account-pending-upstream-port.png") });
+  for (const path of ["/ask", "/ask?q=John%203#saved"]) {
+    await page.goto(path);
+    await expect(page).toHaveURL(/\/bible$/);
+    await expect(page.getByRole("textbox", { name: "Your question" })).toHaveCount(0);
+  }
+  await page.addInitScript(() => localStorage.setItem("cj:tabgroups", JSON.stringify({ group: "default-group", groups: [{ id: "default-group", name: "My tabs", color: "", isDefault: true, current: "saved-ask", tabs: [{ id: "saved-ask", path: "/ask?q=old" }] }] })));
+  await page.goto("/");
+  await expect(page).toHaveURL(/\/bible$/);
+  await expect(page.getByRole("textbox", { name: "Your question" })).toHaveCount(0);
+  expect(askRequests).toEqual([]);
 });
