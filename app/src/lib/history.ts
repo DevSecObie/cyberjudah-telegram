@@ -4,7 +4,8 @@ export type StrongHistoryRow = { type: "strong"; reference: string; name: string
 /** Producers can supply their dataset identity; slug is the existing dictionary route. */
 export type DictionaryHistoryRow = { type: "dictionary"; slug: string; name: string; resourceId?: string; language?: string; entryId?: string | number; dictionaryTitle?: string; at: number };
 export type TopicHistoryRow = { type: "topic"; slug: string; name: string; at: number };
-export type HistoryRow = BibleHistoryRow | StrongHistoryRow | DictionaryHistoryRow | TopicHistoryRow;
+export type NaveHistoryRow = { type: "nave"; slug: string; name: string; at: number };
+export type HistoryRow = BibleHistoryRow | StrongHistoryRow | DictionaryHistoryRow | TopicHistoryRow | NaveHistoryRow;
 type WithoutTime<T> = T extends HistoryRow ? Omit<T, "at"> : never;
 export type HistoryInput = WithoutTime<HistoryRow>;
 export const MAX_HISTORY_ITEMS = 50;
@@ -26,6 +27,7 @@ export function getHistoryItemKey(row: HistoryInput | HistoryRow): string {
     case "strong": return `strong:${historyStrongReference(row.reference) ?? row.reference}`;
     case "dictionary": return JSON.stringify(["dictionary", row.resourceId ?? "legacy", row.language ?? "legacy", row.entryId ?? row.slug.toLowerCase()]);
     case "topic": return `topic:${row.slug.toLowerCase()}`;
+    case "nave": return `nave:${row.slug}`;
     default: return `bible:${row.slug}:${row.chapter}:${row.verse ?? 1}:KJV`;
   }
 }
@@ -40,6 +42,10 @@ function normalizeRow(value: unknown): HistoryRow | null {
   if (row.type === "strong") {
     const reference = historyStrongReference(text(row.reference));
     return reference ? { type: "strong", reference, name, ...(text(row.original) ? { original: label(row.original) } : {}), at } : null;
+  }
+  if (row.type === "nave") {
+    const nameLower = text(row.slug);
+    return nameLower && nameLower.length <= 512 ? { type: "nave", slug: nameLower, name, at } : null;
   }
   const route = slug(row.slug);
   if (!route) return null;
@@ -84,5 +90,6 @@ export function historyHref(row: HistoryRow): string {
   if (row.type === "strong") return `/lexicon/${encodeURIComponent(row.reference)}`;
   if (row.type === "dictionary") return `/dictionary/${encodeURIComponent(row.slug)}`;
   if (row.type === "topic") return `/topics/${encodeURIComponent(row.slug)}`;
+  if (row.type === "nave") return `/nave/en/${encodeURIComponent(row.slug)}`;
   return `/read/${row.slug}/${row.chapter}${(row.verse ?? 1) > 1 ? `?at=${row.verse}` : ""}`;
 }

@@ -2,7 +2,10 @@ import { WordAlignment } from "./WordAlignment";
 import { useQuery } from "@tanstack/react-query";
 import { avatarKind, EntityAvatar } from "@/ui/avatar";
 import { useLayoutEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
+import { navePath, useNaveVerse } from "@/api/nave";
+import bookRows from "../../../../bot/data/bs-books.json";
+import "@/styles/screens/nave.css";
 
 import { data, shelf, type Book, type Citation, type VerseComment } from "@/api/data";
 import { openLink } from "@/tg/sdk";
@@ -57,7 +60,9 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
     const seen = new Set<string>(); return hits.filter((h): h is Entry => !!h && !seen.has(h.slug) && seen.add(h.slug) !== undefined);
   } });
   const xref = useQuery({ queryKey: ["xref", slug, chapter], enabled: open && tab === "references", queryFn: () => data.xref(slug, chapter).catch(none({})) });
-  const cites = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && (tab === "commentary" || tab === "themes"), queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(none([] as Citation[])) });
+  const cites = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && tab === "commentary", queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(none([] as Citation[])) });
+  const naveBook = bookRows.find((b) => b.slug === slug)?.id;
+  const nave = useNaveVerse("en", naveBook ? `${naveBook}-${chapter}-${verse}` : "", open && tab === "themes");
   const taught = useTaughtPrecepts(open && tab === "precepts" ? slug : "", chapter);
   const precepts = preceptsForVerse(taught.data, verse).sort((a, b) => teacherRank(a.note.teacher) - teacherRank(b.note.teacher));
   const topicHits = useQuery({ queryKey: ["cites", slug, chapter], enabled: open && tab === "precepts", queryFn: () => data.concordance(slug, chapter).then((c) => c.cited_by).catch(none([] as Citation[])) });
@@ -68,7 +73,6 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
   const readRef = (url: string, verses: string) => { const m = slugOfUrl(url); onClose(); navigate(m ? `/read/${m[1]}/${m[2]}${verses ? `?v=${verses}` : ""}` : toApp(url)); };
   const forVerse = (rows: Citation[] | undefined) => (rows ?? []).filter((c) => !c.verses || verseNumbers(c.verses).includes(verse));
   const refs = (xref.data as Record<string, [string, number, number][]> | undefined)?.[String(verse)] ?? [];
-  const themes = forVerse(cites.data).filter((c) => /^\/(law|precepts|cases|topics)\//.test(c.url));
   const comments = forVerse(cites.data).filter((c) => !/^\/(law|precepts|cases|topics)\//.test(c.url));
   // "Also taught in": one row per note that cites this verse itself (not only its chapter),
   // leaving out the notes whose breakdown is already shown above.
@@ -126,7 +130,10 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
         </>) : null}
         {tab === "people" ? (named.isPending || everyone.isPending ? <p className="bs-loading">Loading...</p> : !here.length ? <p className="bs-loading">No one is named in this verse.</p> : here.map((p) => <button key={p.id} type="button" className="bs-resrow bs-resrow--person" onClick={() => { onClose(); navigate(`/person/${p.id}`); }}><EntityAvatar id={p.id} name={p.name} kind={avatarKind(p.type)} size={40} ink={avatarKind(p.type) === "female" ? "var(--bs-quart)" : "var(--bs-primary)"} base="var(--bs-reverse)" /><span><b>{p.name}</b><small>{p.description}{p.verses ? ` · named in ${p.verses} ${p.verses === 1 ? "verse" : "verses"}` : ""}</small></span></button>)) : null}
         {tab === "dictionary" ? (dict.isPending && words.length ? <p className="bs-loading">Loading...</p> : !dict.data?.length ? <p className="bs-loading">No dictionary entry for the words in this verse.</p> : dict.data.map((e) => <button key={e.slug} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(`/dictionary/${e.slug}`); }}><b>{e.term}</b><small>{e.definitions[0]}</small></button>)) : null}
-        {tab === "themes" ? (cites.isError ? <Failed onRetry={() => void cites.refetch()} /> : cites.isPending ? <p className="bs-loading">Loading...</p> : !themes.length ? <p className="bs-loading">No law, precept, case or topic cites this verse.</p> : themes.map((c) => <button key={c.url} type="button" className="bs-resrow" onClick={() => { onClose(); navigate(withFrom(toApp(c.url))); }}><b>{c.label}</b><small>{shelf(c.url, c.kind)}</small></button>)) : null}
+        {tab === "themes" ? (nave.isError ? <Failed onRetry={() => void nave.refetch()} /> : nave.isPending && !!naveBook ? <p className="bs-loading">Loading...</p> : !(nave.data?.verseTopics.length || nave.data?.chapterTopics.length) ? <p className="bs-loading">No topic is associated with this verse or chapter.</p> : <div className="bs-nave-verse">{([
+          ["Regarding the verse", nave.data?.verseTopics],
+          ["Regarding the entire chapter", nave.data?.chapterTopics],
+        ] as const).map(([label, items]) => items?.length ? <section className="bs-nave-verse__group" key={label}><p>{label}</p><div className="bs-nave-verse__links">{items.map((item) => <Link key={item.normalizedName} to={navePath("en", item.normalizedName)} onClick={onClose}>{item.name}</Link>)}</div></section> : null)}</div>) : null}
         {tab === "references" ? (xref.isError ? <Failed onRetry={() => void xref.refetch()} /> : xref.isPending ? <p className="bs-loading">Loading...</p> : !refs.length ? <p className="bs-loading">No cross references for this verse.</p> : <div className="bs-resources__xrefs"><Xrefs refs={refs} books={books} /></div>) : null}
         {tab === "commentary" ? (cites.isError || said.isError ? <Failed onRetry={() => { void cites.refetch(); void said.refetch(); }} /> : cites.isPending || said.isPending ? <p className="bs-loading">Loading...</p> : !also.length && !breakdowns.length && !readHere.length ? <p className="bs-loading">No class or study note teaches from this verse yet.</p> : <>
           {breakdowns.map((c, i) => (

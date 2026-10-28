@@ -39,7 +39,7 @@ const allowed = new Set(['notes', 'studies', 'highlights', 'wordAnnotations', 'b
  */
 export async function migrateTelegramSource(options: MigrationOptions) {
   const { db, uid, source, deviceStore, readAndConvert, currentUid } = options
-  const assertOwner = () => { if (!/^tg_[1-9][0-9]*$/.test(uid) || currentUid() !== uid) throw new Error('Migration account changed; no completion flag was written') }
+  const assertOwner = () => { if ((!uid || uid === "." || uid === ".." || uid.length > 128 || /[\u0000-\u001f/]/.test(uid)) || currentUid() !== uid) throw new Error('Migration account changed; no completion flag was written') }
   assertOwner()
   if (source === 'indexedDB' && deviceStore.getItem(DEVICE_MIGRATION_OWNER_KEY) !== uid) throw new Error('Confirm which account owns this device data before importing it')
   const userRef = doc(db, 'users', uid)

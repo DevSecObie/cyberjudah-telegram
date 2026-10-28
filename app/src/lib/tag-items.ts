@@ -13,9 +13,10 @@ export type TaggedHighlight = { date: number; color: string; tags?: Record<strin
 export type TaggedNote = { slug: string; chapter: number; key: string; note: Note };
 export type TaggedLink = { slug: string; chapter: number; key: string; link: Link };
 export type TaggedMark = { id: string; verseKeys: string[]; quote: string; date: number; color?: string; style: Annotation["style"]; tags?: Record<string, true> };
-export type TagData = { highlights: TaggedHighlight[]; notes: TaggedNote[]; links: TaggedLink[]; wordAnnotations: TaggedMark[] };
+export type TaggedNave = { normalizedName: string; name: string; date: number; tags: Record<string, true> };
+export type TagData = { highlights: TaggedHighlight[]; notes: TaggedNote[]; links: TaggedLink[]; wordAnnotations: TaggedMark[]; naves?: TaggedNave[] };
 /** Bible Strong's TagEntityCounts for the kinds we have, and its itemCount (every tagged verse, note, link and mark). */
-export type TagCounts = { highlights: number; notes: number; links: number; wordAnnotations: number; itemCount: number };
+export type TagCounts = { highlights: number; notes: number; links: number; wordAnnotations: number; naves: number; itemCount: number };
 
 const empty = (): TagData => ({ highlights: [], notes: [], links: [], wordAnnotations: [] });
 const chapterOf = (k: string, prefix: string) => { const m = new RegExp(`^${prefix}(.+)_(\\d+)$`).exec(k); return m ? { slug: m[1], chapter: +m[2] } : null; };
@@ -27,6 +28,11 @@ export async function loadTagData(): Promise<Record<string, TagData & { highligh
   const keys = await store.keys();
   const byDate = new Map<string, TaggedHighlight>();
   for (const k of keys) {
+    if (k.startsWith("bs_nv_")) {
+      const item = await json.get<TaggedNave | null>(k, null);
+      if (item?.normalizedName && item.name) for (const id of Object.keys(item.tags ?? {})) (of(id).naves ??= []).push(item);
+      continue;
+    }
     const h = chapterOf(k, "bs_h_");
     if (h) {
       for (const [v, hl] of Object.entries(await json.get<Record<string, Highlight>>(k, {}))) for (const id of Object.keys(hl.tags ?? {})) {
@@ -96,8 +102,8 @@ export async function editMark(id: string, edit: (a: Annotation) => Annotation |
 }
 
 export function tagCounts(d: (TagData & { highlightVerses: number }) | undefined): TagCounts {
-  if (!d) return { highlights: 0, notes: 0, links: 0, wordAnnotations: 0, itemCount: 0 };
-  return { highlights: d.highlights.length, notes: d.notes.length, links: d.links.length, wordAnnotations: d.wordAnnotations.length, itemCount: d.highlightVerses + d.notes.length + d.links.length + d.wordAnnotations.length };
+  if (!d) return { highlights: 0, notes: 0, links: 0, wordAnnotations: 0, naves: 0, itemCount: 0 };
+  return { highlights: d.highlights.length, notes: d.notes.length, links: d.links.length, wordAnnotations: d.wordAnnotations.length, naves: d.naves?.length ?? 0, itemCount: d.highlightVerses + d.notes.length + d.links.length + d.wordAnnotations.length + (d.naves?.length ?? 0) };
 }
 
 /** The reader at a passage, its verses in focus, as a tagged item opens in Bible Strong. */
@@ -120,6 +126,7 @@ export function tagTabPaths(d: TagData | undefined): string[] {
   for (const n of d.notes) paths.push(readerAt(n.slug, n.chapter, noteVerses(n.key, n.note)));
   for (const l of d.links) paths.push(readerAt(l.slug, l.chapter, l.key.split("/").map(Number)));
   for (const a of d.wordAnnotations) { const p = readerAtKeys(a.verseKeys); if (p) paths.push(p); }
+  for (const n of d.naves ?? []) paths.push(`/nave/en/${encodeURIComponent(n.normalizedName)}`);
   return paths;
 }
 
@@ -128,6 +135,11 @@ export async function removeTagEverywhere(id: string) {
   // Read first: if the word marks cannot be read, nothing is changed and the tag stays.
   const marked = (await allAnnotations()).filter((a) => a.tags?.[id]);
   for (const k of await store.keys()) {
+    if (k.startsWith("bs_nv_")) {
+      const item = await json.get<TaggedNave | null>(k, null);
+      if (item?.tags?.[id]) { delete item.tags[id]; await json.set(k, item); }
+      continue;
+    }
     if (!/^bs_[hnl]_/.test(k)) continue;
     const map = await json.get<Record<string, { tags?: Record<string, true> }>>(k, {});
     let changed = false;

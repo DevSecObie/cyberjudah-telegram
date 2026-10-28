@@ -17,7 +17,7 @@ import { HEADER_HEIGHT, HEADER_HEIGHT_MIN, PASSAGE_CONTEXT_HEADER_HEIGHT } from 
  * accent, the passage and Done as a pill; with a focus the reference and the version. A
  * fast scroll down collapses it to 20 px (its controls fade, its texts lift 4 px).
  */
-export type MenuAction = "params" | "history" | "bookmark" | "export" | "search" | "newtab";
+export type MenuAction = "params" | "history" | "bookmark" | "sharelink" | "export" | "search" | "newtab";
 export function Header({ bookLabel, version, onBook, onVersion, onVerses, selectedReference, focusedReference, onClearFocus, collapsed, onMenu, chapterBookmarkColor, onChapterBookmark, hasChapterBookmark, menuOpen, setMenuOpen, annotating, onExitAnnotation, strongMode, onStrongMode }: {
   bookLabel: string; version: string; onBook: () => void; onVersion: () => void; onVerses: () => void;
   selectedReference: string | null; focusedReference: string | null; onClearFocus: () => void; collapsed: boolean;
@@ -59,7 +59,7 @@ export function Header({ bookLabel, version, onBook, onVersion, onVerses, select
               <button type="button" className="bs-pill bs-pill--book" aria-label={`Choose book and chapter. Current selection: ${bookLabel}`} title={`Choose book and chapter. Current selection: ${bookLabel}`} onClick={() => { haptic("select"); onBook(); }}><span className="bs-pill__bg" style={fade} /><b style={lift}>{short}</b></button>
               <button type="button" className="bs-pill bs-pill--version" aria-label={`Choose version. Current selection: ${version}`} title={`Choose version. Current selection: ${version}`} onClick={() => { haptic("select"); onVersion(); }}><span className="bs-pill__bg" style={fade} /><b style={lift}>{version}</b></button>
             </div>
-            <div className="bs-header__right toolbar-group" role="group" aria-label="Scripture actions">
+            <div className="bs-header__right" role="group" aria-label="Scripture actions">
             <button type="button" className="bs-header__verses" aria-label="Choose a verse" title="Choose a verse" style={fade} onClick={() => { haptic("select"); onVerses(); }}><Feather name="chevrons-down" size={20} style={{ opacity: 0.3 }} /></button>
               {onStrongMode ? <StrongButton mode={strongMode} style={fade} onClick={onStrongMode} /> : null}
               <MenuButton style={fade} onClick={() => setMenuOpen(true)} />
@@ -94,11 +94,14 @@ function OptionsMenu({ open, hasChapterBookmark, onClose, onPick }: { open: bool
     el.addEventListener("cj:close", onClose);
     return () => el.removeEventListener("cj:close", onClose);
   }, [onClose, present]);
+  // BibleHeader's mainMenuActions, in its order. Search the Scriptures stays until the reader's
+  // search moves into the Search tab.
   const items: [MenuAction, string, FeatherName][] = [
     ["params", "Font and settings", "type"],
     ["search", "Search the Scriptures", "search"],
     ["history", "Recently viewed", "clock"],
     ["bookmark", hasChapterBookmark ? "Edit bookmark" : "Add bookmark", "bookmark"],
+    ["sharelink", "Share the link", "link"],
     ["export", "Export…", "share-2"],
     ["newtab", "Open in new tab", "external-link"],
   ];
@@ -114,10 +117,9 @@ function OptionsMenu({ open, hasChapterBookmark, onClose, onPick }: { open: bool
           if (next >= 0) { e.preventDefault(); items[next].focus(); }
           else if (e.key === "Tab") onClose();
         }}>
-        <b className="bs-dropdown__title">Passage options</b>
         {items.map(([a, label, icon]) => (
           <button key={a} type="button" role="menuitem" data-autofocus={a === "params" ? "" : undefined} className="bs-dropdown__item" onClick={() => { haptic("select"); onPick(a); }}>
-            <Feather name={icon} size={18} /><span>{label}</span>{["params", "bookmark", "export"].includes(a) ? <Feather name="chevron-right" size={16} /> : null}
+            <span>{label}</span><Feather name={icon} size={18} />
           </button>
         ))}
       </div>

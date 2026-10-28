@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -16,7 +17,7 @@ import { Feather } from "@/bible/icons";
 import { Card, Icon, Img, Screen, Section, thumbOf, type IconName } from "@/ui/ui";
 import { assetUrl } from "@/lib/asset";
 import { SearchHero } from "@/ui/search-hero";
-import { PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
+import { NaveOfTheDay, PersonOfTheDay, PreceptOfTheDay, StrongOfTheDay, StudyStats, TopicOfTheDay, WordOfTheDay, useRandomVerse } from "./home-widgets";
 
 import { seriesLabel, seriesOf, showMatcher, showOf, type Series } from "@/lib/series";
 import { TodayCard, type DailyVerse as Verse } from "./TodayCard";
@@ -127,13 +128,13 @@ export function Home() {
           <button type="submit" className="welcome__action" disabled={!search.trim()}>Search the teachings<Icon name="arrowUp" size={20} /></button>
         </SearchHero>
       </section>
-      <section className="welcome__panel surface" aria-labelledby="welcome-ask">
+      {<section className="welcome__panel surface" aria-labelledby="welcome-ask">
         <h2 id="welcome-ask"><Icon name="chat" size={24} /> Ask CyberJudah</h2>
         <p>Ask a question. See its sources.</p>
         <SearchHero id="welcome-question" mode="ask" value={question} onChange={setQuestion} onSubmit={(q) => open("ask", q)} placeholder="What would you like to know?">
           <button type="submit" className="welcome__action" disabled={!question.trim()}>Ask your question<Icon name="arrowUp" size={20} /></button>
         </SearchHero>
-      </section>
+      </section>}
     </Screen>
   );
 }
@@ -239,6 +240,7 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
         <StrongOfTheDay lang="greek" compact={drawer} />
         <StrongOfTheDay lang="hebrew" compact={drawer} />
         <TopicOfTheDay />
+        <NaveOfTheDay />
         <WordOfTheDay />
         <PersonOfTheDay />
         <PreceptOfTheDay />
@@ -276,7 +278,7 @@ export function HomeBody({ drawer = false, active = true }: { drawer?: boolean; 
 
       <h2 className="shelf">Go further</h2>
       {/* Bible Strong's DonationWidget. */}
-      <Card href="/settings/donate" className="plan-start donate-card"><span className="resume__icon"><Icon name="star" /></span><span><b>Support CyberJudah</b><span>Keep the classes, notes and app free for everyone</span></span><Icon name="chevron" size={18} /></Card>
+      {!nativeReader && <Card href="/settings/donate" className="plan-start donate-card"><span className="resume__icon"><Icon name="star" /></span><span><b>Support CyberJudah</b><span>Keep the classes, notes and app free for everyone</span></span><Icon name="chevron" size={18} /></Card>}
       <div className="door">
         <Link to="/settings/help" className="btn btn--bordered door__btn" onClick={() => haptic("select")}><Icon name="info" size={18} /> FAQ</Link>
         <Link to="/more" className="btn btn--bordered door__btn" onClick={() => haptic("select")}><Icon name="more" size={18} /> Everything else</Link>
