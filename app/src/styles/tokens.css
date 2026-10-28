@@ -39,7 +39,6 @@
   /* Lines: a hairline between rows, a required control edge (3:1), the glass rim. */
   --hairline: #22304b;
   --control-edge: #6b7d99;
-  --rim: color-mix(in srgb, #ffffff 14%, transparent);
   --rim-highlight: color-mix(in srgb, #ffffff 16%, transparent);
 
   /* Elevation. */
@@ -74,7 +73,6 @@
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent);
   --mat-shadow: 0 10px 30px rgba(0, 0, 0, .35), 0 1px 3px rgba(0, 0, 0, .25);
   --mat-selected: color-mix(in srgb, var(--text-1) 13%, transparent);
-  --mat-glow: color-mix(in srgb, var(--accent) 75%, transparent);
 
   /* Full-screen media retains a dark context in every reading palette. */
   --widget-ink: #ffffff; --widget-ground: var(--surface-1);
@@ -145,7 +143,6 @@ html[data-theme="light"] {
   --accent: #006a93; --on-accent: #ffffff;
   --danger: #b8124f; --success: #0a6e4c; --warning: #8a5a00; --gold: #7d5f17; --violet: #6a48c9; --sky: #1f5fb8;
   --hairline: #dcd6c8; --control-edge: #7d776b;
-  --rim: color-mix(in srgb, #000000 9%, transparent);
   --rim-highlight: color-mix(in srgb, #ffffff 85%, transparent);
   --shadow-1: 0 1px 2px rgba(40, 30, 10, .08);
   --shadow-2: 0 8px 24px rgba(40, 30, 10, .10);
@@ -156,7 +153,6 @@ html[data-theme="light"] {
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent);
   --mat-shadow: 0 10px 30px rgba(40, 30, 10, .12), 0 1px 3px rgba(40, 30, 10, .08);
   --mat-selected: color-mix(in srgb, var(--text-1) 9%, transparent);
-  --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
   --scrim-modal: rgba(20, 16, 8, .5);
   --scrim-soft: rgba(20, 16, 8, .2);
 }
@@ -173,7 +169,6 @@ html[data-theme="sepia"] {
   --accent: #7f520f; --on-accent: #ffffff;
   --danger: #9e1f2a; --success: #2f6b2a; --warning: #7a4a00; --gold: #7a5512; --violet: #5e3f9a; --sky: #2b5a92;
   --hairline: #d9caa6; --control-edge: #7a6e5a;
-  --rim: color-mix(in srgb, #3b2f1e 12%, transparent);
   --rim-highlight: color-mix(in srgb, #fffaf0 85%, transparent);
   --shadow-1: 0 1px 2px rgba(60, 40, 10, .1);
   --shadow-2: 0 8px 24px rgba(60, 40, 10, .12);
@@ -184,7 +179,6 @@ html[data-theme="sepia"] {
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #fffaf0 85%, transparent);
   --mat-shadow: 0 10px 30px rgba(60, 40, 10, .14), 0 1px 3px rgba(60, 40, 10, .1);
   --mat-selected: color-mix(in srgb, var(--text-1) 9%, transparent);
-  --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
   --scrim-modal: rgba(30, 20, 5, .5);
   --scrim-soft: rgba(30, 20, 5, .2);
 }
