@@ -119,6 +119,7 @@ let leaving: (() => void) | null = null;
 export const onLeaveTab = (fn: () => void) => { leaving = fn; return () => { if (leaving === fn) leaving = null; }; };
 const leave = () => leaving?.();
 /** The history index Back may not go below. */
+export const tabHistoryFloor = () => floor;
 export const useTabFloor = () => useSyncExternalStore((l) => { floorListeners.add(l); return () => floorListeners.delete(l); }, () => floor);
 /** Where the app is now becomes the current tab's place. */
 export function recordPath(path: string) {
@@ -243,6 +244,7 @@ export function kindTabIndex(kind: keyof typeof KIND_PATH): number {
 
 /** A tab's name and kind from its path, for the switcher's cards. */
 const KINDS: [RegExp, string, string][] = [
+  [/^\/nave/, "Nave", "tag"],
   [/^\/new/, "New tab", "compose"], [/^\/(bible|read)/, "Bible", "book-open"], [/^\/search/, "Search", "search"], [/^\/lexicon/, "Strong", "spark"],
   [/^\/dictionary/, "Dictionary", "type"], [/^\/topics/, "Topics", "tag"], [/^\/(person|people)/, "People", "star"], [/^\/place\//, "Places", "map-pin"], [/^\/(classes|note|watch)/, "Classes", "play"],
   [/^\/history/, "Recently viewed", "history"], [/^\/timeline/, "Bible timeline", "clock"], [/^\/books/, "Library", "layers"], [/^\/encyclopedia/, "Encyclopedia", "book"], [/^\/law/, "The Law", "law"],

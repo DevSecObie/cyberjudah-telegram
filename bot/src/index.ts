@@ -1,3 +1,7 @@
+import { deviceAuth } from "./device-auth";
+import { IdentityError } from "./account-links";
+import { publicReader, readerContent } from "./reader";
+import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
 import { sweepFreeBudget } from "./free-budget";
 import { CmsError, CONTENT_REPO } from "./cms-github";
@@ -14,10 +18,10 @@ import { pdfLinkOk, pdfSig } from "./pdf-link";
 import { libraryPdf } from "./library-pdf";
 import { createBot, deletedSummary, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
-import { runSearch } from "./search";
-import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./teachings";
-import { findVisuals } from "./visuals.mjs";
-import { liveNow, recentVideos } from "./live";
+
+
+
+
 import { readSources, saveSources } from "./cms-sources";
 import { ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { searchAnswers } from "./search-answer";
@@ -53,8 +57,9 @@ import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
 import { MAX_BYTES } from "./photos.mjs";
 import { browserAuth, browserSession } from "./browser-auth";
 import { studyBackup } from "./study-backup";
-import { firebaseAuth } from "./firebase-auth";
+import { firebaseAuth, firebaseAccount } from "./firebase-auth";
 import { cors } from "hono/cors";
+import { nave } from "./nave";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -64,7 +69,10 @@ app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://lo
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
+app.route("/api/auth/device", deviceAuth);
 app.route("/api/auth", browserAuth);
+app.route("/api/reader", publicReader);
+app.route("/api/nave", nave);
 app.on(["GET", "HEAD"], "/api/audio/*", (c) => recordingAudio(c.req.raw, c.env));
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 
@@ -89,6 +97,22 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   // The donation presets, bounds, link and pause state are public, like the resource catalog: a plain-browser visitor sees them too, even though only the Mini App can open a Stars invoice.
   if (c.req.method === "GET" && c.req.path === "/api/donations") return next();
+  if (c.req.header("authorization")?.startsWith("Bearer ")) {
+    // A linked Firebase login may read/spend its own Ask balance and manage its data.
+    // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
+    const allowed = (c.req.method === "POST" && ["/api/ask", "/api/report"].includes(c.req.path)) ||
+      (c.req.method === "GET" && /^\/api\/(?:search|teachings|live|recent|taught|transcript|visuals)(?:\/|$)/.test(c.req.path)) ||
+      (c.req.method === "GET" && ["/api/ask/account", "/api/ask/history", "/api/me", "/api/privacy/export"].includes(c.req.path)) ||
+      (/^\/api\/chats(?:\/[a-zA-Z0-9_-]+(?:\/actions\/[a-zA-Z0-9_-]+)?)?$/.test(c.req.path)) ||
+      c.req.path.startsWith("/api/study-backup") || (c.req.method === "POST" && c.req.path === "/api/privacy/delete");
+    if (!allowed) return c.json({ error: "telegram_sign_in_required" }, 403);
+    try {
+      const account = await firebaseAccount(c.req.raw, c.env, c.req.path === "/api/privacy/delete");
+      if (!account?.user) return c.json({ error: "telegram_link_required", reason: "link-required" }, 401);
+      c.set("tma", { user: account.user, auth_date: account.identity.authTime, hash: "firebase-verified" });
+      return await next();
+    } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : "sign_in_unavailable" }, error instanceof IdentityError ? error.status : 503); }
+  }
   const m = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i);
   // Thirty days: Telegram keeps a Mini App open in the background for weeks, and its launch
   // data is only made afresh when it is opened again, so a short window turned every Search
@@ -189,55 +213,11 @@ app.put("/api/admin/ask-sources", async c => {
   catch (e) { return c.json({ error: e instanceof Error ? e.message : "The list could not be saved." }, e instanceof CmsError ? e.status : 400); }
 });
 
-/**
- * GETs whose answers are the same for every reader are cached briefly at the edge, so a
- * surge of identical searches is one D1 read, not thousands. Only successful answers are
- * kept; the URL (with its query) is the key.
- */
-async function edgeCached(c: { req: { url: string }; executionCtx: Exec }, ttl: number, compute: () => Promise<Response>): Promise<Response> {
-  const cache = caches.default;
-  const hit = await cache.match(c.req.url).catch(() => undefined);
-  if (hit) return hit;
-  const res = await compute();
-  if (res.ok) {
-    res.headers.set("cache-control", `public, max-age=${ttl}`);
-    c.executionCtx.waitUntil(cache.put(c.req.url, res.clone()).catch(() => undefined));
-  }
-  return res;
-}
-
-app.get("/api/search", async (c) => {
-  return edgeCached(c, 120, async () => {
-    const q = (c.req.query("q") ?? "").slice(0, 200);
-    const only = c.req.query("only") || undefined;
-    const limit = Math.min(Math.max(Number(c.req.query("limit")) || 8, 1), 100);
-    const res = await runSearch(c.env.DB, q, only, limit, false, c.req.query("live") === "1");
-    return c.json(res, res.ok ? 200 : 503);
-  });
-});
+app.route("/api", readerContent);
 
 // Library-only answers: provider consent, short edge cache, reader quota and owner funding.
 app.route("/api/search/answer", searchAnswers);
 
-// The teachings search as the site has it (the spoken passages of every recording), where a
-// chapter was taught, and the captions around a moment of a recording.
-app.get("/api/teachings", async (c) => {
-  return edgeCached(c, 300, async () => {
-    const res = await searchTeachings(c.env, c.req.query("q") ?? "", c.req.query("feed") ?? "", Math.min(1000, Math.max(0, Math.floor(Number(c.req.query("page")) || 0))));
-    return c.json(res, res.ok ? 200 : 503);
-  });
-});
-// Whether a class is on the air right now (the channel's live stream), for the Home screen.
-app.get("/api/live", async (c) => c.json(await liveNow(c.env, c.executionCtx)));
-// The channel's newest recordings, so a class is listed before its notes are written.
-app.get("/api/recent", async (c) => { const r = await recentVideos(c.env, c.executionCtx); return c.json({ videos: r.videos, feedOk: r.ok }); });
-app.get("/api/taught/:slug/:chapter", async (c) => {
-  const slug = c.req.param("slug"), chapter = Number(c.req.param("chapter"));
-  if (!/^[a-z0-9-]{1,40}$/.test(slug) || !(chapter >= 1 && chapter <= 200)) return c.json({ ok: false, reason: "bad-reference" }, 400);
-  const verses = (c.req.query("v") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0 && n < 200).slice(0, 200);
-  const res = await taughtIn(c.env, slug, chapter, verses);
-  return c.json(res, res.ok ? 200 : 503);
-});
 // The frames of a recording (YouTube's storyboard): the levels, then the sheets by level and index.
 app.get("/api/frames/:video", async (c) => {
   const b = await board(c.env, c.req.param("video"));
@@ -248,22 +228,6 @@ app.post("/api/frames/:video/warm", async (c) => {
   const { user } = c.get("tma");
   if (!isAdmin(c.env, user!.id)) return c.json({ ok: false }, 403);
   return c.json({ ok: await warmVideo(c.env, c.req.param("video")) });
-});
-
-// The moments the teacher pointed at something on the screen, from the captions.
-app.get("/api/visuals/:video", async (c) => {
-  const video = c.req.param("video");
-  if (!/^[A-Za-z0-9_-]{6,20}$/.test(video)) return c.json({ ok: false, visuals: [] }, 400);
-  const got = await loadTranscript(c.env, video, c.executionCtx);
-  if ("error" in got) return c.json({ ok: false, visuals: [] }, got.error === "not-found" ? 404 : 503);
-  return c.json({ ok: true, visuals: findVisuals(got.file.segments ?? []) }, 200, { "cache-control": "public, max-age=86400" });
-});
-
-app.get("/api/transcript/:video", async (c) => {
-  const video = c.req.param("video");
-  if (!/^[A-Za-z0-9_-]{6,20}$/.test(video)) return c.json({ ok: false, reason: "bad-video" }, 400);
-  const res = await transcriptAround(c.env, video, Math.max(0, Number(c.req.query("t")) || 0), c.executionCtx);
-  return c.json(res, res.ok ? 200 : res.reason === "not-found" ? 404 : 503);
 });
 
 // The AI: a question answered from the teachings with citations, search by meaning, and

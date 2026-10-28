@@ -1,4 +1,4 @@
-import { apiURL } from "@/native/platform";
+import { apiURL, nativeReader } from "@/native/platform";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/tg/sdk";
 export function usePhotos() {
@@ -12,7 +12,7 @@ export function usePhotos() {
 
 /** Whether this reader is an admin (/api/me), shared with the note editor's query. */
 export function useIsAdmin() {
-  const me = useQuery({ queryKey: ["me"], queryFn: () => api<{ admin?: boolean; canEdit?: boolean }>("/api/me"), staleTime: 600_000, retry: false });
+  const me = useQuery({ queryKey: ["me"], enabled: !nativeReader, queryFn: () => api<{ admin?: boolean; canEdit?: boolean }>("/api/me"), staleTime: 600_000, retry: false });
   return me.isSuccess && !!me.data?.admin;
 }
 

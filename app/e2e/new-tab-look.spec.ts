@@ -29,7 +29,7 @@ test("the page is Bible Strong's: three sections, no search field and no Back", 
   // Bible Strong's cards come first in each section.
   await expect(page.locator(".ntgrid--read .ntcard b").first()).toHaveText("Reading plan");
   await expect(page.locator(".ntgrid--personal .ntcard b").first()).toHaveText("Studies");
-  await expect(page.locator(".ntgrid--library .ntcard b")).toContainText(["Strong", "Topics", "Dictionary"]);
+  await expect(page.locator(".ntgrid--library .ntcard b")).toContainText(["Strong", "Topics", "Nave", "Dictionary"]);
 });
 
 test("cards carry their kind's icon and colour, the description as a hint", async ({ page }) => {

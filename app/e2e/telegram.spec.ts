@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { DATA_ORIGIN, LAUNCH, setup, goInApp } from "./telegram-harness";
+import aaronSnapshot from "./nave-aaron-snapshot.json" with { type: "json" };
 
 /**
  * The app driven inside a stand-in for Telegram's SDK: a script served in place of
@@ -194,7 +195,29 @@ test("the header's selectors are Bible Strong's sheets: they search, keep chapte
   await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
   await page.click('.bs-iconbtn[aria-label="Scripture options"]');
   await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
-  await expect(page.getByRole("menuitem")).toHaveText(["Font and settings", "Search the Scriptures", "Recently viewed", "Add bookmark", "Export…", "Open in new tab"]);
+  await expect(page.getByRole("menuitem")).toHaveText(["Font and settings", "Search the Scriptures", "Recently viewed", "Add bookmark", "Share the link", "Export…", "Open in new tab"]);
+  // Bible Strong's menu has no title, and each item's icon sits after its label.
+  await expect(page.getByRole("menu", { name: "Passage options" })).not.toContainText("Passage options");
+  const item = page.getByRole("menuitem", { name: "Share the link" });
+  const [label, icon] = await Promise.all([item.locator("span").boundingBox(), item.locator("svg").boundingBox()]);
+  expect(icon!.x).toBeGreaterThan(label!.x);
+  // The header's buttons sit side by side at 40px, with no capsule behind them.
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".bs-header__right")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(page.locator('.bs-iconbtn[aria-label="Scripture options"]')).toHaveCSS("width", "40px");
+  // The chapter buttons are flat circles: no shadow.
+  const next = page.locator('.bs-chapterbtn[aria-label="Next chapter"]');
+  await expect(next).toHaveCSS("box-shadow", "none");
+  // Held, it fades to Bible Strong's .2 (nothing inline overrides it).
+  await expect(next).toHaveCSS("opacity", "1");
+  const send = (type: string) => next.evaluate((el, type) => {
+    const r = el.getBoundingClientRect();
+    el.dispatchEvent(new PointerEvent(type, { bubbles: true, isPrimary: true, button: 0, pointerId: 4, pointerType: "touch", clientX: r.x + 5, clientY: r.y + 5 }));
+  }, type);
+  await send("pointerdown");
+  await expect(next).toHaveCSS("opacity", "0.2");
+  await send("pointercancel");
+  await expect(next).toHaveCSS("opacity", "1");
 });
 
 test("Font and settings: night theme, verse mode, text size, fonts, all kept in the cloud", async ({ page }) => {
@@ -411,6 +434,22 @@ test("Back as in Bible Strong: every page but the main places has a ←, and a p
   await expect.poll(async () => (await state(page)).back).toBe(false);
 });
 
+test("Back while Help is loading returns to Settings without skipping its parent", async ({ page }) => {
+  let release!: () => void;
+  const loading = new Promise<void>(resolve => { release = resolve; });
+  await page.route(/\/assets\/Help-[^/]+\.js$/, async route => { await loading; await route.continue(); });
+  try {
+    await page.goto(`/settings${LAUNCH}`);
+    await expect(page.locator("h1.title")).toHaveText("Settings");
+    await page.getByText("Help & reading guide").click();
+    await expect(page).toHaveURL(/\/settings\/help/);
+    // The old screen stays visible while the new route's code loads.
+    await page.locator(".screen > .head").getByRole("button", { name: "Back" }).click();
+    await expect(page).toHaveURL(url => url.pathname === "/settings");
+    await expect(page.locator("h1.title")).toHaveText("Settings");
+  } finally { release(); }
+});
+
 test("tabs are roots, detail screens push, and the back button walks them", async ({ page }) => {
   await page.goto(`/${LAUNCH}`);
   await expect(page.getByRole("heading", { name: "What do you want to learn?" })).toBeVisible();
@@ -606,7 +645,7 @@ test("tabs as in Bible Strong: the Bible is a tab, a new tab offers every resour
 test("the finder opens the chosen Search tool", async ({ page }) => {
   await page.goto(`/new${LAUNCH}`);
   await page.locator(".nt-heading").waitFor();
-  await page.keyboard.press("Control+k");
+  await page.keyboard.press("ControlOrMeta+k");
   const finder = page.getByRole("dialog", { name: "Find a tab or tool" });
   await expect(finder).toBeVisible();
   await finder.getByRole("combobox").fill("Search");
@@ -669,6 +708,7 @@ test("Home drawer starts with Today and six saved-content counts; Image and Link
 });
 
 test("welcome keeps Search and Ask separate, with the dashboard in the Home drawer", async ({ page }) => {
+  await page.route("**/api/nave/en/random", route => route.fulfill({ json: aaronSnapshot }));
   await page.goto(`/${LAUNCH}`);
   const welcome = page.locator(".welcome");
   const search = welcome.getByRole("searchbox", { name: "Search the teachings" });
@@ -693,7 +733,9 @@ test("welcome keeps Search and Ask separate, with the dashboard in the Home draw
   await expect(home.locator(".shelf")).toHaveText(["Learn", "Study", "Meditate", "Go further"]);
   // Bible Strong's Courses & videos card opens the classes.
   await expect(home.getByRole("link", { name: "Open courses and videos" })).toHaveAttribute("href", "/classes");
-  await expect(home.locator(".widget")).toHaveCount(6);
+  await expect(home.locator(".widget__label")).toHaveText(["Greek", "Hebrew", "Topic", "Nave", "Word", "Person", "Precept"]);
+  await expect(home.getByRole("button", { name: "Nave Topics", exact: true })).toBeVisible();
+  await expect(home.getByRole("link", { name: "Nave Aaron", exact: true })).toHaveAttribute("href", "/nave/en/aaron");
   await home.getByRole("button", { name: "Close Home" }).click();
   await search.fill("Seattle");
   await search.press("Enter");
@@ -823,6 +865,22 @@ test("the notes' grip stays inside the screen the instant a drag ends, so the ne
   await dragFrom(releasedGrip, 120);
   await expect(page.locator(".nsheet[data-full]")).toHaveCount(0);
   await expect.poll(async () => (await page.locator(".nsheet").boundingBox())!.y).toBeGreaterThan(150);
+});
+
+test("cancelled notes gestures never expand or dismiss the sheet", async ({ page }) => {
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement.json`, r => r.fulfill({ json: { kind: "class", title: "The Art of War", url: "/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement", videoId: "eNMvid6j-qk", body: "Notes kept open." } }));
+  await page.goto(`/note/classes/2026/2026-09-26-the-art-of-war-rules-of-engagement${LAUNCH}`);
+  const sheet = page.locator(".nsheet"), head = page.locator(".nsheet__head");
+  await expect(sheet).toHaveAttribute("data-open", "");
+  const box = (await head.boundingBox())!, x = box.x + 20, y = box.y + 20;
+  await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(x, y + 140);
+  await head.dispatchEvent("pointercancel", { pointerId: 1, clientY: y + 140, isPrimary: true });
+  await page.mouse.up();
+  await expect(sheet).toHaveAttribute("data-open", "");
+  await expect(sheet).not.toHaveAttribute("data-full", "");
+  // A real press still works after cancellation; the cancelled pointer cannot leave it stuck.
+  await head.click({ position: { x: 20, y: 20 } });
+  await expect(sheet).toHaveAttribute("data-full", "");
 });
 
 liveDataTest("the recordings search works as the site's: matches lit, a moment to watch, notes alongside", async ({ page }) => {
@@ -1868,7 +1926,7 @@ test("Ask: every failure says what happened, with a way on", async ({ page }) =>
   await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false } }));
   const cases: [number, unknown, RegExp][] = [
     [400, { error: "too-short" }, /fuller question/],
-    [401, { error: "unauthorized", reason: "missing" }, /Open CyberJudah from Telegram/],
+    [401, { error: "unauthorized", reason: "missing" }, /Sign in from Account or open CyberJudah in Telegram/],
     [429, { error: "limit" }, /hundred questions today/],
   ];
   for (const [status, body, text] of cases) {

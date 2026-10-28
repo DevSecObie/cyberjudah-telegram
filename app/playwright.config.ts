@@ -3,6 +3,8 @@ import crypto from "node:crypto";
 import { STAND_IN } from "./e2e/stand-ins";
 
 const liveBaseURL = process.env.PLAYWRIGHT_BASE_URL;
+const nativeReaderCheck = process.env.CYBERJUDAH_TEST_NATIVE_READER === "1";
+if (nativeReaderCheck && liveBaseURL) throw new Error("Native reader checks require a local native-profile build");
 // The live suite must reach a real Worker: without an address it would start an empty local one
 // and report on that instead.
 if (process.env.RUN_LIVE_E2E && !liveBaseURL) throw new Error("RUN_LIVE_E2E is set but PLAYWRIGHT_BASE_URL is empty");
@@ -32,6 +34,8 @@ const vars = [
   // deletion detect the loopback emulator instead of minting a real Google access token.
   ...(process.env.E2E_FIREBASE_ACCOUNT ? [`FIREBASE_SERVICE_ACCOUNT:${process.env.E2E_FIREBASE_ACCOUNT}`, "TELEGRAM_LOGIN_CLIENT_ID:100000001", "TELEGRAM_LOGIN_CLIENT_SECRET:local-fixture", "FIRESTORE_EMULATOR_HOST:127.0.0.1:8089"] : []),
   `BOT_TOKEN:${process.env.BOT_TOKEN}`,
+  "TELEGRAM_LOGIN_CLIENT_ID:100000001",
+  "TELEGRAM_LOGIN_CLIENT_SECRET:local-fixture",
   `VAPID_PUBLIC_KEY:${process.env.E2E_VAPID_PUBLIC}`,
   `VAPID_PRIVATE_KEY:${process.env.E2E_VAPID_PRIVATE}`,
   "VAPID_SUBJECT:mailto:e2e@cyberjudah.invalid",
@@ -65,6 +69,7 @@ const vars = [
  */
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: nativeReaderCheck ? undefined : "native-reader.spec.ts",
   timeout: 60_000,
   expect: { timeout: 15_000 },
   workers: 1,
@@ -77,13 +82,13 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { browserName: "chromium", channel: "chromium", ...(process.env.CHROMIUM_PATH ? { launchOptions: { executablePath: process.env.CHROMIUM_PATH } } : {}) } },
     // The glass material and pointer behavior must also work in the engine used by Safari/iOS.
-    { name: "webkit", testMatch: ["people-*.spec.ts", "account-sync.spec.ts", "telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "webkit" } },
-    { name: "firefox", testMatch: ["people-*.spec.ts", "account-sync.spec.ts", "telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "firefox" } },
+    { name: "webkit", testMatch: ["nave-port.spec.ts", "new-tab-look.spec.ts", "new-tab-search.spec.ts", "native-reader.spec.ts", "offline-search.spec.ts", "ask-browser.spec.ts", "firebase-signin.spec.ts", "people-*.spec.ts", "account-sync.spec.ts", "telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "webkit" } },
+    { name: "firefox", testMatch: ["nave-port.spec.ts", "new-tab-look.spec.ts", "new-tab-search.spec.ts", "native-reader.spec.ts", "offline-search.spec.ts", "ask-browser.spec.ts", "firebase-signin.spec.ts", "people-*.spec.ts", "account-sync.spec.ts", "telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "firefox" } },
   ],
   webServer: liveBaseURL ? undefined : {
-    command: `CYBERJUDAH_APP_BASE=/app/ npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,
+    command: `VITE_NATIVE_BUILD=${nativeReaderCheck ? "true" : "false"} CYBERJUDAH_APP_BASE=/app/ npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,
     url: "http://127.0.0.1:8787/api/auth/status",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI && !nativeReaderCheck,
     timeout: 180_000,
   },
 });

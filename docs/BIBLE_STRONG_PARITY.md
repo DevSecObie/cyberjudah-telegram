@@ -1,8 +1,20 @@
+> October 27 scope update: the owner now requires paid Ask through all linked sign-in methods. The earlier free-only native profile described below is superseded. Firebase Google/Apple/email plus verified Telegram linking preserve the existing Ask wallet. See STORE_BILLING_SETUP.md for the native purchase release gate. Bible Strong remains the reference for provider and account-recovery behavior; its identifiers and credentials are not copied.
+
 # Bible Strong parity review
 
 Current owner direction, 8 October 2026: retain the existing CyberJudah app, all content and Apple Liquid Glass; integrate reader and interaction improvements into `app/`. The separate Expo prototype is not the replacement product. Visible changes require previews in the existing app before implementation.
 
 Latest upstream checked for the current gesture work: `a40b63c5bef7fbe41dbd1573780e65e736eab333` (8 October 2026). Its changes after the previously checked `eed343d` concern resource publication, not the Expo reader/navigation source. The earlier review below remains a gap inventory, not a claim of complete current-source parity.
+
+## Release fixes checked 27 October 2026
+
+Upstream reference: [smontlouis/bible-strong at `39d878091d12c0f8074464f5ff79fa4bb94f737f`](https://github.com/smontlouis/bible-strong/tree/39d878091d12c0f8074464f5ff79fa4bb94f737f). Its current README links the iOS, Android and web products. The store configuration is in `apps/expo/app.config.ts` and `eas.json`; native Firebase authentication and session recovery are in `src/helpers/FireAuth.ts` and `authSessionRecovery.ts`; `features/search/usePassageSearch.ts` keys local/online results by connectivity and pages local resources. Web sheets use `common/vaulBottomSheet.tsx`.
+
+This release retains CyberJudah's current reader and content. Its offline-search adapter follows the upstream local-page contract using the already-downloaded KJV chapters, and reuses CyberJudah's server query parser for quoted phrases, number/name variants and strict/loose matching. Connectivity is part of the query key so reconnecting cannot append live hits to an offline page. Local results state exactly how many saved chapters were searched; they do not imply a complete library or identical SQLite/BM25 ranking.
+
+Browser Telegram sign-in now unlocks Ask using the verified cookie session; conversation storage is scoped to the verified numeric user ID and clears its active state on logout/deletion. No Telegram SDK identity is fabricated. Cancelled class-notes gestures perform no action, an interrupted settling animation cannot reset a newer drag, and native Back delegates to the reader's existing sheet stack and tab history.
+
+Bible Strong's Firebase identities, app IDs, signing accounts, store approvals and third-party content are not CyberJudah credentials or entitlements. Its native Apple/Google/e-mail authentication cannot be copied into a Telegram-ID backend without an explicit identity/account migration. Native authentication, the native paid offering and physical-device validation remain separate release gates in `STORE_READINESS.md`.
 
 ## Implementation constraint
 
@@ -32,7 +44,7 @@ The active Telegram and website reader is `app/src/bible/BibleTab.tsx`. The sepa
 | Passage selection and context: `bible/README.md` | Book/chapter/verse picker, chapter swipes, reference focus, expand/return/exit, reading history. Focus now contains only the selected passage; removed the blurred neighboring verses that upstream also removed. | No additional translation selector until another translation has an approved source. |
 | Appearance: `BibleParamsModal` | Fonts, size, theme, alignment, line height, inline/block verses, highlight palettes, share formatting and relation/tag layout. Added working verse-number visibility, retaining accessible verse numbers. | Pericope headings require a sourced dataset. |
 | Export: `passageExport/PassageExportSheet` | Selection/chapter/book scope; scripture, notes, links, personal precepts, tags and phrase marks; preview, copy and real file saving. Overlapping notes identify their wider scope; failed preparation cannot produce a partial file. | Exports text and existing study formats. It does not translate another app's private backup schema. |
-| Bible search: `search/README.md` | Public, paginated scripture search with relevance/Bible order. Book and testament filters run before paging, including Apocrypha. Typed ranges keep both endpoints. | Multiple versions and semantic search across translations need approved editions. Offline full-text Bible search is not implemented. |
+| Bible search: `search/README.md` | Public, paginated scripture search with relevance/Bible order. Book and testament filters run before paging, including Apocrypha. Typed ranges keep both endpoints. | Multiple versions and semantic search across translations need approved editions. Downloaded KJV chapters are now searchable offline with an explicit coverage label; complete-library search requires all relevant chapters to be downloaded. |
 
 ## Study, content and personal data
 
@@ -57,7 +69,7 @@ The active Telegram and website reader is `app/src/bible/BibleTab.tsx`. The sepa
 | Area / upstream source | CyberJudah implementation | Remaining difference |
 | --- | --- | --- |
 | Audio / `audio` | Device speech, free generated voices and licensed recordings; speed/pitch where supported, verse following, continuous chapters, repeat and ambient sound. Existing recording and continuity tests cover the engines. | No sleep timer in the active player. Browser/Telegram background and lock-screen behavior depends on the host; native long-running audio needs device validation. |
-| Downloads / `resources`, `settings/DownloadsScreen` | Offline book/recording downloads, approved resource installation, checksums, pinned releases, quotas, progress and removal. Shell update test checks stale shell deletion. | Cannot promise persistent browser storage after OS eviction. Offline full-text search remains separate from downloading readable chapters. |
+| Downloads / `resources`, `settings/DownloadsScreen` | Offline book/recording downloads, approved resource installation, checksums, pinned releases, quotas, progress and removal. Shell update test checks stale shell deletion. | Cannot promise persistent browser storage after OS eviction. Offline search uses the downloaded chapters and reports missing coverage. |
 | Backup / `settings/ImportExportScreen` | Settings backs up reader preferences, notes and marks; Account backs up personal studies/phrase marks, with explicit restore and conflicts. | Two backup scopes; manual backup is **not** automatic sync. No silent cross-app backup import. |
 | Account / `profile`, `settings` | Telegram identity, browser Telegram login, privacy export/deletion and optional platform capabilities. | Browser login needs owner's BotFather/OIDC configuration; this is not upstream Google/Apple/Firebase login. |
 | Help / `settings/FAQScreen`, onboarding | Settings/Menu → Help & reading guide covers reading, study tools, audio, backups and platform keyboard controls. | Interactive guided onboarding remains different. |
@@ -67,4 +79,4 @@ The active Telegram and website reader is `app/src/bible/BibleTab.tsx`. The sepa
 
 `app/e2e/reader-parity.spec.ts` covers the changed reader/tab, export, search, settings, Home and plan workflows. It runs in Chromium, WebKit and Firefox. `tab-flow.spec.ts` retains transition and viewport tests; `study-tools.spec.ts` covers personal studies; existing recordings, ambient, resource, offline, CMS and privacy suites remain required. Pure export tests check scope boundaries, relation deduplication/direction and omitted fields; Worker tests check dated scripture and real FTS filtering/paging.
 
-The remaining differences above are not marked complete. Work that can use existing approved data: retained screen history, richer notes/libraries, saved plans, global study tags/relations, inline commentary controls, offline scripture search and guided onboarding. New translations, pericope text or interlinear data stay behind the existing source/licence requirements. Native platform guarantees need physical-device verification.
+The remaining differences above are not marked complete. Work that can use existing approved data: retained screen history, richer notes/libraries, saved plans, global study tags/relations, inline commentary controls and guided onboarding. Offline scripture search is now implemented for saved chapters as described above. New translations, pericope text or interlinear data stay behind the existing source/licence requirements. Native platform guarantees need physical-device verification.

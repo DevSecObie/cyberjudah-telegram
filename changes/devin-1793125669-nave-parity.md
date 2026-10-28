@@ -1,0 +1,1 @@
+- Bring Bible Strong's English Nave thematic Bible into the app: browse and search topics, follow article references with English Bible-book labels, and find topics for a verse or chapter. Nave articles support tags, relations, history and new tabs. Existing CyberJudah class Topics remain separate.

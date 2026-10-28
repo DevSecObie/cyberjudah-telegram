@@ -1,3 +1,5 @@
+import { nativeReader } from "@/native/platform";
+import { NativeReaderNotice } from "@/native/NativeReaderInfo";
 import { historyIdx, isOver, markOver } from "@/lib/over-page";
 import { NativeLifecycle } from "@/native/NativeLifecycle";
 import { WorkspaceCommands } from "@/ui/WorkspaceCommands";
@@ -74,6 +76,8 @@ const DoctrineScreen = lazy(() => import("@/screens/Library").then((m) => ({ def
 const Cases = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.Cases })));
 const CaseScreen = lazy(() => import("@/screens/Cases").then((m) => ({ default: m.CaseScreen })));
 const Topics = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Topics })));
+const Nave = lazy(() => import("@/screens/Nave").then((m) => ({ default: m.Nave })));
+const NaveEntry = lazy(() => import("@/screens/Nave").then((m) => ({ default: m.NaveEntry })));
 const TopicScreen = lazy(() => import("@/screens/Library").then((m) => ({ default: m.TopicScreen })));
 const PersonalStudies = lazy(() => import("@/screens/PersonalStudies").then(m => ({ default: m.PersonalStudies })));
 const Study = lazy(() => import("@/screens/Library").then((m) => ({ default: m.Study })));
@@ -92,10 +96,10 @@ const TagScreen = lazy(() => import("@/screens/Tags").then((m) => ({ default: m.
 const routes = (
   <>
     <Route path="/" element={<Home />} />
-    <Route path="/settings/admin/*" element={<AdminGate />} />
+    <Route path="/settings/admin/*" element={nativeReader ? <NativeReaderNotice /> : <AdminGate />} />
     <Route path="/settings/credits" element={<Credits />} />
-    <Route path="/settings/reminders" element={<Reminders />} />
-    <Route path="/settings/donate" element={<Donate />} />
+    <Route path="/settings/reminders" element={nativeReader ? <NativeReaderNotice /> : <Reminders />} />
+    <Route path="/settings/donate" element={nativeReader ? <NativeReaderNotice /> : <Donate />} />
     <Route path="/privacy" element={<Privacy />} />
     <Route path="/terms" element={<Terms />} />
     <Route path="/search" element={<Search />} />
@@ -115,7 +119,7 @@ const routes = (
     <Route path="/settings/help" element={<Help />} />
     <Route path="/settings/audio" element={<AudioSettings />} />
     <Route path="/settings/theme" element={<ThemeSettings />} />
-    <Route path="/settings/requests" element={<NoteRequests />} />
+    <Route path="/settings/requests" element={nativeReader ? <NativeReaderNotice /> : <NoteRequests />} />
     <Route path="/plans" element={<ReadingPlans />} />
     <Route path="/plan" element={<Plan />} />
     <Route path="/relations" element={<Relations />} />
@@ -161,6 +165,8 @@ const routes = (
     <Route path="/cases" element={<Cases />} />
     <Route path="/cases/:era/:slug" element={<CaseScreen />} />
     <Route path="/topics" element={<Topics />} />
+    <Route path="/nave" element={<Nave />} />
+    <Route path="/nave/en/:name" element={<NaveEntry />} />
     <Route path="/topics/:slug" element={<TopicScreen />} />
     <Route path="*" element={<Home />} />
   </>
@@ -260,7 +266,7 @@ export function App() {
       </ScreenBoundary>
       </div>
       {sheet ? <RouteSheet entry={sheet} path={location.pathname} label="Sheet"><ScreenBoundary resetKey={location.pathname}><Suspense fallback={<Loading />}><Routes location={location}>{routes}</Routes></Suspense></ScreenBoundary></RouteSheet> : null}
-      <Suspense fallback={null}><ReminderSync /></Suspense>
+      {!nativeReader && <Suspense fallback={null}><ReminderSync /></Suspense>}
       <AudioPlayerBar />
       <PageActions />
       <Drawers />
