@@ -1814,19 +1814,22 @@ test("Reader: a class read in the chapter without notes plays in place, and its 
   expect(asked[0].title).not.toBe("");
 });
 
-test("an opened class keeps the tab bar, with its actions floating above it", async ({ page }) => {
+test("an opened class keeps the tab bar, with its actions in the header's ⋮ menu as Bible Strong's", async ({ page }) => {
   await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-keep-the-bar.json`, (r) => r.fulfill({
     contentType: "application/json",
     body: JSON.stringify({ kind: "class", title: "Keep the bar", url: "/classes/2026/2026-09-26-keep-the-bar", date: "2026-09-26", teacher: "Captain Joel", videoId: "eNMvid6j-qk", body: "## Scriptures Opened\n\nThe remnant is gathered." }),
   }));
   await page.goto(`/note/classes/2026/2026-09-26-keep-the-bar${LAUNCH}`);
-  await expect(page.locator(".pageactions")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Keep the bar" })).toBeVisible();
   await expect(page.locator(".tabs").first()).toBeVisible();
   await expect(page.locator('.tabs .tab[aria-label="Main menu"]')).toBeVisible();
   expect(await state(page)).toMatchObject({ main: null, second: null });
-  const actions = await page.locator(".pageactions").boundingBox();
-  const bar = await page.locator(".tabs").first().boundingBox();
-  expect(actions!.y + actions!.height).toBeLessThanOrEqual(bar!.y + 1);
+  // Nothing floats over the bar: the actions are in the header's ⋮ menu.
+  await expect(page.locator(".pageactions")).toHaveCount(0);
+  // The class opens on its notes; their sheet carries the same ⋮.
+  await page.getByRole("dialog", { name: "Class notes" }).getByRole("button", { name: "More options" }).click();
+  await expect(page.getByRole("button", { name: "Share the link" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open in YouTube" })).toBeVisible();
 });
 
 test("the bottom bar sits above the Bible, with Bible Strong's buttons, Classes and Ask", async ({ page }) => {
@@ -2404,4 +2407,27 @@ test("Concordance: books with how much of each is cited; a book lists each chapt
   await expect(ch3).toContainText("Notes and classes");
   await expect(ch3).toContainText("Laws");
   await expect(ch3).toContainText("v. 6-7");
+});
+
+test("a saved location with no sunset today can still be updated or forgotten", async ({ page }) => {
+  // Near the pole in December the sun neither rises nor sets.
+  await page.clock.setFixedTime(new Date("2026-12-21T12:00:00Z"));
+  await page.addInitScript(() => {
+    const loc = JSON.stringify({ lat: 89.5, lng: 0 });
+    localStorage.setItem("cj:loc", loc);
+    const w = window as unknown as { __cloud?: Record<string, string> };
+    w.__cloud = { ...(w.__cloud ?? {}), loc };
+  });
+  await page.goto(`/sabbath${LAUNCH}`);
+  await expect(page.getByText("No sunset here today")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Update my location" })).toBeVisible();
+  await page.getByRole("button", { name: "Forget" }).click();
+  await expect(page.getByText("Where are you?")).toBeVisible();
+});
+
+test("a class note that does not load still offers its recording on YouTube", async ({ page }) => {
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-gone.json`, (r) => r.fulfill({ status: 404, body: "" }));
+  await page.goto(`/note/classes/2026/2026-09-26-gone?video=eNMvid6j-qk${LAUNCH}`);
+  await expect(page.getByText("This note did not load")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open in YouTube" })).toBeVisible();
 });
