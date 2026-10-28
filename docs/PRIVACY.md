@@ -91,6 +91,36 @@ The reminder endpoints also pass the caller's IP address to Cloudflare's rate li
 Records from before this change (under Telegram IDs, unsealed) are moved by `privacy-migrate.ts`,
 a bounded amount each hour, until none are left. Chats also move the first time they are read.
 
+## The iPhone and Android app
+
+The phone app is the Bible Strong port in `DevSecObie/cyberjudah-app` (`apps/expo`, resource
+profile `cyberjudah`). Reading and study work without an account; signed out, everything stays on
+the device. The Privacy screen's section "The CyberJudah App for iPhone and Android" is the
+readers' side of this table.
+
+| Record | Where | Holds | Kept | Deleted by |
+|---|---|---|---|---|
+| Sign-in | Firebase Authentication, project `cyberjudah-app` | Email address, the name Google or Apple shares, provider, Firebase UID | Until the account is deleted | Delete account in the app (`DeleteAccountModal.tsx`), or a request by email |
+| Synced study data | Firestore `users/<uid>` and its subcollections (highlights, notes, links, bookmarks, tags, relations, studies, word annotations and the rest listed in `firebase/cyberjudah/firestore.rules`), `studies` (field `user.id`), `users-status/<uid>`; staging builds use the `staging_` copies of these collections | What the reader wrote and marked, with note and study revisions | Until replaced, deleted, or the account is deleted | Delete account in the app, or a request by email |
+
+Firestore rules give each document to its owner only. App Check (App Attest on iPhone, Play
+Integrity on Android) is asked for before protected downloads; it carries no reader identity.
+Dictionary and Nave entries come through `bot/src/bs/upstream-reference.ts`, which sends
+`api.bible-strong.app` only the path and query of the lookup, with no reader identity, cookies
+or credentials, and refuses redirects. Analytics, crash reporting and the study assistant are off
+in this build (empty `EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID`, `EXPO_PUBLIC_SENTRY_DSN` and
+`EXPO_PUBLIC_AI_API_URL`).
+
+**Known gap, 28 October 2026:** the app's Delete account removes only the Firebase sign-in
+(`deleteCurrentAuthUser`). The function that removes a user's Firestore data
+(`apps/api/functions/src/users.ts`) deploys to the upstream project, not `cyberjudah-app`. Until
+the deletion fix lands, a request to privacy@cyberjudah.io is completed by hand: delete
+`users/<uid>` with its subcollections, every `studies` document whose `user.id` is the UID, and
+`users-status/<uid>`, then remove the account in Firebase Authentication. A linked Telegram
+account's records go with `deleteData` (`bot/src/mydata.ts`). The page for requests without the
+app is `/delete-account` (`app/src/screens/DeleteAccount.tsx`), the link given in Google Play's
+Data safety form.
+
 ## Who else handles it
 
 - **Telegram:** platform, sign-in, messages, Stars.
@@ -129,7 +159,12 @@ a bounded amount each hour, until none are left. Chats also move the first time 
 - **Google Firebase:** once a reader is signed in to account sync, the eight record types above
   (highlights, notes, links, bookmarks, tags, relations, personal studies, word annotations),
   under the reader's Telegram ID, so the same marks follow them to another device. Delete my
-  data removes them (`bot/src/firestore-admin.ts`).
+  data removes them (`bot/src/firestore-admin.ts`). For the phone app, the sign-in and the synced
+  study data in the table above.
+- **Apple and Google:** Sign in with Apple, Google sign-in, and the App Check device check of the
+  phone app.
+- **The Bible Strong reference service** (`api.bible-strong.app`): the path and query of a
+  dictionary or Nave lookup, from CyberJudah's server, with no reader identity.
 
 ## Children
 
