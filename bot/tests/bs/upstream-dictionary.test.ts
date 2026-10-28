@@ -11,7 +11,7 @@ test('Bible Strong dictionary reads retain source metadata and never forward acc
   const result = await readBibleStrongDictionary(request, async (url, options) => {
     assert.equal(url, 'https://api.bible-strong.app/v1/dictionaries?language=en');
     assert.deepEqual(options?.headers, { accept: 'application/json' });
-    assert.equal(options?.redirect, 'error');
+    assert.equal(options?.redirect, 'manual');
     return Response.json(body, { headers: { 'cache-control': 'private, no-store' } });
   });
   assert.deepEqual(await result.json(), body);
@@ -51,4 +51,12 @@ test('the staging worker routes the original dictionary catalog through the publ
     assert.equal(response.headers.get('access-control-allow-origin'), '*');
     assert.equal((await response.json() as any).dictionaries[0].resource.work, 'easton-webster');
   } finally { globalThis.fetch = originalFetch; }
+});
+
+
+test('upstream redirects are rejected without following another host', async () => {
+  await assert.rejects(readBibleStrongDictionary(new Request('https://staging.example/bs/v1/dictionaries'), async (_url, init) => {
+    assert.equal(init?.redirect, 'manual');
+    return new Response(null, { status: 302, headers: { location: 'https://untrusted.example' } });
+  }), /temporarily unavailable/);
 });

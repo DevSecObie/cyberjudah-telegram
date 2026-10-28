@@ -21,13 +21,13 @@ export async function readBibleStrongDictionary(request: Request, fetcher: typeo
   let response: Response;
   try {
     response = await fetcher(`${origin}${mappedPath}${incoming.search}`, {
-      method: 'GET', headers: { accept: 'application/json' }, redirect: 'error',
+      method: 'GET', headers: { accept: 'application/json' }, redirect: 'manual',
       signal: AbortSignal.timeout(15_000),
     });
   } catch {
     throw new FeedError(503, 'DICTIONARY_PUBLICATION_INACTIVE', 'Bible Strong’s dictionary service could not be reached');
   }
-  if (!response.headers.get('content-type')?.includes('json') || response.status >= 500) {
+  if (!response.headers.get('content-type')?.includes('json') || response.status >= 500 || response.status >= 300 && response.status < 400) {
     throw new FeedError(503, 'DICTIONARY_PUBLICATION_INACTIVE', 'Bible Strong’s dictionary service is temporarily unavailable');
   }
   const body = await response.json() as Record<string, unknown>;

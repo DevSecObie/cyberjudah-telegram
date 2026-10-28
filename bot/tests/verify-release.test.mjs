@@ -11,6 +11,8 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ex
     const path = new URL(url).pathname;
     if (path === "/api/health") return json({ ok: true });
     if (["/app/", "/app/read/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
+    if (path === "/bs/v1/dictionaries") return json({ dictionaries: [{ resource: { work: "easton-webster" } }] });
+    if (path === "/bs/v1/dictionaries/easton-webster/en/entries/Aaron") return json({ entry: { word: "Aaron", definition: "Original dictionary definition" } });
     if (path === "/api/auth/status") return json({ available: true });
     if (!headers.authorization) return json({}, 401);
     assert.equal((await validateInitData(headers.authorization.slice(4), "test-token")).user.id, 1);
@@ -91,4 +93,15 @@ test("Bible Strong staging verifies its real reader routes", async () => {
     assert(!path.startsWith("/app/")); return inner(url, init);
   };
   await verifyRelease(f.options); assert.deepEqual(paths, ["/home", "/bible/kjv/genesis/1"]);
+});
+
+
+test("Bible Strong staging fails if its original dictionary is unavailable", async () => {
+  const f = fixture(); const inner = f.options.fetcher;
+  await assert.rejects(verifyRelease({ ...f.options, bibleStrongApp: true, fetcher: (url, init) => {
+    const path = new URL(url).pathname;
+    if (path === "/home" || path === "/bible/kjv/genesis/1") return Promise.resolve(new Response('<div id="root"></div>', {headers:{"content-type":"text/html"}}));
+    if (path.startsWith("/bs/v1/dictionaries")) return Promise.resolve(new Response('{}', { status: 503 }));
+    return inner(url, init);
+  } }), /Bible Strong dictionaries: expected HTTP 200, received 503/);
 });

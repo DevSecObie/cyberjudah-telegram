@@ -35,6 +35,16 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
     }
   }
   log("App and Bible reader: available");
+  if (bibleStrongApp) {
+    const catalog = await get("/bs/v1/dictionaries?language=en");
+    requireStatus(catalog, 200, "Bible Strong dictionaries");
+    const dictionaries = (await catalog.json()).dictionaries;
+    if (!Array.isArray(dictionaries) || !dictionaries.some(item => item.resource?.work === "easton-webster")) throw new Error("Bible Strong dictionaries: the original catalog is missing.");
+    const entry = await get("/bs/v1/dictionaries/easton-webster/en/entries/Aaron");
+    requireStatus(entry, 200, "Bible Strong dictionary entry");
+    if (!(await entry.json()).entry?.definition) throw new Error("Bible Strong dictionary entry: definition is missing.");
+    log("Bible Strong original dictionary catalog and entry: available");
+  }
   const query = "/api/search/answer?q=Melchizedek";
   requireStatus(await get(query), 401, "Unsigned search");
   // Same synthetic reader as the existing live browser suite; no real reader is impersonated.
