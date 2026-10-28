@@ -268,9 +268,11 @@ test("by default a verse with precepts shows one badge with their count, and the
   await expect(badge).toBeVisible();
   await expect(page.locator(".rel-tag")).toHaveCount(0);
   // A real button: the keyboard opens it too.
+  // It opens that verse's precepts, the verse it sits on.
+  const verse = await badge.evaluate((el) => el.closest("[id^='verset-']")!.id.slice("verset-".length));
   await badge.focus();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/relations\?endpoint=isaiah-11-\d+/);
+  await expect(page).toHaveURL(new RegExp(`/relations\\?endpoint=isaiah-11-${verse}(&|$)`));
 });
 
 test("the precepts a class lined up with a verse: a tag under the verse, and a Precepts tab in its resources", async ({ page }) => {
