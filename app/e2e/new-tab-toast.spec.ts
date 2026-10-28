@@ -72,6 +72,10 @@ test("a toast is Bible Strong's: at the top, no icon or timer line, and it leave
   expect(box.y).toBeLessThan(page.viewportSize()!.height / 3);
   expect(box.width).toBeLessThanOrEqual(420);
   expect(await toast.evaluate((el) => getComputedStyle(el).borderTopWidth)).toBe("1px");
+  // On the page colour (Bible Strong's reverse), not the card grey.
+  expect(await toast.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(await page.evaluate(() => getComputedStyle(document.body).backgroundColor));
+  // The hidden Dismiss takes no taps meant for the message.
+  await expect(toast.getByRole("button", { name: "Dismiss" })).toHaveCSS("pointer-events", "none");
   await expect(toast.locator(".toast__icon, .toast__timer")).toHaveCount(0);
   await expect(toast.getByRole("button", { name: "Dismiss" })).toHaveCSS("opacity", "0");
   await page.waitForTimeout(1500);
