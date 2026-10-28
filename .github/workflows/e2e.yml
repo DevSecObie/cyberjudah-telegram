@@ -30,16 +30,10 @@ jobs:
     timeout-minutes: 40
     strategy:
       fail-fast: false
+      # Pull requests run Chromium only; WebKit and Firefox run on main, in the merge queue and for
+      # releases (workflow_call), so a pull request is not held for three engines.
       matrix:
-        include:
-          - { browser: chromium, shard: 1, total: 4 }
-          - { browser: chromium, shard: 2, total: 4 }
-          - { browser: chromium, shard: 3, total: 4 }
-          - { browser: chromium, shard: 4, total: 4 }
-          - { browser: webkit, shard: 1, total: 2 }
-          - { browser: webkit, shard: 2, total: 2 }
-          - { browser: firefox, shard: 1, total: 2 }
-          - { browser: firefox, shard: 2, total: 2 }
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"browser":"chromium","shard":1,"total":4},{"browser":"chromium","shard":2,"total":4},{"browser":"chromium","shard":3,"total":4},{"browser":"chromium","shard":4,"total":4}]' || '[{"browser":"chromium","shard":1,"total":4},{"browser":"chromium","shard":2,"total":4},{"browser":"chromium","shard":3,"total":4},{"browser":"chromium","shard":4,"total":4},{"browser":"webkit","shard":1,"total":2},{"browser":"webkit","shard":2,"total":2},{"browser":"firefox","shard":1,"total":2},{"browser":"firefox","shard":2,"total":2}]') }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
