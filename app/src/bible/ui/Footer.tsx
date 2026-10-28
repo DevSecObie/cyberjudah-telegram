@@ -53,8 +53,8 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
   const playbackLabel = !speech.playing ? "Start audio playback" : speech.paused ? "Resume audio playback" : "Pause audio playback";
   return (
     <div className="bs-footer" style={{ pointerEvents: "none" }}>
-      <button type="button" className="bs-chapterbtn" style={{ left: 10, bottom: 10 + bottomBar, opacity: hasPrev ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasPrev} aria-label="Previous chapter" title="Previous chapter" onClick={() => { haptic(); onPrev(); }}><Feather name="arrow-left" size={20} color="var(--bs-tertiary)" /></button>
-      <button type="button" className="bs-chapterbtn" style={{ right: 10, bottom: 10 + bottomBar, opacity: hasNext ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasNext} aria-label="Next chapter" title="Next chapter" onClick={() => { haptic(); onNext(); }}><Feather name="arrow-right" size={20} color="var(--bs-tertiary)" /></button>
+      <button type="button" className="bs-chapterbtn" style={{ left: 10, bottom: 10 + bottomBar, transform: `translateY(${arrowsY}px)` }} disabled={!hasPrev} aria-label="Previous chapter" title="Previous chapter" onClick={() => { haptic(); onPrev(); }}><Feather name="arrow-left" size={20} color="var(--bs-tertiary)" /></button>
+      <button type="button" className="bs-chapterbtn" style={{ right: 10, bottom: 10 + bottomBar, transform: `translateY(${arrowsY}px)` }} disabled={!hasNext} aria-label="Next chapter" title="Next chapter" onClick={() => { haptic(); onNext(); }}><Feather name="arrow-right" size={20} color="var(--bs-tertiary)" /></button>
       {expanded && speech.supported ? (
         <div className="bs-audio" style={{ bottom: 20 + bottomBar, transform: `translateY(${centerY}px)` }}>
           <div className="bs-audio__top">
@@ -84,7 +84,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
         </div>
       ) : (
         <div className="bs-playpill" style={{ bottom: 10 + bottomBar, transform: `translateY(${centerY}px)` }}>
-          <button type="button" className="bs-playbtn" aria-label={playbackLabel} title={playbackLabel} aria-busy={speech.loading ?? false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)", opacity: speech.supported ? 1 : 0.6 }} onClick={() => { haptic(); speech.toggle(); setExpanded(true); }}>
+          <button type="button" className="bs-playbtn" aria-label={playbackLabel} title={playbackLabel} aria-busy={speech.loading ?? false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)" }} onClick={() => { haptic(); speech.toggle(); setExpanded(true); }}>
             <Feather name="volume-2" size={22} color={speech.playing ? "var(--bs-reverse)" : "var(--bs-primary)"} />
           </button>
           {speech.playing ? <><button type="button" className="bs-iconbtn" aria-label="Stop audio playback" onClick={speech.stop}><Feather name="x" size={20} /></button><button type="button" className="bs-iconbtn" aria-label="Next audio chapter" disabled={!player.next} onClick={() => player.skip(1)}><Feather name="skip-forward" size={20} /></button></> : null}

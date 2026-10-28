@@ -31,6 +31,8 @@
 .bs-pill--version .bs-pill__bg { border-radius: 0 20px 20px 0; }
 .bs-header__verses { width: var(--touch); height: var(--touch); border: 0; background: none; display: grid; place-items: center; cursor: pointer; padding: 0; }
 .bs-header__right { margin-left: auto; display: flex; align-items: center; }
+/* BibleHeader's buttons are 40px, side by side with no gap. */
+.bs-header .bs-iconbtn, .bs-header .bs-header__verses { width: 40px; height: 40px; }
 .bs-header__ribbon { position: absolute; right: 24px; bottom: -18px; border: 0; background: none; padding: 0; cursor: pointer; z-index: 2; }
 .bs-menu { display: flex; flex-direction: column; padding: 4px 0; }
 .bs-menu__item { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 16px; border: 0; background: none; text-align: left; cursor: pointer; font-size: 15px; border-radius: var(--r-sm); }
@@ -501,14 +503,16 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
   --text-1: var(--bs-default); --text-3: var(--bs-tertiary);
 }
 .bs[data-dark] { --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent); }
-.bs-header { isolation: isolate; background: none; border-bottom: .5px solid var(--mat-edge); }
+.bs-header { isolation: isolate; background: none; }
 /* Header material and scroll edge are shared in materials.css. */
 .bs-dropdown { background: var(--mat-elevated); -webkit-backdrop-filter: var(--mat-blur-strong); backdrop-filter: var(--mat-blur-strong); border: .5px solid var(--mat-edge); border-radius: var(--r-lg); box-shadow: var(--mat-highlight), var(--shadow-3); }
 .bs-dropdown { top: calc(100% + 6px); }
 .bs-dropdown__item + .bs-dropdown__item { border-top: .5px solid color-mix(in srgb, var(--bs-default) 10%, transparent); }
-#root .bs-chapterbtn, .bs-chapterbtn, .bs-playpill { background: var(--mat-overlay) !important; border: .5px solid var(--mat-edge) !important; box-shadow: var(--mat-highlight), 0 6px 18px rgba(0, 0, 0, .18); }
-.bs-chapterbtn[data-pressed], .bs-playbtn[data-pressed] { transform: scale(.94); }
-.bs-playbtn { border-color: transparent; }
+/* Bible Strong's chapter and play buttons are TouchableOpacity: a press only fades them. */
+/* A control that cannot be used is dimmed; a pressed one fades further (the inline style used to override both). */
+.bs-chapterbtn:disabled, .bs-playbtn:disabled { opacity: .6; }
+.bs-chapterbtn[data-pressed] { opacity: .2; }
+.bs-playbtn[data-pressed] { opacity: .5; }
 .bs-gallery__close { background: var(--mat-overlay); border: .5px solid var(--mat-edge) !important; box-shadow: var(--mat-highlight), 0 4px 14px rgba(0, 0, 0, .22) !important; }
 /* The gallery dims the page instead of blurring it: a full-screen filter, animated, is the one
    effect the budget rules out. */

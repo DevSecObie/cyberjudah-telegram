@@ -1,8 +1,6 @@
 /* Groups share their bar's one material. Their tint never adds another backdrop. */
 .toolbar-group { display: inline-flex; align-items: center; gap: var(--sp-1); border-radius: var(--r-pill); background: var(--fill-1); }
 .toolbar-group > :is(button, a) { background: transparent; }
-.bs-header__row { gap: var(--toolbar-gap); }
-.bs-header__right.toolbar-group { margin-left: auto; }
 .bs-header__summary { font-size: .75rem; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .head__actions.toolbar-group { width: fit-content; }
 .chat2__bar { column-gap: var(--toolbar-gap); }
