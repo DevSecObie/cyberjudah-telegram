@@ -4,7 +4,6 @@
 .audio-player p { flex-basis: 100%; margin: 0; font-size: var(--fs-caption); }
 html[data-audio-bar] #shell .route { padding-bottom: var(--audio-bar-space); }
 html[data-audio-bar] .pageactions { bottom: calc(var(--dock-space) + var(--audio-bar-space)); }
-html[data-audio-bar] .toasts { bottom: calc(var(--dock-space) + var(--audio-bar-space)); }
 .bs-playpill { display: flex; align-items: center; gap: 4px; }
 .bs-playpill > button { pointer-events: auto; min-width: 44px; min-height: 44px; }
 

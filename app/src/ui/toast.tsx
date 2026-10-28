@@ -3,10 +3,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Icon } from "./ui";
 
 /**
- * Short notifications. A message slides in above the dock and leaves on its own after `ms`, with a
- * line along its foot that runs out with the time; the time stops while the message is hovered or
- * holds the keyboard focus. An error stays until it is dismissed. Messages are announced: politely,
- * or at once for an error.
+ * Short notifications, as Bible Strong's ThemedToaster (sonner): a message slides in at the top and
+ * leaves on its own after `ms`, 3 seconds by default and 5 for an error (Bible Strong's error
+ * toasts); the time stops while the message is hovered or holds the keyboard focus. No icon for
+ * plain information. Messages are announced: politely, or at once for an error.
  */
 type Tone = "info" | "success" | "error";
 type Action = { label: string; onClick: () => void };
@@ -23,8 +23,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const dismiss = useCallback((id: number) => setList((l) => l.filter((t) => t.id !== id)), []);
   const show = useCallback((text: string, opts?: { tone?: Tone; ms?: number; action?: Action }) => {
     const tone = opts?.tone ?? "info";
-    // An error waits for the reader; anything else times out.
-    const ms = tone === "error" ? 0 : opts?.ms ?? 3500;
+    const ms = opts?.ms ?? (tone === "error" ? 5000 : 3000);
     setList((l) => [...l.filter((t) => t.text !== text), { id: next.current++, text, tone, ms, action: opts?.action }].slice(-MAX));
   }, []);
   useEffect(() => {
@@ -54,14 +53,13 @@ function ToastView({ toast, onDone }: { toast: Toast; onDone: () => void }) {
     return () => { window.clearTimeout(timer); left.current -= Date.now() - started.current; };
   }, [paused, toast.ms, onDone]);
   const hold = () => setPaused(true), go = () => setPaused(false);
-  const icon = toast.tone === "error" ? "alert" : toast.tone === "success" ? "check" : "info";
+  const icon = toast.tone === "error" ? "alert" : toast.tone === "success" ? "check" : null;
   return (
     <div className="toast" data-tone={toast.tone} role={toast.tone === "error" ? "alert" : "status"}
       onMouseEnter={hold} onMouseLeave={go} onFocus={hold} onBlur={go}>
-      <span className="toast__icon" aria-hidden="true"><Icon name={icon} size={18} /></span>
+      {icon ? <span className="toast__icon" aria-hidden="true"><Icon name={icon} size={18} /></span> : null}
       <span className="toast__text">{toast.text}{toast.action ? <button type="button" className="toast__action" onClick={() => { toast.action!.onClick(); onDone(); }}>{toast.action.label}</button> : null}</span>
       <button type="button" className="toast__close" aria-label="Dismiss" title="Dismiss" onClick={onDone}><Icon name="close" size={16} /></button>
-      {toast.ms ? <span className="toast__timer" aria-hidden="true" style={{ ["--toast-ms" as string]: `${toast.ms}ms`, animationPlayState: paused ? "paused" : "running" }} /> : null}
     </div>
   );
 }

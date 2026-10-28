@@ -1,0 +1,1 @@
+- Notifications now look and behave like Bible Strong's: they appear at the top of the screen, on the page colour with a thin border, and leave after 3 seconds (5 for an error, which before stayed until dismissed). Plain information has no icon, and the line that ran out along the bottom is gone.
