@@ -53,13 +53,16 @@ export function Sabbath() {
               <div><b>{loc.lat.toFixed(1)}°, {loc.lng.toFixed(1)}°</b><span>Location</span></div>
             </div>
           </Section>
-          <div className="sabbath__loc">
-            <button type="button" className="btn btn--bordered" disabled={busy} onClick={locate}>{busy ? "Locating…" : "Update my location"}</button>
-            <button type="button" className="btn btn--plain" onClick={() => setLoc(null)}>Forget</button>
-          </div>
           <p className="hint"><Icon name="sun" size={14} /> Sunset is computed from your location with the NOAA solar equations, to the minute. Local custom may keep the Sabbath from a few minutes before.</p>
         </>
       )}
+      {/* A saved location can always be updated or forgotten, the polar "no sunset" case included. */}
+      {loc ? (
+        <div className="sabbath__loc">
+          <button type="button" className="btn btn--bordered" disabled={busy} onClick={locate}>{busy ? "Locating…" : "Update my location"}</button>
+          <button type="button" className="btn btn--plain" onClick={() => setLoc(null)}>Forget</button>
+        </div>
+      ) : null}
     </Screen>
   );
 }

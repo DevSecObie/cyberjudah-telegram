@@ -72,7 +72,7 @@ export function NoteScreen() {
   if (note.isError || !note.data) {
     // A recording hit whose notes are missing still opens the recording at its moment.
     if (at !== null && video) return <Navigate to={`/watch/${encodeURIComponent(video)}?t=${Math.round(at)}`} replace />;
-    return <main className="screen"><Empty title="This note did not load">It may have moved. Search for it instead.</Empty></main>;
+    return <main className="screen"><Empty title="This note did not load" action={video ? { label: "Open in YouTube", onClick: () => openLink(youtube(video, start)) } : undefined}>It may have moved. Search for it instead.</Empty></main>;
   }
   const n = note.data;
   // The note as a PDF: downloaded through Telegram where it can, or sent to the chat with the bot.

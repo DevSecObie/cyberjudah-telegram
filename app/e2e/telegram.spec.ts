@@ -2358,3 +2358,26 @@ test("Concordance: books with how much of each is cited; a book lists each chapt
   await expect(ch3).toContainText("Laws");
   await expect(ch3).toContainText("v. 6-7");
 });
+
+test("a saved location with no sunset today can still be updated or forgotten", async ({ page }) => {
+  // Near the pole in December the sun neither rises nor sets.
+  await page.clock.setFixedTime(new Date("2026-12-21T12:00:00Z"));
+  await page.addInitScript(() => {
+    const loc = JSON.stringify({ lat: 89.5, lng: 0 });
+    localStorage.setItem("cj:loc", loc);
+    const w = window as unknown as { __cloud?: Record<string, string> };
+    w.__cloud = { ...(w.__cloud ?? {}), loc };
+  });
+  await page.goto(`/sabbath${LAUNCH}`);
+  await expect(page.getByText("No sunset here today")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Update my location" })).toBeVisible();
+  await page.getByRole("button", { name: "Forget" }).click();
+  await expect(page.getByText("Where are you?")).toBeVisible();
+});
+
+test("a class note that does not load still offers its recording on YouTube", async ({ page }) => {
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-gone.json`, (r) => r.fulfill({ status: 404, body: "" }));
+  await page.goto(`/note/classes/2026/2026-09-26-gone?video=eNMvid6j-qk${LAUNCH}`);
+  await expect(page.getByText("This note did not load")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open in YouTube" })).toBeVisible();
+});
