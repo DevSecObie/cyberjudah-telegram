@@ -432,7 +432,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-people { width: 100%; max-width: 500px; margin: 0 auto; min-height: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: start; align-items: start; gap: 20px 12px; }
 .bs-people--center { align-content: center; }
 #root button.bs-people__item, button.bs-people__item { min-width: 0; margin: 0; padding: 0; border: 0; background: transparent; color: var(--deck-ink); cursor: pointer; transition: opacity 120ms ease, transform 120ms ease; -webkit-tap-highlight-color: transparent; }
-#root button.bs-people__item[data-pressed], button.bs-people__item[data-pressed] { opacity: .55; transform: scale(.97); }
+#root button.bs-people__item[data-pressed], button.bs-people__item[data-pressed] { opacity: .55; }
 .bs-people__avatar { display: grid !important; margin: 0 auto 8px; border: 2px solid; box-shadow: 0 5px 16px rgba(0, 0, 0, .2); }
 .bs-people__text { display: block; animation: deck-rise .18s ease backwards; }
 .bs-people__text b { display: -webkit-box; overflow: hidden; font-size: 13px; line-height: 1.22; font-weight: 650; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
@@ -465,7 +465,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-gallery__sections h2 { margin: 0 0 14px 2px; color: var(--deck-primary); font-size: 12px; line-height: 1.2; font-weight: 700; animation: deck-rise .22s ease backwards; }
 .bs-gallery__item { min-width: 0; align-self: start; color: var(--deck-ink); text-align: left; }
 #root .bs-gallery__btn, .bs-gallery__btn { display: block; width: 100%; margin: 0; padding: 0; border: 0; border-radius: 11px; background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: opacity 120ms ease, transform 120ms ease; }
-.bs-gallery__btn[data-pressed] { opacity: .55; transform: scale(.98); }
+.bs-gallery__btn[data-pressed] { opacity: .55; }
 .bs-gallery__pic { position: relative; display: block; width: 100%; aspect-ratio: 16 / 9; box-sizing: border-box; overflow: hidden; border: 2px solid; border-radius: 11px; background: rgba(128, 128, 128, .22); box-shadow: 0 7px 22px rgba(0, 0, 0, .25); transform-origin: center; }
 .bs-gallery__badge { position: absolute; right: 7px; bottom: 7px; padding: 3px 7px; border-radius: 999px; background: rgba(0, 0, 0, .72); color: #fff; font-size: 10px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .bs-gallery__text { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 2px 0; animation: deck-rise .18s ease backwards; }
@@ -552,7 +552,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs .bs-follow:not([data-at]) { visibility: hidden; }
 .bs .bs-follow[data-at] { opacity: 1; pointer-events: auto; transform: translate(-50%, 0) scale(1); }
 .bs[data-dark] .bs-follow { box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }
-.bs .bs-follow[data-pressed] { transform: translate(-50%, 0) scale(.97); }
+.bs .bs-follow[data-pressed] { opacity: .2; }
 .bs .bs-follow:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .bs .bs-follow, .bs .bs-text, .bs .bs-num { transition: none; } }
 
@@ -633,7 +633,7 @@ html[data-tg="yes"] .bs-scroll { overscroll-behavior-y: contain; }
 .bs-selected .bs-action__box { width: 48px; height: 48px; border-radius: 16px; background: var(--sel-tile); transition: transform .18s ease, background-color .1s, box-shadow .1s; }
 .bs-selected .bs-action__box[data-active] { box-shadow: inset 0 0 0 2px var(--sel-accent); }
 .bs-selected .bs-action[data-variant="emphasized"] .bs-action__box { background: var(--sel-accent); box-shadow: 0 2px 8px 0 var(--sel-accent); }
-.bs-selected .bs-action:not(:disabled)[data-pressed] .bs-action__box { transform: scale(.94); }
+.bs-selected .bs-action:not(:disabled)[data-pressed] .bs-action__box { opacity: .2; }
 .bs-selected .bs-action:disabled { opacity: .6; cursor: default; }
 .bs-selected .bs-action:disabled > * { opacity: .4; }
 #root .bs-selected .bs-action__label { font-size: .625rem; line-height: normal; letter-spacing: normal; color: var(--bs-default); white-space: nowrap; max-width: 100%; }

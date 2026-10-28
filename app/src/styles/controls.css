@@ -12,7 +12,7 @@
   background: var(--accent); color: var(--on-accent); font: 600 var(--control-font)/1.3 var(--font-ui); text-decoration: none; text-align: center; overflow-wrap: anywhere; cursor: pointer;
   transition: transform var(--dur-1) var(--ease), opacity var(--dur-2) ease;
 }
-#root .btn[data-pressed], #root :is(.crash__btn, .trouble__act, .paywall__go)[data-pressed] { transform: scale(.97); }
+#root .btn[data-pressed], #root :is(.crash__btn, .trouble__act, .paywall__go)[data-pressed] { opacity: .2; }
 #root .btn:disabled, #root :is(.crash__btn, .trouble__act):disabled { opacity: var(--disabled-opacity); cursor: default; transform: none; }
 #root .btn--bordered, #root .btn--quiet, #root .btn--glass, #root .crash__btn:not(.crash__btn--main), #root .trouble__act:not(.trouble__act--primary) { background: var(--fill-1); color: var(--text-1); border-color: var(--control-edge); }
 #root .btn--plain { background: transparent; color: var(--accent); border-color: transparent; }
@@ -36,10 +36,10 @@
 .icon-btn {
   flex: none; display: inline-grid; place-items: center; min-width: var(--touch); height: var(--touch); padding: 0 10px;
   border: 0; border-radius: var(--r-pill); background: var(--fill-1); color: var(--text-1) !important; cursor: pointer;
-  font: 600 var(--control-font) var(--font-ui) !important; transition: transform var(--dur-1) var(--ease);
+  font: 600 var(--control-font) var(--font-ui) !important; transition: opacity var(--dur-1) var(--ease);
 }
 .icon-btn:hover { background: var(--fill-2); }
-.icon-btn[data-pressed] { transform: scale(.94); background: var(--fill-3); }
+.icon-btn[data-pressed] { opacity: .2; }
 .icon-btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent) !important; }
 .icon-btn:disabled { opacity: var(--disabled-opacity); cursor: default; }
 
