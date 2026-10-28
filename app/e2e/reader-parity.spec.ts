@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import fs from "node:fs/promises";
+import { preferChips } from "./telegram-harness";
 const today = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const verses = Array.from({ length: 31 }, (_, i) => ({ verse: i + 1, text: i === 0 ? "In the beginning God created the heaven and the earth." : `Verse ${i + 1}: And God said, Let there be light: and there was light.` }));
@@ -48,6 +49,7 @@ for (const theme of ["light", "dark"]) test(`same-passage notes keep independent
   }, theme);
   const records = () => page.evaluate(() => JSON.parse(localStorage.getItem("cj:bs_n_genesis_1") ?? "{}"));
   const note = page.getByRole("dialog", { name: "Note", exact: true });
+  await preferChips(page);
   await page.goto("/read/genesis/1");
   for (const title of ["First note", "Second note"]) {
     await page.locator("#verset-1 .bs-text").click();
@@ -131,6 +133,7 @@ for (const theme of ["light", "dark"]) test(`note editor headings use saved pass
       createdAt: 1, updatedAt: 1,
     }))));
   }, theme);
+  await preferChips(page);
   await page.goto("/read/genesis/1");
   const note = page.getByRole("dialog", { name: "Note", exact: true });
   for (const title of ["Independent range note", "Legacy range note"]) {
@@ -1146,6 +1149,7 @@ test("a reference in content opens a preview card of the passage, with Open and 
       { id: "r2", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-20"], label: "Genesis 1:20" }, { type: "note", verseKey: "genesis-1-2", label: "Creation" }], createdAt: 1, updatedAt: 2 },
     ]));
   });
+  await preferChips(page);
   await page.goto("/read/genesis/1");
   const john = page.locator("#verset-20 .rel-tag", { hasText: "John 3:16" });
   await john.scrollIntoViewIfNeeded();
@@ -1200,6 +1204,7 @@ test("reference preview body includes its padding within the viewport cap and sc
       { id: "r", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-2"], label: "Genesis 1:2" }, { type: "verse", verseKeys: Array.from({ length: 21 }, (_, i) => `john-3-${i + 1}`), label: "John 3:1-21" }], createdAt: 1, updatedAt: 1 },
     ]));
   });
+  await preferChips(page);
   await page.goto("/read/genesis/1");
   const readerScroll = () => page.locator(".bs-scroll").evaluate((el) => el.scrollTop);
   const before = await readerScroll();
@@ -1230,6 +1235,7 @@ test("mixed-chapter relations retain direct navigation instead of a single-chapt
       { id: "r", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-2"], label: "Genesis 1:2" }, { type: "verse", verseKeys: ["john-3-16", "genesis-1-3"], label: "Across chapters" }], createdAt: 1, updatedAt: 1 },
     ]));
   });
+  await preferChips(page);
   await page.goto("/read/genesis/1");
   await page.locator("#verset-2 .rel-tag", { hasText: "Across chapters" }).click();
   await expect(page).toHaveURL(/\/read\/john\/3\?/);
@@ -1243,6 +1249,7 @@ test("reference previews filter a very large verse range without expanding it", 
       { id: "r", type: "linked", direction: "none", endpoints: [{ type: "verse", verseKeys: ["genesis-1-2"], label: "Genesis 1:2" }, { type: "note", verseKey: "genesis-1-2", label: "A large range" }], createdAt: 1, updatedAt: 1 },
     ]));
   });
+  await preferChips(page);
   await page.goto("/read/genesis/1");
   await page.locator("#verset-2 .rel-tag", { hasText: "A large range" }).click();
   await page.getByRole("dialog", { name: "Note", exact: true }).getByRole("link", { name: "John 3:3-999999999999,1" }).click();

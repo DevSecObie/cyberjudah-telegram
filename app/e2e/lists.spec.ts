@@ -83,3 +83,15 @@ test("a letter with few words keeps the alphabet at the bottom of the screen, ab
   expect(Math.abs(strip.y + strip.height - bar.y)).toBeLessThanOrEqual(1);
 });
 
+
+test("a dictionary entry keeps its actions in Bible Strong's ⋮, not over the bar", async ({ page }) => {
+  await setup(page);
+  await page.route("**/api/dictionary/aaron", r => r.fulfill({ json: { term: "Aaron", slug: "aaron", definitions: ["The eldest son of Amram and Jochebed."] } }));
+  await page.goto("/dictionary/aaron");
+  await expect(page.getByText("The eldest son of Amram and Jochebed.")).toBeVisible();
+  await expect(page.locator(".pageactions")).toHaveCount(0);
+  await page.getByRole("button", { name: "More options" }).click();
+  for (const name of ["Share the link", "Copy the text", "Edit relations", "Open in new tab"]) await expect(page.getByRole("button", { name })).toBeVisible();
+  await page.getByRole("button", { name: "Edit relations" }).click();
+  await expect(page).toHaveURL(/\/relations\?endpoint=dictionary%3Aaaron&label=Aaron/);
+});

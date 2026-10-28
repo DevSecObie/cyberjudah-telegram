@@ -58,6 +58,8 @@ import "./bible.css";
 /** Each tab's chapter on screen. Each chapter mounts its own reader, so this carries it across for
  * Bible Strong's keepPreviousData: the tab's last chapter stays up until the next one arrives. */
 const shownChapter = new Map<string, ChapterData>();
+/** No relations drawn until the saved settings are read, so a saved "chips" choice never flashes the badge first. */
+const NO_RELATIONS: Record<number, VerseRelationItem[]> = {};
 
 export function BibleTab() {
   const { current } = useTabs();
@@ -78,7 +80,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const searchParam = params.get("search");
   useEffect(() => { if (!slugParam && lastLoaded) navigate(`/read/${slug}/${ch}${searchParam ? `?search=${encodeURIComponent(searchParam)}` : ""}`, { replace: true }); }, [slugParam, lastLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const [settings, setSettings] = useBibleSettings();
+  const [settings, setSettings, settingsLoaded] = useBibleSettings();
   const [scheme, setScheme] = useState(telegramScheme);
   useSchemeChange(useCallback(() => setScheme(telegramScheme()), []));
   const theme = resolveTheme(settings, scheme);
@@ -402,7 +404,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
       ) : (
         <Chapter slug={slug} chapter={ch} verses={verses} settings={settings} palette={palette} theme={theme}
           readingVerse={speech.current} onSeekVerse={speech.playing ? speech.play : undefined} selected={selected} focusVerses={focus} contextDisplayMode={contextMode} verseToScroll={verseToScroll} navigationRequest={navRequest}
-          highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={relItems}
+          highlights={highlights} tags={tags} bookmarks={bookmarks} relationItems={settingsLoaded ? relItems : NO_RELATIONS}
           moments={classMoments.data} deck={{ reference: chapterLabel, from: `/read/${slug}/${ch}` }}
           headerHeight={headerHeight} fullscreen={fullscreen} canSwipe={!annotating}
           strongMode={strongMode} strong={{ selected: strongSel, onSelect: (sel) => setStrongSel((prev) => prev && prev.verse === sel.verse && prev.occurrence === sel.occurrence ? null : sel) }}

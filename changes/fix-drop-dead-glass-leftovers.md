@@ -1,0 +1,1 @@
+- Removes leftover pieces of the app's own glass design that nothing used any more, and its review screenshots and checklist.

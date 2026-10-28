@@ -116,8 +116,8 @@ test("a swipe along the bar to a tab on the same page starts that tab's Back the
 });
 
 test("a bar button that picks another tab on the same page starts that tab's Back there", async ({ page }) => {
-  await setup(page, [{ id: "a", path: "/search" }, { id: "b", path: "/read/genesis/1" }], "b");
-  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await setup(page, [{ id: "a", path: "/search" }, { id: "b", path: "/classes" }], "b");
+  await page.goto(`/classes${LAUNCH}`);
   const bar = page.getByRole("navigation", { name: "Sections" });
   // Tab b goes on to Search: both tabs now show the same page, b with a page behind it.
   await goInApp(page, "/search");

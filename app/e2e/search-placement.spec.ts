@@ -3,10 +3,10 @@ import fs from "node:fs";
 
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const LAUNCH = "#tgWebAppData=query_id%3Dsearch-placement&tgWebAppVersion=9.1&tgWebAppPlatform=ios";
-async function setup(page: Page, theme = "default", reduced = false) {
-  await page.addInitScript(({ theme, reduced }) => {
-    (window as any).__cloud = { bs: JSON.stringify({ preferredColorScheme: theme === "dark" ? "dark" : "light", preferredLightTheme: theme, preferredDarkTheme: theme }), transparency: JSON.stringify(reduced ? "reduced" : "system") };
-  }, { theme, reduced });
+async function setup(page: Page, theme = "default") {
+  await page.addInitScript(({ theme }) => {
+    (window as any).__cloud = { bs: JSON.stringify({ preferredColorScheme: theme === "dark" ? "dark" : "light", preferredLightTheme: theme, preferredDarkTheme: theme }) };
+  }, { theme });
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
 }
@@ -77,9 +77,7 @@ for (const theme of ["default", "dark", "sepia"]) {
     await expect(field).toBeFocused();
     await page.evaluate(() => document.documentElement.style.fontSize = "200%");
     const cdp = browserName === "chromium" ? await page.context().newCDPSession(page) : null;
-    for (const mode of ["normal", "app", "system", "motion", "contrast", "forced"]) {
-      // OS transparency emulation uses Chromium's protocol; the app fallback runs in every engine.
-      if (mode === "system" && !cdp) continue;
+    for (const mode of ["normal", "motion", "contrast", "forced"]) {
       await page.emulateMedia({ reducedMotion: mode === "motion" ? "reduce" : "no-preference", contrast: mode === "contrast" ? "more" : "no-preference", forcedColors: mode === "forced" ? "active" : "none" });
       // Firefox's protocol updates matchMedia before existing stylesheet media rules.
       // Load with the preference in force; Chromium/WebKit also cover live changes above.
@@ -88,8 +86,7 @@ for (const theme of ["default", "dark", "sepia"]) {
         await expect(field).toBeFocused();
         await page.evaluate(() => document.documentElement.style.fontSize = "200%");
       }
-      await page.evaluate(mode => { if (mode === "app") document.documentElement.dataset.transparency = "reduced"; else delete document.documentElement.dataset.transparency; }, mode);
-      if (cdp) await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: mode === "system" ? "reduce" : "no-preference" }, { name: "prefers-reduced-motion", value: mode === "motion" ? "reduce" : "no-preference" }, { name: "prefers-contrast", value: mode === "contrast" ? "more" : "no-preference" }, { name: "forced-colors", value: mode === "forced" ? "active" : "none" }] });
+      if (cdp) await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: mode === "motion" ? "reduce" : "no-preference" }, { name: "prefers-contrast", value: mode === "contrast" ? "more" : "no-preference" }, { name: "forced-colors", value: mode === "forced" ? "active" : "none" }] });
       const box = (await field.boundingBox())!;
       expect(box.width, mode).toBeGreaterThan(100); expect(box.y, mode).toBeGreaterThanOrEqual(0);
       expect(box.x + box.width, mode).toBeLessThanOrEqual(320);
@@ -97,9 +94,7 @@ for (const theme of ["default", "dark", "sepia"]) {
       await expect(page.locator(".srch__cancel")).toBeVisible();
       const search = page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Search", exact: true });
       await expect(search).toBeVisible();
-      if (["app", "system", "contrast", "forced"].includes(mode)) {
-        for (const [selector, pseudo] of [[".srch__bar--header", "::before"], ["nav.tabs", undefined]] as const) expect(await page.locator(selector).evaluate((el, pseudo) => { const s = getComputedStyle(el, pseudo); return s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"); }, pseudo), `${mode} ${selector}`).toBe("none");
-      }
+      for (const [selector, pseudo] of [[".srch__bar--header", "::before"], ["nav.tabs", undefined]] as const) expect(await page.locator(selector).evaluate((el, pseudo) => { const s = getComputedStyle(el, pseudo); return s.backdropFilter || s.getPropertyValue("-webkit-backdrop-filter"); }, pseudo), `${mode} ${selector}`).toBe("none");
       if (mode === "motion") await expect(page.locator(".srch__bar--header")).toHaveCSS("transition-property", "none");
     }
     await cdp?.detach();
@@ -108,7 +103,7 @@ for (const theme of ["default", "dark", "sepia"]) {
 
 for (const theme of ["default", "dark", "sepia"]) for (const source of ["visual viewport", "Telegram", "layout viewport"] as const) {
   test(`search placement: ${theme} keeps the header visible with the ${source} keyboard and restores the tabs`, async ({ page }) => {
-    await setup(page, theme, theme === "sepia");
+    await setup(page, theme);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.emulateMedia({ reducedMotion: theme === "sepia" ? "reduce" : "no-preference", contrast: theme === "dark" ? "more" : "no-preference" });
     await page.goto(`/search${LAUNCH}`);

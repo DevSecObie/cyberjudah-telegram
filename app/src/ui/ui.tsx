@@ -23,19 +23,19 @@ export { Icon, type IconName } from "./icons";
 
 /**
  * Bible Strong's bottom bar (app-switcher/BottomTabBar): a flat full-width row of 48 px icon
- * buttons on the page colour with a line above it: Home, Search, the Bible, the tabs and Menu,
- * preserving the upstream five actions. Search and Bible restore their tabs; the count opens
- * the switcher. CyberJudah resources remain available in the menu and new-tab page.
+ * buttons on the page colour with a line above it: Home, Search, the Bible, the tabs and Menu.
+ * Search and the Bible go to their tab (or open one); the tabs button shows how many are open and
+ * opens the switcher.
  */
 export function tabOf(path: string): string {
   if (path.startsWith("/more") || path.startsWith("/settings")) return "more";
   return NAV_ITEMS.find((i) => i.match.test(path))?.id ?? "";
 }
 
-/** Ported from Bible Strong 39d8780 BottomTabBar: Home, Search, Bible, Tabs, Menu. */
+/** BottomTabBar's row: HomeButton, SearchButton, BibleButton, TabButton, MenuButton. */
 const BUTTONS = ["home", "search", "bible", "tabs", "more"] as const;
 type ButtonId = typeof BUTTONS[number];
-const LABELS = { home: "Home", search: "Search", bible: "Bible", classes: "Classes", ask: "Ask" };
+const LABELS = { home: "Home", search: "Search", bible: "Bible" };
 
 export function TabBar() {
   const { pathname, search } = useLocation();
@@ -58,7 +58,7 @@ export function TabBar() {
     // The tab slides in from its side, by its place in the group (Bible Strong's slideToIndex);
     // a button for the tab already showing does nothing.
     const from = tabs.findIndex((t) => t.id === currentTab()?.id);
-    const at = toId === "search" || toId === "bible" || toId === "classes" || toId === "ask" ? kindTabIndex(toId) : from;
+    const at = toId === "search" || toId === "bible" ? kindTabIndex(toId) : from;
     const dir = from < 0 || at === from ? 0 : at > from ? 1 : -1;
     setDrawer(null);
     // A page over the tab is left for the tab even when its path is the same.

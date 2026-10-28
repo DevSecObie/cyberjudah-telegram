@@ -23,13 +23,12 @@ async function materials(page: Page, selectors: [string, string?][]) {
 }
 
 
-async function setup(page: Page, theme = "default", reduced = false) {
-  await page.addInitScript(({ theme, reduced }) => {
+async function setup(page: Page, theme = "default") {
+  await page.addInitScript(({ theme }) => {
     (window as unknown as { __cloud: Record<string, string> }).__cloud = {
       bs: JSON.stringify({ preferredColorScheme: ["dark", "black", "mauve", "night"].includes(theme) ? "dark" : "light", preferredLightTheme: theme, preferredDarkTheme: theme }),
-      transparency: JSON.stringify(reduced ? "reduced" : "system"),
     };
-  }, { theme, reduced });
+  }, { theme });
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
   await page.route(`${DATA_ORIGIN}/**`, r => {
@@ -65,7 +64,7 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     const box = (await bar.boundingBox())!;
     expect(box.x).toBe(0); expect(box.width).toBe(page.viewportSize()!.width);
     expect(box.y + box.height).toBe(page.viewportSize()!.height); expect(box.height).toBe(48);
-    // Bible Strong's five actions: Home, Search, Bible, Tabs and Menu.
+    // Bible Strong's Home, Search, Bible, Tabs and Menu.
     expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "tabs", "more"]);
     await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
     await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
@@ -103,10 +102,10 @@ test("glass: Main menu responds to an ordinary tap on its own page", async ({ pa
   await expect(page.locator(".drawer--more")).toHaveAttribute("data-open", "");
 });
 
-for (const preference of ["app", "contrast"] as const) {
-  test(`bar: ${preference === "app" ? "Reduce transparency" : "increased contrast"} keeps it on the page colour with nothing frosted`, async ({ page }) => {
+for (const preference of ["normal", "contrast"] as const) {
+  test(`bar: ${preference === "normal" ? "the default look" : "increased contrast"} keeps it on the page colour with nothing frosted`, async ({ page }) => {
     if (preference === "contrast") await page.emulateMedia({ contrast: "more" });
-    await setup(page, "dark", preference === "app");
+    await setup(page, "dark");
     await page.goto(`/settings${LAUNCH}`);
     await expect(page.getByRole("switch", { name: "Justify the text", exact: true })).toBeVisible();
     const style = await page.locator("nav.tabs").evaluate(nav => ({ background: getComputedStyle(nav).backgroundColor, canvas: getComputedStyle(document.body).backgroundColor, filter: getComputedStyle(nav).backdropFilter || getComputedStyle(nav).getPropertyValue("-webkit-backdrop-filter") }));
@@ -131,21 +130,15 @@ test("bar: wide windows keep Bible Strong's bar along the bottom, and its button
 });
 
 for (const theme of ["default", "dark", "sepia"]) {
-  for (const mode of ["system", "app", "contrast", "forced"] as const) {
-    test(`materials: ${theme} ${mode} keeps headers, dock, menus and selection opaque`, async ({ page, browserName }) => {
-      test.skip(mode === "system" && browserName !== "chromium", "Playwright only exposes this OS preference through Chromium CDP");
-      if (mode === "system") {
-        const cdp = await page.context().newCDPSession(page);
-        await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
-      }
+  for (const mode of ["normal", "contrast", "forced"] as const) {
+    test(`materials: ${theme} ${mode} keeps headers, dock, menus and selection opaque`, async ({ page }) => {
       if (mode === "contrast") await page.emulateMedia({ contrast: "more" });
       if (mode === "forced") await page.emulateMedia({ forcedColors: "active" });
-      await setup(page, theme, mode === "app");
+      await setup(page, theme);
       for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 800 }]) {
         await page.setViewportSize(viewport);
         await page.goto(`/read/genesis/1${LAUNCH}`);
         await expect(page.locator("#verset-1")).toBeVisible();
-        if (mode === "system") expect(await page.evaluate(() => matchMedia("(prefers-reduced-transparency: reduce)").matches)).toBe(true);
         await page.getByRole("button", { name: "Scripture options" }).click();
         await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
         for (const material of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) {
@@ -269,44 +262,15 @@ test("pictures: Escape closes the viewer and returns keyboard focus", async ({ p
   await expect(figure).toBeFocused();
 });
 
-test("materials: unsupported-filter CSS branch yields opaque reader surfaces", async ({ page }) => {
-  await setup(page, "sepia");
-  await page.goto(`/read/genesis/1${LAUNCH}`);
-  await expect(page.locator("#verset-1")).toBeVisible();
-  // CSS support cannot be disabled by Playwright. Activate the real fallback blocks in place,
-  // preserving their cascade order, so this verifies their declarations rather than a test copy.
-  const changed = await page.evaluate(() => {
-    let changed = 0;
-    for (const sheet of document.styleSheets) {
-      let rules: CSSRuleList;
-      try { rules = sheet.cssRules; } catch { continue; }
-      for (let i = rules.length - 1; i >= 0; i--) {
-        const rule = rules[i];
-        if (rule instanceof CSSSupportsRule && rule.conditionText.startsWith("not") && rule.conditionText.includes("backdrop-filter")) {
-          const body = [...rule.cssRules].map(r => r.cssText).join("\n");
-          sheet.deleteRule(i); sheet.insertRule(`@media all { ${body} }`, i); changed++;
-        }
-      }
-    }
-    return changed;
-  });
-  expect(changed).toBeGreaterThan(0);
-  await page.getByRole("button", { name: "Scripture options" }).click();
-  await expect(page.getByRole("menu", { name: "Passage options" })).toBeVisible();
-  for (const material of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) expect(material).toMatchObject({ filter: "none", alpha: 255 });
-});
-
 for (const theme of ["default", "dark", "sepia"]) {
-  for (const preference of ["normal", "system", "app", "motion", "contrast", "forced"] as const) {
-    test(`controls: ${theme} ${preference} stays usable at 200% with Telegram insets`, async ({ page, browserName }) => {
-      test.skip(preference === "system" && browserName !== "chromium", "OS transparency emulation requires CDP; app preference runs in both engines");
-      await setup(page, theme, preference === "app");
+  for (const preference of ["normal", "motion", "contrast", "forced"] as const) {
+    test(`controls: ${theme} ${preference} stays usable at 200% with Telegram insets`, async ({ page }) => {
+      await setup(page, theme);
       await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK.replace(
         'safeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }, contentSafeAreaInset: { top: 0, bottom: 0, left: 0, right: 0 }',
         'safeAreaInset: { top: 24, bottom: 16, left: 8, right: 12 }, contentSafeAreaInset: { top: 20, bottom: 14, left: 6, right: 8 }',
       ) }));
       await page.emulateMedia({ reducedMotion: preference === "motion" ? "reduce" : "no-preference", contrast: preference === "contrast" ? "more" : "no-preference", forcedColors: preference === "forced" ? "active" : "none" });
-      if (preference === "system") await (await page.context().newCDPSession(page)).send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-transparency", value: "reduce" }] });
       for (const [width, height] of [[390, 844], [1280, 800]]) {
         await page.setViewportSize({ width, height });
         await page.goto(`/settings${LAUNCH}`);
@@ -319,13 +283,12 @@ for (const theme of ["default", "dark", "sepia"]) {
         const before = await toggle.getAttribute("aria-checked");
         await page.keyboard.press("Space");
         await expect(toggle).toHaveAttribute("aria-checked", String(before !== "true"));
+        // Bible Strong's knob only slides: pressing it neither grows it nor lightens it.
         const knob = toggle.locator(".switch");
-        const restShadow = await knob.evaluate(e => getComputedStyle(e, "::after").boxShadow);
         await toggle.hover(); await page.mouse.down();
-        await expect.poll(() => knob.evaluate(e => new DOMMatrix(getComputedStyle(e, "::after").transform).a)).toBeCloseTo(preference === "motion" ? 1 : 1.2, 5);
-        // The pressed look waits out the 50 ms press delay (ui/press.ts).
-        if (preference !== "forced") await expect.poll(() => knob.evaluate(e => getComputedStyle(e, "::after").boxShadow)).not.toBe(restShadow);
-        if (["system", "app", "contrast", "forced"].includes(preference)) expect((await materials(page, [[".switch", "::after"]]))[0].alpha).toBe(255);
+        await expect(toggle).toHaveAttribute("data-pressed", "");
+        expect(await knob.evaluate(e => new DOMMatrix(getComputedStyle(e, "::after").transform).a)).toBe(1);
+        expect((await materials(page, [[".switch", "::after"]]))[0].alpha).toBe(255);
         await page.mouse.up();
         const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
         expect(label.x + label.width).toBeLessThanOrEqual(thumb.x);
@@ -364,10 +327,8 @@ for (const theme of ["default", "dark", "sepia"]) {
           expect(b.width).toBeGreaterThanOrEqual(44); expect(b.height).toBeGreaterThanOrEqual(44);
           expect(b.x).toBeGreaterThanOrEqual(14); expect(b.x + b.width).toBeLessThanOrEqual(width - 20);
         }
-        if (["system", "app", "contrast", "forced"].includes(preference)) {
-          for (const m of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) {
-            expect(m.filter).toBe("none"); expect(m.alpha).toBe(255);
-          }
+        for (const m of await materials(page, [[".bs-header", "::before"], [".tabs"], [".bs-dropdown"]])) {
+          expect(m.filter).toBe("none"); expect(m.alpha).toBe(255);
         }
         await page.keyboard.press("Escape");
         await page.locator("#verset-1").click();
@@ -416,33 +377,31 @@ for (const theme of ["default", "dark", "sepia"]) {
 }
 
 
-for (const reduced of [true]) {
-  test(`controls: every active bar shares a material-only scroll fade (reduced=${reduced})`, async ({ page }) => {
-    await setup(page, "default", reduced);
-    for (const [path, selector] of [["/search", ".srch__bar"], ["/ask", ".chat2__bar"], ["/read/genesis/1", ".bs-header"], ["/timeline", ".tlh"]]) {
-      await page.goto(`${path}${LAUNCH}`);
-      await expect(page.locator(selector)).toBeVisible();
-      for (const bar of [selector]) {
-        const masks = await page.locator(bar).evaluate(e => ({ material: getComputedStyle(e, "::before").maskImage, content: getComputedStyle(e).maskImage }));
-        expect(masks.content).toBe("none");
-        if (reduced) expect(masks.material).toBe("none"); else expect(masks.material).toContain("linear-gradient");
-      }
-      expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(2);
+test("controls: no bar carries a scroll fade", async ({ page }) => {
+  await setup(page, "default");
+  for (const [path, selector] of [["/search", ".srch__bar"], ["/ask", ".chat2__bar"], ["/read/genesis/1", ".bs-header"], ["/timeline", ".tlh"]]) {
+    await page.goto(`${path}${LAUNCH}`);
+    await expect(page.locator(selector)).toBeVisible();
+    for (const bar of [selector]) {
+      const masks = await page.locator(bar).evaluate(e => ({ material: getComputedStyle(e, "::before").maskImage, content: getComputedStyle(e).maskImage }));
+      expect(masks.content).toBe("none");
+      expect(masks.material).toBe("none");
     }
-    await page.goto(`/books/materials${LAUNCH}`);
-    await page.locator(".book__figure").click();
-    const viewer = page.locator(".pv__bar");
-    await expect(viewer).toBeVisible();
-    const masks = await viewer.evaluate(e => [getComputedStyle(e).maskImage, getComputedStyle(e, "::before").maskImage]);
-    expect(masks[0]).toBe("none");
-    if (reduced) expect(masks[1]).toBe("none"); else expect(masks[1]).toContain("linear-gradient");
-    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(1);
-  });
-}
+    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(2);
+  }
+  await page.goto(`/books/materials${LAUNCH}`);
+  await page.locator(".book__figure").click();
+  const viewer = page.locator(".pv__bar");
+  await expect(viewer).toBeVisible();
+  const masks = await viewer.evaluate(e => [getComputedStyle(e).maskImage, getComputedStyle(e, "::before").maskImage]);
+  expect(masks[0]).toBe("none");
+  expect(masks[1]).toBe("none");
+  expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(1);
+});
 
-for (const preference of ["normal", "motion", "app", "forced"] as const) {
+for (const preference of ["normal", "motion", "forced"] as const) {
   test(`controls: native range drag and keyboard still adjust photo zoom (${preference})`, async ({ page }) => {
-    await setup(page, "default", preference === "app");
+    await setup(page, "default");
     await page.emulateMedia({ reducedMotion: preference === "motion" ? "reduce" : "no-preference", forcedColors: preference === "forced" ? "active" : "none" });
     await page.route("**/api/me", r => r.fulfill({ json: { admin: true, canEdit: true } }));
     await page.route("**/api/photos", r => r.fulfill({ json: {} }));
@@ -551,22 +510,21 @@ test("navigation: the bar stays put while pages scroll, and slides away while th
   await expect.poll(async () => { const b = (await nav.boundingBox())!; return b.y + b.height; }).toBe(844);
 });
 
-for (const mode of ["native", "fallback", "reduced"] as const) {
-  test(`menus: ${mode} keeps origin, keyboard actions and focus when opening and closing`, async ({ page }) => {
+for (const mode of ["motion", "reduced"] as const) {
+  test(`menus: ${mode} keeps keyboard actions and focus when opening and closing`, async ({ page }) => {
     await setup(page);
-    if (mode === "reduced") await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.addInitScript(mode => {
+    await page.emulateMedia({ reducedMotion: mode === "reduced" ? "reduce" : "no-preference" });
+    await page.addInitScript(() => {
       const original = document.startViewTransition?.bind(document);
       (window as any).__popoverTransitions = 0;
       (window as any).__popoverFrames = [];
-      if (mode === "fallback") Object.defineProperty(document, "startViewTransition", { value: undefined });
-      else if (original) document.startViewTransition = (...args) => { (window as any).__popoverTransitions++; return original(...args); };
+      if (original) document.startViewTransition = (...args) => { (window as any).__popoverTransitions++; return original(...args); };
       const animate = Element.prototype.animate;
       Element.prototype.animate = function (frames, options) {
         if (this.hasAttribute("data-popover")) (window as any).__popoverFrames.push(frames);
         return animate.call(this, frames, options);
       };
-    }, mode);
+    });
     await page.goto(`/read/genesis/1${LAUNCH}`);
     const trigger = page.getByRole("button", { name: "Scripture options" });
     await trigger.click();
@@ -578,7 +536,6 @@ for (const mode of ["native", "fallback", "reduced"] as const) {
     await page.keyboard.press("End");
     await expect(menu.getByRole("menuitem", { name: "Open in new tab" })).toBeFocused();
     for (const name of ["search", "share", "bookmark"]) await expect(menu.locator(`[data-icon="${name}"]`)).toHaveCount(1);
-    await expect.poll(() => menu.evaluate(el => el.style.transformOrigin)).not.toBe("");
     expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
     await page.keyboard.press("Escape");
     await expect(page.locator(".bs-dropdown")).toHaveCount(0);
@@ -590,14 +547,12 @@ for (const mode of ["native", "fallback", "reduced"] as const) {
     await page.keyboard.press("Escape");
     await expect(page.locator(".bs-picker-sheet")).toHaveCount(0);
     await expect(pickerTrigger).toBeFocused();
-    const motion = await page.evaluate(() => ({ native: !!document.startViewTransition, calls: (window as any).__popoverTransitions, frames: (window as any).__popoverFrames }));
-    // The ⋮ menu opens and closes by a morph (2 transitions); the book picker is a bottom sheet and rises instead.
-    if (mode === "native" && motion.native) expect(motion.calls).toBeGreaterThanOrEqual(2);
-    else expect(motion.calls).toBe(0);
-    if (mode === "reduced") {
-      expect(motion.frames.length).toBeGreaterThanOrEqual(2);
-      expect(motion.frames.flat().every((frame: { transform: string }) => frame.transform === "none")).toBe(true);
-    }
+    const motion = await page.evaluate(() => ({ calls: (window as any).__popoverTransitions, frames: (window as any).__popoverFrames }));
+    // Bible Strong's menus (MenuView.web.css, bs-menu-enter) fade in 4 px above their place and
+    // close at once, with no view transition; under reduced motion they simply appear.
+    expect(motion.calls).toBe(0);
+    if (mode === "reduced") expect(motion.frames).toEqual([]);
+    else expect(motion.frames).toEqual([[{ opacity: 0, transform: "translateY(-4px)" }, { opacity: 1, transform: "none" }]]);
   });
 }
 
@@ -641,35 +596,32 @@ test("menus: collapsed Bible header removes its hidden controls and restores who
   await expect(page.getByRole("group", { name: "Scripture actions", exact: true })).toBeVisible();
 });
 
-for (const reduced of [true]) {
-  test(`menus: navigation stays flat and group actions keep their elevated surface (${reduced ? "solid" : "glass"})`, async ({ page }) => {
-    await setup(page, "dark", reduced);
-    await page.goto(`/settings${LAUNCH}`);
-    await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true }).click();
-    const drawer = page.getByRole("dialog", { name: "More", exact: true });
-    await expect(drawer).toBeVisible();
-    const more = (await materials(page, [[".drawer--more"]]))[0];
-    expect(more).toMatchObject({ filter: "none", alpha: 255 });
-    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
-    await page.keyboard.press("Escape");
-    await page.goto(`/tabs${LAUNCH}`);
-    const groups = page.locator(".switcherbar__group");
-    await groups.click();
-    // Bible Strong's GroupActionsPopover: a floating sheet that opens on Close all tabs, which asks nothing.
-    const menu = page.getByRole("dialog", { name: "Group actions", exact: true });
-    await expect(menu).toBeVisible();
-    const actions = (await materials(page, [[".bs-sheet"]]))[0];
-    if (reduced) expect(actions).toMatchObject({ filter: "none", alpha: 255 });
-    else expect(actions.filter).toContain("blur(");
-    await expect(menu.locator(".gaction").first()).toHaveText("Close all tabs");
-    expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
-    // New group slides the switcher to Bible Strong's create page, whose ✕ goes back.
-    await menu.getByRole("button", { name: "New group", exact: true }).click();
-    await expect(page.getByRole("textbox", { name: "Group name" })).toBeFocused();
-    await page.getByRole("button", { name: "Cancel", exact: true }).click();
-    await expect(page.locator(".bs-sheet")).toHaveCount(0);
-  });
-}
+test("menus: navigation stays flat and group actions keep their elevated surface (solid)", async ({ page }) => {
+  await setup(page, "dark");
+  await page.goto(`/settings${LAUNCH}`);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true }).click();
+  const drawer = page.getByRole("dialog", { name: "More", exact: true });
+  await expect(drawer).toBeVisible();
+  const more = (await materials(page, [[".drawer--more"]]))[0];
+  expect(more).toMatchObject({ filter: "none", alpha: 255 });
+  expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
+  await page.keyboard.press("Escape");
+  await page.goto(`/tabs${LAUNCH}`);
+  const groups = page.locator(".switcherbar__group");
+  await groups.click();
+  // Bible Strong's GroupActionsPopover: a floating sheet that opens on Close all tabs, which asks nothing.
+  const menu = page.getByRole("dialog", { name: "Group actions", exact: true });
+  await expect(menu).toBeVisible();
+  const actions = (await materials(page, [[".bs-sheet"]]))[0];
+  expect(actions).toMatchObject({ filter: "none", alpha: 255 });
+  await expect(menu.locator(".gaction").first()).toHaveText("Close all tabs");
+  expect((await filteredSurfaces(page)).length).toBeLessThanOrEqual(3);
+  // New group slides the switcher to Bible Strong's create page, whose ✕ goes back.
+  await menu.getByRole("button", { name: "New group", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "Group name" })).toBeFocused();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.locator(".bs-sheet")).toHaveCount(0);
+});
 
 for (const focus of ["field", "current Search control", "another control"] as const) {
   test(`search: a delayed mount respects focus on ${focus}`, async ({ page }) => {
