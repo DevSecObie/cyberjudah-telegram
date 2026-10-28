@@ -82,3 +82,15 @@ test("a toast is Bible Strong's: at the top, no icon or timer line, and it leave
   await expect(toast).toBeVisible();
   await expect(toast).toHaveCount(0, { timeout: 3000 });
 });
+
+test("a toast's Dismiss works from the keyboard", async ({ page }) => {
+  await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
+  await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
+  await page.goto(`/timeline${LAUNCH}`);
+  await page.locator(".tlh").getByRole("button", { name: "More" }).click();
+  await page.getByText("Open in a new tab", { exact: true }).click();
+  const toast = page.locator(".toast", { hasText: "New tab created" });
+  await toast.getByRole("button", { name: "Dismiss" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(toast).toHaveCount(0);
+});
