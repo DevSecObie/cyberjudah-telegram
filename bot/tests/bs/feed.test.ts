@@ -281,11 +281,11 @@ test('commentary sections agree with the upstream section builder, maintain rank
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
 });
 
-test('cross references, empty timelines and unsupported resources use the documented schemas', async () => {
+test('cross references, published timelines and unsupported resources use the documented schemas', async () => {
   const { json: refs } = await request('/v1/cross-references/fr/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
   assert.ok(refs.references.includes('1-1-1'));
   await request('/v1/cross-references/en/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
-  const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto); assert.deepEqual(timeline.events, []);
+  const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto); assert.equal(timeline.events.length, 517);
   await request('/v1/timelines/en/events/unknown', Problems.ResourceNotFoundProblem, { status: 404 });
   await request('/v1/interlinear-bibles/BHG/languages/en/coverage', Problems.ResourceNotFoundProblem, { status: 404 });
   await request('/v1/interlinear-bibles/BHG/languages/en/books/1/chapters/1', Problems.ResourceNotFoundProblem, { status: 404 });
