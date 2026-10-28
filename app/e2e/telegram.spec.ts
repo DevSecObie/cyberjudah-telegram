@@ -722,7 +722,7 @@ test("welcome keeps Search and Ask separate, with the dashboard in the Home draw
   await expect(welcome.getByRole("button", { name: "Search the teachings", exact: true })).toBeDisabled();
   await expect(welcome.getByRole("button", { name: "Ask your question" })).toBeDisabled();
   await expect(welcome.locator(".today-card, .stats, .shelf, .widgets")).toHaveCount(0);
-  await expect(page.locator(".tab")).toHaveCount(7);
+  await expect(page.locator(".tab")).toHaveCount(5);
   await search.fill("Seattle");
   await question.fill("Why do we keep the Passover?");
   await expect(search).toHaveValue("Seattle");
