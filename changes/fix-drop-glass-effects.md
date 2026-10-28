@@ -1,0 +1,2 @@
+- Menus now open the way Bible Strong's do: a quick fade into place, and they close at once, instead of growing out of the button you tapped.
+- Switches and sliders no longer swell when pressed, the zoom slider has a round knob again, and the page background is a flat colour with no glow at the top.

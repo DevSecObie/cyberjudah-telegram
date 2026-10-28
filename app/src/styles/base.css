@@ -6,11 +6,6 @@ html { scroll-padding-top: calc(var(--header-h) + var(--safe-top) + 8px); scroll
 html, body { margin: 0; background: var(--canvas); color: var(--text-2); overscroll-behavior: none auto; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 html[data-fullscreen="yes"] .reader__bar { padding-top: 4px; }
 
-/* The canvas: the page colour with a faint light at the top, so the glass above it has something to
-   carry. Fixed and behind everything; it never scrolls, animates or takes input. */
-body::before { content: ""; position: fixed; inset: 0 0 auto 0; height: 60vh; z-index: -1; pointer-events: none;
-  background: radial-gradient(120% 70% at 50% -10%, var(--canvas-glow), transparent 70%); }
-
 #root {
   min-height: 100dvh;
   color: var(--text-2);
@@ -62,7 +57,6 @@ mark { background: color-mix(in srgb, var(--accent) 24%, transparent); color: in
 
 /* Forced colours (Windows high contrast): let the system draw; keep every edge visible. */
 @media (forced-colors: active) {
-  body::before { display: none; }
   .glass, .card, .tabs, .sheet, .drawer, .scard, .lawcard, .post__scripture, .srch__list { border: 1px solid CanvasText !important; }
   #root :focus-visible { outline: 2px solid Highlight; }
 }
