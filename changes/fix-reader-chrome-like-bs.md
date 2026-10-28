@@ -1,0 +1,1 @@
+- In the Bible, the chapter arrows and play button are flat again and fade when pressed, the header buttons no longer sit in a tinted capsule, and the ⋮ menu reads like Bible Strong's: no title, icons after each label, and a new "Share the link" that shares the chapter.
