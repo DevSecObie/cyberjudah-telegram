@@ -1832,7 +1832,14 @@ test("Ask sits near the top of Home: a question there opens Ask with it", async 
   await expect(field).toBeVisible();
   await field.fill("Why do we keep the Passover?");
   await field.press("Enter");
-  await expect(page).toHaveURL(/\/ask\?q=Why%20do%20we%20keep%20the%20Passover%3F/);
+  await expect(page).toHaveURL(/\/ask/);
+  await expect(page.locator(".msg--me .msg__bubble").last()).toHaveText("Why do we keep the Passover?");
+  // Once that answer is in, a question sent again from Home while Ask is open is asked too.
+  await expect(page.getByRole("button", { name: "Ask again" }).last()).toBeVisible();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Home", exact: true }).click();
+  await field.fill("Who was Melchizedek?");
+  await field.press("Enter");
+  await expect(page.locator(".msg--me .msg__bubble").last()).toHaveText("Who was Melchizedek?");
 });
 
 test("a back step from the first screen stays in the app instead of going to a blank page", async ({ page }) => {
