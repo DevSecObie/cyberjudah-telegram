@@ -2,7 +2,11 @@
 
 # Bible Strong parity review
 
-Current owner direction, 8 October 2026: retain the existing CyberJudah app, all content and Apple Liquid Glass; integrate reader and interaction improvements into `app/`. The separate Expo prototype is not the replacement product. Visible changes require previews in the existing app before implementation.
+Current owner direction, 27 October 2026: **use Bible Strong's behavior and UI; do not create anything outside what Bible Strong provides.** The earlier instruction to retain custom Apple Liquid Glass styling is superseded. Port the actual upstream screen/component structure, controls, spacing and interactions. Do not replace them with a newly designed dashboard, account panel, navigation item or approximation based only on screenshots. Keep CyberJudah's data and verified authentication adapters behind those components. The separate Expo prototype is not the deployed product.
+
+Use upstream revision `39d878091d12c0f8074464f5ff79fa4bb94f737f` for this review. Read its `design-system/project/README.md` ("The app") and the corresponding source before changing a screen. Record the source path and test the real behavior, including keyboard, touch and narrow/wide layouts. The remaining differences below are an inventory, **not approval to retain custom UI or a claim of complete parity**.
+
+The native staging branch restores `features/app-switcher/BottomTabBar`'s five actions: Home, Search, Bible, Tabs, Menu. Existing CyberJudah resources remain in the menu; no new action is added. The account-card fix changes its identity data source only, following upstream `useLogin`'s reactive account behavior. Browser Telegram and Firebase sessions now update that existing card, but an unlinked Firebase account still cannot use a Telegram wallet. A new custom Home/account draft was discarded. Login/profile visual parity remains unfinished; Telegram-linking and paid Ask are CyberJudah-specific flows and must not be described as copied upstream behavior.
 
 Latest upstream checked for the current gesture work: `a40b63c5bef7fbe41dbd1573780e65e736eab333` (8 October 2026). Its changes after the previously checked `eed343d` concern resource publication, not the Expo reader/navigation source. The earlier review below remains a gap inventory, not a claim of complete current-source parity.
 
@@ -18,7 +22,7 @@ Bible Strong's Firebase identities, app IDs, signing accounts, store approvals a
 
 ## Implementation constraint
 
-The owner rejected custom substitutes on 8 October 2026. Reuse the latest Bible Strong components and interaction modules; keep CyberJudah's content and existing Glass material. Do not add substitute forms, extra action rows or alternate annotation controls. The custom “Mark phrase” entry/form has been removed; its saved annotations and backup format remain intact. The separate Expo app is still not a replacement deployment.
+The owner rejected custom substitutes on 8 October and reiterated this on 27 October 2026. Reuse the pinned Bible Strong components and interaction modules with CyberJudah's content. Custom Glass styling is no longer an exception. Do not add substitute forms, extra action rows or alternate annotation controls. The custom “Mark phrase” entry/form has been removed; its saved annotations and backup format remain intact. The separate Expo app is still not a replacement deployment.
 
 ## Current reader gesture corrections
 

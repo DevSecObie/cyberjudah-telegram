@@ -1,10 +1,11 @@
 import { nativeReader } from "@/native/platform";
+import { useAccountIdentity } from "@/lib/account-session";
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
 
 import { APP_URL, share } from "@/lib/share";
 import { useBackButton } from "@/tg/hooks";
-import { addToHomeScreen, app, downloadFile, homeScreenStatus, openLink, user } from "@/tg/sdk";
+import { addToHomeScreen, app, downloadFile, homeScreenStatus, openLink } from "@/tg/sdk";
 import { DATA_ORIGIN, SITE_URL } from "@/api/data";
 import { Icon, NotificationDot, Screen, type IconName } from "@/ui/ui";
 import { useAvailableUpdatesIndicator } from "@/resources/updates";
@@ -58,16 +59,17 @@ const C = { blue: "var(--accent)", teal: "var(--accent)", violet: "var(--danger)
 
 /** The menu's content (Bible Strong's MoreScreen), on its own page or in the menu drawer. */
 export function MoreBody() {
+  const identity = useAccountIdentity();
   const { name } = useAppTheme();
   const [pin, setPin] = useState(false);
   const { hasUpdates } = useAvailableUpdatesIndicator();
   useEffect(() => { void homeScreenStatus().then((s) => setPin(s === "missed" || s === "unknown")); }, []);
   return (
     <div className="more" style={cssVars(PALETTES[name]) as CSSProperties}>
-      {/* Bible Strong's account card at the top of the menu: who is signed in (here, the Telegram user). */}
+      {/* Bible Strong's account card reflects the active login on web and native too. */}
       <Link className="more__account" to="/settings/account" onClick={() => haptic("select")}>
-        <span className="more__avatar" aria-hidden="true">{user?.photo_url ? <img src={user.photo_url} alt="" /> : (user?.first_name?.[0] ?? "?")}</span>
-        <span><b>{user ? [user.first_name, user.last_name].filter(Boolean).join(" ") : "Your account"}</b><small>{user?.username ? `@${user.username}` : user ? "Connected with Telegram" : "Sign in or keep studies on this device"}</small></span>
+        <span className="more__avatar" aria-hidden="true">{identity?.photo ? <img src={identity.photo} alt="" /> : (identity?.name?.[0] ?? "?")}</span>
+        <span><b>{identity?.name ?? "Your account"}</b><small>{identity?.detail ?? "Sign in or keep studies on this device"}</small></span>
         <Icon name="chevron" size={20} />
       </Link>
       <Card icon="bookmark" title="Yours" items={[

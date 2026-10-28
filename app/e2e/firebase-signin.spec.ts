@@ -21,7 +21,7 @@ async function fixture(page: Page) {
   await page.route("**/api/auth/status", r => {
     const bearer = r.request().headers().authorization;
     const id = bearer?.includes(token(current).split('.')[1]) ? current === "firebase-alice" ? 77 : 88 : 77;
-    return r.fulfill({ json: bearer ? { available:true, firebaseUid:current, provider:"firebase", telegramLinked:linked, user:linked ? {id,first_name:current}:null } : { available:true, user:telegram ? {id:77,first_name:"Telegram reader"}:null } });
+    return r.fulfill({ json: bearer ? { available:true, firebaseUid:current, provider:"firebase", telegramLinked:linked, telegramSession:telegram ? {id:77,first_name:"Telegram reader"}:null, user:linked ? {id,first_name:current}:null } : { available:true, user:telegram ? {id:77,first_name:"Telegram reader"}:null } });
   });
   await page.route("**/api/firebase/link", r => {
     expect(r.request().headers().authorization).toBeUndefined();
@@ -55,7 +55,14 @@ test("email sign-in links an existing account, sends its Firebase token to paid 
   await page.getByLabel("Email",{exact:true}).fill("alice@example.test");
   await page.getByLabel("Password",{exact:true}).fill("not-a-real-password");
   await page.getByRole("button",{name:"Sign in with email",exact:true}).click();
+  // A verified Telegram browser session must not look signed out merely because the Firebase
+  // identity is not linked yet. It still cannot use the wallet until the explicit link below.
+  await expect(page.getByRole("link", { name: "Sign in with Telegram" })).toHaveCount(0);
   await expect(page.getByRole("button",{name:"Link this login with Telegram",exact:true})).toBeVisible();
+  await page.goto("/more");
+  await expect(page.locator(".more__account")).toContainText("alice@example.test");
+  await expect(page.locator(".more__account")).not.toContainText("Sign in or keep studies on this device");
+  await page.goto("/settings/account");
   await page.getByRole("button",{name:"Link this login with Telegram",exact:true}).click();
   await expect(page.getByText("Accounts connected. Every linked sign-in uses the same Ask balance and chats.")).toBeVisible();
   await page.goto("/ask");
@@ -70,7 +77,19 @@ test("email sign-in links an existing account, sends its Firebase token to paid 
   await page.goto("/settings/account");
   await page.getByRole("button",{name:"Sign out of this login",exact:true}).click();
   await expect(page.getByRole("button",{name:"Sign in with email",exact:true})).toBeVisible();
+  await page.goto("/more");
+  await expect(page.locator(".more__account")).toContainText("Sign in or keep studies on this device");
   await page.goto("/ask");
   await expect(page.getByRole("textbox",{name:"Your question"})).toBeDisabled();
   await expect(page.getByText("Private answer for firebase-alice.",{exact:true})).toHaveCount(0);
+});
+
+test("a Telegram browser session appears in the existing menu account card after returning from login", async ({ page }) => {
+  await fixture(page);
+  await page.goto("/more");
+  await expect(page.locator(".more__account")).toContainText("Telegram reader");
+  await expect(page.locator(".more__account")).toContainText("Connected with Telegram");
+  await page.locator(".more__account").click();
+  await expect(page.locator(".study-account-identity")).toContainText("Telegram reader");
+  await expect(page.getByRole("link", { name: "Sign in with Telegram" })).toHaveCount(0);
 });

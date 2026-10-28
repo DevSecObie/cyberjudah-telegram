@@ -1,10 +1,30 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import type { User } from "firebase/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { api, app, user } from "@/tg/sdk";
 
 export type AccountSession = { available: boolean; user: { id: number; first_name: string } | null; firebaseUid?: string; provider?: string; telegramLinked?: boolean; telegramSession?: { id: number; first_name: string } | null };
 export const ACCOUNT_SESSION_KEY = ["account-session"] as const;
+
+/** Display-only adapter for Bible Strong's account card. Never use this identity to authorize
+ * requests or choose a wallet: only the server-confirmed linked `session.user` can do that. */
+export function useAccountIdentity() {
+  const session = useAccountSession();
+  const [firebase, setFirebase] = useState<User | null>(null);
+  useEffect(() => {
+    if (app) return;
+    let unsubscribe: (() => void) | undefined, cancelled = false;
+    void Promise.all([import("firebase/auth"), import("./firebase-client")]).then(([sdk, client]) => {
+      if (!cancelled) unsubscribe = sdk.onAuthStateChanged(client.auth, setFirebase);
+    });
+    return () => { cancelled = true; unsubscribe?.(); };
+  }, []);
+  if (app && user) return { name: [user.first_name, user.last_name].filter(Boolean).join(" "), detail: user.username ? `@${user.username}` : "Connected with Telegram", photo: user.photo_url };
+  if (firebase) return { name: firebase.displayName || firebase.email || "Your account", detail: firebase.email || "Signed in", photo: firebase.photoURL };
+  const telegram = session.data?.user ?? session.data?.telegramSession;
+  return telegram ? { name: telegram.first_name, detail: "Connected with Telegram", photo: null } : null;
+}
 /** Telegram launch identity or the server-verified browser session, never a cached display name. */
 export function useAccountSession() {
   const queries = useQueryClient();
