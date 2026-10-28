@@ -492,6 +492,8 @@ test("Home is Bible Strong's drawer: it slides the app aside and closes with a s
   await expect(home).toHaveCSS("box-shadow", "none");
   await expect(page.locator(".drawer-scrim[data-open]")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   expect((await home.getByRole("button", { name: "Close Home" }).boundingBox())!.width).toBe(50);
+  // On Bible Strong's reverse colour, which is the page's.
+  expect(await home.getByRole("button", { name: "Close Home" }).evaluate((el) => getComputedStyle(el).backgroundColor)).toBe(await page.evaluate(() => getComputedStyle(document.body).backgroundColor));
   const box = (await home.boundingBox())!;
   const counts = (await home.locator(".stats--six").boundingBox())!;
   // The Today card owns its horizontal swipe; swiping the rest of Home still closes it.
