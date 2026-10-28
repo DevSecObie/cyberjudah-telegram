@@ -1,4 +1,4 @@
-import { nativeReader } from "@/native/platform";
+import { nativeReader, paidAskAvailable } from "@/native/platform";
 import { useAccountIdentity } from "@/lib/account-session";
 import { useEffect, useState, type CSSProperties } from "react";
 import { Link } from "react-router";
@@ -83,7 +83,7 @@ export function MoreBody() {
         { icon: "sun", label: "Sabbath", color: C.amber, href: "/sabbath" },
       ]} />
       <Card icon="book" title="Resources" headingWeight={400} items={[
-        { icon: "chat", label: "Ask CyberJudah", color: C.teal, colored: true, href: "/ask" },
+        paidAskAvailable ? { icon: "chat", label: "Ask CyberJudah", color: C.teal, colored: true, href: "/ask" } : null,
         { icon: "play", label: "Classes", color: C.red, colored: true, href: "/classes" },
         ...STUDY.map(([href, label, , icon], k) => ({ href, label, icon, colored: true, color: href === "/lexicon" ? C.blue : href === "/dictionary" ? C.amber : [C.blue, C.violet, C.amber, C.green, C.rose, C.teal, C.violet, C.slate][k % 8] })),
       ]} />

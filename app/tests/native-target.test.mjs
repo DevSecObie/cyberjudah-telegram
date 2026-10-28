@@ -26,3 +26,10 @@ test("unknown targets and malformed approval codes fail instead of falling back"
   assert.equal(nativeTarget().origin, "https://cyberjudah.io");
   assert.equal(nativeAccountURL("production", "f".repeat(64)), "https://cyberjudah.io/app/settings/account?device=" + "f".repeat(64));
 });
+
+test("public store builds are free study while internal staging can test the shared Ask balance", () => {
+  assert.equal(nativeTarget("production").profile, "free-study");
+  assert.equal(nativeTarget("production").paidAsk, false);
+  assert.equal(nativeTarget("staging").profile, "linked-ask-test");
+  assert.equal(nativeTarget("staging").paidAsk, true);
+});

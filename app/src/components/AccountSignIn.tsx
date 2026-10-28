@@ -3,7 +3,7 @@ import { browserPopupRedirectResolver, createUserWithEmailAndPassword, EmailAuth
 import { useQueryClient } from "@tanstack/react-query";
 import { auth } from "@/lib/firebase-client";
 import { ACCOUNT_SESSION_KEY } from "@/lib/account-session";
-import { nativeReader, openDeviceSignIn, apiURL } from "@/native/platform";
+import { nativeReader, paidAskAvailable, openDeviceSignIn, apiURL } from "@/native/platform";
 import { app } from "@/tg/sdk";
 import { Button } from "@/ui/Button";
 import { StudyNotice } from "@/studies/controls";
@@ -59,12 +59,12 @@ export function AccountSignIn() {
       await new Promise(resolve => setTimeout(resolve, 10_000));
       if (!active.current) return;
       const result = await request<{ pending?: boolean; token?: string }>("/api/auth/device/exchange", { secret: flow.secret });
-      if (result.token && active.current) { await signInWithCustomToken(auth, result.token); setMatch(""); setMessage("Signed in. Your linked Ask balance and chats are ready."); return; }
+      if (result.token && active.current) { await signInWithCustomToken(auth, result.token); setMatch(""); setMessage(paidAskAvailable ? "Signed in. Your linked Ask balance and chats are ready." : "Signed in."); return; }
     }
     throw new Error("sign_in_expired");
   });
-  return <section className="study-panel"><h2>One account, your Ask balance</h2>
-    <p>Connect Telegram once, then use Google, Apple or email to access the same paid Ask balance and conversations. Reading does not require an account.</p>
+  return <section className="study-panel"><h2>{paidAskAvailable ? "One account, your Ask balance" : "Sign in"}</h2>
+    {paidAskAvailable && <p>Connect Telegram once, then use Google, Apple or email to access the same paid Ask balance and conversations. Reading does not require an account.</p>}
     {nativeReader ? <><Button disabled={busy} onClick={() => void nativeSignIn()}>{user ? "Change sign-in" : "Sign in securely"}</Button>{match && <p role="status">Match code <strong>{match}</strong> in your browser, approve sign-in, then return here.</p>}</> : <>
       {user ? <><p>Signed in as {user.email || user.displayName || "CyberJudah reader"}.</p>
         <div className="study-toolbar"><Button disabled={busy || user.providerData.some(p => p.providerId === "google.com")} onClick={() => void signIn("google", true)}>{user.providerData.some(p => p.providerId === "google.com") ? "Google connected" : "Connect Google"}</Button><Button disabled={busy || user.providerData.some(p => p.providerId === "apple.com")} onClick={() => void signIn("apple", true)}>{user.providerData.some(p => p.providerId === "apple.com") ? "Apple connected" : "Connect Apple"}</Button></div>

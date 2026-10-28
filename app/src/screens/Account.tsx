@@ -1,5 +1,5 @@
 import { AccountSignIn } from "@/components/AccountSignIn";
-import { nativeReader } from "@/native/platform";
+import { nativeReader, paidAskAvailable } from "@/native/platform";
 import { useQueryClient } from "@tanstack/react-query";
 import { ACCOUNT_SESSION_KEY, useAccountIdentity, useAccountSession } from "@/lib/account-session";
 import { useState } from "react";
@@ -24,7 +24,7 @@ export function Account() {
   return <Screen title="Account" className="study-screen"><div className="personal-study">
     {new URLSearchParams(location.search).has("login") && <StudyNotice error>Telegram sign-in did not finish. Please try again.</StudyNotice>}
     <section className="study-panel"><div className="study-account-identity"><span className="study-emblem"><Icon name="shield" size={26} /></span><div><h2>{identity?.name ?? "Your study, your space"}</h2><p>{identity?.detail ?? "Read and study without an account."}</p></div></div>
-      {nativeReader ? <p>Reading and local studies work without an account. Sign in below to use your linked Ask balance and chats.</p> : telegramSignedIn ? !app && <div className="study-toolbar"><Button appearance="bordered" onClick={() => void logout()}>Sign out</Button></div> : state?.available ? <div className="study-toolbar"><a className="btn btn--prominent" href="/api/auth/start">Sign in with Telegram<Icon name="chevron" size={16} /></a></div> : state ? <p>Telegram sign-in is not available here yet. You can still use your personal studies on this device.</p> : !error && <p role="status">Checking account…</p>}
+      {nativeReader ? <p>Reading and local studies work without an account.{paidAskAvailable && " Sign in below to use your linked Ask balance and chats."}</p> : telegramSignedIn ? !app && <div className="study-toolbar"><Button appearance="bordered" onClick={() => void logout()}>Sign out</Button></div> : state?.available ? <div className="study-toolbar"><a className="btn btn--prominent" href="/api/auth/start">Sign in with Telegram<Icon name="chevron" size={16} /></a></div> : state ? <p>Telegram sign-in is not available here yet. You can still use your personal studies on this device.</p> : !error && <p role="status">Checking account…</p>}
     </section>
     <AccountSignIn />
     {(error || session.isError) && <StudyNotice error>{error || "Account status could not be loaded. Try again when you are online."}</StudyNotice>}

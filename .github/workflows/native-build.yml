@@ -7,6 +7,10 @@ permissions:
   contents: read
 jobs:
   reader-profile:
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [production, staging]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -18,14 +22,15 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium webkit
         working-directory: app
-      - name: Verify native reading, linked Ask access and disabled purchases
+      - name: Verify the free store profile and internal linked-Ask profile
         run: npm run test:e2e --workspace app -- native-reader.spec.ts offline-search.spec.ts --project=chromium --project=webkit
         env:
           CYBERJUDAH_TEST_NATIVE_READER: "1"
+          CYBERJUDAH_TEST_NATIVE_ENV: ${{ matrix.environment }}
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: native-reader-traces
+          name: native-${{ matrix.environment }}-reader-traces
           path: app/test-results
           retention-days: 7
   android:

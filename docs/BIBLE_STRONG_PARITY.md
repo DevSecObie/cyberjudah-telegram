@@ -1,4 +1,5 @@
-> October 27 scope update: the owner now requires paid Ask through all linked sign-in methods. The earlier free-only native profile described below is superseded. Firebase Google/Apple/email plus verified Telegram linking preserve the existing Ask wallet. See STORE_BILLING_SETUP.md for the native purchase release gate. Bible Strong remains the reference for provider and account-recovery behavior; its identifiers and credentials are not copied.
+**First-store scope, October 27, 2026:** free reading/study, with sign-in/profile taken from the actual pinned upstream source. Paid Ask is deferred to the next update; only internal staging retains the shared-account test flow. The free-profile gate is not a completed UI port. Login/Profile and the remaining differences below still block a claim of full Bible Strong parity.
+
 
 # Bible Strong parity review
 

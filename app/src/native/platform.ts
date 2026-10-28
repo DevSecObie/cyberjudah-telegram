@@ -10,9 +10,10 @@ export async function openDeviceSignIn(code: string) {
   const result = await AppLauncher.openUrl({ url: deviceSignInURL(code) });
   if (!result.completed) throw new Error("browser_open_failed");
 }
-/** Bundled native profile: public reading plus linked-account Ask; purchases require a store billing integration. */
+/** The first public store release is free study; linked paid Ask is an internal staging test. */
 export const nativeReader = native || import.meta.env.VITE_NATIVE_BUILD === "true";
-export const readerRouteAllowed = (path: string) => !nativeReader || !/^\/(settings\/(donate|reminders|admin|requests))(?:[/?#]|$)/.test(path);
+export const paidAskAvailable = !nativeReader || nativeBuild.paidAsk;
+export const readerRouteAllowed = (path: string) => (!nativeReader || !/^\/(settings\/(donate|reminders|admin|requests))(?:[/?#]|$)/.test(path)) && (paidAskAvailable || !/^\/ask(?:[/?#]|$)/.test(path));
 export const nativePlatform = Capacitor.getPlatform();
 const publicReading = /^\/api\/(?:(search|teachings|live|recent)(?:[?]|$)|(taught|transcript|visuals)\/)/;
 export const apiURL = (path: string) => {

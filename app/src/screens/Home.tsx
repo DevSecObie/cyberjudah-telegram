@@ -1,4 +1,4 @@
-import { nativeReader } from "@/native/platform";
+import { nativeReader, paidAskAvailable } from "@/native/platform";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -128,7 +128,7 @@ export function Home() {
           <button type="submit" className="welcome__action" disabled={!search.trim()}>Search the teachings<Icon name="arrowUp" size={20} /></button>
         </SearchHero>
       </section>
-      {<section className="welcome__panel surface" aria-labelledby="welcome-ask">
+      {paidAskAvailable && <section className="welcome__panel surface" aria-labelledby="welcome-ask">
         <h2 id="welcome-ask"><Icon name="chat" size={24} /> Ask CyberJudah</h2>
         <p>Ask a question. See its sources.</p>
         <SearchHero id="welcome-question" mode="ask" value={question} onChange={setQuestion} onSubmit={(q) => open("ask", q)} placeholder="What would you like to know?">

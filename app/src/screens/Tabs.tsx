@@ -1,3 +1,4 @@
+import { readerRouteAllowed } from "@/native/platform";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { data } from "@/api/data";
@@ -94,7 +95,7 @@ export function NewTab() {
         <div className="newtab__more">
           <section>
             <SectionHeading title="Studies and notes" image="notes-writer" />
-            <div className="ntgrid ntgrid--personal">{PERSONAL.map((i) => <Card open={open} key={i[0]} item={i} />)}</div>
+            <div className="ntgrid ntgrid--personal">{PERSONAL.filter(([path]) => readerRouteAllowed(path)).map((i) => <Card open={open} key={i[0]} item={i} />)}</div>
           </section>
           <section>
             <SectionHeading title="Library" image="library-reader" />
