@@ -132,7 +132,7 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           p=Path('wrangler.jsonc')
-          s=p.read_text().replace('"/app/strong",', '').replace('"/app/strong/*",', '').replace('"run_worker_first": [','"run_worker_first": ["/app", "/app/*", ',1)
+          s=p.read_text().replace('"/app/strong", "/app/strong/*"', '"/app", "/app/*"', 1)
           head, env=s.split('"env": {',1)
           env=env.replace('"vars": {','"vars": {"BIBLE_STRONG_WEB": "1", ',1)
           p.write_text(head+'"env": {'+env)
