@@ -1,0 +1,1 @@
+- The app no longer swaps in its own colours when the phone's Increase Contrast setting is on; the reader keeps Bible Strong's colours, as Bible Strong does.

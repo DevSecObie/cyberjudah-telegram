@@ -5,8 +5,8 @@ import { Link, useParams, useSearchParams } from "react-router";
 import { AlphabetList, SectionTitle, sections, useHeaderOffset } from "@/ui/alphabet";
 import { haptic } from "@/tg/sdk";
 
-import { useBackButton, useBottomButtons } from "@/tg/hooks";
-import { share } from "@/lib/share";
+import { useBackButton } from "@/tg/hooks";
+import { EntryMenu } from "@/ui/entry-menu";
 import { Empty, List, Row, Screen, SearchField, Section, Loading } from "@/ui/ui";
 
 type RowT = { slug: string; term: string };
@@ -89,12 +89,11 @@ export function DictionaryEntry() {
   const { slug = "" } = useParams();
   useBackButton();
   const e = useQuery({ queryKey: ["dict-entry", slug], queryFn: async () => { const r = await fetch(`/api/dictionary/${slug}`); if (r.status === 404) return null; if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<Entry>; } });
-  useBottomButtons(e.data ? { text: "Share", onClick: () => void share({ kind: "note", title: `${e.data!.term} · Easton's Bible Dictionary`, text: e.data!.definitions[0].slice(0, 300), sitePath: `/dictionary/${slug}` }) } : null);
   if (e.isPending) return <Screen title="…"><Loading message="Loading..." /></Screen>;
   if (e.isError) return <Screen title="Dictionary"><Empty title="This entry did not load" action={{ label: "Retry", onClick: () => void e.refetch() }}>Check your connection.</Empty></Screen>;
   if (!e.data?.term) return <Screen title="Dictionary"><Empty title="No such entry" /></Screen>;
   return (
-    <Screen title={e.data.term} kicker="Easton's Bible Dictionary">
+    <Screen title={e.data.term} kicker="Easton's Bible Dictionary" action={<EntryMenu entry={{ title: `${e.data.term} · Easton's Bible Dictionary`, text: e.data.definitions.join("\n\n"), path: `/dictionary/${slug}`, relations: { endpoint: `dictionary:${slug}`, label: e.data.term } }} />}>
       <div className="dict">{e.data.definitions.map((d, i) => <p key={i}>{d}</p>)}</div>
       <p className="hint">Easton's Bible Dictionary, 1897, public domain. An outside dictionary: the King James Bible and the classes come first, and entries that teach against them are left out.</p>
     </Screen>

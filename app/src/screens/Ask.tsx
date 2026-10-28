@@ -312,14 +312,16 @@ function AccountAsk({ accountId, checking }: { accountId: number | null; checkin
       .then((r) => openChat(r.chat ?? { id: linked, title: "", updated: "", turns: r.pending ? [{ role: "user", content: r.pending.q }] : [] }))
       .catch(() => undefined);
   }, [linked, checking, signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
-  const asked = useRef(false);
+  // Each new question counts, also one sent from the Home drawer while Ask is already open.
+  const asked = useRef(false), taken = useRef<string | null>(null);
   useEffect(() => {
-    if (asked.current || linked || checking) return;
-    asked.current = true;
+    if (linked || checking) return;
+    if (!first) { taken.current = null; if (!asked.current) { asked.current = true; if (signedIn) void recoverChat(); } return; }
+    if (taken.current === first) return;
+    asked.current = true; taken.current = first;
     // While an answer is still coming the question waits in the composer, rather than being dropped.
-    if (first) { setParams({}, { replace: true }); if (!signedIn || conv.busy) setInput(first); else { startNewChat(); send(first); } }
-    else if (signedIn) void recoverChat();
-  }, [checking, signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
+    setParams({}, { replace: true }); if (!signedIn || conv.busy) setInput(first); else { startNewChat(); send(first); }
+  }, [checking, signedIn, first]); // eslint-disable-line react-hooks/exhaustive-deps
   // Coming back to the app, or back online: an answer the server finished meanwhile is fetched.
   useEffect(() => {
     const again = () => { if (document.visibilityState === "visible") void recoverChat(); };

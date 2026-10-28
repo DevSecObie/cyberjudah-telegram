@@ -1,16 +1,14 @@
 /* ─────────────────────────────────────────────────────────────────────────────────────────────
    Design tokens. Every colour, material, size, motion and layer in the app reads from here; the
    rest of the stylesheets never hard-code them. Three themes (dark, the default; light; sepia) set
-   the colour tokens on <html data-theme>. The materials are our own CSS approximation of the
-   layering Apple describes for Liquid Glass (a translucent navigation layer floating over content);
-   they are not Apple's native rendering.
+   the colour tokens on <html data-theme>. The materials are solid, like Bible Strong's bars, sheets
+   and menus: the surface colour at full strength, with no blur.
    ───────────────────────────────────────────────────────────────────────────────────────────── */
 :root {
   color-scheme: dark;
 
   /* Colour: the canvas, content surfaces, fills that sit on any surface. */
   --canvas: #05070f;
-  --canvas-glow: color-mix(in srgb, #00e5ff 9%, transparent);   /* a faint light at the top of the page */
   --surface-1: #0b1020;                                          /* cards, lists, reading blocks */
   --surface-2: #141c36;                                          /* inset fills inside a surface */
   --fill-1: color-mix(in srgb, #f2f6fb 6%, transparent);        /* quiet control fill */
@@ -39,7 +37,6 @@
   /* Lines: a hairline between rows, a required control edge (3:1), the glass rim. */
   --hairline: #22304b;
   --control-edge: #6b7d99;
-  --rim: color-mix(in srgb, #ffffff 14%, transparent);
   --rim-highlight: color-mix(in srgb, #ffffff 16%, transparent);
 
   /* Elevation. */
@@ -55,26 +52,25 @@
   --focus-ring: 0 0 0 2px var(--canvas), 0 0 0 4px var(--accent);
   --disabled-opacity: .42;
 
-  /* Materials (see materials.css). Tint is the colour the glass carries; the blur is the frost. */
+  /* Materials (see materials.css). Bible Strong's bars, sheets and menus are solid: full tint, no blur. */
   --mat-base: var(--canvas);
-  --mat-density: 92%;
-  --mat-elevated-density: 93%;
+  --mat-density: 100%;
+  --mat-elevated-density: 100%;
   --mat-nav: color-mix(in srgb, var(--mat-base) var(--mat-density), transparent);
   --mat-elevated: color-mix(in srgb, var(--surface-1) var(--mat-elevated-density), transparent);
   --mat-overlay: var(--surface-1);
   --toolbar-gap: 12px;
   --group-radius: var(--r-xl); --group-inset: 16px; --group-row-height: 56px; --group-row-padding: 12px var(--group-inset);
   --rail-space: 0px; --content-width: calc(100vw - var(--rail-space));
-  --mat-scroll-edge-depth: 14px;
-  --mat-scroll-edge: linear-gradient(#000 calc(100% - var(--mat-scroll-edge-depth)), transparent);
-  --mat-scroll-edge-up: linear-gradient(transparent, #000 var(--mat-scroll-edge-depth));
-  --mat-blur: blur(16px) saturate(170%);
-  --mat-blur-strong: blur(22px) saturate(180%);
+  --mat-scroll-edge-depth: 0px;
+  --mat-scroll-edge: none;
+  --mat-scroll-edge-up: none;
+  --mat-blur: none;
+  --mat-blur-strong: none;
   --mat-edge: color-mix(in srgb, #ffffff 12%, transparent);
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 10%, transparent);
   --mat-shadow: 0 10px 30px rgba(0, 0, 0, .35), 0 1px 3px rgba(0, 0, 0, .25);
   --mat-selected: color-mix(in srgb, var(--text-1) 13%, transparent);
-  --mat-glow: color-mix(in srgb, var(--accent) 75%, transparent);
 
   /* Full-screen media retains a dark context in every reading palette. */
   --widget-ink: #ffffff; --widget-ground: var(--surface-1);
@@ -99,8 +95,6 @@
   --h-sm: max(44px, 2.25rem); --h-md: max(44px, 2.75rem); --h-lg: max(52px, 3.25rem); --h-xl: max(60px, 3.75rem);
   --control-pad: 18px; --control-font: .9375rem; --control-inset: 3px;
   --switch-thumb: #fff; --switch-shadow: 0 2px 6px rgb(0 0 0 / .25);
-  --control-lift-density: 92%; --control-lift-scale: 1.2;
-  --control-lift-shadow: inset 1px 1px 1px rgb(255 255 255 / .85), inset -1px -1px 1px rgb(255 255 255 / .55), 0 4px 10px rgb(0 0 0 / .24);
   --w-read: 640px; --w-wide: 760px; --w-max: 1120px;
 
   /* Type. */
@@ -135,7 +129,6 @@
 html[data-theme="light"] {
   color-scheme: light;
   --canvas: #f6f4ee;
-  --canvas-glow: color-mix(in srgb, #0a7fae 7%, transparent);
   --surface-1: #ffffff;
   --surface-2: #ece8de;
   --fill-1: color-mix(in srgb, #14120e 5%, transparent);
@@ -145,7 +138,6 @@ html[data-theme="light"] {
   --accent: #006a93; --on-accent: #ffffff;
   --danger: #b8124f; --success: #0a6e4c; --warning: #8a5a00; --gold: #7d5f17; --violet: #6a48c9; --sky: #1f5fb8;
   --hairline: #dcd6c8; --control-edge: #7d776b;
-  --rim: color-mix(in srgb, #000000 9%, transparent);
   --rim-highlight: color-mix(in srgb, #ffffff 85%, transparent);
   --shadow-1: 0 1px 2px rgba(40, 30, 10, .08);
   --shadow-2: 0 8px 24px rgba(40, 30, 10, .10);
@@ -156,14 +148,12 @@ html[data-theme="light"] {
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #ffffff 90%, transparent);
   --mat-shadow: 0 10px 30px rgba(40, 30, 10, .12), 0 1px 3px rgba(40, 30, 10, .08);
   --mat-selected: color-mix(in srgb, var(--text-1) 9%, transparent);
-  --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
   --scrim-modal: rgba(20, 16, 8, .5);
   --scrim-soft: rgba(20, 16, 8, .2);
 }
 html[data-theme="sepia"] {
   color-scheme: light;
   --canvas: #f4ecd8;
-  --canvas-glow: color-mix(in srgb, #b07a22 8%, transparent);
   --surface-1: #fbf5e6;
   --surface-2: #ebdec0;
   --fill-1: color-mix(in srgb, #1f170c 5%, transparent);
@@ -173,7 +163,6 @@ html[data-theme="sepia"] {
   --accent: #7f520f; --on-accent: #ffffff;
   --danger: #9e1f2a; --success: #2f6b2a; --warning: #7a4a00; --gold: #7a5512; --violet: #5e3f9a; --sky: #2b5a92;
   --hairline: #d9caa6; --control-edge: #7a6e5a;
-  --rim: color-mix(in srgb, #3b2f1e 12%, transparent);
   --rim-highlight: color-mix(in srgb, #fffaf0 85%, transparent);
   --shadow-1: 0 1px 2px rgba(60, 40, 10, .1);
   --shadow-2: 0 8px 24px rgba(60, 40, 10, .12);
@@ -184,38 +173,9 @@ html[data-theme="sepia"] {
   --mat-highlight: inset 0 1px 0 color-mix(in srgb, #fffaf0 85%, transparent);
   --mat-shadow: 0 10px 30px rgba(60, 40, 10, .14), 0 1px 3px rgba(60, 40, 10, .1);
   --mat-selected: color-mix(in srgb, var(--text-1) 9%, transparent);
-  --mat-glow: color-mix(in srgb, var(--accent) 55%, transparent);
   --scrim-modal: rgba(30, 20, 5, .5);
   --scrim-soft: rgba(30, 20, 5, .2);
 }
 
-/* Regular glass protects the ink even over black/white content. The darker ink of White and
-   Sepia allows a lighter material; other reader palettes need more tint for small labels. */
-html[data-palette="default"], html[data-palette="sepia"] { --mat-density: 80%; }
-
-/* Larger screens carry more of the page behind the glass; give the frost a little more depth there.
-   Phones keep the lighter blur (cheaper, and the dock is small). */
-@media (min-width: 900px) { :root { --mat-blur: blur(22px) saturate(175%); --mat-blur-strong: blur(28px) saturate(180%); --gutter: 24px; } }
+@media (min-width: 900px) { :root { --gutter: 24px; } }
 @media (min-width: 600px) and (max-width: 899px) { :root { --gutter: 20px; } }
-
-/* Less transparency: the system setting, or the app's own switch (Settings → Reduce transparency). */
-@media (prefers-reduced-transparency: reduce) {
-  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
-}
-html[data-transparency="reduced"] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
-
-/* No backdrop filter at all: a solid ground keeps text readable. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
-}
-
-@media (prefers-contrast: more), (forced-colors: active) {
-  :root, html[data-palette] { --mat-density: 100%; --mat-elevated-density: 100%; --mat-blur: none; --mat-blur-strong: none; --mat-scroll-edge: none; --mat-scroll-edge-up: none; --mat-scroll-edge-depth: 0px; }
-}
-
-/* Lift uses the existing surface's ink/tint, with no additional backdrop sampling. */
-html[data-transparency="reduced"] { --control-lift-density: 100%; }
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
-  :root { --control-lift-density: 100%; }
-}
-@media (prefers-reduced-motion: reduce) { :root { --control-lift-scale: 1; } }

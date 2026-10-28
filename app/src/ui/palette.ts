@@ -63,7 +63,6 @@ export const appVars = memoizePalette((p: Palette, dark: boolean): Record<string
   const grounds = paletteGrounds(p, dark);
   return {
     "--canvas": toHex(page),
-    "--canvas-glow": `color-mix(in srgb, ${p.primary} ${dark ? 9 : 7}%, transparent)`,
     "--surface-1": toHex(card),
     "--surface-2": toHex(parseColor(p.border)),
     "--fill-1": `color-mix(in srgb, ${toHex(ink)} ${dark ? 6 : 5}%, transparent)`,

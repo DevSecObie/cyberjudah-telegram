@@ -312,18 +312,10 @@ test("shortPress long press on verse text still selects the verse", async ({ pag
 
 test("a closing Scripture options menu cannot intercept a verse long press", async ({ page }) => {
   await open(page);
-  // Hold the old menu in its visual exit. Settings can close before that animation finishes;
-  // its dismissed backdrop must already let real touches reach the verse underneath.
-  await page.evaluate(() => {
-    const animate = Element.prototype.animate;
-    Element.prototype.animate = function (keyframes, options) {
-      const animation = animate.call(this, keyframes, options);
-      if (this.matches(".bs-dropdown") && Array.isArray(keyframes) && keyframes[0]?.opacity === 1 && keyframes.at(-1)?.opacity === 0) animation.pause();
-      return animation;
-    };
-  });
+  // Bible Strong's menus close at once (MenuView.web.css animates only their entry), so once
+  // Settings has closed the menu nothing of it is left to catch the next touch on the verse.
   await shortPress(page);
-  await expect(page.locator('.bs-dropdown[inert]')).toHaveCount(1);
+  await expect(page.locator(".bs-dropdown")).toHaveCount(0);
   const point = await wordPoint(page, 1, "beginning");
   const target = await page.evaluate(p => {
     const el = document.elementFromPoint(p.x, p.y);
