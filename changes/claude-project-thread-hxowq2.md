@@ -1,0 +1,1 @@
+- The Mini App's Old Testament search filter keeps returning Genesis to Malachi only; the Apocrypha stay under their own filter. Only the Bible Strong web port, which has no Apocrypha filter, includes them under the Old Testament.
