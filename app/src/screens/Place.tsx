@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router";
+import { useParams } from "react-router";
 
 import { data, type Place as P } from "@/api/data";
-import { Feather } from "@/bible/icons";
 import { useKeptScroll, useVisitState } from "@/lib/place";
 import { useBackButton } from "@/tg/hooks";
 import { haptic, openLink } from "@/tg/sdk";
@@ -13,14 +12,12 @@ import { EntityMore, EntitySection, EntitySkeleton } from "./Person";
 
 /**
  * A place of the Bible, laid out as Bible Strong's entity page (StrongEntityPage) is for a place:
- * the summary card (its picture, "Place" and its region, its name and its Strong's numbers, the
- * other names the King James gives it), then every verse that names it, as cards with the King
- * James text. Bible Strong keeps its map section switched off (ENTITY_LOCATION_VISIBLE), so the
- * map point is not shown. Names, region and verses are STEPBible's TIPNR (CC BY 4.0).
+ * the summary card (its picture, "Place", its name, what the King James says of it and the other
+ * names it gives it), where it is when Wikidata has the exact place (the pin's point, with its
+ * Wikidata link), then every verse that names it, as cards with the King James text. Names and
+ * verses are rebuilt from the King James Bible with Apocrypha.
  */
 const VERSES_FIRST = 5, VERSES_MORE = 10;
-/** TIPNR's 'H0804G' as the lexicon's 'H804'. */
-const lexiconCode = (s: string) => { const m = /^([HG])0*(\d+)/.exec(s); return m ? `${m[1]}${m[2]}` : null; };
 
 export function Place() {
   const { id = "" } = useParams();
@@ -39,7 +36,6 @@ export function Place() {
   const d: P = p.data;
   const bookName = (slug: string) => books.data?.find((b) => b.slug === slug)?.book ?? slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const verses = d.verses.map(refOfPath).filter((r): r is VerseRef => !!r);
-  const codes = [...new Set(d.strongs.map(lexiconCode).filter((c): c is string => !!c))];
 
   return (
     <Screen className="entity">
@@ -49,15 +45,19 @@ export function Place() {
           <div>
             <p className="entity__eyebrow">{["Place", d.region].filter(Boolean).join(" · ")}</p>
             <h1 className="entity__name">{d.name}</h1>
-            {codes.length ? (
-              <div className="entity__codes">
-                {codes.map((c) => <Link key={c} to={`/lexicon/${c}`} className="entity__code" aria-label={`Strong's ${c}`} onClick={() => haptic("select")}>{c}<Feather name="chevron-right" size={10} color="currentColor" /></Link>)}
-              </div>
-            ) : null}
           </div>
         </div>
+        {d.description ? <p className="entity__desc">{d.description}.</p> : null}
         {d.names.length > 1 ? <p className="entity__aka">Also called {d.names.filter((n) => n !== d.name).join(", ")}</p> : null}
       </header>
+
+      {d.pin ? (
+        <EntitySection title="Where it is">
+          <p className="entity__note">
+            {Math.abs(d.pin.lat).toFixed(2)}° {d.pin.lat >= 0 ? "N" : "S"}, {Math.abs(d.pin.lon).toFixed(2)}° {d.pin.lon >= 0 ? "E" : "W"} · <button type="button" onClick={() => { haptic("select"); openLink(d.pin!.url); }}>{d.pin.label} on Wikidata</button>
+          </p>
+        </EntitySection>
+      ) : null}
 
       <EntitySection title="Verses" count={verses.length} note={verses.length ? <>First named in {refLabel(verses[0], bookName)}</> : null}>
         <div className="entity__cards">
@@ -66,7 +66,7 @@ export function Place() {
         <EntityMore shown={versesShown} total={verses.length} step={VERSES_MORE} onMore={setVersesShown} />
       </EntitySection>
 
-      <p className="entity__source">Names, region and verses: <button type="button" onClick={() => openLink(d.source.url)}>{d.source.name}</button> ({d.source.license}).</p>
+      <p className="entity__source">Names and verses from the King James Bible with Apocrypha.{d.pin ? " Location from Wikidata, only where it has the exact place." : ""}</p>
     </Screen>
   );
 }

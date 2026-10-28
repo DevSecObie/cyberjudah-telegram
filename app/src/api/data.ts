@@ -62,18 +62,21 @@ export type VerseNote = { verses: string; text: string; note: { label: string; u
 export type ClassMoment = { verses: string; label: string; url: string; date: string; video: string; t: number; ts: string; teacher?: string };
 /** A class's own breakdown of a verse it opened: its points on that verse, and the moment it was read. */
 export type VerseComment = { verses: string; passage: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number };
-/** A person named in the Bible (STEPBible TIPNR, CC BY 4.0), with what the classes taught where they come up. */
+/** A person named in the Bible, rebuilt from the KJV with Apocrypha, with what the classes taught where they come up. */
 export type PersonRef = { id: string; name: string; image?: Person["image"] };
+/** A link to another person and how it is known: the label ("Scripturally confirmed", "Parallel identification", "Historically identified", "Textual variant"), the verses that state it, and for history its sources. */
+export type PersonLink = PersonRef & { evidence?: string; evidenceLabel?: string; verses?: string[]; note?: string; sources?: { title: string; url: string }[] };
 /** A forefather (or descendant) the KJV names without the generations between, with the verses that say it. */
-export type PersonLine = PersonRef & { verses: string[] };
-export type Person = { image?: { src: string; caption: string; credit: string; license: string; sourceUrl: string }; id: string; name: string; names: string[]; description: string; type: string; tribe: string; father: PersonRef[]; mother: PersonRef[]; siblings: PersonRef[]; partners: PersonRef[]; children: PersonRef[]; line?: PersonLine[]; descendants?: PersonLine[]; verses: string[]; taught: { verse: string; url: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number }[]; classes?: PersonClass[]; source: { name: string; license: string; url: string }; cases?: PersonCase[] };
+export type PersonLine = PersonLink & { verses: string[] };
+export type Person = { image?: { src: string; caption: string; credit: string; license: string; sourceUrl: string }; id: string; name: string; names: string[]; description: string; type: string; tribe: string; tribes?: PersonLink[]; nation?: PersonLink[]; father: PersonLink[]; mother: PersonLink[]; siblings: PersonLink[]; partners: PersonLink[]; children: PersonLink[]; line?: PersonLine[]; descendants?: PersonLine[]; same?: PersonLink[]; alsoNamed?: PersonLink[]; verses: string[]; taught: { verse: string; url: string; points: string[]; note: { label: string; url: string; date: string; teacher: string }; ts: string; video: string | null; t: number }[]; classes?: PersonClass[]; source: { name: string; license: string; url: string }; cases?: PersonCase[] };
 /** A class note that reads or cites a King James verse naming the person. */
 export type PersonClass = { title: string; url: string; kind: string; collection: string; date: string | null; verse: string; verseUrl: string };
 /** A case study that names a person: its title says who, and they are named in its scripture. */
 export type PersonCase = { slug: string; name: string; url: string; era: string; kind: "judgment" | "blessing"; verdict: string; verdictLabel: string; charge: string; preview: string };
-/** A place of the Bible (STEPBible TIPNR): its KJV names, region, Strong's numbers and every verse naming it. */
-export type PlaceIndexRow = { id: string; name: string; names: string[]; region: string; verses: number; first: string };
-export type Place = { id: string; name: string; names: string[]; region: string; coords: [number, number] | null; strongs: string[]; verses: string[]; source: { name: string; license: string; url: string } };
+/** A place of the Bible, rebuilt from the KJV with Apocrypha: its names, every verse naming it, and a map pin where Wikidata has the exact place. */
+export type PlaceIndexRow = { id: string; name: string; names: string[]; description?: string; region: string; verses: number; first: string };
+export type PlacePin = { lat: number; lon: number; wikidata: string; url: string; label: string };
+export type Place = { id: string; name: string; names: string[]; description?: string; region: string; coords: [number, number] | null; pin?: PlacePin; strongs: string[]; verses: string[]; source: { name: string; license: string; url: string } };
 export type PersonIndexRow = { id: string; name: string; names: string[]; description: string; verses: number; first: string; type?: string };
 /** A moment a class read this verse aloud, found in its transcript: the recording at that second, and the note if the class has one. */
 export type Reading = { video: string; t: number; ts: string; title: string; date: string; teacher: string; url?: string };

@@ -1,0 +1,2 @@
+- People and Places read the catalog rebuilt from the KJV with Apocrypha. A person's page lists "How we know" for each family link (its evidence label, verses, note and sources); a place shows what the KJV says of it and, where Wikidata has the exact place, where it is with its Wikidata link. All STEPBible and TIPNR wording is gone.
+- The admin People editor is off (Obie, 2026-10-28): its screens, its routes (now 410) and its write permission on the old people file are removed.
