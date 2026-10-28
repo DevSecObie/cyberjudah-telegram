@@ -1816,40 +1816,18 @@ test("the bottom bar sits above the Bible, with Bible Strong's buttons, Classes 
     expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x, yy)?.closest(".tabs"), [bar.x + bar.width / 2, y])).toBe(true);
   }
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Search", "Bible", "Classes", "Ask", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
+  expect(labels).toEqual(["Home", "Search", "Bible", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
   // The menu has no bar editor: Bible Strong's bar is the same for every reader.
   await page.click('.tab[aria-label="Main menu"]');
   await expect(page.locator(".drawer--more").getByRole("link", { name: "Bottom bar", exact: true })).toHaveCount(0);
 });
 
-test("Classes in the bar opens a Classes tab, then returns to it, as Search and the Bible do", async ({ page }) => {
+for (const [label, path] of [["Classes", "/classes"], ["Ask CyberJudah", "/ask"]]) test(`${label} remains accessible from the upstream menu`, async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  const bar = page.getByRole("navigation", { name: "Sections" });
-  const paths = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: { id: string; tabs: { path: string }[] }[] }; return s.groups.find((g) => g.id === s.group)!.tabs.map((t) => t.path); });
-  await bar.getByRole("button", { name: "Classes", exact: true }).click();
-  await expect(page).toHaveURL(/\/classes$/);
-  await expect.poll(paths).toContain("/classes");
-  const count = (await paths()).length;
-  await bar.getByRole("button", { name: "Bible", exact: true }).click();
-  await expect(page).toHaveURL(/\/read\//);
-  await bar.getByRole("button", { name: "Classes", exact: true }).click();
-  await expect(page).toHaveURL(/\/classes$/);
-  expect((await paths()).length).toBe(count);
-});
-
-test("Ask in the bar opens an Ask tab, then returns to it", async ({ page }) => {
-  await page.goto(`/read/genesis/1${LAUNCH}`);
-  const bar = page.getByRole("navigation", { name: "Sections" });
-  const paths = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: { id: string; tabs: { path: string }[] }[] }; return s.groups.find((g) => g.id === s.group)!.tabs.map((t) => t.path); });
-  await bar.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page).toHaveURL(/\/ask$/);
-  await expect.poll(paths).toContain("/ask");
-  const count = (await paths()).length;
-  await bar.getByRole("button", { name: "Bible", exact: true }).click();
-  await expect(page).toHaveURL(/\/read\//);
-  await bar.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page).toHaveURL(/\/ask$/);
-  expect((await paths()).length).toBe(count);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Main menu", exact: true }).click();
+  await page.locator(".drawer--more").getByRole("link", { name: label, exact: true }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe(path);
+  await expect(page.locator("html")).not.toHaveAttribute("data-drawer");
 });
 
 test("a back step from the first screen stays in the app instead of going to a blank page", async ({ page }) => {

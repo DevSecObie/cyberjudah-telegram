@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useQuery } from "@tanstack/react-query";
 import { api, app, user } from "@/tg/sdk";
 
-export type AccountSession = { available: boolean; user: { id: number; first_name: string } | null; firebaseUid?: string; provider?: string; telegramLinked?: boolean };
+export type AccountSession = { available: boolean; user: { id: number; first_name: string } | null; firebaseUid?: string; provider?: string; telegramLinked?: boolean; telegramSession?: { id: number; first_name: string } | null };
 export const ACCOUNT_SESSION_KEY = ["account-session"] as const;
 /** Telegram launch identity or the server-verified browser session, never a cached display name. */
 export function useAccountSession() {

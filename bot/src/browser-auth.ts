@@ -50,7 +50,12 @@ browserAuth.use("*", async (c, next) => { c.header("cache-control", "no-store");
 browserAuth.get("/status", async c => {
   try {
     const firebase = await firebaseAccount(c.req.raw, c.env);
-    if (firebase) return c.json({ available: configured(c.env), user: firebase.user, firebaseUid: firebase.identity.uid, telegramLinked: !!firebase.user, provider: "firebase" });
+    if (firebase) {
+      // Display each verified session separately. An unlinked Firebase login must never inherit
+      // the cookie wallet, but it must not make a completed Telegram login look anonymous.
+      const telegram = await browserSession(c.req.raw, c.env);
+      return c.json({ available: configured(c.env), user: firebase.user, firebaseUid: firebase.identity.uid, telegramLinked: !!firebase.user, telegramSession: telegram?.user ?? null, provider: "firebase" });
+    }
     const session = await browserSession(c.req.raw, c.env);
     return c.json({ available: configured(c.env), user: session?.user ?? null });
   } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : "sign_in_unavailable" }, error instanceof IdentityError ? error.status : 503); }

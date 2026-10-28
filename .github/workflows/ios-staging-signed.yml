@@ -1,0 +1,64 @@
+name: ios-staging-signed
+# Produces a signed archive/IPA only. It never uploads to Apple or distributes a build.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signed-staging:
+    runs-on: macos-26
+    timeout-minutes: 45
+    environment: ios-staging
+    env:
+      CYBERJUDAH_NATIVE_ENV: staging
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run native:sync:staging --workspace app
+      - run: node app/scripts/verify-native-build.mjs
+      - name: Prepare signing in a temporary keychain
+        env:
+          CERTIFICATE: ${{ secrets.IOS_STAGING_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_STAGING_CERTIFICATE_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_STAGING_PROFILE_BASE64 }}
+          TEAM: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          for name in CERTIFICATE CERTIFICATE_PASSWORD PROFILE TEAM; do
+            if [ -z "${!name}" ]; then echo "::error::Configure ios-staging signing inputs; see docs/native/STAGING.md."; exit 1; fi
+          done
+          umask 077
+          printf '%s' "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/staging.p12"
+          printf '%s' "$PROFILE" | base64 --decode > "$RUNNER_TEMP/staging.mobileprovision"
+          security cms -D -i "$RUNNER_TEMP/staging.mobileprovision" > "$RUNNER_TEMP/profile.plist"
+          python3 app/scripts/prepare-ios-signing.py
+          KEYCHAIN_PASSWORD="$(openssl rand -hex 32)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/staging.keychain-db"
+          security set-keychain-settings -lut 21600 "$RUNNER_TEMP/staging.keychain-db"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/staging.keychain-db"
+          security import "$RUNNER_TEMP/staging.p12" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$RUNNER_TEMP/staging.keychain-db" >/dev/null
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$RUNNER_TEMP/staging.keychain-db" >/dev/null
+          security list-keychains -d user -s "$RUNNER_TEMP/staging.keychain-db"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/staging.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/cyberjudah-staging.mobileprovision"
+      - name: Archive and export without upload
+        run: |
+          set -euo pipefail
+          xcodebuild -project app/ios/App/App.xcodeproj -scheme App -sdk iphoneos -configuration Release -archivePath "$RUNNER_TEMP/CyberJudah-Staging.xcarchive" -xcconfig "$RUNNER_TEMP/signing.xcconfig" CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER" archive
+          node app/scripts/verify-native-build.mjs --ios "$RUNNER_TEMP/CyberJudah-Staging.xcarchive/Products/Applications/App.app/Info.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/CyberJudah-Staging.xcarchive" -exportPath "$RUNNER_TEMP/ipa" -exportOptionsPlist "$RUNNER_TEMP/export.plist"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cyberjudah-staging-ios-signed
+          path: ${{ runner.temp }}/ipa/*.ipa
+          retention-days: 7
+          if-no-files-found: error
+      - name: Remove temporary signing files
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/staging.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/staging.p12" "$RUNNER_TEMP/staging.mobileprovision" "$RUNNER_TEMP/profile.plist" "$RUNNER_TEMP/signing.xcconfig" "$HOME/Library/MobileDevice/Provisioning Profiles/cyberjudah-staging.mobileprovision"

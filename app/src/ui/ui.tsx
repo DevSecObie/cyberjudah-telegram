@@ -6,7 +6,7 @@ import { toAppPath } from "@shared/links.mjs";
 import { app, haptic } from "@/tg/sdk";
 import { assetUrl } from "@/lib/asset";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
-import { askTabPath, bibleTabPath, classesTabPath, currentTab, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
+import { bibleTabPath, currentTab, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { useReaderFullscreen } from "@/bible/session";
 import { contrastInk, SwitcherBar } from "@/screens/Tabs";
@@ -24,16 +24,16 @@ export { Icon, type IconName } from "./icons";
 /**
  * Bible Strong's bottom bar (app-switcher/BottomTabBar): a flat full-width row of 48 px icon
  * buttons on the page colour with a line above it: Home, Search, the Bible, the tabs and Menu,
- * with our Classes and Ask before the tabs. Search, the Bible, Classes and Ask go to their tab (or
- * open one); the tabs button shows how many are open and opens the switcher.
+ * preserving the upstream five actions. Search and Bible restore their tabs; the count opens
+ * the switcher. CyberJudah resources remain available in the menu and new-tab page.
  */
 export function tabOf(path: string): string {
   if (path.startsWith("/more") || path.startsWith("/settings")) return "more";
   return NAV_ITEMS.find((i) => i.match.test(path))?.id ?? "";
 }
 
-/** BottomTabBar's row: HomeButton, SearchButton, BibleButton, TabButton, MenuButton, with Classes and Ask before the tabs. */
-const BUTTONS = ["home", "search", "bible", "classes", "ask", "tabs", "more"] as const;
+/** Ported from Bible Strong 39d8780 BottomTabBar: Home, Search, Bible, Tabs, Menu. */
+const BUTTONS = ["home", "search", "bible", "tabs", "more"] as const;
 type ButtonId = typeof BUTTONS[number];
 const LABELS = { home: "Home", search: "Search", bible: "Bible", classes: "Classes", ask: "Ask" };
 
@@ -155,12 +155,10 @@ export function TabBar() {
     if (id === "home") return <Feather name="home" size={23} />;
     if (id === "search") return <Feather name="search" size={23} raw />;
     if (id === "bible") return <Feather name="book-open" size={23} />;
-    if (id === "classes") return <Feather name="play-circle" size={23} />;
-    if (id === "ask") return <Feather name="message-circle" size={23} />;
     return <span ref={countBox} className="tab__count" style={groupColor ? { ["--group" as string]: groupColor, ["--group-ink" as string]: contrastInk(groupColor) } : undefined} aria-hidden="true">{count}</span>;
   };
   const label = (id: ButtonId) => id === "more" ? (hasUnseenUpdates ? "Main menu, updates available" : "Main menu") : id === "tabs" ? `Tabs, ${count} open` : LABELS[id];
-  const path = (id: "search" | "bible" | "classes" | "ask" | "tabs") => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : id === "classes" ? classesTabPath() : id === "ask" ? askTabPath() : "/tabs";
+  const path = (id: "search" | "bible" | "tabs") => id === "search" ? searchTabPath() : id === "bible" ? bibleTabPath() : "/tabs";
   const press1 = (id: ButtonId) => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => path(id), id === "tabs", id);
   return (
     <>{scrub.layer}<nav ref={bar} className="tabs" aria-label="Sections" data-hidden={hidden ? "" : undefined} {...hold}>

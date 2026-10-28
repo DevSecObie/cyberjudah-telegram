@@ -3,7 +3,7 @@ import { browserPopupRedirectResolver, createUserWithEmailAndPassword, EmailAuth
 import { useQueryClient } from "@tanstack/react-query";
 import { auth } from "@/lib/firebase-client";
 import { ACCOUNT_SESSION_KEY } from "@/lib/account-session";
-import { nativeReader, nativeOpen, apiURL } from "@/native/platform";
+import { nativeReader, openDeviceSignIn, apiURL } from "@/native/platform";
 import { app } from "@/tg/sdk";
 import { Button } from "@/ui/Button";
 import { StudyNotice } from "@/studies/controls";
@@ -53,7 +53,7 @@ export function AccountSignIn() {
   const nativeSignIn = () => run(async () => {
     const flow = await request<{ code: string; secret: string; match: string; expires: number }>("/api/auth/device/start");
     setMatch(flow.match);
-    await nativeOpen(`https://cyberjudah.io/app/settings/account?device=${flow.code}`);
+    await openDeviceSignIn(flow.code);
     // Poll only while the account screen is open; the secret never appears in a URL or storage.
     while (active.current && Date.now() < flow.expires) {
       await new Promise(resolve => setTimeout(resolve, 10_000));

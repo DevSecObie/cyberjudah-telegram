@@ -1,10 +1,15 @@
 apply plugin: 'com.android.application'
+def nativeTargetFile = new File(rootProject.projectDir, '../native-environment.json')
+if (!nativeTargetFile.exists()) throw new GradleException('Run npm run native:sync (or native:sync:staging) before building.')
+def nativeTarget = new groovy.json.JsonSlurper().parse(nativeTargetFile)
+if (!(nativeTarget.appId in ['io.cyberjudah.app', 'io.cyberjudah.app.staging'])) throw new GradleException('Invalid native app identifier')
 
 android {
     namespace = "io.cyberjudah.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "io.cyberjudah.app"
+        applicationId nativeTarget.appId
+        manifestPlaceholders = [cyberjudahAppName: nativeTarget.appName]
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

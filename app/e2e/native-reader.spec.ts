@@ -19,7 +19,7 @@ test("native reading stays free and linked-account Ask is discoverable without p
   await page.route("https://telegram.org/**", r => r.fulfill({ body: "" }));
   page.on("request", r => { if (/\/api\/(ask\/buy|invoice|donations)([/?]|$)/.test(r.url())) purchases.push(r.url()); });
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Ask", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ask", exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Ask CyberJudah", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Main menu", exact: true }).click();
   await expect(page.getByRole("link", { name: "Ask CyberJudah", exact: true })).toBeVisible();

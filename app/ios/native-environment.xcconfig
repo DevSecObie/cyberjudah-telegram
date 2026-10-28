@@ -1,0 +1,3 @@
+// Default before native:sync. The build script selects a validated environment.
+CYBERJUDAH_APP_ID = io.cyberjudah.app
+CYBERJUDAH_APP_NAME = CyberJudah

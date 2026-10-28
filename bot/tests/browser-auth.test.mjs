@@ -38,6 +38,7 @@ test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation prote
   const oldFetch = globalThis.fetch;
   globalThis.fetch = async (input, init) => {
     const target = String(input);
+    if (target.startsWith("https://identitytoolkit.googleapis.com/")) return Response.json({ users: [{ localId: "provider-reader", validSince: "1", displayName: "Provider reader" }] });
     if (target.endsWith("jwks.json")) return Response.json({ keys: [jwk] });
     if (target.endsWith("/token")) {
       exchanges++; assert.equal(new URLSearchParams(init.body).get("code_verifier"), pending.verifier);
@@ -76,6 +77,18 @@ test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation prote
     const bridge = (originHeader) => firebaseAuth.request(`${origin}/identity`, { method: "POST", headers: { cookie: sessionCookie, origin: originHeader } }, e);
     assert.deepEqual(await (await bridge(origin)).json(), { uid: "tg_77" }, "web and Telegram use the same Firebase account");
     assert.equal((await bridge("https://evil.test")).status, 401);
+    // A Google session and a Telegram cookie are distinct until explicitly linked. Status
+    // exposes the pending Telegram session for display without granting its wallet to Google.
+    e.FIREBASE_SESSION_LIMIT = e.FIREBASE_AUTH_LIMIT = { limit: async () => ({ success: true }) };
+    const bearer = await new SignJWT({ auth_time: Math.floor(Date.now() / 1000), firebase: { sign_in_provider: "google.com" } }).setProtectedHeader({ alg: "RS256" }).setIssuer("https://securetoken.google.com/cyberjudah-app").setAudience("cyberjudah-app").setSubject("provider-reader").setIssuedAt().setExpirationTime("1h").sign(privateKey);
+    const status = () => browserAuth.request(`${origin}/status`, { headers: { cookie: sessionCookie, authorization: `Bearer ${bearer}` } }, e);
+    const before = await (await status()).json();
+    assert.equal(before.user, null); assert.equal(before.telegramLinked, false);
+    assert.equal(before.telegramSession.id, 77); assert.equal(before.firebaseUid, "provider-reader");
+    const link = await firebaseAuth.request(`${origin}/link`, { method: "POST", headers: { cookie: sessionCookie, origin, "content-type": "application/json" }, body: JSON.stringify({ idToken: bearer }) }, e);
+    assert.equal(link.status, 200);
+    const after = await (await status()).json();
+    assert.equal(after.user.id, 77); assert.equal(after.telegramLinked, true);
     await revokeBrowserSessions(e, 77);
     assert.equal((await bridge(origin)).status, 401, "revoked browser sessions cannot restore Firebase");
     assert.equal(await browserSession(new Request(`${origin}/api/me`, { headers: { cookie: sessionCookie } }), e), null);

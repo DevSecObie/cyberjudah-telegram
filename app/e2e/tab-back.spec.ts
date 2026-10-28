@@ -53,6 +53,8 @@ test("Back stays in the tab chosen in the switcher", async ({ page }) => {
   await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /^Tabs, / }).click();
   await page.locator('.tabcard[data-tab-id="a"]').click();
   await expect(page).toHaveURL(/\/settings\/credits/);
+  await expect(page.getByRole("heading", { name: "Credits", exact: true })).toBeVisible();
+  await expect.poll(() => backShown(page)).toBe(true);
   await back(page);
   await expect(page).toHaveURL(/\/settings$/);
 });
@@ -70,10 +72,10 @@ test("a bar button for the tab already showing leaves Back as it was for the nex
   await expect(async () => { await back(page); await expect(page).toHaveURL(/\/search/, { timeout: 500 }); }).toPass();
 });
 
-test("Ctrl+Alt+W closing the tab you are in leaves Back to the tab you land in", async ({ page }) => {
+test("The platform tab-close shortcut closing the tab you are in leaves Back to the tab you land in", async ({ page }) => {
   await setup(page, [{ id: "a", path: "/settings" }, { id: "b", path: "/search" }]);
   await openCredits(page);
-  await page.keyboard.press("Control+Alt+KeyW");
+  await page.keyboard.press("ControlOrMeta+Alt+KeyW");
   await expect(page).toHaveURL(/\/search/);
   await expect.poll(() => backShown(page)).toBe(false);
   await back(page);
@@ -114,20 +116,20 @@ test("a swipe along the bar to a tab on the same page starts that tab's Back the
 });
 
 test("a bar button that picks another tab on the same page starts that tab's Back there", async ({ page }) => {
-  await setup(page, [{ id: "a", path: "/classes" }, { id: "b", path: "/search" }], "b");
-  await page.goto(`/search${LAUNCH}`);
+  await setup(page, [{ id: "a", path: "/search" }, { id: "b", path: "/read/genesis/1" }], "b");
+  await page.goto(`/read/genesis/1${LAUNCH}`);
   const bar = page.getByRole("navigation", { name: "Sections" });
-  // Tab b goes on to Classes: both tabs now show the same page, b with a page behind it.
-  await goInApp(page, "/classes");
-  await expect(page).toHaveURL(/\/classes$/);
+  // Tab b goes on to Search: both tabs now show the same page, b with a page behind it.
+  await goInApp(page, "/search");
+  await expect(page).toHaveURL(/\/search$/);
   await expect.poll(() => backShown(page)).toBe(true);
-  // Classes in the bar picks the first Classes tab, a: its Back starts here, not in b's history.
+  // Search in the bar picks the first Search tab, a: its Back starts here, not in b's history.
   await expect(async () => {
-    await bar.getByRole("button", { name: "Classes", exact: true }).click();
+    await bar.getByRole("button", { name: "Search", exact: true }).click();
     await expect.poll(async () => JSON.parse(await page.evaluate(() => localStorage.getItem("cj:tabgroups")!)).groups[0].current, { timeout: 500 }).toBe("a");
   }).toPass();
   await expect.poll(() => backShown(page)).toBe(false);
   await back(page);
-  await expect(page).toHaveURL(/\/classes$/);
-  expect(await tabPaths(page)).toEqual({ a: "/classes", b: "/classes" });
+  await expect(page).toHaveURL(/\/search$/);
+  expect(await tabPaths(page)).toEqual({ a: "/search", b: "/search" });
 });

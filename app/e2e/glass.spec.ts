@@ -65,8 +65,8 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     const box = (await bar.boundingBox())!;
     expect(box.x).toBe(0); expect(box.width).toBe(page.viewportSize()!.width);
     expect(box.y + box.height).toBe(page.viewportSize()!.height); expect(box.height).toBe(48);
-    // Bible Strong's Home, Search, Bible, Tabs and Menu, with our Classes and Ask before the tabs.
-    expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "classes", "ask", "tabs", "more"]);
+    // Bible Strong's five actions: Home, Search, Bible, Tabs and Menu.
+    expect(await bar.locator(".tab").evaluateAll(buttons => buttons.map(b => (b as HTMLElement).dataset.nav))).toEqual(["home", "search", "bible", "tabs", "more"]);
     await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
     await page.waitForFunction(() => document.getAnimations().every(a => !(a instanceof CSSTransition) || a.playState !== "running"));
     const minimumContrast = await bar.evaluate(nav => {
@@ -81,7 +81,7 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     expect(minimumContrast).toBeGreaterThanOrEqual(3);
     for (const button of await bar.getByRole("button").all()) {
       const b = (await button.boundingBox())!;
-      // Firefox lays seven buttons out on sub-pixel positions (47.999998 px).
+      // Firefox lays five buttons out on sub-pixel positions (47.999998 px).
       expect(b.width).toBeCloseTo(48, 1); expect(b.height).toBeCloseTo(48, 1);
     }
     await bar.getByRole("button", { name: "Search", exact: true }).click();
