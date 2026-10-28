@@ -76,10 +76,11 @@ test("Download and Delete my data reach the Firestore marks account sync writes 
   globalThis.fetch = async (url) => {
     const u = new URL(url);
     if (u.pathname.endsWith(":batchWrite")) { highlightDeleted = true; return new Response(JSON.stringify({ writeResults: [{}] }), { status: 200 }); }
+    if (u.pathname.endsWith(":runQuery")) return new Response(JSON.stringify([{ readTime: "2026-10-28T00:00:00Z" }]), { status: 200 });
     const marker = "/documents/";
     const path = u.pathname.slice(u.pathname.indexOf(marker) + marker.length);
     if (path === "users/tg_77/highlights" && !highlightDeleted) {
-      return new Response(JSON.stringify({ documents: [{ name: highlightName, fields: { entry: { stringValue: "1" }, value: { stringValue: "color2" } } }] }), { status: 200 });
+      return new Response(JSON.stringify({ documents: [{ name: highlightName, createTime: "2026-10-28T00:00:00Z", fields: { entry: { stringValue: "1" }, value: { stringValue: "color2" } } }] }), { status: 200 });
     }
     return new Response(JSON.stringify({ documents: [] }), { status: 200 });
   };

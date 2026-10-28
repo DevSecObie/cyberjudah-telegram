@@ -123,3 +123,52 @@ test('native device handoff needs approval and a separate secret, expires, and r
   const expired = await (await req('/start')).json(); db.prepare('UPDATE device_signins SET expires=0').run();
   assert.equal((await req('/exchange', {secret:expired.secret})).status,401);
 });
+test('a link to a deleted Firebase login is removed instead of signing that login back into existence', async () => {
+  const { env } = fixture();
+  const keys = await generateKeyPair('RS256', { extractable: true });
+  env.FIREBASE_SERVICE_ACCOUNT = JSON.stringify({ type:'service_account', project_id:'cyberjudah-app', client_email:'bridge@cyberjudah-app.iam.gserviceaccount.com', private_key: await exportPKCS8(keys.privateKey) });
+  await m.linkAccounts(env, 77, 'firebase-alice');
+  let lookup;
+  const lookups = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (input, init) => {
+    const url = new URL(String(input));
+    if (url.href === 'https://oauth2.googleapis.com/token') {
+      const assertion = new URLSearchParams(init.body).get('assertion');
+      assert.equal(JSON.parse(Buffer.from(assertion.split('.')[1], 'base64url')).scope, 'https://www.googleapis.com/auth/identitytoolkit');
+      return Response.json({ access_token: 'auth-admin-fixture', expires_in: 3600 });
+    }
+    assert.equal(url.href, 'https://identitytoolkit.googleapis.com/v1/projects/cyberjudah-app/accounts:lookup');
+    assert.equal(init.headers.authorization, 'Bearer auth-admin-fixture');
+    assert.equal(init.redirect, 'manual');
+    lookups.push(JSON.parse(init.body));
+    return lookup();
+  };
+  const mint = async () => m.firebaseAuth.request('https://test/token', { method: 'POST', headers: { authorization: `tma ${await launch()}` } }, env);
+  const uidOf = async response => (await jwtVerify((await response.json()).token, keys.publicKey, { audience: 'https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit' })).payload.uid;
+  try {
+    lookup = () => Response.json({ users: [{ localId: 'firebase-alice' }] });
+    let response = await mint();
+    assert.equal(response.status, 200);
+    assert.equal(await uidOf(response), 'firebase-alice', 'a live linked login keeps signing in');
+    assert.deepEqual(lookups.at(-1), { localId: ['firebase-alice'] });
+
+    for (const status of [403, 500]) {
+      lookup = () => new Response('', { status });
+      response = await mint();
+      assert.equal(response.status, 503, 'an unanswered lookup never mints');
+      assert.equal((await response.json()).token, undefined);
+      assert.equal(await m.linkedFirebase(env, 77), 'firebase-alice', 'nor drops the link');
+    }
+
+    lookup = () => Response.json({});
+    response = await mint();
+    assert.equal(response.status, 200);
+    assert.equal(await uidOf(response), 'tg_77', 'Telegram falls back to its own reserved identity');
+    assert.equal(await m.linkedTelegram(env, 'firebase-alice'), null, 'the deleted login no longer reaches the Ask account');
+    assert.equal(await m.linkedFirebase(env, 77), 'tg_77');
+    const count = lookups.length;
+    assert.equal(await uidOf(await mint()), 'tg_77');
+    assert.equal(lookups.length, count, "Telegram's own identity needs no lookup");
+  } finally { globalThis.fetch = original; }
+});

@@ -9,6 +9,11 @@ export type FirebaseIdentity = { uid: string; name: string; authTime: number };
 export class IdentityError extends Error {
   constructor(public status: 401 | 409 | 429 | 503, public reason: string) { super(reason); }
 }
+/** Only call with a verified Telegram identity. Never accept a UID from the client. */
+export function telegramFirebaseUid(id: unknown): string {
+  if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid Telegram identity");
+  return `tg_${id}`;
+}
 export const validFirebaseUid = (uid: unknown): uid is string => typeof uid === "string" && uid.length > 0 && uid.length <= 128 && uid !== "." && uid !== ".." && !/[\u0000-\u001f/]/.test(uid);
 
 /** Google verifies the complete ID token over HTTPS. Decoding alone NEVER authenticates it.
