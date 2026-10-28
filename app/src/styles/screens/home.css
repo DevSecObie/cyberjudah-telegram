@@ -265,3 +265,5 @@
 .today-card__skel i:last-child { width: 60%; }
 @keyframes skel-pulse { from { opacity: .45; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .today-card__skel i { animation: none; } }
+/* The Sabbath page's location buttons, in the page rather than over the tab bar. */
+.sabbath__loc { display: flex; gap: var(--sp-2); margin: var(--sp-4) 0; }

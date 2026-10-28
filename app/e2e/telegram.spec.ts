@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { DATA_ORIGIN, LAUNCH, setup, goInApp } from "./telegram-harness";
+import { DATA_ORIGIN, LAUNCH, setup, goInApp, preferChips } from "./telegram-harness";
 import aaronSnapshot from "./nave-aaron-snapshot.json" with { type: "json" };
 
 /**
@@ -58,6 +58,7 @@ test("a deep link opens the Scripture in focus, 'Read whole chapter' expands it,
 });
 
 test("tapping verses selects them, the sheet highlights, notes, tags and bookmarks them", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await tapVerse(page, 1);
@@ -259,7 +260,23 @@ test("a long press opens Strong's, with dictionary and references available", as
   await expect(page.locator(".dict p").first()).toContainText("Delight");
 });
 
+test("by default a verse with precepts shows one badge with their count, and the badge opens them", async ({ page }) => {
+  await page.goto(`/read/isaiah/11${LAUNCH}`);
+  await expect(page.locator("#verset-12")).toBeVisible();
+  // Bible Strong's RelationsCount: a pill with the icon and the number, no chips under the verse.
+  const badge = page.locator('.bs-badge[aria-label$="precept"], .bs-badge[aria-label$="precepts"]').first();
+  await expect(badge).toBeVisible();
+  await expect(page.locator(".rel-tag")).toHaveCount(0);
+  // A real button: the keyboard opens it too.
+  // It opens that verse's precepts, the verse it sits on.
+  const verse = await badge.evaluate((el) => el.closest("[id^='verset-']")!.id.slice("verset-".length));
+  await badge.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/relations\\?endpoint=isaiah-11-${verse}(&|$)`));
+});
+
 test("the precepts a class lined up with a verse: a tag under the verse, and a Precepts tab in its resources", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/isaiah/11${LAUNCH}`);
   await expect(page.locator("#verset-12")).toBeVisible();
   // The library's relation, drawn like the reader's own, under the last verse of the span.
@@ -277,6 +294,7 @@ test("the precepts a class lined up with a verse: a tag under the verse, and a P
 });
 
 test("a verse's precepts lead with one note, Precepts: why each is there, from the class", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   const note = page.locator("#verset-1 .rel-tag").first();
   await expect(note).toHaveText("Precepts");
@@ -297,6 +315,7 @@ test("a precept shows its class but never a class point about another passage", 
   await page.route("**/api/concordance/genesis/1.json", (r) => r.fulfill({ json: { book: "Genesis", chapter: 1, cited_by: [], moments: [], commentary: [], precepts: [
     { verses: "5", kind: "opened", ref: { book: "Leviticus", chapter: 23, verses: "1-3", label: "Leviticus 23:1-3", url: "/bible/leviticus/23#v1" }, text: "", point: "It is consciously they put it there.", note: { label: "The History of Easter", url: "/classes/2017/2017-04-13-the-history-of-easter", date: "2017-04-13", teacher: "Bishop Nathanyel" }, ts: "4:02" },
   ] } }));
+  await preferChips(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   const note = page.locator("#verset-5 .rel-tag").first();
   await expect(note).toHaveText("Precept");
@@ -365,6 +384,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   // The library's own precepts (the classes') share the tag row under a verse, and live data adds
   // them as precept passes merge: keep these two chapters free of them so only the reader's relation is counted.
   for (const ch of ["psalms/23", "john/10"]) await page.route(`**/api/concordance/${ch}.json`, (r) => r.fulfill({ json: { cited_by: [], precepts: [], moments: [], read: {}, people: {} } }));
+  await preferChips(page);
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
   await page.click(".bs-action >> text=Relation");
@@ -398,6 +418,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
 });
 
 test("Link and Relation are their own verse actions: a link saved from Link shows under the verse", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
   await expect(page.locator(".bs-action >> text=Relation")).toBeVisible();
@@ -722,7 +743,7 @@ test("welcome keeps Search and Ask separate, with the dashboard in the Home draw
   await expect(welcome.getByRole("button", { name: "Search the teachings", exact: true })).toBeDisabled();
   await expect(welcome.getByRole("button", { name: "Ask your question" })).toBeDisabled();
   await expect(welcome.locator(".today-card, .stats, .shelf, .widgets")).toHaveCount(0);
-  await expect(page.locator(".tab")).toHaveCount(7);
+  await expect(page.locator(".tab")).toHaveCount(5);
   await search.fill("Seattle");
   await question.fill("Why do we keep the Passover?");
   await expect(search).toHaveValue("Seattle");
@@ -986,6 +1007,7 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
 });
 
 test("a verse links to each class that read it, on YouTube at that moment", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/genesis/4${LAUNCH}`);
   const tag = page.locator("#verset-3 .rel-tag", { hasText: "Raising Cain" });
   await expect(tag).toBeVisible();
@@ -1792,19 +1814,22 @@ test("Reader: a class read in the chapter without notes plays in place, and its 
   expect(asked[0].title).not.toBe("");
 });
 
-test("an opened class keeps the tab bar, with its actions floating above it", async ({ page }) => {
+test("an opened class keeps the tab bar, with its actions in the header's ⋮ menu as Bible Strong's", async ({ page }) => {
   await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-keep-the-bar.json`, (r) => r.fulfill({
     contentType: "application/json",
     body: JSON.stringify({ kind: "class", title: "Keep the bar", url: "/classes/2026/2026-09-26-keep-the-bar", date: "2026-09-26", teacher: "Captain Joel", videoId: "eNMvid6j-qk", body: "## Scriptures Opened\n\nThe remnant is gathered." }),
   }));
   await page.goto(`/note/classes/2026/2026-09-26-keep-the-bar${LAUNCH}`);
-  await expect(page.locator(".pageactions")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Keep the bar" })).toBeVisible();
   await expect(page.locator(".tabs").first()).toBeVisible();
   await expect(page.locator('.tabs .tab[aria-label="Main menu"]')).toBeVisible();
   expect(await state(page)).toMatchObject({ main: null, second: null });
-  const actions = await page.locator(".pageactions").boundingBox();
-  const bar = await page.locator(".tabs").first().boundingBox();
-  expect(actions!.y + actions!.height).toBeLessThanOrEqual(bar!.y + 1);
+  // Nothing floats over the bar: the actions are in the header's ⋮ menu.
+  await expect(page.locator(".pageactions")).toHaveCount(0);
+  // The class opens on its notes; their sheet carries the same ⋮.
+  await page.getByRole("dialog", { name: "Class notes" }).getByRole("button", { name: "More options" }).click();
+  await expect(page.getByRole("button", { name: "Share the link" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open in YouTube" })).toBeVisible();
 });
 
 test("the bottom bar sits above the Bible, with Bible Strong's buttons, Classes and Ask", async ({ page }) => {
@@ -1816,40 +1841,29 @@ test("the bottom bar sits above the Bible, with Bible Strong's buttons, Classes 
     expect(await page.evaluate(([x, yy]) => !!document.elementFromPoint(x, yy)?.closest(".tabs"), [bar.x + bar.width / 2, y])).toBe(true);
   }
   const labels = await page.locator(".tabs .tab").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-  expect(labels).toEqual(["Home", "Search", "Bible", "Classes", "Ask", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
+  expect(labels).toEqual(["Home", "Search", "Bible", expect.stringMatching(/^Tabs, \d+ open$/), "Main menu"]);
   // The menu has no bar editor: Bible Strong's bar is the same for every reader.
   await page.click('.tab[aria-label="Main menu"]');
   await expect(page.locator(".drawer--more").getByRole("link", { name: "Bottom bar", exact: true })).toHaveCount(0);
 });
 
-test("Classes in the bar opens a Classes tab, then returns to it, as Search and the Bible do", async ({ page }) => {
+test("Ask sits near the top of Home: a question there opens Ask with it", async ({ page }) => {
+  await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
+  await page.route("**/api/ask", (r) => r.fulfill({ contentType: "application/x-ndjson", body: ndjson({ delta: "It is commanded [1]." }, { done: true, answer: "It is commanded [1].", followups: [], sources: [SOURCE] }) }));
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  const bar = page.getByRole("navigation", { name: "Sections" });
-  const paths = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: { id: string; tabs: { path: string }[] }[] }; return s.groups.find((g) => g.id === s.group)!.tabs.map((t) => t.path); });
-  await bar.getByRole("button", { name: "Classes", exact: true }).click();
-  await expect(page).toHaveURL(/\/classes$/);
-  await expect.poll(paths).toContain("/classes");
-  const count = (await paths()).length;
-  await bar.getByRole("button", { name: "Bible", exact: true }).click();
-  await expect(page).toHaveURL(/\/read\//);
-  await bar.getByRole("button", { name: "Classes", exact: true }).click();
-  await expect(page).toHaveURL(/\/classes$/);
-  expect((await paths()).length).toBe(count);
-});
-
-test("Ask in the bar opens an Ask tab, then returns to it", async ({ page }) => {
-  await page.goto(`/read/genesis/1${LAUNCH}`);
-  const bar = page.getByRole("navigation", { name: "Sections" });
-  const paths = () => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("cj:tabgroups")!) as { group: string; groups: { id: string; tabs: { path: string }[] }[] }; return s.groups.find((g) => g.id === s.group)!.tabs.map((t) => t.path); });
-  await bar.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page).toHaveURL(/\/ask$/);
-  await expect.poll(paths).toContain("/ask");
-  const count = (await paths()).length;
-  await bar.getByRole("button", { name: "Bible", exact: true }).click();
-  await expect(page).toHaveURL(/\/read\//);
-  await bar.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page).toHaveURL(/\/ask$/);
-  expect((await paths()).length).toBe(count);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Home", exact: true }).click();
+  const field = page.getByRole("searchbox", { name: "Ask CyberJudah a question" });
+  await expect(field).toBeVisible();
+  await field.fill("Why do we keep the Passover?");
+  await field.press("Enter");
+  await expect(page).toHaveURL(/\/ask/);
+  await expect(page.locator(".msg--me .msg__bubble").last()).toHaveText("Why do we keep the Passover?");
+  // Once that answer is in, a question sent again from Home while Ask is open is asked too.
+  await expect(page.getByRole("button", { name: "Ask again" }).last()).toBeVisible();
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Home", exact: true }).click();
+  await field.fill("Who was Melchizedek?");
+  await field.press("Enter");
+  await expect(page.locator(".msg--me .msg__bubble").last()).toHaveText("Who was Melchizedek?");
 });
 
 test("a back step from the first screen stays in the app instead of going to a blank page", async ({ page }) => {
@@ -2382,4 +2396,27 @@ test("Concordance: books with how much of each is cited; a book lists each chapt
   await expect(ch3).toContainText("Notes and classes");
   await expect(ch3).toContainText("Laws");
   await expect(ch3).toContainText("v. 6-7");
+});
+
+test("a saved location with no sunset today can still be updated or forgotten", async ({ page }) => {
+  // Near the pole in December the sun neither rises nor sets.
+  await page.clock.setFixedTime(new Date("2026-12-21T12:00:00Z"));
+  await page.addInitScript(() => {
+    const loc = JSON.stringify({ lat: 89.5, lng: 0 });
+    localStorage.setItem("cj:loc", loc);
+    const w = window as unknown as { __cloud?: Record<string, string> };
+    w.__cloud = { ...(w.__cloud ?? {}), loc };
+  });
+  await page.goto(`/sabbath${LAUNCH}`);
+  await expect(page.getByText("No sunset here today")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Update my location" })).toBeVisible();
+  await page.getByRole("button", { name: "Forget" }).click();
+  await expect(page.getByText("Where are you?")).toBeVisible();
+});
+
+test("a class note that does not load still offers its recording on YouTube", async ({ page }) => {
+  await page.route(`${DATA_ORIGIN}/api/notes/classes/2026/2026-09-26-gone.json`, (r) => r.fulfill({ status: 404, body: "" }));
+  await page.goto(`/note/classes/2026/2026-09-26-gone?video=eNMvid6j-qk${LAUNCH}`);
+  await expect(page.getByText("This note did not load")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open in YouTube" })).toBeVisible();
 });

@@ -5,12 +5,13 @@ import { useNavigate, useSearchParams } from "react-router";
 import { data } from "@/api/data";
 import { referencePath } from "@/screens/Search";
 import { RELATION_TYPES, annotationParam, createRelation, deleteRelation, endpointHref, endpointsMatch, isDirectional, parseVerseKey, relationText, updateRelation, useSavedRelations, useEndpointRelations, verseKey, type Endpoint, type Relation, type RelationDirection, type RelationType } from "@/lib/relations";
-import { sheetOpened, useBackButton, useBottomButtons } from "@/tg/hooks";
+import { sheetOpened, useBackButton } from "@/tg/hooks";
 import { alert, api, confirm, haptic, openLink } from "@/tg/sdk";
 import { store } from "@/tg/store";
 import { noteVerses, versesOfKey, type Note } from "@/bible/store";
 import { useModal } from "@/ui/modal";
 import { useSheet } from "@/ui/sheet";
+import { Feather } from "@/bible/icons";
 import { Empty, Icon, Screen, SearchField, Loading } from "@/ui/ui";
 import { PreceptsIcon, TargetIcon } from "@/ui/relations";
 import { preceptsForVerse, slugOfUrl, useTaughtPrecepts } from "@/lib/taught";
@@ -64,7 +65,6 @@ export function Relations() {
   const [picking, setPicking] = useState(false);
   const navigate = useNavigate();
   const sheet = useSheet();
-  useBottomButtons(endpoint ? { text: "Add relation", onClick: () => setPicking(true) } : null);
 
   const open = (e: Endpoint) => { const href = endpointHref(e); if (e.type === "link") openLink(href); else navigate(href); };
   const edit = async (r: Relation, active: Endpoint) => {
@@ -94,7 +94,7 @@ export function Relations() {
     navigate(`/relations?endpoint=${encodeURIComponent(key)}${label}`);
   }}><Icon name="precepts" /><span className="nt-item__body"><b>{r.endpoints[0].label}</b><small>{relationText(r, r.endpoints[0])} {r.endpoints[1].label}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="No precepts yet" action={{ label: "Open the Bible", href: "/bible" }}>Precept upon precept, line upon line (Isaiah 28:10): join a verse to another passage, a class, a note, a dictionary entry or a link, so they show together when you read. Select a verse and tap Relation to make one. In Telegram they follow your account to every device; in a browser they stay on this device.</Empty>}</Screen>;
   return (
-    <Screen title="Precepts" kicker={endpoint.label} action={<button type="button" className="icon-btn" aria-label="Add a precept" title="Add a precept" onClick={() => setPicking(true)}>+</button>}>
+    <Screen title="Precepts" kicker={endpoint.label} action={<button type="button" className="bs-plusbtn" aria-label="Add a precept" title="Add a precept" onClick={() => setPicking(true)}><Feather name="plus" size={16} /></button>}>
       {!count && !precepts.length ? <div className="rel-empty"><PreceptsIcon size={64} /><p>No precepts yet</p><small>Tap + to join this passage to another passage, a class, a note, a dictionary entry or a link.</small></div> : null}
       {precepts.length ? (
         <div className="rel-section">
