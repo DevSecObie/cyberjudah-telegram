@@ -1847,23 +1847,16 @@ test("the bottom bar sits above the Bible, with Bible Strong's buttons, Classes 
   await expect(page.locator(".drawer--more").getByRole("link", { name: "Bottom bar", exact: true })).toHaveCount(0);
 });
 
-test("Ask sits near the top of Home: a question there opens Ask with it", async ({ page }) => {
-  await page.route("**/api/ask/account", (r) => r.fulfill({ json: { metered: false, unlimited: false, balance: {}, perQuestion: 1, freeDaily: 0, plan: {}, packs: [] } }));
-  await page.route("**/api/ask", (r) => r.fulfill({ contentType: "application/x-ndjson", body: ndjson({ delta: "It is commanded [1]." }, { done: true, answer: "It is commanded [1].", followups: [], sources: [SOURCE] }) }));
+test("Home has no Ask field at the top; Ask is in the menu", async ({ page }) => {
   await page.goto(`/read/genesis/1${LAUNCH}`);
-  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Home", exact: true }).click();
-  const field = page.getByRole("searchbox", { name: "Ask CyberJudah a question" });
-  await expect(field).toBeVisible();
-  await field.fill("Why do we keep the Passover?");
-  await field.press("Enter");
-  await expect(page).toHaveURL(/\/ask/);
-  await expect(page.locator(".msg--me .msg__bubble").last()).toHaveText("Why do we keep the Passover?");
-  // Once that answer is in, a question sent again from Home while Ask is open is asked too.
-  await expect(page.getByRole("button", { name: "Ask again" }).last()).toBeVisible();
-  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: "Home", exact: true }).click();
-  await field.fill("Who was Melchizedek?");
-  await field.press("Enter");
-  await expect(page.locator(".msg--me .msg__bubble").last()).toHaveText("Who was Melchizedek?");
+  const bar = page.getByRole("navigation", { name: "Sections" });
+  await bar.getByRole("button", { name: "Home", exact: true }).click();
+  await expect(page.locator(".home .pml-widget")).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Ask CyberJudah a question" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await bar.getByRole("button", { name: "Main menu", exact: true }).click();
+  await page.locator(".drawer--more").getByRole("link", { name: "Ask CyberJudah", exact: true }).click();
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/ask");
 });
 
 test("a back step from the first screen stays in the app instead of going to a blank page", async ({ page }) => {
