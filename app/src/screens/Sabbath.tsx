@@ -60,7 +60,7 @@ export function Sabbath() {
       {loc ? (
         <div className="sabbath__loc">
           <button type="button" className="btn btn--bordered" disabled={busy} onClick={locate}>{busy ? "Locating…" : "Update my location"}</button>
-          <button type="button" className="btn btn--plain" onClick={() => setLoc(null)}>Forget</button>
+          <button type="button" className="btn btn--plain" disabled={busy} onClick={() => setLoc(null)}>Forget</button>
         </div>
       ) : null}
     </Screen>
