@@ -277,7 +277,7 @@ test("privacy: Delete my data removes the reader's saved chats and balance, and 
   expect(JSON.stringify(before)).not.toContain(String(RUN + 13));
   await page.goto(`/privacy${launch(13)}`);
   await shot(page, "8-privacy");
-  await page.getByText("Delete my data").click();
+  await page.getByText("Delete my data", { exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Done. Deleted: 1 saved Ask chat");
   const after = await (await request.get("/api/privacy/export", { headers: auth })).json();
   expect([after.savedChats, after.readingReminder, after.dailyVerse, after.classNoteRequests]).toEqual([[], null, null, []]);
