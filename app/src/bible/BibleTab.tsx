@@ -324,6 +324,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
     if (a === "params") setSheet("params");
     if (a === "history") navigate("/history");
     if (a === "bookmark") { setBookmarkTarget({ existing: bookmarks.find((b) => b.book === slug && b.chapter === ch && !b.verse) }); setSheet("bookmark"); }
+    if (a === "sharelink") void share({ kind: "verse", title: `${chapterLabel} - KJV`, text: chapterLabel, sitePath: `/bible/${slug}/${ch}` });
     if (a === "export") void exportSel("chapter");
     if (a === "search") setSheet("search");
     if (a === "newtab") openInNewTab(`/read/${slug}/${ch}${focus ? `?v=${compressVerses(focus)}` : ""}`);
