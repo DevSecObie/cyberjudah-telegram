@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { DATA_ORIGIN, LAUNCH, setup, goInApp } from "./telegram-harness";
+import { DATA_ORIGIN, LAUNCH, setup, goInApp, preferChips } from "./telegram-harness";
 import aaronSnapshot from "./nave-aaron-snapshot.json" with { type: "json" };
 
 /**
@@ -58,6 +58,7 @@ test("a deep link opens the Scripture in focus, 'Read whole chapter' expands it,
 });
 
 test("tapping verses selects them, the sheet highlights, notes, tags and bookmarks them", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
   await tapVerse(page, 1);
@@ -259,7 +260,23 @@ test("a long press opens Strong's, with dictionary and references available", as
   await expect(page.locator(".dict p").first()).toContainText("Delight");
 });
 
+test("by default a verse with precepts shows one badge with their count, and the badge opens them", async ({ page }) => {
+  await page.goto(`/read/isaiah/11${LAUNCH}`);
+  await expect(page.locator("#verset-12")).toBeVisible();
+  // Bible Strong's RelationsCount: a pill with the icon and the number, no chips under the verse.
+  const badge = page.locator('.bs-badge[aria-label$="precept"], .bs-badge[aria-label$="precepts"]').first();
+  await expect(badge).toBeVisible();
+  await expect(page.locator(".rel-tag")).toHaveCount(0);
+  // A real button: the keyboard opens it too.
+  // It opens that verse's precepts, the verse it sits on.
+  const verse = await badge.evaluate((el) => el.closest("[id^='verset-']")!.id.slice("verset-".length));
+  await badge.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/relations\\?endpoint=isaiah-11-${verse}(&|$)`));
+});
+
 test("the precepts a class lined up with a verse: a tag under the verse, and a Precepts tab in its resources", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/isaiah/11${LAUNCH}`);
   await expect(page.locator("#verset-12")).toBeVisible();
   // The library's relation, drawn like the reader's own, under the last verse of the span.
@@ -277,6 +294,7 @@ test("the precepts a class lined up with a verse: a tag under the verse, and a P
 });
 
 test("a verse's precepts lead with one note, Precepts: why each is there, from the class", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   const note = page.locator("#verset-1 .rel-tag").first();
   await expect(note).toHaveText("Precepts");
@@ -297,6 +315,7 @@ test("a precept shows its class but never a class point about another passage", 
   await page.route("**/api/concordance/genesis/1.json", (r) => r.fulfill({ json: { book: "Genesis", chapter: 1, cited_by: [], moments: [], commentary: [], precepts: [
     { verses: "5", kind: "opened", ref: { book: "Leviticus", chapter: 23, verses: "1-3", label: "Leviticus 23:1-3", url: "/bible/leviticus/23#v1" }, text: "", point: "It is consciously they put it there.", note: { label: "The History of Easter", url: "/classes/2017/2017-04-13-the-history-of-easter", date: "2017-04-13", teacher: "Bishop Nathanyel" }, ts: "4:02" },
   ] } }));
+  await preferChips(page);
   await page.goto(`/read/genesis/1${LAUNCH}`);
   const note = page.locator("#verset-5 .rel-tag").first();
   await expect(note).toHaveText("Precept");
@@ -365,6 +384,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
   // The library's own precepts (the classes') share the tag row under a verse, and live data adds
   // them as precept passes merge: keep these two chapters free of them so only the reader's relation is counted.
   for (const ch of ["psalms/23", "john/10"]) await page.route(`**/api/concordance/${ch}.json`, (r) => r.fulfill({ json: { cited_by: [], precepts: [], moments: [], read: {}, people: {} } }));
+  await preferChips(page);
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
   await page.click(".bs-action >> text=Relation");
@@ -398,6 +418,7 @@ test("relations: a verse linked to a passage shows as a tag under the verse, wit
 });
 
 test("Link and Relation are their own verse actions: a link saved from Link shows under the verse", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/psalms/23${LAUNCH}`);
   await tapVerse(page, 1);
   await expect(page.locator(".bs-action >> text=Relation")).toBeVisible();
@@ -986,6 +1007,7 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
 });
 
 test("a verse links to each class that read it, on YouTube at that moment", async ({ page }) => {
+  await preferChips(page);
   await page.goto(`/read/genesis/4${LAUNCH}`);
   const tag = page.locator("#verset-3 .rel-tag", { hasText: "Raising Cain" });
   await expect(tag).toBeVisible();

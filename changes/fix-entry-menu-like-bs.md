@@ -1,0 +1,1 @@
+- Dictionary and Lexicon entries now have Bible Strong's ⋮ menu at the top: Share the link, Copy the text, Edit relations (dictionary) and Open in new tab. The Share button that floated over the bottom bar is gone.
