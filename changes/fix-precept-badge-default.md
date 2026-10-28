@@ -1,0 +1,1 @@
+- In the Bible, a verse with precepts now shows one small badge with how many there are, as Bible Strong marks a verse's relations; tap it to open them. The chips under each verse are still available in Font & settings.

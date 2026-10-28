@@ -128,11 +128,11 @@ function BookmarkIcon({ color, onClick }: { color: string; onClick: () => void }
 /** RelationsCount / TagsIndicator: a shadowed pill with the icon and a 12px grey count badge. */
 function CountBadge({ theme, count, onClick, label, children }: { palette: Palette; theme: ThemeName; count: number; onClick: () => void; label: string; children: React.ReactNode }) {
   return (
-    <span data-ignore-verse-touch="" role="button" tabIndex={0} aria-label={label} className="bs-badge" onClick={(e) => { e.stopPropagation(); onClick(); }}
-      style={{ backgroundColor: "var(--bs-reverse)", boxShadow: isDarkTheme(theme) ? "0 0 10px 0 rgba(255, 255, 255, 0.1)" : "0 0 10px 0 rgba(0, 0, 0, 0.2)", borderRadius: 8, padding: "4px 8px 4px 8px", wordBreak: "break-word", marginRight: 4, marginLeft: 4, position: "relative", display: "inline-block", cursor: "pointer" }}>
+    <button type="button" data-ignore-verse-touch="" aria-label={label} className="bs-badge" onClick={(e) => { e.stopPropagation(); onClick(); }}
+      style={{ border: 0, font: "inherit", color: "inherit", verticalAlign: "baseline", backgroundColor: "var(--bs-reverse)", boxShadow: isDarkTheme(theme) ? "0 0 10px 0 rgba(255, 255, 255, 0.1)" : "0 0 10px 0 rgba(0, 0, 0, 0.2)", borderRadius: 8, padding: "4px 8px 4px 8px", wordBreak: "break-word", marginRight: 4, marginLeft: 4, position: "relative", display: "inline-block", cursor: "pointer" }}>
       {children}
       <span style={{ background: "var(--bs-grey)", position: "absolute", width: 12, height: 12, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "arial", fontSize: 10, color: "var(--bs-reverse)", bottom: 0, right: 0 }}>{count}</span>
-    </span>
+    </button>
   );
 }
 
