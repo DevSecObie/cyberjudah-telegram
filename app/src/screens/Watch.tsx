@@ -5,7 +5,9 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 
 import { data, fmtDate } from "@/api/data";
-import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { Feather } from "@/bible/icons";
+import { useBackButton } from "@/tg/hooks";
+import { useSheet } from "@/ui/sheet";
 import { api, openLink } from "@/tg/sdk";
 import { NoteBody, noteLede } from "@/ui/note-body";
 import { Frame } from "@/lib/frames";
@@ -39,13 +41,16 @@ export function Watch() {
   const meta = recent.data?.videos?.find((v) => v.video === video);
   const teaching = useTeachings().data?.find((x) => x.video === video);
   const note = useQuery({ queryKey: ["note", r?.ok ? r.url : ""], queryFn: () => data.note(r!.ok ? r!.url : "/"), enabled: !!(r?.ok && r.url) });
-  useBottomButtons(res.isPending ? null : { text: "Open in YouTube", onClick: () => openLink(youtube(video, isLive ? 0 : start)) }, null);
+  const sheet = useSheet();
+  // Bible Strong keeps a page's actions in its header's ⋮ menu (PopOverMenu), not over the tab bar.
+  const menu = <button type="button" className="icon-btn note-head__menu" aria-label="More options" title="More options" onClick={() => void sheet.open({ items: [{ id: "youtube", text: "Open in YouTube", icon: <Feather name="youtube" size={16} /> }] }).then((a) => { if (a) openLink(youtube(video, isLive ? 0 : start)); })}><Feather name="more-vertical" size={18} /></button>;
   useEffect(() => { if (r?.ok) setTimeout(() => document.querySelector(".tx__chunk[data-here]")?.scrollIntoView({ block: "center" }), 60); }, [r]);
   const seek = (at: number) => { setStart(at); setPlaying(true); window.scrollTo({ top: 0, behavior: "smooth" }); };
   if (isLive) return (
     <main className="screen screen--player">
       <Player video={video} start={0} playing={playing} onPlay={() => setPlaying(true)} title={live.data?.title || "Live class"} live />
       <header className="note-head">
+        {menu}
         <p className="kicker">{live.data?.live ? "Live now · Sabbath class" : live.data?.upcoming ? "Starting soon" : "Sabbath class"}</p>
         <h1>{live.data?.title || "Live class"}</h1>
       </header>
@@ -57,6 +62,7 @@ export function Watch() {
     <main className="screen screen--player">
       <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={meta?.title || "Class recording"} />
       <header className="note-head">
+        {menu}
         <p className="kicker">{[teaching ? teachingLabel(teaching) : showOf(meta?.title ?? "") ?? "Sabbath class", meta ? fmtDate(meta.published.slice(0, 10)) : ""].filter(Boolean).join(" · ")}</p>
         <h1>{meta?.title || "Class recording"}</h1>
       </header>
@@ -68,6 +74,7 @@ export function Watch() {
     <main className="screen screen--player">
       <Player video={video} start={start} playing={playing} onPlay={() => setPlaying(true)} title={r.title} pip={full && notes && playing} onExpand={() => setFull(false)} />
       <header className="note-head">
+        {menu}
         <p className="kicker">{[teaching ? teachingLabel(teaching) : showOf(r.title) ?? KIND_NAME[r.kind as keyof typeof KIND_NAME] ?? "Recording", fmtDate(r.date)].filter(Boolean).join(" · ")}</p>
         <h1>{r.title}</h1>
         {r.kind !== "history" ? <CmsEditLink kind="classes" id={video} label="Edit class details" /> : null}

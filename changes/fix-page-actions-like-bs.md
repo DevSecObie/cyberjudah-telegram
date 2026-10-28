@@ -1,0 +1,1 @@
+- Buttons no longer float above the bottom bar on class notes, recordings, the Sabbath page or Precepts. As in Bible Strong, Share the link and Open in YouTube are in the ⋮ menu at the top of a class (and of its notes), the Sabbath page's location buttons sit in the page, and Precepts adds with Bible Strong's round + at the top.
