@@ -8,8 +8,8 @@ import { WordStudy, useStrongs } from "@/bible/ui/WordStudy";
 import { pickOfDay } from "@/lib/ofday";
 import { AlphabetList, SectionTitle, firstLetter, sections, useHeaderOffset } from "@/ui/alphabet";
 import { useSheet } from "@/ui/sheet";
-import { share } from "@/lib/share";
-import { useBackButton, useBottomButtons } from "@/tg/hooks";
+import { useBackButton } from "@/tg/hooks";
+import { EntryMenu } from "@/ui/entry-menu";
 import { haptic } from "@/tg/sdk";
 import { Empty, Icon, Screen, SearchField } from "@/ui/ui";
 
@@ -133,9 +133,8 @@ export function LexiconEntry() {
   const n = number.toUpperCase();
   const books = useQuery({ queryKey: ["books"], queryFn: data.books, staleTime: Infinity });
   const e = useStrongs(n, true, release).data;
-  useBottomButtons(e ? { text: "Share", onClick: () => void share({ kind: "note", title: `${e.lemma} (${e.xlit}) · Strong's ${e.number}`, text: e.def.slice(0, 300), sitePath: `/lexicon/${e.number.toLowerCase()}` }) } : null);
   return (
-    <Screen title={e ? e.lemma : "Word study"} kicker={e ? `${e.xlit} · ${e.language} · Strong's ${e.number}` : `Strong's ${n}`}>
+    <Screen title={e ? e.lemma : "Word study"} kicker={e ? `${e.xlit} · ${e.language} · Strong's ${e.number}` : `Strong's ${n}`} action={<EntryMenu entry={e ? { title: `${e.lemma} (${e.xlit}) · Strong's ${e.number}`, text: e.def, path: `/lexicon/${e.number.toLowerCase()}` } : null} />}>
       <div className="lex">
         <WordStudy number={n} books={books.data ?? []} release={release} />
       </div>
