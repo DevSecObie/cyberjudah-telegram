@@ -1,0 +1,1 @@
+- Across the app, tapping a card, button or row now fades it, as Bible Strong does, instead of shrinking it.
