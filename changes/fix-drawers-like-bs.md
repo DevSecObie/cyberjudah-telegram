@@ -1,0 +1,1 @@
+- The Home and menu drawers now look like Bible Strong's: the page beside them is no longer dimmed, they cast no shadow, the menu has a thin left border, and Home's close button is Bible Strong's 50px round button. Tapping or swiping the page beside a drawer still closes it.
