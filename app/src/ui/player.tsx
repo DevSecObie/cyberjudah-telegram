@@ -52,7 +52,11 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
   const [top, setTop] = useState(0);
   const [safeTop, setSafeTop] = useState(0);
   const [drag, setDrag] = useState<number | null>(null);
-  const from = useRef<{ y: number; id: number } | null>(null);
+  const from = useRef<{ y: number; id: number; offset: number } | null>(null);
+  const releaseFrame = useRef(0);
+  const cancelRelease = () => { cancelAnimationFrame(releaseFrame.current); releaseFrame.current = 0; };
+  useEffect(() => () => cancelRelease(), []);
+  useEffect(() => { if (!open) { cancelRelease(); from.current = null; setDrag(null); } }, [open]);
   useLayoutEffect(() => {
     if (!open) return;
     window.scrollTo({ top: 0 });
@@ -76,19 +80,24 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
   useEffect(() => { if (!open && full) onFull?.(false); }, [open, full, onFull]);
   const docked = full ? safeTop : top;
   const down = (e: RPointerEvent) => {
-    if ((e.target as HTMLElement).closest("button")) return;
-    from.current = { y: e.clientY, id: e.pointerId };
+    if (!e.isPrimary || e.button !== 0 || from.current || (e.target as HTMLElement).closest("button")) return;
+    cancelRelease();
+    // Catch the sheet where it is painted, including a settling animation from the last drag.
+    const offset = e.currentTarget.parentElement!.getBoundingClientRect().top - docked;
+    from.current = { y: e.clientY, id: e.pointerId, offset };
+    setDrag(offset);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const move = (e: RPointerEvent) => {
     if (!from.current || from.current.id !== e.pointerId) return;
     const dy = e.clientY - from.current.y;
     // Pulling past the end (up when full, down when the sheet is docked) gives with resistance.
-    setDrag(full ? (dy < 0 ? dy * 0.25 : dy) : dy > 0 ? dy * 0.6 : dy);
+    setDrag(from.current.offset + (full ? (dy < 0 ? dy * 0.25 : dy) : dy > 0 ? dy * 0.6 : dy));
   };
   const up = (e: RPointerEvent) => {
     if (!from.current || from.current.id !== e.pointerId) return;
     const dy = e.clientY - from.current.y;
+    const release = from.current.offset + (full ? (dy < 0 ? dy * 0.25 : dy) : dy > 0 ? dy * 0.6 : dy);
     from.current = null;
     let goFull = full;
     let doClose = false;
@@ -104,20 +113,24 @@ export function NotesSheet({ open, onClose, full = false, onFull, title = "Class
       // plus the old drag offset — potentially off the top of the screen, out of the next
       // gesture's reach. Painting one frame at the exact release point, with no transition,
       // then releasing it to the CSS transition keeps the motion continuous instead.
-      const currentY = docked + Math.max(safeTop - docked, drag ?? 0);
+      const currentY = docked + Math.max(safeTop - docked, release);
       const newDocked = goFull ? safeTop : top;
       onFull?.(goFull);
       setDrag(currentY - newDocked);
-      requestAnimationFrame(() => requestAnimationFrame(() => setDrag(null)));
+      releaseFrame.current = requestAnimationFrame(() => { releaseFrame.current = requestAnimationFrame(() => { releaseFrame.current = 0; setDrag(null); }); });
       return;
     }
     setDrag(null);
     if (doClose) { haptic("select"); onClose(); }
   };
+  const cancel = (e: RPointerEvent) => {
+    if (from.current?.id !== e.pointerId) return;
+    from.current = null; cancelRelease(); setDrag(null);
+  };
   const style = drag !== null ? { top: docked, transform: `translateY(${Math.max(safeTop - docked, drag)}px)`, transition: "none", willChange: "transform" } : { top: docked };
   return (
     <section className="nsheet" data-open={open ? "" : undefined} data-full={full ? "" : undefined} aria-hidden={!open} style={style} role="dialog" aria-label={title}>
-      <header className="nsheet__head" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} style={{ touchAction: "none" }}>
+      <header className="nsheet__head" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel} onLostPointerCapture={cancel} style={{ touchAction: "none" }}>
         <span className="nsheet__grip" aria-hidden="true" />
         <div><h2>{title}</h2>{sub ? <small>{sub}</small> : null}</div>
         <span className="nsheet__actions">{action}<button type="button" className="nsheet__close" aria-label="Close the notes" title="Close the notes" onClick={() => { haptic("select"); onClose(); }}>×</button></span>

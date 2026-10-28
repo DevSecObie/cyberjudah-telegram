@@ -119,6 +119,7 @@ let leaving: (() => void) | null = null;
 export const onLeaveTab = (fn: () => void) => { leaving = fn; return () => { if (leaving === fn) leaving = null; }; };
 const leave = () => leaving?.();
 /** The history index Back may not go below. */
+export const tabHistoryFloor = () => floor;
 export const useTabFloor = () => useSyncExternalStore((l) => { floorListeners.add(l); return () => floorListeners.delete(l); }, () => floor);
 /** Where the app is now becomes the current tab's place. */
 export function recordPath(path: string) {

@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { useAudioPlayer } from "@/lib/AudioPlayer";
 import { useNavigate } from "react-router";
 import { AUDIO_RATES } from "@/lib/audio-intent.mjs";
@@ -52,8 +53,8 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
   const playbackLabel = !speech.playing ? "Start audio playback" : speech.paused ? "Resume audio playback" : "Pause audio playback";
   return (
     <div className="bs-footer" style={{ pointerEvents: "none" }}>
-      <button type="button" className="bs-chapterbtn" style={{ left: 10, bottom: 10 + bottomBar, opacity: hasPrev ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasPrev} aria-label="Previous chapter" title="Previous chapter" onClick={() => { haptic(); onPrev(); }}><Feather name="arrow-left" size={20} color="var(--bs-tertiary)" /></button>
-      <button type="button" className="bs-chapterbtn" style={{ right: 10, bottom: 10 + bottomBar, opacity: hasNext ? 1 : 0.6, transform: `translateY(${arrowsY}px)` }} disabled={!hasNext} aria-label="Next chapter" title="Next chapter" onClick={() => { haptic(); onNext(); }}><Feather name="arrow-right" size={20} color="var(--bs-tertiary)" /></button>
+      <button type="button" className="bs-chapterbtn" style={{ left: 10, bottom: 10 + bottomBar, transform: `translateY(${arrowsY}px)` }} disabled={!hasPrev} aria-label="Previous chapter" title="Previous chapter" onClick={() => { haptic(); onPrev(); }}><Feather name="arrow-left" size={20} color="var(--bs-tertiary)" /></button>
+      <button type="button" className="bs-chapterbtn" style={{ right: 10, bottom: 10 + bottomBar, transform: `translateY(${arrowsY}px)` }} disabled={!hasNext} aria-label="Next chapter" title="Next chapter" onClick={() => { haptic(); onNext(); }}><Feather name="arrow-right" size={20} color="var(--bs-tertiary)" /></button>
       {expanded && speech.supported ? (
         <div className="bs-audio" style={{ bottom: 20 + bottomBar, transform: `translateY(${centerY}px)` }}>
           <div className="bs-audio__top">
@@ -83,7 +84,7 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
         </div>
       ) : (
         <div className="bs-playpill" style={{ bottom: 10 + bottomBar, transform: `translateY(${centerY}px)` }}>
-          <button type="button" className="bs-playbtn" aria-label={playbackLabel} title={playbackLabel} aria-busy={speech.loading ?? false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)", opacity: speech.supported ? 1 : 0.6 }} onClick={() => { haptic(); speech.toggle(); setExpanded(true); }}>
+          <button type="button" className="bs-playbtn" aria-label={playbackLabel} title={playbackLabel} aria-busy={speech.loading ?? false} disabled={!speech.supported} style={{ background: speech.playing ? "var(--bs-primary)" : "var(--bs-reverse)" }} onClick={() => { haptic(); speech.toggle(); setExpanded(true); }}>
             <Feather name="volume-2" size={22} color={speech.playing ? "var(--bs-reverse)" : "var(--bs-primary)"} />
           </button>
           {speech.playing ? <><button type="button" className="bs-iconbtn" aria-label="Stop audio playback" onClick={speech.stop}><Feather name="x" size={20} /></button><button type="button" className="bs-iconbtn" aria-label="Next audio chapter" disabled={!player.next} onClick={() => player.skip(1)}><Feather name="skip-forward" size={20} /></button></> : null}
@@ -101,17 +102,19 @@ export function Footer({ hasPrev, hasNext, onPrev, onNext, speech, fullscreen, h
               <h3 className="bs-audio__group">Narrators</h3>
               {speech.narratorsLoading ? <p className="bs-audio__notice">Finding recordings…</p> : !speech.narrators.length ? (
                 <p className="bs-audio__notice">
-                  {speech.narratorsError ? <>Recordings are unavailable right now. <button type="button" className="link" onClick={speech.narratorsRefetch}>Retry</button></> : "No recording for this chapter. Choose an AI reading voice below."}
+                  {speech.narratorsError ? <>Recordings are unavailable right now. <button type="button" className="link" onClick={speech.narratorsRefetch}>Retry</button></> : nativeReader ? "No recording for this chapter. Choose a device voice below." : "No recording for this chapter. Choose an AI reading voice below."}
                 </p>
               ) : null}
               {speech.narrators.map((n) => <button key={n.id} type="button" role="radio" aria-checked={speech.voice === `narrator:${n.id}`} className="bs-fontrow" onClick={() => { speech.setVoice(`narrator:${n.id}`); setVoices(false); }}><span>{n.reader}<small className="bs-audio__detail">Licensed narration · KJV</small></span>{speech.voice === `narrator:${n.id}` ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>)}
-              <h3 className="bs-audio__group">AI reading voices</h3>
+              {!nativeReader ? <>
+<h3 className="bs-audio__group">AI reading voices</h3>
               {aiVoices.isError ? <p className="bs-audio__notice">Reading voices are unavailable right now. <button type="button" className="link" onClick={() => void aiVoices.refetch()}>Retry</button></p> : aiVoices.isPending ? <p className="bs-audio__notice">Finding reading voices…</p> : null}
               {aiVoices.data?.map((v) => {
                 const id = `ai:${v.id}`, on = speech.voice === id;
                 return <button key={id} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(id); setVoices(false); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>Reading voice · {v.note}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;
               })}
-              <h3 className="bs-audio__group">Device voices</h3>
+              </> : null}
+<h3 className="bs-audio__group">Device voices</h3>
               {speech.voices.map((v) => {
                 const on = (speech.voice ?? speech.currentVoice) === v.name;
                 return <button key={v.name} type="button" role="radio" aria-checked={on} className="bs-fontrow" onClick={() => { speech.setVoice(v.name); setVoices(false); }}><span style={{ color: on ? "var(--bs-primary)" : "var(--bs-default)" }}>{v.name.replace(/^Microsoft |^Google /, "")}<small style={{ display: "block", fontSize: 12, color: "var(--bs-tertiary)" }}>{v.lang}{/natural|premium|enhanced|neural|siri/i.test(v.name) ? " · high quality" : ""}{v.localService ? "" : " · online"}</small></span>{on ? <Feather name="check" size={20} color="var(--bs-primary)" /> : null}</button>;

@@ -1,3 +1,4 @@
+import { nativeReader } from "@/native/platform";
 import { Link } from "react-router";
 import { useBackButton } from "@/tg/hooks";
 import { Card, Screen, Section } from "@/ui/ui";
@@ -22,12 +23,12 @@ export function Help() {
     </Card></Section>
     <Section title="Audio and offline reading"><Card>
       <p>Use the speaker to start or pause reading. <Link to="/settings/audio">Audio settings</Link> selects a voice, speed, supported pitch and ambient sound. Device voices depend on your phone or browser; generated voices need a connection before they can be cached.</p>
-      <p>In <Link to="/settings">Settings</Link>, download books and available narration before going offline. <Link to="/resources">Study resources</Link> has approved dictionaries and reference works. A downloaded book lets you read it offline; searching the complete Bible still needs a connection.</p>
+      <p>In <Link to="/settings">Settings</Link>, download books and available narration before going offline. <Link to="/resources">Study resources</Link> has approved dictionaries and reference works. Downloaded chapters can be read and searched offline. The search shows which saved chapters it can cover; searching the complete Bible still needs a connection.</p>
       <p>If sound stops with the screen locked, reopen the app. Background playback depends on Telegram, your browser and your device. Downloaded data can be removed by the device when storage runs low.</p>
     </Card></Section>
     <Section title="Save and restore your work"><Card>
       <p>Settings → Backup exports reader notes, highlights, tags, bookmarks, links, reading plans and preferences. Keep that file before changing devices or clearing storage.</p>
-      <p>Personal studies and phrase marks have a separate backup in <Link to="/settings/account">Account & personal studies</Link>. Cloud backup is manual: save it after your changes, and restore it on the other device. Local autosave is not automatic synchronization between devices.</p>
+      <p>Personal studies and phrase marks have a separate backup in <Link to="/settings/account">Account & personal studies</Link>. {nativeReader ? "This app keeps studies on your device; export a file to move them to another device." : "Cloud backup is manual: save it after your changes, and restore it on the other device. Local autosave is not automatic synchronization between devices."}</p>
       <p><Link to="/privacy">Privacy</Link> explains data export and deletion.</p>
     </Card></Section>
     <Section title="Keyboard controls"><Card>
