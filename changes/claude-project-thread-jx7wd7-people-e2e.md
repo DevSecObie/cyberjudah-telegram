@@ -1,0 +1,1 @@
+- The People browser tests now expect Abraham as the live People data shows him since the KJV restore (cyberjudah #735): "Man · Hebrew" (Genesis 14:13) and the description "The son of Terah…". The verse's People list is matched by the name itself, because Lot's and Sarah's descriptions now name Abraham too.
