@@ -1,4 +1,4 @@
-import { Children, Fragment, isValidElement, useEffect, useLayoutEffect, useRef, useState, type ElementType, type InputHTMLAttributes, type PointerEvent, type ReactNode, type RefObject } from "react";
+import { Children, Fragment, isValidElement, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ElementType, type InputHTMLAttributes, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { stoppingScroll } from "./fling";
 import { Link, useLocation, useNavigate } from "react-router";
 
@@ -36,6 +36,12 @@ export function tabOf(path: string): string {
 const BUTTONS = ["home", "search", "bible", "tabs", "more"] as const;
 type ButtonId = typeof BUTTONS[number];
 const LABELS = { home: "Home", search: "Search", bible: "Bible" };
+/** On a computer the bar stands as a sidebar on the left (materials.css), each button named beside its icon (its data-label). */
+const RAIL_LABELS: Record<ButtonId, string> = { home: "Home", search: "Search", bible: "Bible", tabs: "Tabs", more: "Menu" };
+const railQuery = typeof matchMedia === "function" ? matchMedia("(min-width: 1024px)") : null;
+const onRailChange = (fn: () => void) => { railQuery?.addEventListener("change", fn); return () => railQuery?.removeEventListener("change", fn); };
+/** The sections the sidebar also links straight to, under the bar's own buttons. */
+const RAIL_LINKS = NAV_ITEMS.filter((i) => !["home", "search", "bible", "tabs"].includes(i.id));
 
 export function TabBar() {
   const { pathname, search } = useLocation();
@@ -46,6 +52,8 @@ export function TabBar() {
   const groupColor = group.isDefault ? undefined : group.color;
   const drawer = useDrawer();
   const current = drawer ?? tabOf(pathname);
+  // The sidebar's links exist only on a computer, so a phone's page has no hidden copies of them.
+  const rail = useSyncExternalStore(onRailChange, () => !!railQuery?.matches, () => false);
   // Bible Strong slides the bar down out of sight while the Bible is full screen.
   const hidden = useReaderFullscreen() && !drawer && current === "bible";
   const swipe = useRef<{ x: number; y: number } | null>(null);
@@ -90,6 +98,8 @@ export function TabBar() {
   const hold = {
     onPointerDown: (e: React.PointerEvent) => {
       if (!e.isPrimary || e.button !== 0 || pointer.current !== null) return;
+      // The sidebar has no swipe through the tabs: a press there is a click.
+      if (railQuery?.matches) return;
       // A finger that stops a moving page is not a tap on the bar (fling.ts): leave it to the
       // browser, which drops that click, so it does not open a section.
       if (e.pointerType === "touch" && stoppingScroll()) return;
@@ -162,9 +172,13 @@ export function TabBar() {
   const press1 = (id: ButtonId) => id === "more" ? toggle("more") : id === "home" ? toggle("home") : go(() => path(id), id === "tabs", id);
   return (
     <>{scrub.layer}<nav ref={bar} className="tabs" aria-label="Sections" data-hidden={hidden ? "" : undefined} {...hold}>
+      <div className="tabs__brand" aria-hidden="true"><img src={assetUrl("brand/cyber-lion.webp")} alt="" width={32} height={32} /><span>CyberJudah</span></div>
       <div className="tabs__row">
-        {BUTTONS.map((id) => <button key={id} type="button" className="tab" data-nav={id} aria-label={label(id)} title={label(id)} onClick={() => press1(id)}>{glyph(id)}</button>)}
+        {BUTTONS.map((id) => <button key={id} type="button" className="tab" data-nav={id} data-current={current === id ? "" : undefined} data-label={RAIL_LABELS[id]} aria-label={label(id)} title={label(id)} onClick={() => press1(id)}>{glyph(id)}</button>)}
       </div>
+      {rail ? <div className="tabs__links" role="group" aria-label="Go to">
+        {RAIL_LINKS.map((i) => <Link key={i.id} to={i.path} className="tabs__link" data-current={!drawer && i.match.test(pathname) ? "" : undefined} aria-current={!drawer && i.match.test(pathname) ? "page" : undefined} onClick={() => setDrawer(null)}>{i.icon === "count" ? null : <Icon name={i.icon} size={18} />}<span>{i.label}</span></Link>)}
+      </div> : null}
     </nav></>
   );
 }

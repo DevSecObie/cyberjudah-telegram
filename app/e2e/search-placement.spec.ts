@@ -22,6 +22,8 @@ test("search placement: Search is second in the bar, and the row fits every widt
     await page.evaluate(scale => document.documentElement.style.fontSize = `${scale}%`, scale);
     for (const button of await nav.getByRole("button").all()) {
       const box = (await button.boundingBox())!;
+      // On a computer the bar is a sidebar: full-width 44 px rows, inside its 248 px.
+      if (width >= 1024) { expect(box.height).toBeCloseTo(44, 1); expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(248); continue; }
       // 48 px each; under 336 px the seven share the row evenly.
       expect(box.height).toBeCloseTo(48, 1); if (width >= 336) expect(box.width).toBeCloseTo(48, 1); else expect(box.width).toBeGreaterThanOrEqual(44);
       // Seven shared buttons can round a fraction of a pixel past the edge.
