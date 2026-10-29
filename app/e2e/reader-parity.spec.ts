@@ -774,6 +774,12 @@ test("history keeps the verse gone to and opens on it, as Bible Strong's history
   await expect(page.locator("#verset-28")).toBeVisible();
 });
 
+test("a cyberjudah.io chapter link's #v anchor opens the whole chapter at that verse", async ({ page }) => {
+  await page.goto("/read/genesis/1#v28");
+  await expect(page.locator("#verset-28")).toBeInViewport();
+  await expect(page.locator("#verset-1 .bs-num")).toBeAttached();
+});
+
 test("reader annotation mode suppresses native text selection and WebKit callouts", async ({ page, browserName }) => {
   await page.goto("/read/genesis/1");
   await page.locator("#verset-1 .bs-num").click();
