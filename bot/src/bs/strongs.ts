@@ -83,14 +83,37 @@ strongBibles.get('/:version/books/:book/identities/:reference/lemmas', c => {
   // The dataset has no lexeme/POS disambiguation. Do not invent STEP lemma IDs.
   return c.json({ resource: strongResource, identity: identity(code), lemmas: [] });
 });
+// Strong's own order: derivation, then definition. The source sometimes files the start of a Greek
+// definition in the derivation field (G2316 "of uncertain affinity; a deity, ..."), so the gloss keeps it.
+const ORIGIN = /^(?:from|of|compare|apparently|probably|perhaps|akin|including|namely|used|which|and|or|by|through|in|as|occurs|an? (?:prolonged|primary|reduplicated|form|derivative|middle|adverb|particle)|adverb|feminine|neuter|masculine|plural|contracted|corresponding|another|\()/i;
+function clauses(text: string): string[] {
+  const out: string[] = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')') depth = Math.max(0, depth - 1);
+    else if (text[i] === ';' && depth === 0) { out.push(text.slice(start, i)); start = i + 1; }
+  }
+  return [...out, text.slice(start)].map(s => s.trim()).filter(Boolean);
+}
+export function strongText(data: Pick<Entry, 'derivation' | 'def'>): string {
+  return [data.derivation, data.def].map(s => (s ?? '').trim()).filter(Boolean).join(' ');
+}
+export function strongGloss(code: string, data: Pick<Entry, 'derivation' | 'def' | 'kjv'>): string {
+  const def = (data.def ?? '').trim();
+  const parts = code[0] === 'G' ? clauses(data.derivation ?? '') : [];
+  const first = parts.findIndex((p, i) => i > 0 && !ORIGIN.test(p));
+  const lead = first < 0 ? '' : parts.slice(first).join('; ');
+  return [lead, def].filter(Boolean).join('; ') || (data.kjv ?? '').trim();
+}
 async function entry(c: Ctx, raw: string) {
   const code = strongCode(raw), data = await load<Entry | null>(c, `/api/strongs/${code}.json`, true);
   if (!data) return missing('STRONG_LEXICON_ENTRY_NOT_FOUND');
   return {
     resource: { revision: `cj-lexicon-${await sha(data)}` }, id: id(code), selectedIdentity: identity(code), stepCode: code, classicStrong: code, eStrong: '', dStrong: '',
     language: code[0] === 'H' ? 'hebrew' as const : 'greek' as const, baseCode: Number(code.slice(1)), original: data.lemma, transliteration: data.xlit || '',
-    ...(data.pron ? { pronunciation: data.pron } : {}), gloss: data.def || data.kjv || '',
-    definitionHtml: [data.def, data.derivation, data.kjv, data.source].filter(Boolean).map(t => `<p>${html(t)}</p>`).join(''),
+    ...(data.pron ? { pronunciation: data.pron } : {}), gloss: strongGloss(code, data),
+    definitionHtml: [strongText(data), data.kjv?.trim(), data.source?.trim()].filter(Boolean).map(t => `<p>${html(t)}</p>`).join(''),
     relations: [], resources: [], lsjAbsent: true, modules: { resources: unavailableModule('resources'), entities: unavailableModule('entities') },
   };
 }
@@ -123,14 +146,14 @@ async function browse(c: Ctx, random: boolean) {
   if (lexical && !['hebrew', 'greek'].includes(lexical) || random && !lexical) return invalid();
   const search = (c.req.query('search') ?? '').toLowerCase(), prefix = (c.req.query('prefix') ?? '').toLowerCase();
   let rows = index.filter(r => (!lexical || r.n[0] === (lexical === 'hebrew' ? 'H' : 'G')) && (!search || [r.n, r.lemma, r.xlit, r.def].some(s => s.toLowerCase().includes(search))) && (!prefix || [r.n, r.lemma, r.xlit, r.def].some(s => s.toLowerCase().startsWith(prefix))));
-  const key = (r: IndexRow) => ({ gloss: r.def, baseCode: Number(r.n.slice(1)), id: id(r.n) });
+  const key = (r: IndexRow) => ({ gloss: (r.def ?? '').trim(), baseCode: Number(r.n.slice(1)), id: id(r.n) });
   const compare = (a: ReturnType<typeof key>, b: ReturnType<typeof key>) => cmp(a.gloss, b.gloss) || a.baseCode - b.baseCode || a.id - b.id;
   rows.sort((a, b) => compare(key(a), key(b)));
   const after = cursor(c) as ReturnType<typeof key> | undefined;
   if (after !== undefined && (!after || Array.isArray(after) || typeof after !== 'object' || typeof after.gloss !== 'string' || !Number.isInteger(after.id) || !Number.isInteger(after.baseCode))) return invalid();
   if (after) rows = rows.filter(r => compare(key(r), after) > 0);
   const take = random ? 1 : limit(c), page = random ? rows.slice(Math.floor(Math.random() * rows.length)).slice(0, 1) : rows.slice(0, take);
-  return c.json({ resource: { revision: `cj-lexicon-${await sha(index)}` }, entries: page.map(r => ({ id: id(r.n), stepCode: r.n, classicStrong: r.n, language: r.n[0] === 'H' ? 'hebrew' : 'greek', original: r.lemma, transliteration: r.xlit || '', gloss: r.def })), ...(!random && rows.length > take ? { nextCursor: encodeCursor(key(page.at(-1)!)) } : {}) });
+  return c.json({ resource: { revision: `cj-lexicon-${await sha(index)}` }, entries: page.map(r => ({ id: id(r.n), stepCode: r.n, classicStrong: r.n, language: r.n[0] === 'H' ? 'hebrew' : 'greek', original: r.lemma, transliteration: r.xlit || '', gloss: (r.def ?? '').trim() })), ...(!random && rows.length > take ? { nextCursor: encodeCursor(key(page.at(-1)!)) } : {}) });
 }
 lexicon.get('/entries', c => browse(c, false));
 lexicon.get('/random', c => browse(c, true));
