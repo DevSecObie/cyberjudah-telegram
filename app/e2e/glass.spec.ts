@@ -295,14 +295,15 @@ for (const theme of ["default", "dark", "sepia"]) {
         await page.mouse.up();
         const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
         expect(label.x + label.width).toBeLessThanOrEqual(thumb.x);
-        // Bible Strong's bar spans the bottom, its 48 px row above Telegram's bottom inset.
+        // Bible Strong's bar spans the bottom, its 48 px row above Telegram's bottom inset; on a
+        // computer it is a sidebar down the left, every button inside it.
         const dock = page.locator("nav.tabs");
         const bounds = (await dock.boundingBox())!;
-        expect(bounds.x).toBe(0); expect(bounds.width).toBe(width);
-        expect(bounds.y + bounds.height).toBe(height); expect(bounds.height).toBeGreaterThan(48);
+        if (width >= 1024) { expect(bounds.x).toBe(0); expect(bounds.y).toBe(0); expect(bounds.height).toBe(height); }
+        else { expect(bounds.x).toBe(0); expect(bounds.width).toBe(width); expect(bounds.y + bounds.height).toBe(height); expect(bounds.height).toBeGreaterThan(48); }
         for (const button of await dock.getByRole("button").all()) {
           const b = (await button.boundingBox())!;
-          expect(b.x).toBeGreaterThanOrEqual(0); expect(b.x + b.width).toBeLessThanOrEqual(width); expect(b.y).toBeGreaterThanOrEqual(bounds.y);
+          expect(b.x).toBeGreaterThanOrEqual(bounds.x); expect(b.x + b.width).toBeLessThanOrEqual(bounds.x + bounds.width); expect(b.y).toBeGreaterThanOrEqual(bounds.y);
         }
         // Settings › Theme at 200%: every mode icon and colour disc stays inside its card and on screen.
         await page.click('.row >> text="Theme"');
