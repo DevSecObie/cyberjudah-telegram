@@ -118,7 +118,7 @@
 /* Bible Strong's NotificationDot: green, outlined in the page colour so it reads over the icon. */
 .notify-dot { position: absolute; box-sizing: border-box; border: 1.5px solid var(--canvas); border-radius: 50%; background: var(--success); pointer-events: none; }
 /* The sidebar's own parts (its name, the buttons' names, its links) show on a computer only. */
-.tabs__brand, .tab__label, .tabs__links { display: none; }
+.tabs__brand, .tabs__links { display: none; }
 html[data-typing] .tabs { display: none; }
 /* A sheet, drawer or gallery always sits over the bar. */
 html:has([data-sheet-open]) .tabs { z-index: 40; }
@@ -297,7 +297,7 @@ html[data-modal] { overflow: hidden; }
   .tabs:not(.tabs--switcher) .tab svg { width: 20px; height: 20px; }
   .tabs .tab__more svg { width: 22px; height: 22px; }
   .tabs .tab__count { width: 18px; height: 18px; font-size: 11px; line-height: 14px; }
-  .tab__label { display: block; }
+  .tabs:not(.tabs--switcher) .tab::after { content: attr(data-label); }
   .tabs:not(.tabs--switcher) .tab:hover, .tabs__link:hover { background: var(--state-hover); color: var(--text-1); }
   .tabs:not(.tabs--switcher) .tab:active, .tabs__link:active { opacity: 1; background: var(--state-press); }
   .tabs:not(.tabs--switcher) .tab[data-current], .tabs__link[data-current] { background: var(--state-selected); color: var(--accent); font-weight: 600; }
