@@ -91,7 +91,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: DevSecObie/cyberjudah-app
-          ref: b44f5f6184f668fce5957b6e7633b46bf7125442
+          ref: 4a04c2e2d75ab29009718a8e62c1edc98ba6f35e
           path: bible-strong-port
       - name: Export the actual Bible Strong app
         working-directory: bible-strong-port
