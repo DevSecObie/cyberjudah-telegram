@@ -1123,10 +1123,11 @@ test("People: who is named in a verse, a page per person with family, the classe
   await openResources(page, 5);
   await page.click('.bs-resfooter button >> text=People');
   await expect(page.locator(".bs-resrow b")).toHaveText(["Abraham", "Lot", "Sarah"]);
-  await page.locator(".bs-resrow", { hasText: "Abraham" }).click();
+  // Lot's and Sarah's descriptions name Abraham too, so match the name itself.
+  await page.locator(".bs-resrow", { has: page.locator("b", { hasText: /^Abraham$/ }) }).click();
   await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
   await expect(page.locator(".entity__name")).toHaveText("Abraham");
-  await expect(page.locator(".entity__summary .entity__eyebrow")).toHaveText("Man · Early Patriarch");
+  await expect(page.locator(".entity__summary .entity__eyebrow")).toHaveText("Man · Hebrew");
   await expect(page.locator(".entity__aka")).toContainText("Abram");
   await expect(page.getByRole("region", { name: "What the classes taught" }).locator(".scard").first()).toBeVisible();
   if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/person.png` });
@@ -1176,10 +1177,10 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await page.locator(".personrow", { hasText: "Abraham" }).first().click();
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26/);
     // The summary card: what they are, the name, their Strong's number (to the word study), who they were.
-    await expect(page.locator(".entity__summary .entity__eyebrow")).toHaveText("Man · Early Patriarch");
+    await expect(page.locator(".entity__summary .entity__eyebrow")).toHaveText("Man · Hebrew");
     await expect(page.getByRole("heading", { level: 1, name: "Abraham" })).toBeVisible();
     await expect(page.locator(".entity__code").first()).toHaveText("H87");
-    await expect(page.locator(".entity__desc")).toContainText("Patriarchs");
+    await expect(page.locator(".entity__desc")).toContainText("The son of Terah");
     await expect(page.getByRole("region", { name: "Relationships" }).locator(".fg")).toBeVisible();
     // Scripture cards: the reference and the King James text.
     const verses = page.getByRole("region", { name: "Verses" });
