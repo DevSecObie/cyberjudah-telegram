@@ -2,3 +2,4 @@
 - Precept and "Read with" headings now link `bible://` passages that name every verse (Job 20:6-18 opens all thirteen verses in the reader, not just verse 6). A reference that is not a plain chapter and verse list keeps its cyberjudah.io link.
 - Dictionary and Nave lookups for books Bible Strong does not have (Rest of Esther, Epistle of Jeremiah, Song of the Three Holy Children, Susanna, Bel and the Dragon, Prayer of Manasses) return Bible Strong's own empty answer instead of an error. The unmapped book number is never sent to Bible Strong.
 - Security: no workflow, login, account, credit, payment or secret changes. The gateway still sends no reader credentials, follows no redirects, and only forwards mapped book numbers.
+- Ported from #440: the People browser tests expect Abraham as the restored People data shows him ("Man · Hebrew", "The son of Terah…"), so they pass again.
