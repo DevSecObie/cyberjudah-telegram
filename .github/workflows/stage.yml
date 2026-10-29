@@ -105,6 +105,23 @@ jobs:
           yarn workspace @bible-strong/expo exec expo export --platform web
           rm -rf ../app/dist
           cp -R apps/expo/dist ../app/dist
+      - name: Check out the native release files
+        uses: actions/checkout@v4
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 6552d351bd27507809c14e5a0cc0d4ae40469a14
+          path: native-release
+          sparse-checkout: apps/expo/public
+      - name: Serve the native release's own files
+        # iPhone build 304 downloads its People module and plays videos from CyberJudah's own
+        # player page. Add those files beside the web export without replacing any of its own.
+        run: |
+          set -euo pipefail
+          src=native-release/apps/expo/public
+          cp -n "$src/offline/bible_entities.cyberjudah.sqlite.zip" app/dist/offline/
+          mkdir -p app/dist/embed
+          cp -n "$src/embed/youtube.html" app/dist/embed/
+          sha256sum app/dist/offline/bible_entities.cyberjudah.sqlite.zip app/dist/embed/youtube.html
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
