@@ -23,7 +23,7 @@ import { strongCode } from '../../src/bs/strongs.ts';
 const fixture = async (path: string) => JSON.parse(await readFile(new URL(`../fixtures/bs/${path}`, import.meta.url), 'utf8'));
 const paths = [
   'api/kjv/books.json', 'api/kjv/genesis/1.json', 'api/kjv/john/1.json', 'api/kjv/tobit/1.json', 'api/kjv/wisdom-of-solomon/1.json', 'api/kjv/2-maccabees/1.json',
-  'api/lxx/wisdom-of-solomon/1.json', 'api/lxx/2-maccabees/1.json', 'api/strongs/H1.json', 'api/strongs/G3056.json', 'api/strongs/index.json',
+  'api/lxx/wisdom-of-solomon/1.json', 'api/lxx/2-maccabees/1.json', 'api/strongs/H1.json', 'api/strongs/H3.json', 'api/strongs/G3056.json', 'api/strongs/index.json',
   'api/xref/john/1.json', 'api/concordance/john/1.json', 'api/topics/faith.json',
 ];
 const originals = new Map(await Promise.all(paths.map(async path => [`/${path}`, await fixture(path)] as const)));

@@ -28,7 +28,7 @@ test('dictionary passage lookup translates Apocrypha identities and restores the
 
 test('missing book mappings and non-dictionary requests never reach another upstream path', async () => {
   const unexpected: typeof fetch = async () => { throw new Error('must not fetch'); };
-  for (const path of ['/bs/v1/dictionaries/verses/79-1-1/entries', '/bs/v1/offline-artifacts/private', '/bs/v1/dictionaries/%2Fadmin']) {
+  for (const path of ['/bs/v1/dictionaries/verses/82-1-1/entries', '/bs/v1/offline-artifacts/private', '/bs/v1/dictionaries/%2Fadmin']) {
     await assert.rejects(readBibleStrongReference(new Request(`https://staging.example${path}`), unexpected));
   }
   assert.equal((await readBibleStrongReference(new Request('https://staging.example/bs/v1/dictionaries', { method: 'POST' }), unexpected)).status, 405);
@@ -83,4 +83,22 @@ test('the staging worker serves original Nave rather than CyberJudah topic subst
     assert.equal(response.status, 200);
     assert.equal((await response.json() as any).resource.revision, 'original-nave');
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('Apocrypha books Bible Strong lacks get its own empty answer, never another book', async () => {
+  const seen: string[] = [];
+  const upstream: typeof fetch = async url => {
+    seen.push(String(url));
+    if (String(url).includes('/naves/')) return Response.json({ resource: { kind: 'nave', language: 'en', revision: 'nave-en-1' }, verseKey: '1-1-1', verseTopics: [{ name: 'God' }], chapterTopics: [{ name: 'Creation' }] });
+    return Response.json({ verseKey: '1-1-1', entries: [{ word: 'God' }] });
+  };
+  for (const book of [71, 75, 76, 77, 78, 79]) {
+    const dictionary = await readBibleStrongReference(new Request(`https://staging.example/bs/v1/dictionaries/verses/${book}-1-1/entries?language=en`), upstream);
+    assert.equal(dictionary.status, 200);
+    assert.deepEqual(await dictionary.json(), { verseKey: `${book}-1-1`, entries: [] });
+    const nave = await readBibleStrongReference(new Request(`https://staging.example/bs/v1/naves/en/verses/${book}-1-1/topics`), upstream);
+    assert.deepEqual(await nave.json(), { resource: { kind: 'nave', language: 'en', revision: 'nave-en-1' }, verseKey: `${book}-1-1`, verseTopics: [], chapterTopics: [] });
+  }
+  assert.ok(seen.every(url => url.includes('/verses/1-1-1/')), 'an unmapped book id is never forwarded');
+  await assert.rejects(readBibleStrongReference(new Request('https://staging.example/bs/v1/naves/en/verses/75-1-1/topics'), async () => Response.json({ code: 'X' }, { status: 404 })), /no corresponding passage/);
 });

@@ -16,7 +16,7 @@ export type Verse = { verse: number; text: string; words?: [string, string[]][] 
 export type Chapter = { book: string; chapter: number; translation: string; verses: Verse[] };
 export type Note = { label: string; url: string; date: string; teacher: string };
 export type Moment = { verses: string; label: string; url: string; date: string; teacher?: string; video: string; t: number; ts: string };
-export type Precept = { verses: string; kind: string; ref: { label: string; url: string }; text: string; point: string; why?: string; note: Note; ts: string };
+export type Precept = { verses: string; kind: string; ref: { verses?: string; label: string; url: string }; text: string; point: string; why?: string; note: Note; ts: string };
 export type Comment = { verses: string; passage: string; points: string[]; note: Note; ts: string; video: string | null; t: number };
 export type Concordance = { cited_by: { label: string; url: string; verses: string }[]; precepts?: Precept[]; commentary?: Comment[]; moments?: Moment[] };
 export type TopicRow = { slug: string; label: string };
@@ -30,6 +30,17 @@ export const html = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;'
 export const paragraphs = (s: string) => s.split(/\n\s*\n/).filter(Boolean).map(p => `<p>${html(p).replace(/\n/g, '<br>')}</p>`).join('');
 export const cmp = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 export const teacherRank = (s: string) => /\bbishop\b/i.test(s) ? 0 : /\bdeacon\b/i.test(s) ? 1 : 2;
+// OSIS book ids for books 1-81, as the app's CyberJudah reference profile reads them.
+export const OSIS = ['Gen', 'Exod', 'Lev', 'Num', 'Deut', 'Josh', 'Judg', 'Ruth', '1Sam', '2Sam', '1Kgs', '2Kgs', '1Chr', '2Chr', 'Ezra', 'Neh', 'Esth', 'Job', 'Ps', 'Prov', 'Eccl', 'Song', 'Isa', 'Jer', 'Lam', 'Ezek', 'Dan', 'Hos', 'Joel', 'Amos', 'Obad', 'Jonah', 'Mic', 'Nah', 'Hab', 'Zeph', 'Hag', 'Zech', 'Mal', 'Matt', 'Mark', 'Luke', 'John', 'Acts', 'Rom', '1Cor', '2Cor', 'Gal', 'Eph', 'Phil', 'Col', '1Thess', '2Thess', '1Tim', '2Tim', 'Titus', 'Phlm', 'Heb', 'Jas', '1Pet', '2Pet', '1John', '2John', '3John', 'Jude', 'Rev', '1Esd', '2Esd', 'Tob', 'Jdt', 'GkEsth', 'Wis', 'Sir', 'Bar', 'EpJer', 'SgThree', 'Sus', 'Bel', 'PrMan', '1Macc', '2Macc'];
+/** A passage as an in-app `bible://` link covering every verse it names; else the site link. */
+export function passageLink(ref: { verses?: string; label: string; url: string }) {
+  const m = /^\/bible\/([a-z0-9-]+)\/([1-9]\d*)(?:#v[1-9]\d*)?$/.exec(ref.url);
+  const index = m ? BOOKS.findIndex(b => b.slug === m[1]) : -1, verses = (ref.verses ?? '').replace(/\s+/g, '');
+  if (!m || index < 0 || !/^(?:[1-9]\d*(?:-[1-9]\d*)?(?:,[1-9]\d*(?:-[1-9]\d*)?)*)?$/.test(verses)) return siteLink(ref.url, ref.label);
+  const at = `${OSIS[index]}.${m[2]}`;
+  const osis = verses ? verses.split(',').map(part => { const [from, to] = part.split('-'); return to && Number(to) > Number(from) ? `${at}.${from}-${at}.${to}` : `${at}.${from}`; }).join(',') : at;
+  return `<a href="bible://${osis}">${html(ref.label)}</a>`;
+}
 export function siteLink(url: string, label: string) {
   // Only our own site-relative links can be promoted into HTML, never a supplied scheme.
   return /^\/(?!\/)[a-zA-Z0-9/?#=_%&.,:-]*$/.test(url) ? `<a href="https://cyberjudah.io${html(url)}">${html(label)}</a>` : html(label);

@@ -12,12 +12,15 @@ export async function readBibleStrongReference(request: Request, fetcher: typeof
   if (!/^\/v1\/(?:dictionaries|naves)(?:\/|$)/.test(path) || /%(?:2f|5c|2e)/i.test(path) || incoming.search.length > 4096) return invalid();
   const family = path.startsWith('/v1/naves/') ? 'NAVE' : 'DICTIONARY';
   const label = family === 'NAVE' ? 'Nave Thematic Bible' : 'dictionary';
-  let originalVerseKey: string | undefined;
+  let originalVerseKey: string | undefined, unmatched = false;
   const mappedPath = path.replace(/\/verses\/(\d+)-(\d+)-(\d+)(?=\/|$)/, (_match, book, chapter, verse) => {
     originalVerseKey = `${book}-${chapter}-${verse}`;
     const id = Number(book);
-    const upstream = id <= 66 && id >= 1 ? id : upstreamBooks.get(id);
-    if (!upstream) return missing(`${family}_PASSAGE_NOT_FOUND`, 'Bible Strong has no corresponding passage for this book');
+    if (id < 1 || id > 81) return missing(`${family}_PASSAGE_NOT_FOUND`, 'Bible Strong has no corresponding passage for this book');
+    const upstream = id <= 66 ? id : upstreamBooks.get(id);
+    // A book Bible Strong lacks gets its empty answer: Genesis 1:1 is read only for the resource
+    // stamp, and every list in it is emptied, so no other book's entries are ever shown.
+    if (!upstream) { unmatched = true; return '/verses/1-1-1'; }
     return `/verses/${upstream}-${chapter}-${verse}`;
   });
   let response: Response;
@@ -34,6 +37,10 @@ export async function readBibleStrongReference(request: Request, fetcher: typeof
   }
   const body = await response.json() as Record<string, unknown>;
   if (originalVerseKey && typeof body.verseKey === 'string') body.verseKey = originalVerseKey;
+  if (unmatched) {
+    if (response.status !== 200 || typeof body.verseKey !== 'string') return missing(`${family}_PASSAGE_NOT_FOUND`, 'Bible Strong has no corresponding passage for this book');
+    for (const [key, value] of Object.entries(body)) if (Array.isArray(value)) body[key] = [];
+  }
   return Response.json(body, { status: response.status, headers: {
     'cache-control': response.headers.get('cache-control') ?? 'no-store',
     'x-content-type-options': 'nosniff',
