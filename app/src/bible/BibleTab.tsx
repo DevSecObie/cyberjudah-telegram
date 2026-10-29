@@ -136,7 +136,8 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const [fullscreen, setFullscreen] = useState(readerFullscreen);
   useEffect(() => { saveReaderFullscreen(fullscreen); }, [fullscreen]);
   // cyberjudah.io's chapter links name a verse as #v16; the website sends them here unchanged.
-  const at = Number(params.get("at")) || Number(/^#v(\d+)$/.exec(hash)?.[1]) || undefined;
+  // A focused passage (?v=) keeps its own target, so the anchor only counts without one.
+  const at = Number(params.get("at")) || (focus ? undefined : Number(/^#v(\d+)$/.exec(hash)?.[1])) || undefined;
   const [verseToScroll, setVerseToScroll] = useState<number | undefined>(focus?.[0] ?? at);
   const [navRequest, setNavRequest] = useState(0);
   // Picking another verse in the same chapter replaces `at` in place: scroll to it again. Verse 1

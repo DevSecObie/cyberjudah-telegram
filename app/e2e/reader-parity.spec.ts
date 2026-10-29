@@ -778,6 +778,10 @@ test("a cyberjudah.io chapter link's #v anchor opens the whole chapter at that v
   await page.goto("/read/genesis/1#v28");
   await expect(page.locator("#verset-28")).toBeInViewport();
   await expect(page.locator("#verset-1 .bs-num")).toBeAttached();
+  // A focused passage keeps its own verse; the anchor does not pull it elsewhere.
+  await page.goto("/read/genesis/1?v=3#v28");
+  await expect(page.locator(".bs-context__main")).toHaveText("Read whole chapter");
+  await expect(page.locator("#verset-3")).toBeInViewport();
 });
 
 test("reader annotation mode suppresses native text selection and WebKit callouts", async ({ page, browserName }) => {
