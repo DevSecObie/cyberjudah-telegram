@@ -5,11 +5,12 @@ import { expect, test, type Page } from "@playwright/test";
 const DATA = process.env.VITE_DATA_ORIGIN || "https://data.cyberjudah.io";
 const verses = Array.from({ length: 25 }, (_, i) => ({ verse: i + 1, text: i === 7 ? "And the LORD God planted a garden eastward in Eden; and there he put the man whom he had formed." : `Verse ${i + 1} of the chapter.` }));
 const PLACES = [
-  { id: "eden-gen-2-8", name: "Eden", names: ["Eden"], region: "Mesopotamia(?)", verses: 13, first: "genesis/2/8" },
+  { id: "eden-gen-2-8", name: "Eden", names: ["Eden"], region: "", verses: 13, first: "genesis/2/8" },
   { id: "euphrates-gen-2-14", name: "Euphrates", names: ["Euphrates"], region: "", verses: 61, first: "genesis/2/14" },
   { id: "cush-gen-2-13", name: "Ethiopia", names: ["Ethiopia", "Cush"], region: "", verses: 44, first: "genesis/2/13" },
 ];
-const EDEN = { id: "eden-gen-2-8", name: "Eden", names: ["Eden"], region: "Mesopotamia(?)", coords: null, strongs: ["H5731B"], verses: ["genesis/2/8", "genesis/2/10", "genesis/2/15"], source: { name: "TIPNR, by Tyndale House Cambridge, STEPBible.org", license: "CC BY 4.0", url: "https://github.com/STEPBible/STEPBible-Data" } };
+const EDEN = { id: "eden-gen-2-8", name: "Eden", names: ["Eden"], description: "The garden the LORD God planted eastward (Genesis 2:8)", region: "", coords: null, strongs: [], verses: ["genesis/2/8", "genesis/2/10", "genesis/2/15"], source: { name: "The King James Bible with Apocrypha", license: "Public domain", url: "https://cyberjudah.io/bible" } };
+const EUPHRATES = { id: "euphrates-gen-2-14", name: "Euphrates", names: ["Euphrates"], description: "The fourth river out of Eden (Genesis 2:14)", region: "", coords: [31, 46.2], pin: { lat: 31, lon: 46.2, wikidata: "Q34589", url: "https://www.wikidata.org/wiki/Q34589", label: "Euphrates" }, strongs: [], verses: ["genesis/2/14"], source: EDEN.source };
 
 async function setup(page: Page) {
   page.setDefaultTimeout(15_000);
@@ -26,6 +27,7 @@ async function setup(page: Page) {
     if (path === "/api/people/index.json") return r.fulfill({ json: [{ id: "adam-gen-2-19", name: "Adam", names: ["Adam"], description: "First man", verses: 30, first: "genesis/2/19", type: "Male" }] });
     if (path === "/api/places/index.json") return r.fulfill({ json: PLACES });
     if (path === "/api/places/eden-gen-2-8.json") return r.fulfill({ json: EDEN });
+    if (path === "/api/places/euphrates-gen-2-14.json") return r.fulfill({ json: EUPHRATES });
     if (path === "/api/kjv/genesis/2.json") return r.fulfill({ json: { book: "genesis", chapter: 2, verses } });
     return r.fulfill({ status: 404, body: "" });
   });
@@ -46,18 +48,28 @@ test("In This Chapter holds the people and then the places, each place with the 
   await expect(page).toHaveURL(/\/place\/eden-gen-2-8$/);
 });
 
-test("a place's page: Place and its region, its name and Strong's number, then its verses", async ({ page }) => {
+test("a place's page: Place, its name and what the KJV says of it, then its verses; no map pin without an exact match", async ({ page }) => {
   await setup(page);
   await page.goto("/place/eden-gen-2-8");
-  await expect(page.locator(".entity__eyebrow").first()).toHaveText("Place · Mesopotamia(?)");
+  await expect(page.locator(".entity__eyebrow").first()).toHaveText("Place");
   await expect(page.getByRole("heading", { level: 1, name: "Eden" })).toBeVisible();
-  await expect(page.locator(".entity__code")).toHaveText("H5731");
-  await expect(page.locator(".entity__code")).toHaveAttribute("href", /\/lexicon\/H5731$/);
+  await expect(page.locator(".entity__desc")).toHaveText("The garden the LORD God planted eastward (Genesis 2:8).");
+  await expect(page.getByRole("region", { name: "Where it is" })).toHaveCount(0);
   const list = page.getByRole("region", { name: "Verses" });
   await expect(list.locator(".entity__note")).toHaveText("First named in Genesis 2:8");
   await expect(list.locator(".scard__ref")).toHaveText(["Genesis 2:8", "Genesis 2:10", "Genesis 2:15"]);
   await expect(list.locator(".scard").first().locator(".scard__text")).toContainText("planted a garden eastward in Eden");
-  await expect(page.locator(".entity__source")).toContainText("CC BY 4.0");
+  await expect(page.locator(".entity__source")).toHaveText("Names and verses from the King James Bible with Apocrypha.");
+  await expect(page.locator("body")).not.toContainText(/STEPBible|TIPNR/);
+});
+
+test("a place Wikidata has exactly shows where it is, with its Wikidata link", async ({ page }) => {
+  await setup(page);
+  await page.goto("/place/euphrates-gen-2-14");
+  const where = page.getByRole("region", { name: "Where it is" });
+  await expect(where).toContainText("31.00° N, 46.20° E");
+  await expect(where.getByRole("button", { name: "Euphrates on Wikidata" })).toBeVisible();
+  await expect(page.locator(".entity__source")).toContainText("Location from Wikidata");
 });
 
 test("a place that does not load says so and offers to try again", async ({ page }) => {

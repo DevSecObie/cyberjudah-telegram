@@ -14,7 +14,7 @@ export type AvatarKind = "male" | "female" | "group" | "other" | "place";
 /** A place has Bible Strong's place picture (assets/images/entity-avatars/place.png); people keep their portrait or letter. */
 export const AVATAR_IMAGES: Partial<Record<AvatarKind, string>> = { place: assetUrl("bs/entity-avatars/place.png") };
 
-/** The kind of avatar from TIPNR's type ("Male", "Female", "Group" ...). */
+/** The kind of avatar from the person's type ("Male", "Female", "Group" ...). */
 export function avatarKind(type?: string): AvatarKind {
   const t = (type ?? "").toLowerCase();
   if (t === "female") return "female";
