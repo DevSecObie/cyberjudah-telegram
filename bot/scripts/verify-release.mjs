@@ -36,19 +36,20 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
   }
   log("App and Bible reader: available");
   if (bibleStrongApp) {
+    // The app's dictionary and topics come from CyberJudah's own data, never Bible Strong's service.
     const catalog = await get("/bs/v1/dictionaries?language=en");
-    requireStatus(catalog, 200, "Bible Strong dictionaries");
+    requireStatus(catalog, 200, "CyberJudah dictionary");
     const dictionaries = (await catalog.json()).dictionaries;
-    if (!Array.isArray(dictionaries) || !dictionaries.some(item => item.resource?.work === "easton-webster")) throw new Error("Bible Strong dictionaries: the original catalog is missing.");
-    const entry = await get("/bs/v1/dictionaries/easton-webster/en/entries/Aaron");
-    requireStatus(entry, 200, "Bible Strong dictionary entry");
-    if (!(await entry.json()).entry?.definition) throw new Error("Bible Strong dictionary entry: definition is missing.");
-    log("Bible Strong original dictionary catalog and entry: available");
-    const nave = await get("/bs/v1/naves/en/topics/faith");
-    requireStatus(nave, 200, "Bible Strong Nave");
+    if (!Array.isArray(dictionaries) || dictionaries.length !== 1 || dictionaries[0].resource?.work !== "easton") throw new Error("CyberJudah dictionary: expected only CyberJudah's Easton.");
+    const entry = await get("/bs/v1/dictionaries/easton/en/entries/Aaron");
+    requireStatus(entry, 200, "CyberJudah dictionary entry");
+    if (!(await entry.json()).entry?.definition) throw new Error("CyberJudah dictionary entry: definition is missing.");
+    log("CyberJudah dictionary catalog and entry: available");
+    const nave = await get("/bs/v1/naves/en/topics/captivity");
+    requireStatus(nave, 200, "CyberJudah topics");
     const topic = await nave.json();
-    if (topic.resource?.kind !== "nave" || !topic.topic?.description || topic.topic?.normalizedName !== "faith" || topic.resource?.revision?.startsWith("cj-")) throw new Error("Bible Strong Nave: the original Faith topic is missing.");
-    log("Bible Strong original Nave topic: available");
+    if (topic.resource?.kind !== "nave" || !topic.topic?.description || !topic.resource?.revision?.startsWith("cj-")) throw new Error("CyberJudah topics: the Captivity topic is missing.");
+    log("CyberJudah topic: available");
   }
   const query = "/api/search/answer?q=Melchizedek";
   requireStatus(await get(query), 401, "Unsigned search");
