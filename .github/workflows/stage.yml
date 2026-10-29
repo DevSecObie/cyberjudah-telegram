@@ -93,6 +93,7 @@ jobs:
           repository: DevSecObie/cyberjudah-app
           ref: 4a04c2e2d75ab29009718a8e62c1edc98ba6f35e
           path: bible-strong-port
+          persist-credentials: false
       - name: Export the actual Bible Strong app
         working-directory: bible-strong-port
         env:
@@ -111,6 +112,7 @@ jobs:
           repository: DevSecObie/cyberjudah-app
           ref: 6552d351bd27507809c14e5a0cc0d4ae40469a14
           path: native-release
+          persist-credentials: false
           sparse-checkout: apps/expo/public
       - name: Serve the native release's own files
         # iPhone build 304 downloads its People module and plays videos from CyberJudah's own
