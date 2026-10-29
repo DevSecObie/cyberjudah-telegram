@@ -1,0 +1,1 @@
+- Settings → Credits now names the software: the Bible reader, tabs and study tools are adapted from Bible Strong, and both are free software under the GNU GPL version 3, with links to both source codes and the license.

@@ -181,7 +181,7 @@ export function Settings() {
       {me?.admin ? <AskUsage /> : null}
       {me?.admin ? <Section title="Notes"><List><Row title="Requested notes" sub="Classes readers asked notes for, the most asked first" onClick={() => navigate("/settings/requests")} /></List></Section> : null}
       <Section title="This App">
-        <List><Row title="Credits" sub="Narrators, recordings and licences" onClick={() => navigate("/settings/credits")} /></List>
+        <List><Row title="Credits" sub="Narrators, recordings, software and licences" onClick={() => navigate("/settings/credits")} /></List>
         {me ? <List><Row title="Your Telegram id" sub={me.canEdit ? "You can edit notes from the app" : me.admin ? "Admin; editing needs the CYBERJUDAH_TOKEN secret on the deploy" : "Notes are read-only for this account"} trailing={<span className="pill">{me.user.id}</span>} onClick={() => { void navigator.clipboard?.writeText(String(me.user.id)).then(() => haptic("success")).catch(() => undefined); }} /></List> : null}
         <p className="hint">{app ? `Telegram ${app.version} on ${app.platform}. ${Object.entries(features).filter(([, v]) => v).length} of ${Object.keys(features).length} Mini App features available here.` : nativeReader ? "Free reading and study. Your notes stay on this device; export backups before changing devices. Download books before reading or searching offline." : "Reading, classes, the library and search work in this browser. Sign in to use Ask. Daily verses and Stars are available in Telegram."}</p>
       </Section>
