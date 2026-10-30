@@ -350,3 +350,23 @@ test("app Ask names the verse a question asks about in exact King James text, an
   assert.deepEqual(r.followups, ["Which ships?", "When did it happen?", "Who were the enemies?"]);
   assert.match(JSON.stringify(sent[0].messages), /bring thee into Egypt again with ships/);
 });
+
+test('native Ask rejects paid model selection before touching provider, quota or wallet', async () => {
+  assert.deepEqual(await answerApp(env(), 'Who is Judah?', 'app-owner', [], AGREED, 55000, { model: 'anthropic/claude-opus-5' }), { ok: false, reason: 'model-unavailable' });
+});
+test('native Ask refuses oversized questions rather than silently cutting them', async () => {
+  assert.deepEqual(await answerApp(env(), 'x'.repeat(4001), 'app-owner', [], AGREED), { ok: false, reason: 'too-long' });
+});
+
+test('native model promotion requires the versioned serving registry, not only an environment variable', async () => {
+  const result = await answerApp({ ASK_FREE_MODELS: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' }, 'Who was Abraham?', 'account', [], ['Cloudflare (Workers AI)'], 5000, { model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', study: true });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'model-unavailable');
+});
+
+test('the stronger free model is admitted to native Ask when configured', async () => {
+  const e = { ...env(), ASK_FREE_MODEL: '@cf/google/gemma-4-26b-a4b-it', ASK_FREE_MODELS: '@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.1-8b-instruct-fp8' };
+  const r = await answerApp(e, 'melchizedek', 'acct-g', [], AGREED);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, '@cf/google/gemma-4-26b-a4b-it');
+});

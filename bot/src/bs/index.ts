@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { bible } from './bible';
 import { dictionaries } from './dictionary';
+import { jewishEncyclopedia } from './jewish-encyclopedia';
 import { readBibleStrongReference } from './upstream-reference';
 import { lexicon, strongBibles } from './strongs';
 import { naves } from './topics';
@@ -18,7 +19,7 @@ bs.use('*', async (c, next) => {
     c.header('access-control-max-age', '86400');
     return c.body(null, 204);
   }
-  if (c.env.BIBLE_STRONG_WEB === '1' && /^\/bs\/v1\/(?:dictionaries|naves)(?:\/|$)/.test(c.req.path)) {
+  if (c.env.BIBLE_STRONG_WEB === '1' && !c.req.path.startsWith('/bs/v1/dictionaries/jewish-encyclopedia/') && /^\/bs\/v1\/(?:dictionaries|naves)(?:\/|$)/.test(c.req.path)) {
     const response = await readBibleStrongReference(c.req.raw);
     response.headers.set('access-control-allow-origin', '*');
     return response;
@@ -42,6 +43,7 @@ bs.onError((error, c) => {
 });
 bs.get('/health', c => c.json({ status: 'ok' }));
 bs.route('/v1/bibles', bible);
+bs.route('/v1/dictionaries/jewish-encyclopedia', jewishEncyclopedia);
 bs.route('/v1/dictionaries', dictionaries);
 bs.route('/v1/strong-lexicon', lexicon);
 bs.route('/v1/strong-bibles', strongBibles);
