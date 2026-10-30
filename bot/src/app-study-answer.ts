@@ -56,12 +56,22 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   const research = createAppResearch(env, first, emit);
   const initialCount = research.sources.length;
   const catalog = /\d+:\d+/.test(question) ? await books(env).catch(() => null) : null;
-  await research.search(appTranscriptQueries(question, catalog).map(query => ({ resource: 'transcripts', query })));
-  if (Date.now() >= deadlineAt) throw new Error('STUDY_RESEARCH_TIMEOUT');
-  emit({ status: 'Looking for supporting study resources' });
-  const plan = await researchOpen(env, plainModel, RESEARCH_PLAN_PROMPT,
+  // The research plan needs only the question, so it is written while the classes are searched,
+  // and without the model thinking first: a short JSON list does not need it.
+  const planning = researchOpen(env, plainModel, RESEARCH_PLAN_PROMPT,
     [{ role: 'user', content: `${history.length ? `Previous question: ${history.filter(t => t.role === 'user').at(-1)?.content.slice(0, 500) || ''}\n` : ''}Question: ${question}` }],
-    [], new Map(), async () => ({ content: '' }), () => {}, 1, spend, false, 'Return only the requested JSON research plan.');
+    [], new Map(), async () => ({ content: '' }), () => {}, 1, spend, false, 'Return only the requested JSON research plan.', { think: false });
+  planning.catch(() => undefined);
+  try {
+    await research.search(appTranscriptQueries(question, catalog).map(query => ({ resource: 'transcripts', query })));
+    if (Date.now() >= deadlineAt) throw new Error('STUDY_RESEARCH_TIMEOUT');
+  } catch (e) {
+    // The plan's call is metered: it finishes before the request is settled (ai.ts finishMeter).
+    await planning.catch(() => undefined);
+    throw e;
+  }
+  emit({ status: 'Looking for supporting study resources' });
+  const plan = await planning;
   await research.search(parseResearchPlan(plan.text));
   if (Date.now() >= deadlineAt) throw new Error('STUDY_RESEARCH_TIMEOUT');
   // Copy after research so a timed-out public read cannot modify the evidence mid-answer.
