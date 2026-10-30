@@ -1,6 +1,7 @@
 import type { ResourcePins } from "../../shared/resources";
 import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
+import { guardVerses } from "./verse-guard.mjs";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
@@ -307,7 +308,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
       const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources);
-      const { answer } = splitFollowups(text);
+      const answer = await checkedVerses(env, splitFollowups(text).answer);
       if (meter) await finishMeter(env, meter, answer.trim() ? "ok" : "empty");
       return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
     }
@@ -445,7 +446,8 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
       [], new Map(), async () => ({ content: "No tools are available." }), emit ?? (() => undefined), 1, spend, !!emit), left);
     // Where the time goes, for tuning: finding the passages, and the model writing the answer.
     console.log(JSON.stringify({ event: "search_answer_timing", retrieveMs, modelMs: Date.now() - tModel, totalMs: Date.now() - t0 }));
-    const { answer, followups } = splitFollowups(ran.text);
+    const { answer: written, followups } = splitFollowups(ran.text);
+    const answer = await checkedVerses(env, written);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
     return { ok: true, answer, sources: passages.length ? sourcesOf(answer, passages) : [], followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
@@ -507,6 +509,16 @@ async function* answerPieces(env: Env, messages: Msg[], backup = false): AsyncGe
       try { const piece = (JSON.parse(data) as { response?: string }).response ?? ""; if (piece) yield piece; } catch { /* a partial event */ }
     }
   }
+}
+
+/** The answer with every quoted verse checked against the King James text (verse-guard.mjs). */
+async function checkedVerses(env: Env, answer: string): Promise<string> {
+  if (!/^>/m.test(answer)) return answer;
+  try {
+    const r = await guardVerses(answer, await books(env).catch(() => null), (slug, ch) => chapter(env, slug, ch));
+    if (r.fixed || r.removed) console.log(JSON.stringify({ event: "ask_verse_guard", checked: r.checked, fixed: r.fixed, removed: r.removed }));
+    return r.text;
+  } catch { return answer; }
 }
 
 /** A greeting, a thank-you or a question about Ask itself: answered even when the library has no passages for it. */
