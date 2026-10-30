@@ -4,6 +4,7 @@ import { publicReader, readerContent } from "./reader";
 import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
 import { sweepFreeBudget } from "./free-budget";
+import { sweepAskEvents } from "./ask-events";
 import { CmsError, CONTENT_REPO } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
@@ -653,6 +654,7 @@ export default {
     ctx.waitUntil(pruneBilling(env).catch((e) => console.error(JSON.stringify({ event: "prune_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepWebhookUpdates(env).catch((e) => console.error(JSON.stringify({ event: "webhook_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepFreeBudget(env).catch((e) => console.error(JSON.stringify({ event: "free_budget_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
+    ctx.waitUntil(sweepAskEvents(env).catch((e) => console.error(JSON.stringify({ event: "ask_events_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Yesterday's quota rows are swept here, never on the request path (ai.ts).
     ctx.waitUntil(sweepRateCounts(env).catch((e) => console.error(JSON.stringify({ event: "sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Records still filed under Telegram IDs move to pseudonymous IDs (docs/PRIVACY.md), a bounded amount each hour.
