@@ -124,6 +124,23 @@ jobs:
           mkdir -p app/dist/embed
           cp -n "$src/embed/youtube.html" app/dist/embed/
           sha256sum app/dist/offline/bible_entities.cyberjudah.sqlite.zip app/dist/embed/youtube.html
+      - name: Check out CyberJudah's own dictionaries
+        uses: actions/checkout@v4
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: cb9b48ddda5f23b2ce6bce318b4f25d509cbb232
+          path: dictionary-release
+          persist-credentials: false
+          sparse-checkout: apps/expo/public/offline
+      - name: Serve CyberJudah's own dictionaries
+        # The Jewish Encyclopedia download, and the catalog that lists it beside the files above.
+        run: |
+          set -euo pipefail
+          src=dictionary-release/apps/expo/public/offline
+          mkdir -p app/dist/offline/dictionaries
+          cp -n "$src/dictionaries/dictionary-jewish-encyclopedia-en.sqlite.zip" app/dist/offline/dictionaries/
+          cp "$src/catalog.json" app/dist/offline/catalog.json
+          sha256sum app/dist/offline/dictionaries/*.zip app/dist/offline/catalog.json
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
