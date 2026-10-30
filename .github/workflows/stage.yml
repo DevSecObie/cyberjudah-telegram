@@ -128,7 +128,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: DevSecObie/cyberjudah-app
-          ref: cb9b48ddda5f23b2ce6bce318b4f25d509cbb232
+          ref: 4fab408d38b4b9447e8e3afe223b66e9471f8208
           path: dictionary-release
           persist-credentials: false
           sparse-checkout: apps/expo/public/offline
