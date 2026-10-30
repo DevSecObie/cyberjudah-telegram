@@ -84,3 +84,13 @@ Framework references: [NIST AI RMF and Generative AI Profile](https://www.nist.g
 - `secureAskEndpoint` rejects HTTP, credentials, query parameters and non-origin base URLs before sending a Firebase token. Native config removes CyberJudah's inherited iOS HTTP timeline exception and restricts Android cleartext to explicit development profiles. These platform manifest changes require a rebuilt binary; they are not retroactively applied to installed build 305.
 - Native Sentry initialization already exists with `sendDefaultPii: false`. This is not proof every existing breadcrumb is scrubbed; review before production. No session replay or additional analytics collection is enabled here.
 - Native actions are limited to user-tapped, allowlisted navigation. There are no model-triggered calendar, location, email, payment, permission or background tasks.
+
+## Staging verification — 2026-10-30
+
+Run 41022087309 passed CI and all staging deployment/smoke steps at commit c1636c1. Staging health and both search indexes answered successfully. The online Jewish Encyclopedia publication returned Abraham (ID 330) with 51,468 HTML characters and the verified publication revision. Unauthenticated native Ask returned 401 with a random support trace ID.
+
+The live iPhone question displayed custom waiting sentences, six actual searches, transcript-reading steps, thumbnails, and both KJV Related scriptures cards. The first explanation used the safe fallback because the model displayed more than 12 sources. The v2 policy limits the composer's evidence to 12 sources, prioritizes targeted research over broad retrieval, and keeps original citation numbers. A real-model diagnostic with 12 public sources passed validation; it did not establish a teacher-backed explanation, so the missing-teaching notice correctly remained. This is format/provenance validation, not proof of semantic fidelity.
+
+A read-only database check found `teaching_passages` present but `teaching_refs` absent in the shared published content database. `/api/reader/teachings` works; `/api/reader/taught/romans/3?v=31` returns 503. This is a missing source index, not a local network outage. No shared production database was changed. Rebuild/promote that index through its content-owner workflow before claiming complete scripture-to-teaching coverage.
+
+Six default-branch dependency alerts remain: re2js 2.8.6 (patched in 2.8.7; Firestore dependency) and undici 7.29.1 (patched in 7.30.1; Miniflare dependency). These are identified, not patched in this feature change. Reachability and updates require release review. Native platform TLS manifest changes still need a rebuilt binary; proposed monitoring alerts and teacher-reviewed semantic evaluations remain outstanding.

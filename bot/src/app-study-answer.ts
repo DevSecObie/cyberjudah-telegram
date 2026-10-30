@@ -8,6 +8,14 @@ import { researchOpen } from './agent-open';
 import { createAppResearch, parseResearchPlan, RESEARCH_PLAN_PROMPT } from './app-study-research';
 import { getAppStudyPrompt, NO_TEACHING, validateStudyProgram, type StudySource } from './app-study-ui';
 
+/** The renderer admits 12 sources. Give the composer no larger citation set: a small
+ * model otherwise tries to display every research result and rejects its whole answer.
+ * Prefer targeted transcript/resource research over the initial broad search, retaining IDs. */
+export function selectAppStudyEvidence(sources: StudySource[], initialCount: number) {
+  return [...sources.slice(initialCount), ...sources.slice(0, initialCount)]
+    .slice(0, APP_STUDY_RELEASE.maxDisplayedSources).sort((a, b) => a.n - b.n).map(s => ({ ...s }));
+}
+
 export const publicStudySource = ({ text, ...source }: StudySource) => ({ ...source, excerpt: text.slice(0, 1000) });
 export type AppStudyEvent = AgentEvent | { ui: string; sources: ReturnType<typeof publicStudySource>[]; teachingFound: boolean };
 
@@ -18,6 +26,7 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   const record = (outcome: string, sources: StudySource[], teachingFound: boolean) => console.log(JSON.stringify({ event: 'app_study_result', traceId, release: APP_STUDY_RELEASE.version, model: model.id, outcome, elapsedMs: Date.now()-startedAt, teachingFound, teachingSources: sources.filter(s => s.evidence === 'teaching').length, transcriptSources: sources.filter(s => s.kind === 'spoken').length, referenceSources: sources.filter(s => s.evidence === 'reference').length, scriptureSources: sources.filter(s => s.evidence === 'scripture').length }));
   const plainModel = { ...model, format: 'plain' as const };
   const research = createAppResearch(env, first, emit);
+  const initialCount = research.sources.length;
   await research.search([{ resource: 'transcripts', query: question.slice(0, 120) }]);
   if (Date.now() >= deadlineAt) throw new Error('STUDY_RESEARCH_TIMEOUT');
   emit({ status: 'Looking for supporting study resources' });
@@ -27,7 +36,7 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   await research.search(parseResearchPlan(plan.text));
   if (Date.now() >= deadlineAt) throw new Error('STUDY_RESEARCH_TIMEOUT');
   // Copy after research so a timed-out public read cannot modify the evidence mid-answer.
-  const sources = research.sources.map(s => ({ ...s }));
+  const sources = selectAppStudyEvidence(research.sources, initialCount);
   if (!sources.length) { record('no-evidence', [], false); return { answer: NO_TEACHING, sources: [], followups: [], teachingFound: false }; }
   emit({ status: 'Writing from the teachings and supporting sources' });
   const evidence = sources.map(s => `[${s.n}] Evidence type: ${s.evidence}. ${s.title}${s.sub ? ` · ${s.sub}` : ''}\n${s.text}`).join('\n\n');
