@@ -8,7 +8,7 @@ const originalUUID = globalThis.crypto.randomUUID;
 globalThis.crypto.randomUUID = () => { throw new Error('random UUID outside a request'); };
 let study;
 try { study = await import(out); } finally { globalThis.crypto.randomUUID = originalUUID; }
-const { validateStudyProgram, APP_TEACHING_POLICY, getAppStudyPrompt, getAppStudyLibrary, evidenceOf, NO_TEACHING } = study;
+const { validateStudyProgram, APP_TEACHING_POLICY, getAppStudyPrompt, getAppStudyLibrary, evidenceOf, NO_TEACHING, studyProgramDiagnostics } = study;
 test('OpenUI initializes lazily and reuses its request-created library', () => {
   assert.equal(getAppStudyLibrary(), getAppStudyLibrary());
   assert.equal(getAppStudyPrompt(), getAppStudyPrompt());
@@ -94,4 +94,34 @@ test('preserves paragraph structure and source links when stripping model-genera
   assert.match(result.answer, /\*\*The point\*\*\n\n/);
   assert.match(result.answer, /\[1\]$/);
   assert.doesNotMatch(result.program, /https:/);
+});
+
+test('an optional card error can be dropped without losing the validated answer or its source rail', () => {
+  for (const card of ['Sources("invalid")', 'InventedCard("ignore this")']) {
+    const raw = `root = StudyAnswer([Context("A reference fact. [2]", [2]), ${card}])`;
+    assert.equal(validateStudyProgram(raw, sources), null);
+    const recovered = validateStudyProgram(raw, sources, false, true);
+    assert.equal(recovered.answer, 'A reference fact. [2]');
+    assert.match(recovered.program, /Sources\(\[2\]\)/);
+    assert.doesNotMatch(recovered.program, /invalid|InventedCard|ignore this/);
+  }
+});
+
+test('card recovery never admits invalid answer fields, executable state, unresolved names or incomplete output', () => {
+  const fact = 'Context("A reference fact. [2]", [2])';
+  for (const raw of [
+    `root = StudyAnswer([${fact}, Teaching(42, [1])])`,
+    `$secret = "x"\nroot = StudyAnswer([${fact}])`,
+    `q = Query("read_private_notes", {})\nroot = StudyAnswer([${fact}])`,
+    `root = StudyAnswer([${fact}, missing])`,
+    `root = StudyAnswer([${fact}, Sources([2]`,
+    'root = StudyAnswer([InventedCard("Only unsupported output")])',
+  ]) assert.equal(validateStudyProgram(raw, sources, false, true), null, raw);
+});
+
+test('format diagnostics never contain model text or model-supplied names', () => {
+  const details = studyProgramDiagnostics('root = StudyAnswer([SecretName("private question")])');
+  assert.equal(details.errorCount, 1);
+  assert.deepEqual(details.errorCodes, ['unknown-component']);
+  assert.doesNotMatch(JSON.stringify(details), /SecretName|private question/);
 });

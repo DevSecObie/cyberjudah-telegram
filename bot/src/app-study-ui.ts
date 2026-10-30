@@ -36,9 +36,10 @@ export function getAppStudyLibrary() {
 let prompt: string | undefined;
 export function getAppStudyPrompt() {
   return prompt ??= generateSystemPrompt({ library: getAppStudyLibrary().toSpec(), promptOptions: {
+  inlineMode: true,
   preamble: `${APP_TEACHING_POLICY}\n\n${APP_RESPONSE_STYLE}`,
   additionalRules: ['Output only OpenUI Lang, with root = StudyAnswer([...]). No Markdown fences, arbitrary URLs, queries, mutations, state, functions or actions.', 'Use Teaching only with teaching evidence citations. Use Context for direct factual answers, including without Teaching, or for supporting reference facts. Never attribute an encyclopedia statement to a teacher.', 'Cite only the few sources needed for the explanation, ideally 1–4. Do not add a Sources list of everything retrieved. Use at most 12 distinct sources, one optional FollowUp, 3 Explore nodes and one RelatedScriptures node. Source numbers are one-based citation numbers, never array indices.', 'Lead with Teaching for a doctrinal question only when the supplied teaching establishes the answer. For a factual question, lead with the supported facts in Context. Do not invent a teaching to fill the layout. No translation comparisons.'],
-  examples: [],
+  examples: ['root = StudyAnswer([Context("A direct answer from the supplied reference. [1]\\n\\nA useful supporting detail from that reference. [1]", [1]), Sources([1])])', 'root = StudyAnswer([Teaching("A direct explanation established by the supplied recording. [2]\\n\\nHow the recording supports that explanation. [2]", [2]), Sources([2])])'],
 } });
 }
 
@@ -51,14 +52,31 @@ export function evidenceOf(source: Passage): StudySource['evidence'] {
 }
 const node = (typeName: string, props: Record<string, unknown>): ElementNode => ({ type: 'element', typeName, props, partial: false });
 
+/** Safe operational diagnostics: never log model text, component names or parser messages. */
+export function studyProgramDiagnostics(raw: string) {
+  if (!raw || raw.length > 60000) return { problem: 'size' };
+  try {
+    const l = getAppStudyLibrary(), parsed = createParser(l.toJSONSchema(), l.root).parse(raw);
+    return { problem: 'validation', incomplete: parsed.meta.incomplete, errorCount: parsed.meta.errors.length,
+      errorCodes: [...new Set(parsed.meta.errors.map(e => ['unknown-component', 'type-mismatch', 'missing-argument'].includes(e.code) ? e.code : 'other'))],
+      unresolvedCount: parsed.meta.unresolved.length, orphanedCount: parsed.meta.orphaned.length,
+      hasRoot: !!parsed.root, hasExecutable: !!parsed.rootExpression || !!parsed.queryStatements.length || !!parsed.mutationStatements.length || !!Object.keys(parsed.stateDeclarations).length };
+  } catch { return { problem: 'parse' }; }
+}
+
 /** Parse, inspect, and reserialize a static allowlisted tree. Raw model programs never reach
  * the phone: no state, arbitrary tools, URLs, mutations, partial claims or unsupported citations. */
-export function validateStudyProgram(raw: string, sources: StudySource[], partial = false) {
+export function validateStudyProgram(raw: string, sources: StudySource[], partial = false, recoverOptionalCards = false) {
   if (!raw || raw.length > 60000) return null;
   const appStudyLibrary = getAppStudyLibrary();
   let parsed;
   try { parsed = createParser(appStudyLibrary.toJSONSchema(), appStudyLibrary.root).parse(raw.replace(/^```(?:openui|text)?\s*\n|\n```\s*$/g, '')); } catch { return null; }
-  if (!parsed.root || parsed.rootExpression || parsed.queryStatements.length || parsed.mutationStatements.length || Object.keys(parsed.stateDeclarations).length || (!partial && (parsed.meta.incomplete || parsed.meta.errors.length || parsed.meta.unresolved.length || parsed.meta.orphaned.length))) return null;
+  // A malformed optional card must not erase an intact, cited explanation. The parser
+  // drops invalid components; only these bounded card errors may be recovered. Errors in
+  // answer text, root structure, unresolved names or executable constructs still fail closed.
+  const cardErrorsOnly = recoverOptionalCards && parsed.meta.errors.every(error =>
+    error.code === 'unknown-component' || (error.code === 'type-mismatch' && ['Sources', 'RelatedScriptures', 'Explore', 'FollowUp'].includes(error.component ?? '')));
+  if (!parsed.root || parsed.rootExpression || parsed.queryStatements.length || parsed.mutationStatements.length || Object.keys(parsed.stateDeclarations).length || (!partial && (parsed.meta.incomplete || (parsed.meta.errors.length && !cardErrorsOnly) || parsed.meta.unresolved.length || parsed.meta.orphaned.length))) return null;
   if (parsed.root.typeName !== 'StudyAnswer' || !Array.isArray(parsed.root.props.children)) return null;
   const known = new Map(sources.map(s => [s.n, s]));
   const used = new Set<number>();
@@ -103,6 +121,7 @@ export function validateStudyProgram(raw: string, sources: StudySource[], partia
     else if (child.typeName === 'FollowUp' && typeof p.question === 'string' && followups.length < 3) { followups.push(p.question); children.push(node('FollowUp', { question: p.question })); }
   }
   if (used.size > 12) return null;
+  if (recoverOptionalCards && !text.length) return null;
   // One source rail, including every cited source, even when the model emits several lists.
   const afterExplanation = children.reduce((last, child, index) => ['Teaching', 'Context'].includes(child.typeName) ? index + 1 : last, 0);
   if (used.size && children.length < 16) children.splice(Math.max(sourcesPosition ?? children.length, afterExplanation), 0, node('Sources', { numbers: [...used] }));

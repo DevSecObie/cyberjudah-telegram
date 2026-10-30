@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 const out = new URL('./.build/app-study-answer.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/app-study-answer.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
-const { selectAppStudyEvidence, appTranscriptQueries } = await import(out);
+const { selectAppStudyEvidence, appTranscriptQueries, checkAppStudyOutput } = await import(out);
 const uiOut = new URL('./.build/app-study-answer-ui.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/app-study-ui.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: uiOut, logLevel: 'error' });
 const { validateStudyProgram } = await import(uiOut);
@@ -29,4 +29,32 @@ test('named scriptures focus transcript retrieval instead of searching conversat
   assert.deepEqual(appTranscriptQueries('Romans 3:31 and Romans 3:31', catalog), ['Romans 3:31']);
   assert.deepEqual(appTranscriptQueries('Who was Abraham?', catalog), ['Who was Abraham?']);
   assert.deepEqual(appTranscriptQueries('James 99:1', catalog), ['James 99:1']);
+});
+
+test('a malformed OpenUI answer gets one checked replacement when the caller admits it', async () => {
+  const sources = [{ n: 2, kind: 'people', evidence: 'reference', title: 'Person', text: 'A biographical fact.', url: '/person/example' }];
+  let calls = 0;
+  const result = await checkAppStudyOutput({ text: 'Invalid answer format', cut: false }, sources, async () => {
+    calls++;
+    return { text: 'root = StudyAnswer([Context("A biographical fact. [2]", [2])])', cut: false };
+  });
+  assert.equal(calls, 1);
+  assert.equal(result.answer, 'A biographical fact. [2]');
+  assert.equal(result.teachingFound, false);
+});
+
+test('the retry cannot promote reference data into doctrine or return truncated output', async () => {
+  const sources = [{ n: 2, kind: 'people', evidence: 'reference', title: 'Person', text: 'A biographical fact.', url: '/person/example' }];
+  const first = { text: 'bad format', cut: false };
+  const result = await checkAppStudyOutput(first, sources, async () => ({ text: 'root = StudyAnswer([Teaching("Invented doctrine. [2]", [2])])', cut: false }));
+  assert.doesNotMatch(result.program, /Invented doctrine/);
+  assert.equal(result.teachingFound, false);
+  assert.equal(await checkAppStudyOutput(first, sources), null);
+  assert.equal(await checkAppStudyOutput(first, sources, async () => ({ text: 'root = StudyAnswer([])', cut: true })), null);
+});
+
+test('a valid first answer never incurs a retry', async () => {
+  const sources = [{ n: 1, kind: 'spoken', evidence: 'teaching', title: 'Class', text: 'A recorded point.', url: '/class/example' }];
+  const result = await checkAppStudyOutput({ text: 'root = StudyAnswer([Teaching("A recorded point. [1]", [1])])', cut: false }, sources, async () => { throw new Error('Unexpected retry'); });
+  assert.equal(result.teachingFound, true);
 });
