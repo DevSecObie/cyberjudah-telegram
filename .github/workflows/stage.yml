@@ -180,6 +180,20 @@ jobs:
           URL=$(grep -o 'https://[a-z0-9.-]*workers\.dev' deploy.log | head -1)
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "Staging worker: $URL"
+      - name: Publish the online Jewish Encyclopedia to staging
+        working-directory: bot
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          python3 scripts/build-study-reference.py \
+            ../dictionary-release/apps/expo/public/offline/dictionaries/dictionary-jewish-encyclopedia-en.sqlite.zip \
+            ../dictionary-release/apps/expo/public/offline/catalog.json \
+            "$RUNNER_TEMP/study-reference.sql"
+          npx wrangler d1 execute cyberjudah-telegram-staging --remote --yes --file "$RUNNER_TEMP/study-reference.sql"
+          curl -fsS "${{ steps.deploy.outputs.url }}/bs/v1/dictionaries/jewish-encyclopedia/en/entries?search=abraham&limit=3" > "$RUNNER_TEMP/study-reference-smoke.json"
+          node -e 'const p=require(process.argv[1]); if(!p.entries?.length || p.resource?.work!=="jewish-encyclopedia") throw Error("Online reference smoke test failed"); console.log("Online encyclopedia entries verified:",p.entries.length)' "$RUNNER_TEMP/study-reference-smoke.json"
       - name: Load the search index into the staging database
         working-directory: bot
         env:

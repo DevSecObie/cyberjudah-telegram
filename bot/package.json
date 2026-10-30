@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
+    "@openuidev/lang-core": "^1.0.2",
     "entities": "^8.1.0",
     "grammy": "^1.38.0",
     "hono": "^4.13.12",

@@ -4,6 +4,9 @@ import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
+import { answerAppStudy, type AppStudyEvent } from './app-study-answer';
+import { APP_TEACHING_POLICY } from './app-study-ui';
+import { APP_STUDY_RELEASE } from './app-study-release';
 import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
@@ -298,8 +301,8 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 }
 
 export type SearchAnswer =
-  | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string; provider: string; ms: number }
-  | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" | "consent" | "limit" };
+  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; ui?: string; teachingFound?: boolean }
+  | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit" };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
 export function searchModel(env: Env): AskModel | null {
@@ -349,31 +352,40 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
  * of its Firebase UID; it has the same daily cap as Ask, and every answer is funded from the
  * shared free allowance, so new accounts cannot spend beyond it.
  */
-export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS): Promise<SearchAnswer> {
+/** Native apps only expose the configured hosted free models until store entitlements exist. */
+export function appAskModels(env: Env): AskModel[] {
+  const allowed = freeModels(env);
+  return MODELS.filter(m => allowed.has(m.id) && APP_STUDY_RELEASE.approvedModels.some(id => id === m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
+}
+
+export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS, options: { model?: string; emit?: (event: AppStudyEvent) => void; study?: boolean } = {}): Promise<SearchAnswer> {
   const t0 = Date.now();
-  const question = q.trim().slice(0, 400);
+  const question = q.trim();
+  if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  const model = freeModel(env);
+  const model = appAskModels(env).find(m => m.id === (options.model || freeModel(env).id));
+  if (!model) return { ok: false, reason: "model-unavailable" };
   // Nothing is sent to a provider the reader has not agreed to, as in askStream.
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
   const cfg = creditsConfig(env);
-  const budget = Math.min(estimateMc(model, cfg, { rounds: 1 }).maxMc * MC_USD, freeMaxUsd(env));
+  const budget = Math.min(estimateMc(model, cfg, { rounds: options.study ? 2 : 1 }).maxMc * MC_USD, freeMaxUsd(env));
   let reservation: FreeReservation | null;
   try { reservation = await reserveFreeBudget(env, crypto.randomUUID(), budget); }
   catch { return { ok: false, reason: "unavailable" }; }
   if (!reservation) return { ok: false, reason: "free-paused" };
   // A free meter with no owner: finishMeter settles the reservation and never touches a balance.
   const meter: Meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: 1 };
-  return boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0);
+  return boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, options.study ? 'study' : 'app');
 }
 
 /**
  * One library-grounded answer under a free meter: the passages, one plain call to the model,
  * the sources it cited. Shared by search answers and the app's Ask.
  */
-async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number): Promise<SearchAnswer> {
+async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number, emit?: (event: AppStudyEvent) => void, appMode?: 'app' | 'study'): Promise<SearchAnswer> {
   const spend = meter.spend;
+  emit?.({ status: `Searching the classes and library for “${searchText.slice(0, 160)}”` });
   // One clock for retrieval and the model: it starts when retrieval does.
   const tRetrieve = Date.now();
   const deadlineAt = tRetrieve + deadlineMs;
@@ -381,25 +393,33 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
   try {
     const passages = answerCandidates(question, await withDeadline(retrieve(env, searchText, 12, spend), deadlineMs), 8);
     retrieveMs = Date.now() - tRetrieve;
+    for (const passage of passages) emit?.({ status: `Reading ${passage.title.slice(0, 180)}` });
+    if (appMode === 'study') {
+      // Await each metered inference before settling its reservation, even if the client
+      // disconnects. A racing timeout must not settle while inference is still spending.
+      const result = await answerAppStudy(env, question, history, passages, model, spend, emit ?? (() => undefined), deadlineAt);
+      await finishMeter(env, meter, 'ok', Date.now() - t0);
+      return { ok: true, ...result, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    }
     if (!passages.length) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
       return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }
     // Use the plain adapter even for chat models: one bounded answer, never a research loop.
     const prompt = buildPrompt(question, passages, history);
-    const system = prompt.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
+    const system = appMode ? APP_TEACHING_POLICY : prompt.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
     const messages = prompt.filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system");
     const left = deadlineAt - Date.now();
     if (left <= 0) throw new DeadlineError(deadlineMs);
     const tModel = Date.now();
     const ran = await withDeadline(researchOpen(env, { ...model, format: "plain" }, system, messages,
-      [], new Map(), async () => ({ content: "No tools are available." }), () => undefined, 1, spend), left);
+      [], new Map(), async () => ({ content: "No tools are available." }), emit ?? (() => undefined), 1, spend, !!emit), left);
     // Where the time goes, for tuning: finding the passages, and the model writing the answer.
     console.log(JSON.stringify({ event: "search_answer_timing", retrieveMs, modelMs: Date.now() - tModel, totalMs: Date.now() - t0 }));
-    const { answer } = splitFollowups(ran.text);
+    const { answer, followups } = splitFollowups(ran.text);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
-    return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    return { ok: true, answer, followups, sources: sourcesOf(answer, passages), model: model.id, provider: model.provider, ms: Date.now() - t0 };
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
     console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, retrieveMs, message: (e as Error).message?.slice(0, 160) }));

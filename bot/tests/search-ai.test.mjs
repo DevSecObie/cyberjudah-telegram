@@ -321,3 +321,16 @@ test("app Ask keeps each account to the daily cap, apart from other accounts", a
 test("a too-short app question is refused before the cap is counted", async () => {
   assert.deepEqual(await answerApp(env(), " x ", "acct-d", [], AGREED), { ok: false, reason: "too-short" });
 });
+
+test('native Ask rejects paid model selection before touching provider, quota or wallet', async () => {
+  assert.deepEqual(await answerApp(env(), 'Who is Judah?', 'app-owner', [], AGREED, 55000, { model: 'anthropic/claude-opus-5' }), { ok: false, reason: 'model-unavailable' });
+});
+test('native Ask refuses oversized questions rather than silently cutting them', async () => {
+  assert.deepEqual(await answerApp(env(), 'x'.repeat(4001), 'app-owner', [], AGREED), { ok: false, reason: 'too-long' });
+});
+
+test('native model promotion requires the versioned serving registry, not only an environment variable', async () => {
+  const result = await answerApp({ ASK_FREE_MODELS: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' }, 'Who was Abraham?', 'account', [], ['Cloudflare (Workers AI)'], 5000, { model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', study: true });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'model-unavailable');
+});
