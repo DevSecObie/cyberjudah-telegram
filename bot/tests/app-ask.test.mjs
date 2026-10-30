@@ -49,3 +49,24 @@ test('the inference stop switch rejects new questions without calling a model', 
     assert.equal(env.calls.length, before);
   } finally { delete env.ASK_APP_ENABLED; }
 });
+
+test('trace IDs correlate requests without logging the question, token or account', async () => {
+  const traceId = '9b3dc198-81d0-46a4-a019-e5985901661b';
+  const logs = [], original = console.log;
+  console.log = value => logs.push(value);
+  try {
+    const response = await appAsk.request('https://example.test/', {method:'POST',headers:{authorization:'Bearer fixture','content-type':'application/json','x-trace-id':traceId},body:JSON.stringify({q:'Private question sentinel',consent:['Cloudflare']})}, env, ctx);
+    assert.equal(response.headers.get('x-trace-id'), traceId);
+    assert.equal(response.headers.get('access-control-expose-headers'), 'X-Trace-ID');
+    assert.ok(logs.some(line => JSON.parse(line).traceId === traceId));
+    assert.ok(logs.every(line => !/Private question|firebase-alice|Bearer/.test(line)));
+    const invalid = await appAsk.request('https://example.test/models', {headers:{authorization:'Bearer fixture','x-trace-id':'email@example.test'}}, env, ctx);
+    assert.match(invalid.headers.get('x-trace-id'), /^[a-f0-9-]{36}$/);
+  } finally { console.log = original; }
+});
+test('oversized request streams are rejected before inference', async () => {
+  const before = env.calls.length;
+  const response = await request('/', {q:'a'.repeat(40000),consent:['Cloudflare']});
+  assert.equal(response.status, 413);
+  assert.equal(env.calls.length, before);
+});

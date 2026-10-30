@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import type { Env } from "./env";
 import { IdentityError } from "./account-links";
 import { appReader } from "./app-identity";
@@ -6,11 +7,18 @@ import { answerApp, appAskModels, freeModel, takeQuotaKey } from "./ai";
 import { normalizeHistory } from "./ai.mjs";
 import { keyedHash } from "./privacy.mjs";
 
-type AppAsk = { Bindings: Env; Variables: { account: string } };
+type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string } };
+const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export const appAsk = new Hono<AppAsk>();
+appAsk.use("*", bodyLimit({ maxSize: 32000, onError: c => c.json({ error: "too-large" }, 413) }));
 // These endpoints never resolve a Telegram wallet. Identity is always a verified Firebase UID.
 appAsk.use('*', async (c, next) => {
   c.header('cache-control', 'no-store');
+  const suppliedTrace = c.req.header('x-trace-id') ?? '';
+  const traceId = tracePattern.test(suppliedTrace) ? suppliedTrace.toLowerCase() : crypto.randomUUID();
+  c.set('traceId', traceId);
+  c.header('X-Trace-ID', traceId);
+  c.header('Access-Control-Expose-Headers', 'X-Trace-ID');
   try {
     const identity = await appReader(c.req.raw, c.env);
     if (!identity) return c.json({ error: 'sign_in_required' }, 401);
@@ -27,7 +35,7 @@ appAsk.post('/report', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 1024) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
   if (raw.length > 1024) return c.json({ error: 'too-large' }, 413);
-  let body: { reason?: unknown; model?: unknown };
+  let body: { reason?: unknown; model?: unknown; traceId?: unknown };
   try { body = JSON.parse(raw); } catch { return c.json({ error: 'bad-request' }, 400); }
   if (!body || !['wrong', 'harmful'].includes(String(body.reason))) return c.json({ error: 'bad-request' }, 400);
   const day = new Date().toISOString().slice(0, 10);
@@ -35,7 +43,7 @@ appAsk.post('/report', async c => {
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
   const model = appAskModels(c.env).find(m => m.id === body.model)?.id ?? 'default';
-  await c.env.SUBS.put(`app_ask_report:${day}:${crypto.randomUUID()}`, JSON.stringify({ reason: body.reason, model, at: Date.now() }), { expirationTtl: 90 * 86400 });
+  await c.env.SUBS.put(`app_ask_report:${day}:${crypto.randomUUID()}`, JSON.stringify({ reason: body.reason, model, at: Date.now(), ...(typeof body.traceId === 'string' && tracePattern.test(body.traceId) ? { traceId: body.traceId.toLowerCase() } : {}) }), { expirationTtl: 90 * 86400 });
   return c.json({ ok: true });
 });
 appAsk.post('/', async c => {
@@ -54,7 +62,18 @@ appAsk.post('/', async c => {
   const ip = c.req.header('cf-connecting-ip')?.slice(0, 45);
   if (ip && !await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000)))) return c.json({ error: 'limit' }, 429);
   const history = normalizeHistory(body.history as never, 8);
-  const run = (emit?: NonNullable<Parameters<typeof answerApp>[6]>['emit']) => answerApp(c.env, body.q as string, c.get('account'), history, consent, 55000, { model: model.id, emit, study: body.ui === 'study-v1' });
+  const run = async (emit?: NonNullable<Parameters<typeof answerApp>[6]>['emit']) => {
+    const startedAt = Date.now();
+    const traceId = c.get('traceId');
+    try {
+      const result = await answerApp(c.env, body.q as string, c.get('account'), history, consent, 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId });
+      console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
+      return result;
+    } catch (error) {
+      console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: 'failed', model: model.id, elapsedMs: Date.now()-startedAt }));
+      throw error;
+    }
+  };
   if (!body.stream) {
     const res = await run();
     return res.ok ? c.json({ ...res, sources: res.sources.map(({ text, ...source }) => ({ ...source, ...(res.ui ? { excerpt: text.slice(0, 1000) } : {}) })) }) : c.json({ error: res.reason }, res.reason === 'limit' || res.reason === 'free-paused' ? 429 : 503);

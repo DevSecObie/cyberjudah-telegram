@@ -358,7 +358,7 @@ export function appAskModels(env: Env): AskModel[] {
   return MODELS.filter(m => allowed.has(m.id) && APP_STUDY_RELEASE.approvedModels.some(id => id === m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
 }
 
-export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS, options: { model?: string; emit?: (event: AppStudyEvent) => void; study?: boolean } = {}): Promise<SearchAnswer> {
+export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS, options: { model?: string; emit?: (event: AppStudyEvent) => void; study?: boolean; traceId?: string } = {}): Promise<SearchAnswer> {
   const t0 = Date.now();
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
@@ -376,14 +376,14 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (!reservation) return { ok: false, reason: "free-paused" };
   // A free meter with no owner: finishMeter settles the reservation and never touches a balance.
   const meter: Meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: 1 };
-  return boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, options.study ? 'study' : 'app');
+  return boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, options.study ? 'study' : 'app', options.traceId);
 }
 
 /**
  * One library-grounded answer under a free meter: the passages, one plain call to the model,
  * the sources it cited. Shared by search answers and the app's Ask.
  */
-async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number, emit?: (event: AppStudyEvent) => void, appMode?: 'app' | 'study'): Promise<SearchAnswer> {
+async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number, emit?: (event: AppStudyEvent) => void, appMode?: 'app' | 'study', traceId?: string): Promise<SearchAnswer> {
   const spend = meter.spend;
   emit?.({ status: `Searching the classes and library for “${searchText.slice(0, 160)}”` });
   // One clock for retrieval and the model: it starts when retrieval does.
@@ -397,7 +397,7 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     if (appMode === 'study') {
       // Await each metered inference before settling its reservation, even if the client
       // disconnects. A racing timeout must not settle while inference is still spending.
-      const result = await answerAppStudy(env, question, history, passages, model, spend, emit ?? (() => undefined), deadlineAt);
+      const result = await answerAppStudy(env, question, history, passages, model, spend, emit ?? (() => undefined), deadlineAt, traceId);
       await finishMeter(env, meter, 'ok', Date.now() - t0);
       return { ok: true, ...result, model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }

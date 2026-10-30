@@ -13,9 +13,9 @@ export type AppStudyEvent = AgentEvent | { ui: string; sources: ReturnType<typeo
 
 /** Two metered calls: select relevant public resources, then compose native OpenUI from
  * the actual findings. It never calls a different provider or accesses Telegram/private data. */
-export async function answerAppStudy(env: Env, question: string, history: Turn[], first: Passage[], model: AskModel, spend: Spend, emit: (e: AppStudyEvent) => void, deadlineAt = Date.now() + 55000) {
+export async function answerAppStudy(env: Env, question: string, history: Turn[], first: Passage[], model: AskModel, spend: Spend, emit: (e: AppStudyEvent) => void, deadlineAt = Date.now() + 55000, traceId?: string) {
   const startedAt = Date.now();
-  const record = (outcome: string, sources: StudySource[], teachingFound: boolean) => console.log(JSON.stringify({ event: 'app_study_result', release: APP_STUDY_RELEASE.version, model: model.id, outcome, elapsedMs: Date.now()-startedAt, teachingFound, teachingSources: sources.filter(s => s.evidence === 'teaching').length, transcriptSources: sources.filter(s => s.kind === 'spoken').length, referenceSources: sources.filter(s => s.evidence === 'reference').length, scriptureSources: sources.filter(s => s.evidence === 'scripture').length }));
+  const record = (outcome: string, sources: StudySource[], teachingFound: boolean) => console.log(JSON.stringify({ event: 'app_study_result', traceId, release: APP_STUDY_RELEASE.version, model: model.id, outcome, elapsedMs: Date.now()-startedAt, teachingFound, teachingSources: sources.filter(s => s.evidence === 'teaching').length, transcriptSources: sources.filter(s => s.kind === 'spoken').length, referenceSources: sources.filter(s => s.evidence === 'reference').length, scriptureSources: sources.filter(s => s.evidence === 'scripture').length }));
   const plainModel = { ...model, format: 'plain' as const };
   const research = createAppResearch(env, first, emit);
   await research.search([{ resource: 'transcripts', query: question.slice(0, 120) }]);
@@ -31,14 +31,18 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   if (!sources.length) { record('no-evidence', [], false); return { answer: NO_TEACHING, sources: [], followups: [], teachingFound: false }; }
   emit({ status: 'Writing from the teachings and supporting sources' });
   const evidence = sources.map(s => `[${s.n}] Evidence type: ${s.evidence}. ${s.title}${s.sub ? ` · ${s.sub}` : ''}\n${s.text}`).join('\n\n');
-  let raw = '', lastParsed = 0;
+  let raw = '', lastParsed = 0, snapshots = 0, snapshotBytes = 0;
   const streamed = (event: AgentEvent) => {
     if ('delta' in event) {
       raw += event.delta;
-      if (raw.length - lastParsed < 500) return;
+      if (raw.length - lastParsed < 1000 || snapshots >= 8) return;
       lastParsed = raw.length;
       const partial = validateStudyProgram(raw, sources, true);
-      if (partial) emit({ ui: partial.program, sources: partial.sources.map(publicStudySource), teachingFound: partial.teachingFound });
+      if (partial) {
+        const snapshot = { ui: partial.program, sources: partial.sources.map(publicStudySource), teachingFound: partial.teachingFound };
+        const bytes = new TextEncoder().encode(JSON.stringify(snapshot)).byteLength;
+        if (snapshotBytes + bytes <= 350000) { snapshotBytes += bytes; snapshots++; emit(snapshot); }
+      }
     } else if ('status' in event) emit(event);
   };
   const result = await researchOpen(env, plainModel, appStudyPrompt,
@@ -52,6 +56,5 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
     return { answer: 'I couldn’t produce a source-checked explanation this time. You can read the retrieved teaching and reference sources below, or try again.', sources: sources.slice(0, 12), followups: [], teachingFound: false };
   }
   record('complete', checked.sources, checked.teachingFound);
-  emit({ ui: checked.program, sources: checked.sources.map(publicStudySource), teachingFound: checked.teachingFound });
   return { answer: checked.answer || NO_TEACHING, ui: checked.program, sources: checked.sources, followups: checked.followups, teachingFound: checked.teachingFound };
 }
