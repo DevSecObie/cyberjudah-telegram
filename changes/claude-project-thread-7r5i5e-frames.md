@@ -1,0 +1,1 @@
+- The video player page staging serves to the phone app (/embed/youtube.html and /embed/youtube it redirects to) may now be shown inside a frame, so the class videos next to the verses in the app's Bible reader play. Every other page keeps the frame rule (only the site and Telegram's web clients). Owner approved the header change on 2026-10-30.
