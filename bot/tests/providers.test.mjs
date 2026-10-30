@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import Anthropic from "@anthropic-ai/sdk";
-import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "../src/providers.ts";
+import { build } from "esbuild";
+
+const out = new URL("./.build/providers.mjs", import.meta.url).pathname;
+await build({ entryPoints: [new URL("../src/providers.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", outfile: out, logLevel: "error", external: ["@anthropic-ai/sdk", "grammy"] });
+const { alertClaudeFunds, claude, claudeOutOfFunds, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } = await import(out);
 
 const apiError = (status) => Anthropic.APIError.generate(status, { error: { type: "x", message: "m" } }, "m", new Headers());
 
@@ -89,4 +93,27 @@ test("an emptied Anthropic console balance hands the answer to the backup", () =
   const low = new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." } }, "Your credit balance is too low to access the Anthropic API.", new Headers());
   assert.equal(claudeUnavailable(low), true);
   assert.equal(claudeUnavailable(new Anthropic.BadRequestError(400, {}, "messages: field required", new Headers())), false);
+});
+
+test("when Claude's money runs out the admins are told in Telegram, at most once every six hours", async () => {
+  const low = new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." } }, "Your credit balance is too low to access the Anthropic API.", new Headers());
+  assert.equal(claudeOutOfFunds(low), true);
+  assert.equal(claudeOutOfFunds(apiError(402)), true);
+  assert.equal(claudeOutOfFunds(apiError(429)), false, "busy is not out of money");
+  const kv = new Map();
+  const SUBS = { get: async (k) => kv.get(k) ?? null, put: async (k, v) => { kv.set(k, v); } };
+  const sent = [];
+  const { createServer } = await import("node:http");
+  const server = createServer((req, res) => { let body = ""; req.on("data", (d) => { body += d; }); req.on("end", () => { sent.push({ url: req.url, body }); res.setHeader("content-type", "application/json"); res.end(JSON.stringify({ ok: true, result: { message_id: 1, date: 0, chat: { id: 42, type: "private" } } })); }); });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  try {
+    const env = { SUBS, ADMIN_IDS: "42", BOT_TOKEN: "t", ANTHROPIC_API_KEY: "k", TELEGRAM_API_ROOT: `http://127.0.0.1:${server.address().port}` };
+    await alertClaudeFunds(env, apiError(429));
+    assert.equal(sent.length, 0);
+    await alertClaudeFunds(env, low);
+    await alertClaudeFunds(env, low);
+    assert.equal(sent.length, 1, "one message, not one per question");
+    assert.match(sent[0].body, /Claude console balance has run out/);
+    assert.match(sent[0].body, /not charged/);
+  } finally { server.close(); }
 });

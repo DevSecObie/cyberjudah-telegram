@@ -10,7 +10,7 @@ import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, r
 import { runAgent, type AgentEvent } from "./agent";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
-import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
+import { alertClaudeFunds, claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
@@ -490,6 +490,7 @@ async function answerOnce(env: Env, messages: Msg[]): Promise<string> {
     catch (e) {
       if (!claudeUnavailable(e)) throw e;
       console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
+      await alertClaudeFunds(env, e);
     }
   }
   const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3 }, viaGateway(env)) as { response?: string };
@@ -633,6 +634,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               // backup model answers from the passages already found, and the reader is not charged.
               if (!claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
+              await alertClaudeFunds(env, e);
               await finish("backup");
               send({ reset: true });
               send({ status: "Answering with the backup model" });

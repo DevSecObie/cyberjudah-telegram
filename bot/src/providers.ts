@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Env } from "./env";
+import { tellAdmins } from "./health";
 
 /**
  * How the Worker reaches its models. Claude is the main model for Ask; Workers AI (Llama) is the
@@ -72,4 +73,25 @@ export function claudeUnavailable(e: unknown): boolean {
   // Anthropic answers an emptied console balance with a 400 ("credit balance is too low"): the backup answers then too.
   if (s === 400 && /credit balance/i.test(e.message ?? "")) return true;
   return s === undefined || s === 401 || s === 402 || s === 403 || s === 408 || s === 409 || s === 429 || s >= 500;
+}
+
+/** Whether the failure means the money that pays for Claude has run out: the owner's console (400) or Cloudflare's credits (402). */
+export function claudeOutOfFunds(e: unknown): boolean {
+  if (!(e instanceof Anthropic.APIError)) return false;
+  return e.status === 402 || (e.status === 400 && /credit balance/i.test(e.message ?? ""));
+}
+
+/**
+ * While Claude's money is gone, paying readers get the backup model's answers and are not charged.
+ * The admins are told in Telegram so it can be topped up, at most once every six hours.
+ */
+export async function alertClaudeFunds(env: Env, e: unknown, now = Date.now()): Promise<void> {
+  if (!claudeOutOfFunds(e)) return;
+  try {
+    const key = "alert:claude_funds";
+    if (await env.SUBS.get(key)) return;
+    await env.SUBS.put(key, new Date(now).toISOString(), { expirationTtl: 6 * 3600 });
+    const where = unifiedBilling(env) ? "The Cloudflare credits that pay for Claude have" : "The Claude console balance has";
+    await tellAdmins(env, `Ask CyberJudah: ${where} run out. Paying readers are getting the backup model's answers, and are not charged for them, until it is topped up.\n\n${new Date(now).toISOString()}`);
+  } catch (err) { console.error(JSON.stringify({ event: "claude_funds_alert_failed", message: String((err as Error)?.message ?? err).slice(0, 160) })); }
 }
