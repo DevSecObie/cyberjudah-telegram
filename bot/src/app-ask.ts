@@ -8,6 +8,7 @@ import { normalizeHistory } from "./ai.mjs";
 import { keyedHash } from "./privacy.mjs";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
+import { recordAskEvent } from "./ask-events";
 
 type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string } };
 const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -93,9 +94,12 @@ appAsk.post('/', async c => {
     try {
       const result = await answerApp(c.env, body.q as string, c.get('account'), history, consent, 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId });
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
+      // A study answer records its own outcome (app-study-answer.ts); everything else, and every refusal, here.
+      if (body.ui !== 'study-v1' || !result.ok) await recordAskEvent(c.env, { traceId, surface: body.ui === 'study-v1' ? 'study' : 'app', model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
       return result;
     } catch (error) {
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: 'failed', model: model.id, elapsedMs: Date.now()-startedAt }));
+      await recordAskEvent(c.env, { traceId, surface: body.ui === 'study-v1' ? 'study' : 'app', model: model.id, outcome: 'failed', detail: String((error as Error)?.message ?? '').slice(0, 200), elapsedMs: Date.now() - startedAt });
       throw error;
     }
   };
