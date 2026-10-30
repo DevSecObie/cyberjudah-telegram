@@ -4,7 +4,7 @@ import { parseReference } from "./refs.mjs";
 import { guardVerses } from "./verse-guard.mjs";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
@@ -388,7 +388,10 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  const model = appAskModels(env).find(m => m.id === (options.model || freeModel(env).id));
+  // With no choice, a deep question (routeOf) goes to the stronger free model when one is configured
+  // (ASK_FREE_DEEP_MODEL) and approved; everything else to the fast default.
+  const deep = !options.model && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? appAskModels(env).find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
+  const model = deep ?? appAskModels(env).find(m => m.id === (options.model || freeModel(env).id));
   if (!model) return { ok: false, reason: "model-unavailable" };
   // Nothing is sent to a provider the reader has not agreed to, as in askStream.
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
@@ -446,7 +449,8 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
       [], new Map(), async () => ({ content: "No tools are available." }), emit ?? (() => undefined), 1, spend, !!emit), left);
     // Where the time goes, for tuning: finding the passages, and the model writing the answer.
     console.log(JSON.stringify({ event: "search_answer_timing", retrieveMs, modelMs: Date.now() - tModel, totalMs: Date.now() - t0 }));
-    const { answer: written, followups } = splitFollowups(ran.text);
+    // A reasoning model's private working, if it ever comes back in the text, is not the answer.
+    const { answer: written, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
     const answer = await checkedVerses(env, written);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
@@ -553,9 +557,12 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * answer as the model writes it, then a line with the sources it cited.
  */
 export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = [], opts: MeterOpts = {}): Promise<Response> {
-  // The reader's choice of model, or their configured account default.
-  const model = modelOf(modelId, defaultModelId(env, userId));
   const question = q.trim().slice(0, 400);
+  // The reader's choice of model, or their configured account default. With no choice, a light
+  // question (routeOf) goes to the lighter Claude model when one is configured (CLAUDE_MODEL_LIGHT):
+  // it is answered faster and costs the reader less. Admins keep their own default.
+  const light = !modelId && !isAdmin(env, userId) && env.CLAUDE_MODEL_LIGHT && routeOf(question, history) === "light";
+  const model = modelOf(modelId || (light ? env.CLAUDE_MODEL_LIGHT : undefined), defaultModelId(env, userId));
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
@@ -566,7 +573,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // The balance: held before anything is spent, settled once at the end with what the answer
   // actually cost (finishMeter). Leaving mid-answer does not cancel it (waitUntil), so it is still
   // settled once. Too little for this model: Ask says so and offers the free model and a top-up.
-  const started = await begin(env, userId, model, opts);
+  // A routed light answer may cost up to what the reader accepted for their default model, which is dearer.
+  const fallbackCap = light ? opts.caps?.[modelOf(undefined, defaultModelId(env, userId)).id] : undefined;
+  const started = await begin(env, userId, model, fallbackCap && !opts.caps?.[model.id] ? { ...opts, caps: { ...opts.caps, [model.id]: fallbackCap } } : opts);
   if (!started.ok) return reply(started.status, started.body);
   const meter = started.meter;
   const spend = meter?.spend ?? freeSpend();

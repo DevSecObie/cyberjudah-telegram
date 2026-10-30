@@ -100,3 +100,15 @@ test("a passage's teacher is shown to the model, and a Bishop's or Deacon's rele
   assert.deepEqual(answerCandidates("Why keep the Passover?", [captain, bishop], 1), [bishop]);
   assert.match(SYSTEM, /Never name a teacher for a passage that is not marked/);
 });
+
+test("questions are routed by how much thinking they need", async () => {
+  const { routeOf } = await import("../src/ai.mjs");
+  assert.equal(routeOf("Shalom!"), "light");
+  assert.equal(routeOf("thank you brother"), "light");
+  assert.equal(routeOf("Who was Naamah?"), "light");
+  assert.equal(routeOf("and the feast?", [{ role: "user", content: "x" }, { role: "assistant", content: "y" }]), "light");
+  assert.equal(routeOf("Why do we keep the Passover?"), "deep");
+  assert.equal(routeOf("Who was Melchizedek? And why is Christ compared to him?"), "deep");
+  assert.equal(routeOf("Explain Isaiah 28:9-13"), "deep");
+  assert.equal(routeOf("the curses"), "deep");
+});

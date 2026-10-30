@@ -22,3 +22,4 @@ export const RESEARCH: string;
 export const APP: string;
 export function splitFollowups(text: string): { answer: string; followups: string[] };
 export function normalizeHistory(turns: unknown, max?: number): Turn[];
+export function routeOf(question: string, history?: Turn[]): "light" | "deep";

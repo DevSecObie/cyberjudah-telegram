@@ -386,3 +386,10 @@ test("passages are tagged with the teacher the published class notes name, and o
   ]);
   assert.deepEqual(tagged.map((p) => p.teacher), ["Deacon Isaac", "Deacon Isaac", undefined]);
 });
+
+test("a deep app question goes to the stronger free model when one is configured; a light one stays on the fast default", async () => {
+  const e = { ...env(), ASK_FREE_MODEL: '@cf/google/gemma-4-26b-a4b-it', ASK_FREE_DEEP_MODEL: '@cf/deepseek-ai/deepseek-v4-flash-0731', ASK_FREE_MODELS: '@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731' };
+  assert.equal((await answerApp(e, 'Why do we keep the Passover?', 'acct-r', [], AGREED)).model, '@cf/deepseek-ai/deepseek-v4-flash-0731');
+  assert.equal((await answerApp(e, 'Who was Naamah?', 'acct-r', [], AGREED)).model, '@cf/google/gemma-4-26b-a4b-it');
+  assert.equal((await answerApp(e, 'Why do we keep the Passover?', 'acct-r', [], AGREED, 55000, { model: '@cf/google/gemma-4-26b-a4b-it' })).model, '@cf/google/gemma-4-26b-a4b-it', 'a chosen model is kept');
+});

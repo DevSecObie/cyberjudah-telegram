@@ -75,10 +75,10 @@
         "SITE_URL": "https://cyberjudah.io",
         "D1_SIZE_ALERT_BYTES": "8000000000",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
-        "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
+        "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
-        "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it",
+        "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
         "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_FREE_MODELS": "@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731,@cf/meta/llama-3.1-8b-instruct-fp8",
         "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
@@ -96,7 +96,7 @@
     "APP_URL": "https://cyberjudah.io/app",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
     // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
-    "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
+    "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
     // Cloudflare AI Gateway for Workers AI calls (logs, analytics, rate limits on the dashboard).
     // "default" is created by Cloudflare on the first request (providers.ts). Claude goes through it
     // too once the CF_AIG_TOKEN secret is set; until then Claude is called directly. If Claude
@@ -145,7 +145,7 @@
     // Remove the model setting to use ASK_FREE_MODEL. See docs/SEARCH_AI.md for quota limits.
     // ASK_FREE_MODEL names the default free model: it costs less per token than the earlier default
     // (ask-models.json) and reasons and follows instructions far better; the earlier one stays free.
-    "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it",
+    "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
     "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_FREE_MODELS": "@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731,@cf/meta/llama-3.1-8b-instruct-fp8",
     "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from

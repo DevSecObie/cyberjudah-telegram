@@ -195,3 +195,20 @@ export function normalizeHistory(turns, max = 6) {
   while (window.length && window[0].role !== "user") window = window.slice(1);
   return window;
 }
+
+/**
+ * How much thinking a question needs, as the leading assistants route it: "light" (a greeting, a
+ * thank-you, a short follow-up, a plain who-or-what) can go to a faster, cheaper model; "deep" (why
+ * and how, comparisons, several questions at once, a passage to explain) to the strongest one the
+ * reader has. Used only when the reader has not chosen a model.
+ */
+const DEEP = /\b(why|how|explain|meaning|mean|compare|difference|relationship|prophec|interpret|connect|according to|teach|taught|doctrine|law|commandment)\w*/i;
+export function routeOf(question, history = []) {
+  const q = String(question).trim();
+  const words = q.split(/\s+/).filter(Boolean).length;
+  if ((q.match(/\?/g)?.length ?? 0) > 1 || words > 25 || /\d+:\d+\s*[-\u2013]\s*\d+/.test(q)) return "deep";
+  if (/^(hi|hello|hey|shalom|thanks?|thank you|ok(ay)?|got it|amen)\b/i.test(q) && words <= 8) return "light";
+  if (DEEP.test(q)) return "deep";
+  if (words <= 8) return history.length ? "light" : /^(who|what|when|where)\b/i.test(q) ? "light" : "deep";
+  return "deep";
+}
