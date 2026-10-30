@@ -110,7 +110,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: DevSecObie/cyberjudah-app
-          ref: 2b971806cfcd7e4c56c3f34909dde623b1bd8fbc
+          ref: cbecb87cc71fa82029d919889e4b3b554ddf20d3
           path: native-release
           persist-credentials: false
           sparse-checkout: apps/expo/public
