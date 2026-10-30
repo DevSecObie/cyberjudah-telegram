@@ -1,0 +1,2 @@
+- Settings → Credits now names the software: the Bible reader, tabs and study tools are adapted from Bible Strong, and both are free software under the GNU GPL version 3, with links to both source codes and the license.
+- A chapter link that names its verse as #v16 (as cyberjudah.io's links do) now opens the whole chapter at that verse.
