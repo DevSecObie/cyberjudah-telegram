@@ -1,0 +1,5 @@
+- App readers can buy prepaid Ask credit packs ($4.99, $9.99, $19.99) through Apple or Google, tracked by RevenueCat. They are one-time purchases and nothing renews, so nothing is ever charged on a Sabbath, feast or New Moon by itself. Each pack adds its price minus the store's cut, so the owner never pays the fee.
+- `POST /api/revenuecat/webhook` credits a pack once per store transaction, and a store refund takes back what is still unspent. It only accepts RevenueCat's authorization header (the `REVENUECAT_WEBHOOK_AUTH` secret). Unknown products, anonymous ids and subscription events are ignored. Sandbox purchases count on staging only.
+- The app names a reader's balance to RevenueCat by a keyed hash of their sign-in, never the sign-in itself (`GET /api/app/ask/wallet`).
+- With packs open, the app's Ask also offers the Claude models, paid from the reader's own balance at cost, held to the confirm limit. If Claude's money has run out, the free model answers instead and the balance is not touched.
+- Everything is switched off (`ASK_PURCHASES: "off"`) until the app's purchase screens ship and the owner turns it on.
