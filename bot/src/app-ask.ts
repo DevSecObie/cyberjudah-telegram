@@ -91,11 +91,13 @@ appAsk.post('/', async c => {
   const run = async (emit?: NonNullable<Parameters<typeof answerApp>[6]>['emit']) => {
     const startedAt = Date.now();
     const traceId = c.get('traceId');
+    // A request that never records an outcome after this was cut off mid-answer (the Worker stopped).
+    await recordAskEvent(c.env, { traceId, surface: body.ui === 'study-v1' ? 'study' : 'app', model: model.id, outcome: 'started' });
     try {
       const result = await answerApp(c.env, body.q as string, c.get('account'), history, consent, 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId });
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
       // A study answer records its own outcome (app-study-answer.ts); everything else, and every refusal, here.
-      if (body.ui !== 'study-v1' || !result.ok) await recordAskEvent(c.env, { traceId, surface: body.ui === 'study-v1' ? 'study' : 'app', model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
+      if (body.ui !== 'study-v1' || !result.ok) await recordAskEvent(c.env, { traceId, surface: body.ui === 'study-v1' ? 'study' : 'app', model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, detail: result.ok ? undefined : result.detail, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
       return result;
     } catch (error) {
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: 'failed', model: model.id, elapsedMs: Date.now()-startedAt }));
