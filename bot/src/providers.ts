@@ -1,6 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Env } from "./env";
-import { tellAdmins } from "./health";
 
 /**
  * How the Worker reaches its models. Claude is the main model for Ask; Workers AI (Llama) is the
@@ -92,6 +91,8 @@ export async function alertClaudeFunds(env: Env, e: unknown, now = Date.now()): 
     if (await env.SUBS.get(key)) return;
     await env.SUBS.put(key, new Date(now).toISOString(), { expirationTtl: 6 * 3600 });
     const where = unifiedBilling(env) ? "The Cloudflare credits that pay for Claude have" : "The Claude console balance has";
+    // Loaded here, not at the top, so this module stays importable without the Telegram client.
+    const { tellAdmins } = await import("./health");
     await tellAdmins(env, `Ask CyberJudah: ${where} run out. Paying readers are getting the backup model's answers, and are not charged for them, until it is topped up.\n\n${new Date(now).toISOString()}`);
   } catch (err) { console.error(JSON.stringify({ event: "claude_funds_alert_failed", message: String((err as Error)?.message ?? err).slice(0, 160) })); }
 }
