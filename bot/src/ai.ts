@@ -329,7 +329,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 
 export type SearchAnswer =
   | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; ui?: string; teachingFound?: boolean }
-  | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit" };
+  | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
 export function searchModel(env: Env): AskModel | null {
@@ -471,7 +471,8 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
     console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, retrieveMs, message: (e as Error).message?.slice(0, 160) }));
-    return { ok: false, reason: "unavailable" };
+    // The same bounded message, for the monitoring record (ask-events.ts).
+    return { ok: false, reason: "unavailable", detail: `${e instanceof DeadlineError ? "timeout" : "failed"}: ${(e as Error).message?.slice(0, 160) ?? ""}` };
   }
 }
 

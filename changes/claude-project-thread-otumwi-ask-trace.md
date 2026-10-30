@@ -1,0 +1,1 @@
+- Ask monitoring: each app Ask request records a "started" entry, so a request cut off mid-answer shows up as started with no outcome, and an "unavailable" answer now records the bounded reason (timeout or the failure message).
