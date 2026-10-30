@@ -1,5 +1,5 @@
 import type { ResourcePins } from "../../shared/resources";
-import { books, chapter } from "./data";
+import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
@@ -59,7 +59,37 @@ export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend)
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
   // What this search cost: the question embedded, one vector query, and what the reranker read.
   spend?.search({ query: text, contexts: all.length > 1 ? all.map((p) => `${p.title}\n${p.text}`.slice(0, 2000)) : [] });
-  return rerank(env, text, all, topK);
+  return withTeachers(env, await rerank(env, text, all, topK));
+}
+
+/**
+ * Who taught each passage's class, from the published class notes (their recording and page), so
+ * the answer can put the Bishops' and Deacons' teaching first and name a teacher only when the
+ * notes do. A class with no note, or a note with no teacher, stays unnamed: never guessed.
+ */
+type NoteRow = { url?: string; videoId?: string | null; teacher?: string };
+let teacherIndex: { at: number; byVideo: Map<string, string>; byUrl: Map<string, string> } | null = null;
+async function teachers(env: Env) {
+  if (teacherIndex && Date.now() - teacherIndex.at < 3_600_000) return teacherIndex;
+  const rows = await dataJson<NoteRow[]>(env, "/api/notes/index.json").catch(() => null);
+  if (!Array.isArray(rows)) return teacherIndex;
+  const byVideo = new Map<string, string>(), byUrl = new Map<string, string>();
+  for (const r of rows) {
+    const teacher = typeof r.teacher === "string" ? r.teacher.trim().slice(0, 80) : "";
+    if (!teacher) continue;
+    if (r.videoId) byVideo.set(r.videoId, teacher);
+    if (r.url) byUrl.set(r.url, teacher);
+  }
+  teacherIndex = { at: Date.now(), byVideo, byUrl };
+  return teacherIndex;
+}
+export async function withTeachers<T extends Passage>(env: Env, passages: T[]): Promise<T[]> {
+  const index = await teachers(env).catch(() => null);
+  if (!index) return passages;
+  return passages.map((p) => {
+    const teacher = (p.video && index.byVideo.get(p.video)) || (p.url && index.byUrl.get(p.url.split(/[?#]/)[0])) || "";
+    return teacher ? { ...p, teacher } : p;
+  });
 }
 
 /**

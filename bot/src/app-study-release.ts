@@ -3,7 +3,7 @@
 export const APP_STUDY_RELEASE = {
   version: 'teacher-grounded-study-v4-combined',
   trainingEnabled: false,
-  approvedModels: ['@cf/google/gemma-4-26b-a4b-it', '@cf/meta/llama-3.1-8b-instruct-fp8'],
+  approvedModels: ['@cf/google/gemma-4-26b-a4b-it', '@cf/deepseek-ai/deepseek-v4-flash-0731', '@cf/meta/llama-3.1-8b-instruct-fp8'],
   uiContract: 'study-v1',
   maxSupplementarySearches: 4,
   maxEvidenceSources: 24,

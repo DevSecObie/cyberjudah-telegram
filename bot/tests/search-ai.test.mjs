@@ -370,3 +370,19 @@ test('the stronger free model is admitted to native Ask when configured', async 
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(r.model, '@cf/google/gemma-4-26b-a4b-it');
 });
+
+test("passages are tagged with the teacher the published class notes name, and only those", async (t) => {
+  const { withTeachers } = await import(out);
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async (url) => new URL(url).pathname === "/api/notes/index.json"
+    ? Response.json([{ url: "/classes/2026/passover", videoId: "abc123def45", teacher: "Deacon Isaac" }, { url: "/classes/x", videoId: "zzz", teacher: "" }])
+    : new Response("", { status: 404 });
+  t.after(() => { globalThis.fetch = realFetch; globalThis.caches = realCaches; });
+  const tagged = await withTeachers({ DATA_ORIGIN: "https://data.test" }, [
+    { kind: "spoken", title: "A", url: "", video: "abc123def45", text: "x" },
+    { kind: "class", title: "B", url: "/classes/2026/passover?t=30", text: "y" },
+    { kind: "class", title: "C", url: "/classes/x", video: "zzz", text: "z" },
+  ]);
+  assert.deepEqual(tagged.map((p) => p.teacher), ["Deacon Isaac", "Deacon Isaac", undefined]);
+});

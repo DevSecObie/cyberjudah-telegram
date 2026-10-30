@@ -1,4 +1,4 @@
-export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
+export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; teacher?: string; text: string };
 export type Match = { id: string; score: number; metadata?: Record<string, unknown> };
 export const EMBED_MODEL: "@cf/baai/bge-m3";
 export const ANSWER_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast";

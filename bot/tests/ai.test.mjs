@@ -90,3 +90,13 @@ test("the answer contract keeps the classes' language, the evidence rule, and co
   assert.match(SYSTEM, /say plainly which part the library you were given does not cover/);
   assert.doesNotMatch(SYSTEM, /Do not quote the captions/);
 });
+
+test("a passage's teacher is shown to the model, and a Bishop's or Deacon's relevant teaching makes the cut first", () => {
+  const [, user] = buildPrompt("Why keep the Passover?", [{ kind: "spoken", title: "Passover", url: "", video: "v", t: 5, teacher: "Bishop Nathanyel", text: "one" }]);
+  assert.match(user.content, /\[1\] Passover \(taught by Bishop Nathanyel\) \(spoken at 5s\)/);
+  const text = "The Passover is kept as a memorial of deliverance from bondage, and the congregation observes it according to the law.";
+  const captain = { kind: "spoken", title: "A", url: "", teacher: "Captain Ashan-El", text, score: 0.70 };
+  const bishop = { kind: "spoken", title: "B", url: "", teacher: "Bishop Nathanyel", text, score: 0.66 };
+  assert.deepEqual(answerCandidates("Why keep the Passover?", [captain, bishop], 1), [bishop]);
+  assert.match(SYSTEM, /Never name a teacher for a passage that is not marked/);
+});

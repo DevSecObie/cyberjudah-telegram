@@ -65,7 +65,7 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   const sources = selectAppStudyEvidence(research.sources, initialCount);
   if (!sources.length) { record('no-evidence', [], false); return { answer: NO_TEACHING, sources: [], followups: [], teachingFound: false }; }
   emit({ status: 'Writing from the teachings and supporting sources' });
-  const evidence = sources.map(s => `[${s.n}] Evidence type: ${s.evidence}. ${s.title}${s.sub ? ` · ${s.sub}` : ''}\n${s.text}`).join('\n\n');
+  const evidence = sources.map(s => `[${s.n}] Evidence type: ${s.evidence}. ${s.title}${s.sub ? ` · ${s.sub}` : ''}${s.teacher ? ` (taught by ${s.teacher})` : ''}\n${s.text}`).join('\n\n');
   let raw = '', lastParsed = 0, snapshots = 0, snapshotBytes = 0;
   const streamed = (event: AgentEvent) => {
     if ('delta' in event) {
