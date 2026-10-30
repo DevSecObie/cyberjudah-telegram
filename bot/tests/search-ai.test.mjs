@@ -397,11 +397,11 @@ test("a deep app question goes to the stronger free model when one is configured
 });
 
 // The app's Ask on cyberjudah.io/app's engine (answerAppAgent).
-test("the app offers Claude only to an admin's linked account, and never from Sabbath sunset to dark", () => {
+test("the app offers Claude only to an admin's linked account, every day", () => {
   const e = { ...appEnv(), ADMIN_IDS: "42", ANTHROPIC_API_KEY: "k", CLAUDE_BILLING: "anthropic", CLAUDE_MODEL: "claude-sonnet-5" };
   const thursday = Date.parse("2026-10-29T18:00:00Z"), saturday = Date.parse("2026-10-31T18:00:00Z");
   assert.ok(appAskModels(e, 42, thursday).some((m) => m.format === "anthropic"));
-  assert.ok(!appAskModels(e, 42, saturday).some((m) => m.format === "anthropic"), "no paid calls on the Sabbath");
+  assert.ok(appAskModels(e, 42, saturday).some((m) => m.format === "anthropic"), "the owner chose no holy-day pause");
   assert.ok(!appAskModels(e, 7, thursday).some((m) => m.format === "anthropic"), "a reader gets the free models");
   assert.ok(!appAskModels(e, undefined, thursday).some((m) => m.format === "anthropic"));
   assert.ok(!appAskModels(appEnv()).some((m) => m.id.includes("llama-3.1-8b")), "llama-8b is no longer offered");

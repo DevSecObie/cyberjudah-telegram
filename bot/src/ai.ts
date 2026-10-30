@@ -20,7 +20,6 @@ import { estimateMc, MC_USD, mcOfUsd, viaUnifiedBilling } from "../../shared/cre
 import { freeSpend, makeSpend, type Spend } from "./spend";
 import { reserveFreeBudget, settleFreeBudget, type FreeReservation } from "./free-budget";
 import { researchOpen } from "./agent-open";
-import { topupPause } from "../../shared/holy-days.mjs";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -383,12 +382,12 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
 /** Native apps only expose the configured hosted free models until store entitlements exist. */
 /**
  * The models the app offers: the approved free models, and for an admin's linked account Claude
- * (when it can be called), except from sunset to dark on the Sabbath, feasts and New Moons (US Eastern).
+ * (when it can be called), every day: the owner chose not to pause it on holy days.
  */
-export function appAskModels(env: Env, adminId?: number, now = Date.now()): AskModel[] {
+export function appAskModels(env: Env, adminId?: number): AskModel[] {
   const allowed = freeModels(env);
   const free = MODELS.filter(m => allowed.has(m.id) && APP_STUDY_RELEASE.approvedModels.some(id => id === m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
-  const claudeOk = !!adminId && isAdmin(env, adminId) && hasClaude(env) && !topupPause(now, "America/New_York");
+  const claudeOk = !!adminId && isAdmin(env, adminId) && hasClaude(env);
   if (!claudeOk) return free;
   // The everyday model first (the app's default), then the lighter one and the admin's own.
   const ids = [env.CLAUDE_MODEL || CLAUDE_DEFAULT, env.CLAUDE_MODEL_LIGHT, defaultModelId(env, adminId)].filter((id): id is string => !!id).map((id) => modelOf(id).id);
@@ -439,14 +438,14 @@ export async function answerApp(env: Env, q: string, account: string, history: T
  * anyone but the owner's console, except on the Sabbath, feasts and New Moons (no paid calls from
  * sunset to dark), when the free model answers instead.
  */
-export async function answerAppAgent(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model?: string; emit?: (event: AgentEvent) => void; traceId?: string; adminId?: number; now?: number } = {}): Promise<SearchAnswer> {
+export async function answerAppAgent(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model?: string; emit?: (event: AgentEvent) => void; traceId?: string; adminId?: number } = {}): Promise<SearchAnswer> {
   const t0 = Date.now();
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const approved = approvedFor(question, history);
   if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
-  const models = appAskModels(env, options.adminId, options.now);
+  const models = appAskModels(env, options.adminId);
   const paid = models.filter((m) => m.format === "anthropic");
   const deep = !options.model && !paid.length && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? models.find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
   const model = options.model ? models.find(m => m.id === options.model) : deep ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
