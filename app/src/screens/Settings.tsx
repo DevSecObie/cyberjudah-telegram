@@ -179,6 +179,7 @@ export function Settings() {
       </Section>}
       {me?.admin ? <Section title="Content"><List><Row title="Admin" sub="Edit content, check reviews and publish approved changes" onClick={() => navigate("/settings/admin")} /></List></Section> : null}
       {me?.admin ? <AskUsage /> : null}
+      {me?.admin ? <Section title="Ask"><List><Row title="Ask Health" sub="How each model's answers are turning out, the latest problems and the budget" onClick={() => navigate("/settings/ask-health")} /></List></Section> : null}
       {me?.admin ? <Section title="Notes"><List><Row title="Requested notes" sub="Classes readers asked notes for, the most asked first" onClick={() => navigate("/settings/requests")} /></List></Section> : null}
       <Section title="This App">
         <List><Row title="Credits" sub="Narrators, recordings and licences" onClick={() => navigate("/settings/credits")} /></List>

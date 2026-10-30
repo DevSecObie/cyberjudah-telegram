@@ -1,1 +1,2 @@
 - Ask monitoring: each app Ask request records a "started" entry, so a request cut off mid-answer shows up as started with no outcome, and an "unavailable" answer now records the bounded reason (timeout or the failure message).
+- Admin Ask Health view (Settings > Ask Health, admins only; `GET /api/admin/ask-health`): answers by model (complete, fell back, failed, cut off, median time, sources), the latest problems with their reason, today's free budget and Claude's status. Built from `ask_events`, so it never shows questions, answers or readers.

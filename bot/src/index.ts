@@ -1,3 +1,4 @@
+import { askHealth } from "./ask-health";
 import { deviceAuth } from "./device-auth";
 import { IdentityError } from "./account-links";
 import { publicReader, readerContent } from "./reader";
@@ -382,6 +383,12 @@ app.get("/api/admin/usage", async (c) => {
   const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => ({ day, ...(await usageDayCredits(c.env, day)) })));
   const remindersByChannel = await reminderCounts(c.env).catch(() => null);
   return c.json({ ok: true, pricing: { usdPerStar: cfg.usdPerStar, margin: cfg.margin, topups: cfg.topups, unifiedFee: cfg.unifiedFee, confirmAboveMc: cfg.confirmAboveMc, maxRequestMc: cfg.maxRequestMc, research: cfg.research, missing: cfg.missing }, days, reminders: remindersByChannel });
+});
+// The admins' Ask health view: how each model's answers turned out, the latest problems, the budget (ask-health.ts).
+app.get("/api/admin/ask-health", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  const hours = Number(c.req.query("hours") ?? 24);
+  return c.json({ ok: true, ...(await askHealth(c.env, Number.isFinite(hours) ? hours : 24)) });
 });
 // An admin's refund: the Stars back through Telegram, and what that payment added and is unspent taken back.
 app.post("/api/admin/refund", async (c) => {
