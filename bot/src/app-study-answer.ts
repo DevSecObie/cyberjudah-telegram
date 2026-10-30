@@ -1,5 +1,7 @@
 import type { Passage, Turn } from './ai.mjs';
 import type { Env } from './env';
+import { books } from './data';
+import { parseReference, type BookRow } from './refs.mjs';
 import { APP_STUDY_RELEASE } from './app-study-release';
 import type { AgentEvent } from './agent';
 import type { AskModel } from '../../shared/ask-models.mjs';
@@ -7,6 +9,14 @@ import type { Spend } from './spend';
 import { researchOpen } from './agent-open';
 import { createAppResearch, parseResearchPlan, RESEARCH_PLAN_PROMPT } from './app-study-research';
 import { getAppStudyPrompt, NO_TEACHING, validateStudyProgram, type StudySource } from './app-study-ui';
+
+/** Named scriptures are precise transcript queries; conversational filler previously
+ * forced the caption search into a loose match on unrelated words. */
+export function appTranscriptQueries(question: string, catalog: readonly BookRow[] | null) {
+  const candidates = [...question.matchAll(/\b(?:[1-3]\s*)?[A-Za-z]+(?:\s+of\s+[A-Za-z]+)?\s+\d{1,3}:\d{1,3}(?:\s*[-–]\s*\d{1,3})?/g)];
+  const references = catalog ? candidates.map(m => parseReference(m[0], catalog)?.label).filter((r): r is string => !!r) : [];
+  return references.length ? [...new Set(references)].slice(0, 2) : [question.slice(0, 120)];
+}
 
 /** The renderer admits 12 sources. Give the composer no larger citation set: a small
  * model otherwise tries to display every research result and rejects its whole answer.
@@ -27,7 +37,8 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   const plainModel = { ...model, format: 'plain' as const };
   const research = createAppResearch(env, first, emit);
   const initialCount = research.sources.length;
-  await research.search([{ resource: 'transcripts', query: question.slice(0, 120) }]);
+  const catalog = /\d+:\d+/.test(question) ? await books(env).catch(() => null) : null;
+  await research.search(appTranscriptQueries(question, catalog).map(query => ({ resource: 'transcripts', query })));
   if (Date.now() >= deadlineAt) throw new Error('STUDY_RESEARCH_TIMEOUT');
   emit({ status: 'Looking for supporting study resources' });
   const plan = await researchOpen(env, plainModel, RESEARCH_PLAN_PROMPT,
