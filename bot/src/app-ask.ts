@@ -1,16 +1,17 @@
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { Env } from "./env";
-import { IdentityError } from "./account-links";
+import { IdentityError, linkedTelegram } from "./account-links";
 import { appReader } from "./app-identity";
-import { answerApp, appAskModels, freeModel, takeQuotaKey } from "./ai";
+import { answerApp, answerAppAgent, appAskModels, freeModel, takeQuotaKey } from "./ai";
+import { isAdmin } from "./edit";
 import { normalizeHistory } from "./ai.mjs";
 import { keyedHash } from "./privacy.mjs";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
 import { recordAskEvent } from "./ask-events";
 
-type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string } };
+type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string; adminId?: number } };
 const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export const appAsk = new Hono<AppAsk>();
 const textLimit = bodyLimit({ maxSize: 32000, onError: c => c.json({ error: "too-large" }, 413) });
@@ -29,12 +30,15 @@ appAsk.use('*', async (c, next) => {
     const identity = await appReader(c.req.raw, c.env);
     if (!identity) return c.json({ error: 'sign_in_required' }, 401);
     c.set('account', await keyedHash(c.env, 'app-ask', identity.uid));
+    // An admin's linked Telegram account may answer with Claude (ai.ts appAskModels); a missing link is just a reader.
+    const linked = await linkedTelegram(c.env, identity.uid).catch(() => null);
+    if (linked && isAdmin(c.env, linked)) c.set('adminId', linked);
   } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : 'sign_in_unavailable' }, error instanceof IdentityError ? error.status : 503); }
   return next();
 });
 appAsk.get('/models', c => c.json({
   default: freeModel(c.env).id, maxQuestionLength: 4000,
-  models: appAskModels(c.env).map(({ id, name, provider, what }) => ({ id, name, provider, what })),
+  models: appAskModels(c.env, c.get('adminId')).map(({ id, name, provider, what }) => ({ id, name, provider, what })),
   billing: { purchasesEnabled: false },
 }));
 appAsk.post('/report', async c => {
@@ -81,7 +85,8 @@ appAsk.post('/', async c => {
   try { body = JSON.parse(raw); } catch { return c.json({ error: 'bad-request' }, 400); }
   if (!body || typeof body !== 'object' || typeof body.q !== 'string') return c.json({ error: 'bad-request' }, 400);
   if (body.q.trim().length < 2 || body.q.length > 4000) return c.json({ error: body.q.length > 4000 ? 'too-long' : 'too-short' }, 400);
-  const model = appAskModels(c.env).find(m => m.id === (body.model || freeModel(c.env).id));
+  const offered = appAskModels(c.env, c.get('adminId'));
+  const model = offered.find(m => m.id === (body.model || offered[0]?.id || freeModel(c.env).id));
   if (!model) return c.json({ error: 'model-unavailable' }, 400);
   const consent = Array.isArray(body.consent) ? body.consent.filter((x): x is string => typeof x === 'string').slice(0, 40) : [];
   if (!consent.includes(model.provider)) return c.json({ error: 'consent', provider: model.provider }, 428);
@@ -91,17 +96,21 @@ appAsk.post('/', async c => {
   const run = async (emit?: NonNullable<Parameters<typeof answerApp>[6]>['emit']) => {
     const startedAt = Date.now();
     const traceId = c.get('traceId');
+    const surface = c.env.APP_ASK_ENGINE === 'study' && body.ui === 'study-v1' ? 'study' : 'app';
     // A request that never records an outcome after this was cut off mid-answer (the Worker stopped).
-    await recordAskEvent(c.env, { traceId, surface: body.ui === 'study-v1' ? 'study' : 'app', model: model.id, outcome: 'started' });
+    await recordAskEvent(c.env, { traceId, surface, model: model.id, outcome: 'started' });
     try {
-      const result = await answerApp(c.env, body.q as string, c.get('account'), history, consent, body.stream ? 115000 : 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId });
+      // The same engine as cyberjudah.io/app (APP_ASK_ENGINE "agent", the default); "study" keeps the study cards.
+      const result = c.env.APP_ASK_ENGINE === 'study'
+        ? await answerApp(c.env, body.q as string, c.get('account'), history, consent, body.stream ? 115000 : 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId })
+        : await answerAppAgent(c.env, body.q as string, c.get('account'), history, consent, { model: body.model ? model.id : undefined, emit, traceId, adminId: c.get('adminId') });
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
       // A study answer records its own outcome (app-study-answer.ts); everything else, and every refusal, here.
-      if (body.ui !== 'study-v1' || !result.ok) await recordAskEvent(c.env, { traceId, surface: body.ui === 'study-v1' ? 'study' : 'app', model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, detail: result.ok ? undefined : result.detail, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
+      if (surface === 'app' || !result.ok) await recordAskEvent(c.env, { traceId, surface, model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, detail: result.ok ? undefined : result.detail, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
       return result;
     } catch (error) {
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: 'failed', model: model.id, elapsedMs: Date.now()-startedAt }));
-      await recordAskEvent(c.env, { traceId, surface: body.ui === 'study-v1' ? 'study' : 'app', model: model.id, outcome: 'failed', detail: String((error as Error)?.message ?? '').slice(0, 200), elapsedMs: Date.now() - startedAt });
+      await recordAskEvent(c.env, { traceId, surface, model: model.id, outcome: 'failed', detail: String((error as Error)?.message ?? '').slice(0, 200), elapsedMs: Date.now() - startedAt });
       throw error;
     }
   };

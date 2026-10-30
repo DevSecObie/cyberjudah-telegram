@@ -20,6 +20,7 @@ import { estimateMc, MC_USD, mcOfUsd, viaUnifiedBilling } from "../../shared/cre
 import { freeSpend, makeSpend, type Spend } from "./spend";
 import { reserveFreeBudget, settleFreeBudget, type FreeReservation } from "./free-budget";
 import { researchOpen } from "./agent-open";
+import { topupPause } from "../../shared/holy-days.mjs";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -380,9 +381,19 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
  * shared free allowance, so new accounts cannot spend beyond it.
  */
 /** Native apps only expose the configured hosted free models until store entitlements exist. */
-export function appAskModels(env: Env): AskModel[] {
+/**
+ * The models the app offers: the approved free models, and for an admin's linked account Claude
+ * (when it can be called), except from sunset to dark on the Sabbath, feasts and New Moons (US Eastern).
+ */
+export function appAskModels(env: Env, adminId?: number, now = Date.now()): AskModel[] {
   const allowed = freeModels(env);
-  return MODELS.filter(m => allowed.has(m.id) && APP_STUDY_RELEASE.approvedModels.some(id => id === m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
+  const free = MODELS.filter(m => allowed.has(m.id) && APP_STUDY_RELEASE.approvedModels.some(id => id === m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
+  const claudeOk = !!adminId && isAdmin(env, adminId) && hasClaude(env) && !topupPause(now, "America/New_York");
+  if (!claudeOk) return free;
+  // The everyday model first (the app's default), then the lighter one and the admin's own.
+  const ids = [env.CLAUDE_MODEL || CLAUDE_DEFAULT, env.CLAUDE_MODEL_LIGHT, defaultModelId(env, adminId)].filter((id): id is string => !!id).map((id) => modelOf(id).id);
+  const claudes = [...new Set(ids)].map((id) => MODELS.find((m) => m.id === id && m.format === "anthropic")).filter((m): m is AskModel => !!m);
+  return [...claudes, ...free];
 }
 
 export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS, options: { model?: string; emit?: (event: AppStudyEvent) => void; study?: boolean; traceId?: string } = {}): Promise<SearchAnswer> {
@@ -418,6 +429,76 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   // Only an answer that found and cited teaching is kept; "nothing found" is always asked again.
   if (result.ok && result.sources.length) await keepAnswer(env, key, result, options.traceId);
   return result;
+}
+
+/**
+ * The app's Ask, answered the way cyberjudah.io/app and Telegram answer (askStream): the model
+ * researches in rounds with the same tools (the classes, the KJV with the Apocrypha, people,
+ * dictionaries), streaming its steps, then writes a cited answer. Free models run on the shared
+ * free budget; an admin's linked account answers with Claude (CLAUDE_MODEL by default), at no charge to
+ * anyone but the owner's console, except on the Sabbath, feasts and New Moons (no paid calls from
+ * sunset to dark), when the free model answers instead.
+ */
+export async function answerAppAgent(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model?: string; emit?: (event: AgentEvent) => void; traceId?: string; adminId?: number; now?: number } = {}): Promise<SearchAnswer> {
+  const t0 = Date.now();
+  const question = q.trim();
+  if (question.length > 4000) return { ok: false, reason: "too-long" };
+  if (question.length < 2) return { ok: false, reason: "too-short" };
+  const approved = approvedFor(question, history);
+  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
+  const models = appAskModels(env, options.adminId, options.now);
+  const paid = models.filter((m) => m.format === "anthropic");
+  const deep = !options.model && !paid.length && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? models.find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
+  const model = options.model ? models.find(m => m.id === options.model) : deep ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
+  if (!model) return { ok: false, reason: "model-unavailable" };
+  if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  const key = await cacheKey(question, history, model.id, "agent", APP_STUDY_RELEASE.version);
+  const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
+  let meter: Meter;
+  if (model.format === "anthropic") {
+    // Only reachable for an admin (appAskModels): the admin meter holds nothing and charges no one.
+    const started = await startMeter(env, options.adminId!, model, {});
+    if (!started.ok) return { ok: false, reason: "unavailable" };
+    meter = { ...started.meter, maxRounds: 4 };
+  } else {
+    if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    const cfg = creditsConfig(env);
+    const rounds = freeMaxRounds(env);
+    const budget = Math.min(estimateMc(model, cfg, { rounds }).maxMc * MC_USD, freeMaxUsd(env));
+    let reservation: FreeReservation | null;
+    try { reservation = await reserveFreeBudget(env, crypto.randomUUID(), budget); }
+    catch { return { ok: false, reason: "unavailable" }; }
+    if (!reservation) return { ok: false, reason: "free-paused" };
+    meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: rounds };
+  }
+  const spend = meter.spend;
+  const emit = options.emit ?? (() => undefined);
+  try {
+    const [found, verses] = await Promise.all([retrieve(env, retrievalText(question, history), 12, spend), versesNamed(env, question)]);
+    const first = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
+    let ran: Awaited<ReturnType<typeof runAgent>>;
+    try {
+      ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), emit, undefined, undefined, model, spend, undefined, meter.maxRounds);
+    } catch (e) {
+      if (model.format !== "anthropic" || !claudeUnavailable(e)) throw e;
+      // Claude cannot answer now (out of money, overloaded, down): the free model answers instead.
+      await alertClaudeFunds(env, e);
+      await finishMeter(env, meter, "backup", Date.now() - t0);
+      emit({ reset: true });
+      return answerAppAgent(env, q, account, history, [...consent, freeModel(env).provider], { ...options, model: freeModel(env).id, adminId: undefined });
+    }
+    const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
+    if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
+    await finishMeter(env, meter, "ok", Date.now() - t0);
+    const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    if (result.ok && result.sources.length) await keepAnswer(env, key, result, options.traceId);
+    return result;
+  } catch (e) {
+    await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
+    console.error(JSON.stringify({ event: "app_agent_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
+    return { ok: false, reason: "unavailable", detail: `failed: ${(e as Error).message?.slice(0, 160) ?? ""}` };
+  }
 }
 
 /**
