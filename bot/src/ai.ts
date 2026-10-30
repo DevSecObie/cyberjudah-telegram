@@ -299,7 +299,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 
 export type SearchAnswer =
   | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string; provider: string; ms: number }
-  | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" | "consent" };
+  | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" | "consent" | "limit" };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
 export function searchModel(env: Env): AskModel | null {
@@ -339,21 +339,54 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
   if (!model.id.startsWith("@cf/") && !consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const started = await startMeterFor(env, uid, model, {}, true);
   if (!started.ok) return { ok: false, reason: started.body.error === "free-paused" ? "free-paused" : "unavailable" };
-  const meter = started.meter;
+  return boundedAnswer(env, model, started.meter, question, question, [], deadlineMs, t0);
+}
+
+/**
+ * Ask for a signed-in app reader, linked to Telegram or not: the free model only, one bounded
+ * answer from the library with the sources it cited. No balance is read or held, nothing is
+ * bought, and no conversation is saved on the server. The account is named only by a keyed hash
+ * of its Firebase UID; it has the same daily cap as Ask, and every answer is funded from the
+ * shared free allowance, so new accounts cannot spend beyond it.
+ */
+export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS): Promise<SearchAnswer> {
+  const t0 = Date.now();
+  const question = q.trim().slice(0, 400);
+  if (question.length < 2) return { ok: false, reason: "too-short" };
+  const model = freeModel(env);
+  // Nothing is sent to a provider the reader has not agreed to, as in askStream.
+  if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+  const cfg = creditsConfig(env);
+  const budget = Math.min(estimateMc(model, cfg, { rounds: 1 }).maxMc * MC_USD, freeMaxUsd(env));
+  let reservation: FreeReservation | null;
+  try { reservation = await reserveFreeBudget(env, crypto.randomUUID(), budget); }
+  catch { return { ok: false, reason: "unavailable" }; }
+  if (!reservation) return { ok: false, reason: "free-paused" };
+  // A free meter with no owner: finishMeter settles the reservation and never touches a balance.
+  const meter: Meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: 1 };
+  return boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0);
+}
+
+/**
+ * One library-grounded answer under a free meter: the passages, one plain call to the model,
+ * the sources it cited. Shared by search answers and the app's Ask.
+ */
+async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number): Promise<SearchAnswer> {
   const spend = meter.spend;
   // One clock for retrieval and the model: it starts when retrieval does.
   const tRetrieve = Date.now();
   const deadlineAt = tRetrieve + deadlineMs;
   let retrieveMs = 0;
   try {
-    const passages = answerCandidates(question, await withDeadline(retrieve(env, question, 12, spend), deadlineMs), 8);
+    const passages = answerCandidates(question, await withDeadline(retrieve(env, searchText, 12, spend), deadlineMs), 8);
     retrieveMs = Date.now() - tRetrieve;
     if (!passages.length) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
       return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }
     // Use the plain adapter even for chat models: one bounded answer, never a research loop.
-    const prompt = buildPrompt(question, passages);
+    const prompt = buildPrompt(question, passages, history);
     const system = prompt.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
     const messages = prompt.filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system");
     const left = deadlineAt - Date.now();

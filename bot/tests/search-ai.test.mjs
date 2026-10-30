@@ -8,7 +8,7 @@ import { financialDb } from "./helpers/financial-db.mjs";
 // ai.ts is bundled for Node first (as Workers bundles it).
 const out = new URL("./.build/search-ai.mjs", import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/ai.ts"; export * from "./src/credits.ts"; export { searchAnswers } from "./src/search-answer.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
+const { answerApp, answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
 
 /** A D1 close enough for the meter and spend tables, backed by real SQLite. */
 const d1 = () => {
@@ -290,4 +290,34 @@ test("a reader listed in SEARCH_AI_QUOTA_EXEMPT skips the per-reader count; othe
   const other = routeFixture(t, env, 7);
   assert.equal((await other.request("priest of the most high", "Google")).status, 200);
   assert.equal((await other.request("bread and wine", "Google")).status, 429);
+});
+
+// The app's Ask (answerApp): any app sign-in, the free model only, no balance.
+const AGREED = ["Cloudflare (Workers AI)"];
+test("app Ask needs the reader's agreement to the free model's provider before anything runs", async () => {
+  const e = env();
+  assert.deepEqual(await answerApp(e, "who is judah", "acct-a", [], []), { ok: false, reason: "consent" });
+  assert.equal(await freeSpendToday(e), 0);
+});
+
+test("app Ask answers on the free model, funded by the free allowance, with no wallet created", async () => {
+  const e = env();
+  const r = await answerApp(e, "melchizedek", "acct-a", [{ role: "user", content: "who was the priest of salem" }], AGREED);
+  assert.equal(r.ok, true);
+  assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
+  assert.deepEqual(r.sources, []);
+  assert.ok((await freeSpendToday(e)) > 0);
+  const wallets = await e.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'credit%'").all();
+  assert.deepEqual(wallets.results, [], "no credit tables or wallet for an app reader");
+});
+
+test("app Ask keeps each account to the daily cap, apart from other accounts", async () => {
+  const e = env();
+  for (let i = 0; i < 100; i++) assert.equal((await answerApp(e, "judah", "acct-b", [], AGREED)).ok, true);
+  assert.deepEqual(await answerApp(e, "judah", "acct-b", [], AGREED), { ok: false, reason: "limit" });
+  assert.equal((await answerApp(e, "judah", "acct-c", [], AGREED)).ok, true);
+});
+
+test("a too-short app question is refused before the cap is counted", async () => {
+  assert.deepEqual(await answerApp(env(), " x ", "acct-d", [], AGREED), { ok: false, reason: "too-short" });
 });
