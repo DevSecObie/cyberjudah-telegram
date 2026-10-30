@@ -157,7 +157,15 @@ test('lexicon routes, modules, cursors, batch cards and unavailable enhancements
   const { json: module } = await request('/v1/strong-lexicon/modules/entities', Lexicon.StrongLexiconModuleStateDto); assert.equal(module.status, 'unavailable');
   const { json: entry } = await request('/v1/strong-lexicon/entries/G03056?language=en', Lexicon.StrongLexiconEntryDto);
   assert.equal(entry.classicStrong, 'G3056'); assert.equal(entry.original, 'λόγος'); assert.equal(entry.stepCode, 'G3056');
-  await request('/v1/strong-lexicon/entries/batch?language=en&identities=strong:H0001,strong:G3056,estrong:G3056A', Lexicon.StrongLexiconEntryCardsDto);
+  const { json: cards } = await request('/v1/strong-lexicon/entries/batch?language=en&identities=strong:H0001,strong:G3056,estrong:G3056A', Lexicon.StrongLexiconEntryCardsDto);
+  // Each card keeps the identity as asked, zeros and all, so the app can match it.
+  assert.deepEqual(cards.entries.map((e: any) => e.selectedIdentity), [{ kind: 'strong', code: 'H0001' }, { kind: 'strong', code: 'G3056' }]);
+  const { json: byCode } = await request('/v1/strong-lexicon/entries?language=en&search=G03056', Lexicon.StrongLexiconSearchResponseDto);
+  assert.deepEqual(byCode.entries.map((e: any) => e.stepCode), ['G3056']);
+  const { json: folded } = await request('/v1/strong-lexicon/entries?language=en&search=logos&lexicalLanguage=greek&limit=100', Lexicon.StrongLexiconSearchResponseDto);
+  assert.ok(folded.entries.some((e: any) => e.stepCode === 'G3056'));
+  const { json: agape } = await request('/v1/strong-lexicon/entries/G3056?language=en', Lexicon.StrongLexiconEntryDto);
+  assert.equal(agape.transliteration, 'logos');
   const { json: page } = await request('/v1/strong-lexicon/entries?language=en&limit=1', Lexicon.StrongLexiconSearchResponseDto);
   assert.ok(page.nextCursor); assert.ok(Lexicon.decodeStrongLexiconPageCursor(page.nextCursor));
   await request(`/v1/strong-lexicon/entries/${page.entries[0].stepCode}?language=en`, Lexicon.StrongLexiconEntryDto);
