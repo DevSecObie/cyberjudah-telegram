@@ -13,6 +13,8 @@ export function chunkRecord(row: { video: string; t: number; text: string; kind:
 export function answerCandidates<T extends Passage & { score?: number }>(question: string, passages: T[], limit?: number): T[];
 export type Turn = { role: "user" | "assistant"; content: string };
 export function buildPrompt(question: string, passages: Passage[], history?: Turn[]): { role: "system" | "user" | "assistant"; content: string }[];
+export function retrievalText(question: string, history?: Turn[]): string;
+export function referencesIn(question: string): string[];
 export function citations(answer: string, count: number): number[];
 export function dedupeMatches<T extends Match>(matches: T[]): T[];
 

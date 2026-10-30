@@ -1,8 +1,9 @@
 import type { ResourcePins } from "../../shared/resources";
-import { chapter } from "./data";
+import { books, chapter } from "./data";
+import { parseReference } from "./refs.mjs";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
@@ -78,12 +79,6 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
 
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; ms: number } | { ok: false; reason: string };
 const ASK_LIMIT = 100;
-
-/** The question with its conversation: a short follow-up borrows the words of the turn before it. */
-const retrievalText = (question: string, history: Turn[]) => {
-  const prev = [...history].reverse().find((t) => t.role === "user")?.content ?? "";
-  return question.split(/\s+/).length < 6 && prev ? `${prev} ${question}` : question;
-};
 
 /** A verse's reading voice: fifty new generations a day per person; the cache is free. */
 const TTS_LIMIT = 50;
@@ -298,7 +293,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 }
 
 export type SearchAnswer =
-  | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string; provider: string; ms: number }
+  | { ok: true; answer: string; sources: (Passage & { n: number })[]; followups?: string[]; model: string; provider: string; ms: number }
   | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" | "consent" | "limit" };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
@@ -351,7 +346,7 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
  */
 export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS): Promise<SearchAnswer> {
   const t0 = Date.now();
-  const question = q.trim().slice(0, 400);
+  const question = q.trim().slice(0, 1000);
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const model = freeModel(env);
   // Nothing is sent to a provider the reader has not agreed to, as in askStream.
@@ -379,11 +374,16 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
   const deadlineAt = tRetrieve + deadlineMs;
   let retrieveMs = 0;
   try {
-    const passages = answerCandidates(question, await withDeadline(retrieve(env, searchText, 12, spend), deadlineMs), 8);
+    // The verses the question names, in exact King James text, ahead of what the classes said about
+    // them: the free model has no read_scripture, and may quote only what it is given.
+    const [found, verses] = await withDeadline(Promise.all([retrieve(env, searchText, 12, spend), versesNamed(env, question)]), deadlineMs);
+    const passages = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
     retrieveMs = Date.now() - tRetrieve;
-    if (!passages.length) {
+    // Nothing found: a greeting or a thank-you is still answered, in a sentence; a real question is
+    // told so plainly, with no model call, rather than answered from the model's own memory.
+    if (!passages.length && !SMALL_TALK.test(question)) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
-      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
+      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question. Try asking it another way, or name the person, book, feast or verse you mean.", sources: [], followups: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }
     // Use the plain adapter even for chat models: one bounded answer, never a research loop.
     const prompt = buildPrompt(question, passages, history);
@@ -396,10 +396,10 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
       [], new Map(), async () => ({ content: "No tools are available." }), () => undefined, 1, spend), left);
     // Where the time goes, for tuning: finding the passages, and the model writing the answer.
     console.log(JSON.stringify({ event: "search_answer_timing", retrieveMs, modelMs: Date.now() - tModel, totalMs: Date.now() - t0 }));
-    const { answer } = splitFollowups(ran.text);
+    const { answer, followups } = splitFollowups(ran.text);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
-    return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    return { ok: true, answer, sources: passages.length ? sourcesOf(answer, passages) : [], followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
     console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, retrieveMs, message: (e as Error).message?.slice(0, 160) }));
@@ -458,6 +458,28 @@ async function* answerPieces(env: Env, messages: Msg[], backup = false): AsyncGe
       try { const piece = (JSON.parse(data) as { response?: string }).response ?? ""; if (piece) yield piece; } catch { /* a partial event */ }
     }
   }
+}
+
+/** A greeting, a thank-you or a question about Ask itself: answered even when the library has no passages for it. */
+const SMALL_TALK = /^\s*(hi|hello|hey|shalom|good (morning|afternoon|evening)|thanks?( you)?|thank you( so much)?|ok(ay)?|got it|who are you|what are you|what can you do|how do(es)? (this|you) work)\b[\s!.?,]*\S{0,40}$/i;
+
+/** The exact King James text of the verses a question names (at most three references, twelve verses each). */
+async function versesNamed(env: Env, question: string): Promise<Passage[]> {
+  const named = referencesIn(question);
+  if (!named.length) return [];
+  const list = await books(env).catch(() => null);
+  if (!list) return [];
+  const out: Passage[] = [];
+  for (const raw of named) {
+    const ref = parseReference(raw, list);
+    if (!ref?.verse) continue;
+    const c = await chapter(env, ref.slug, ref.chapter).catch(() => null);
+    const from = ref.verse, to = Math.min(ref.verseEnd ?? from, from + 11);
+    const verses = c?.verses.filter((v) => v.verse >= from && v.verse <= to) ?? [];
+    if (!verses.length) continue;
+    out.push({ kind: "verse", title: `${ref.book} ${ref.chapter}:${from}${to > from ? `-${to}` : ""} (KJV)`, url: `/bible/${ref.slug}/${ref.chapter}`, sub: "", text: verses.map((v) => `${v.verse} ${v.text}`).join("\n").slice(0, 1400) });
+  }
+  return out;
 }
 
 const sourcesOf = (answer: string, passages: Passage[]) => {

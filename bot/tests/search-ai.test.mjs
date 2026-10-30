@@ -321,3 +321,32 @@ test("app Ask keeps each account to the daily cap, apart from other accounts", a
 test("a too-short app question is refused before the cap is counted", async () => {
   assert.deepEqual(await answerApp(env(), " x ", "acct-d", [], AGREED), { ok: false, reason: "too-short" });
 });
+
+test("app Ask names the verse a question asks about in exact King James text, and returns follow-ups", async (t) => {
+  const sent = [];
+  const e = {
+    ...env(), AI_GATEWAY: "default",
+    AI: { run: async (model, input) => {
+      if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] };
+      sent.push(input);
+      return { response: "The Lord would bring them into Egypt again with ships [1].\n\nFollow-ups: Which ships? | When did it happen? | Who were the enemies?", usage: { prompt_tokens: 900, completion_tokens: 60 } };
+    } },
+    VEC: { query: async () => ({ matches: [] }) },
+    DATA_ORIGIN: "https://data.test",
+  };
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async (url) => {
+    const path = new URL(url).pathname;
+    if (path === "/api/kjv/books.json") return Response.json([{ book: "Deuteronomy", slug: "deuteronomy", chapters: 34 }]);
+    if (path === "/api/kjv/deuteronomy/28.json") return Response.json({ book: "Deuteronomy", chapter: 28, verses: [{ verse: 68, text: "And the LORD shall bring thee into Egypt again with ships…" }] });
+    return new Response("", { status: 404 });
+  };
+  t.after(() => { globalThis.fetch = realFetch; globalThis.caches = realCaches; });
+  const r = await answerApp(e, "What does Deuteronomy 28:68 mean?", "acct-v", [], AGREED);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.sources[0].kind, "verse");
+  assert.equal(r.sources[0].title, "Deuteronomy 28:68 (KJV)");
+  assert.deepEqual(r.followups, ["Which ships?", "When did it happen?", "Who were the enemies?"]);
+  assert.match(JSON.stringify(sent[0].messages), /bring thee into Egypt again with ships/);
+});
