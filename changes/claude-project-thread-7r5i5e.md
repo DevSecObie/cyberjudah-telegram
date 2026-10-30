@@ -1,1 +1,1 @@
-- Staging serves the iPhone app's player page from cyberjudah-app cbecb87, which takes a start time, so the reader's class videos play from the moment the verse was read. The People archive is unchanged (cbecb87 includes 2b97180).
+- The video player page staging serves to the phone app (/embed/youtube.html and /embed/youtube it redirects to) may now be shown inside a frame, so the class videos next to the verses in the app's Bible reader play. Every other page keeps the frame rule (only the site and Telegram's web clients). Owner approved the header change on 2026-10-30.
