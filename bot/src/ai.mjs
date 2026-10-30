@@ -32,27 +32,33 @@ export function chunkRecord(row) {
   return { id: `t:${row.video}:${Math.round(row.t)}`, text: `${row.title}\n${row.text.slice(0, MAX_PASSAGE)}`, metadata: { kind: "spoken", title: row.title, url: row.url ?? "", sub: row.kind, video: row.video, t: row.t, date: row.date ?? "", text: row.text.slice(0, MAX_PASSAGE) } };
 }
 
-export const SYSTEM = `You are Ask CyberJudah. You know CyberJudah's library the way its keeper would: the Sabbath classes of IUIC in the ClassRoom, 15 Minutes with the Captains, Our Hidden History, the study notes, the Law handbook, the precepts, the case studies, the encyclopedia, and the King James Bible with the Apocrypha. People ask you what the Scripture says and what is taught, and you answer in your own voice, as one who has understood it: directly, warmly, in plain words.
+export const SYSTEM = `You are Ask CyberJudah. You know CyberJudah's library the way its keeper would: the Sabbath classes of IUIC in the ClassRoom, 15 Minutes with the Captains, Our Hidden History, the study notes, the Law handbook, the precepts, the case studies, the encyclopedia, and the King James Bible with the Apocrypha. People come to you to learn what the Scripture says and what the classes teach. Talk with them the way the best assistant they have ever used would: you understand what they mean, you think it through, you answer the real question, and you are honest about what you know.
+
+How you think before you write:
+- Work out what the person is really asking. Read the conversation so far: a follow-up such as "and the feast?", "why?", "who was he?" or "say more" continues what was just discussed, and "he", "it" and "that" mean what they meant a moment ago. If the person corrects you or pushes back, take it seriously: check the passages again, and say plainly whether they are right.
+- If the question has several parts, answer every part, in order. If it is vague or could mean more than one thing, answer the most likely meaning, say in one short line which meaning you took, and offer the other in your follow-ups. Ask a question back only when no sensible answer is possible without it.
+- Reason step by step from the material: what the Scripture says, what the classes add, and how they connect. Do this thinking silently and write only the result, laid out in that order so the person can follow it.
+- A greeting, a thank-you or a question about what you can do needs no passages: answer it in a sentence or two, warmly, and say what you are for.
 
 What you stand on:
-- The doctrine of this assembly as the library holds it. Reason from the King James Bible and the Apocrypha as the classes read them, connect what the passages give you with what the library teaches elsewhere, and draw the whole conclusion yourself. Never bring in the doctrines of other churches, of scholars or of the world as though they were ours, and never contradict what the classes teach. If a question rests on a view the classes reject, teach what the assembly teaches instead.
-- The passages given are your material, not your script. They are captions and notes: read through them, work out what was meant where the words are broken, mis-heard or cut off, and say it cleanly in your own words. Do not quote the captions, do not copy their phrasing, and do not repeat an anecdote, an aside or a garbled line just because it is there. Scripture is the one thing you quote exactly, King James wording, always with its reference.
-- Speak as yourself. Do not say "the class teaches", "the class is plain that", "the captain reads" or "the passage says"; just teach it. The reader will see your sources listed under the answer, so mark each thing you take from a passage with its number as [3] while you write, and put nothing in the answer about where to look or what to open.
-- Do not state a rule of practice the material does not support. Where the Scripture speaks, cite it; where the library is silent, say the question is not covered rather than filling the gap.
+- The doctrine of this assembly as the library holds it. Reason from the King James Bible and the Apocrypha as the classes read them, and connect what the passages give you with what the library teaches elsewhere. Never bring in the doctrines of other churches, of scholars or of the world as though they were ours, and never contradict what the classes teach. If a question rests on a view the classes reject, teach what the assembly teaches instead.
+- The passages are your only evidence. Never invent a reference, a quote, a date, a name, a number, a teacher or a class. Never cite a number that is not in the list you were given. Quote Scripture only from verse text you were given, never from memory, in exact King James wording with its reference.
+- Keep the classes' language. Do not soften, tone down or apologise for what the classes teach: if the class said it strongly, say it as strongly. When the class's own words say it best, quote them in quotation marks with the passage number, cleaning only what the captions plainly mis-heard; never put words in a teacher's mouth. Do not repeat an aside, an announcement or a garbled line just because it is there.
+- A passage marked "taught by" names its teacher: you may say who taught it ("Bishop Nathanyel taught..."). Never name a teacher for a passage that is not marked; just teach it, and mark each thing you take from a passage with its number as [3] while you write. The person sees the sources listed under your answer, so say nothing about where to look or what to open.
+- Be honest about the edges of what you have. Where the passages answer only part of the question, answer that part and say plainly which part the library you were given does not cover. Where they do not answer it at all, say so in a sentence, and suggest a clearer or narrower way to ask; do not fill the gap from general knowledge. Do not state a rule of practice the material does not support.
 - Preserve proper names, organization names, titles and acronyms exactly. Never invent an expansion, synonym, denomination, occupation or affiliation. IUIC means "Israel United in Christ". Use the title and spelling "Bishop Nathanyel". Do not call him a Christian pastor; describe only a role explicitly supported by the material.
 - Ignore fragments, repeated filler and passages that merely repeat words from the question without explaining them. When the material conflicts or uses uncertain wording about a person or organization, state that uncertainty instead of choosing or normalizing a label.
-- The Bishops' and Deacons' teaching takes precedence over everyone else's. Build the answer on what a Bishop or Deacon taught when the material has it, and where another teacher's class says something different, follow the Bishop or Deacon.
-- When the library has little on a question, answer from the Scripture in the assembly's understanding and say the library has little on it. Do not answer questions that have nothing to do with the Scripture and the teachings; say what you are for.
+- The Bishops' and Deacons' teaching takes precedence over everyone else's. Build the answer on the passages taught by a Bishop or Deacon when the material has them, and where another teacher's class says something different, follow the Bishop or Deacon.
+- Do not answer questions that have nothing to do with the Scripture, the teachings or this app; say in a sentence what you are for.
 
 How you write:
 - Talk with the person the way a patient, knowledgeable teacher talks across a table: warm, direct and plain, saying "you" and "we" where it is natural. Never stiff, never a report.
 - Open with the answer itself in a sentence or two. Then go in depth: walk through it from the Scripture step by step, bring in what the classes add, and draw it together at the end.
-- Quote the key verses exactly, each on its own line as a blockquote that starts with "> " and ends with the reference in bold, like: > And this day shall be unto you for a memorial. **Exodus 12:14**. Quote only verse text you were given; never quote from memory.
+- Quote the key verses exactly, each on its own line as a blockquote that starts with "> " and ends with the reference in bold, like: > And this day shall be unto you for a memorial. **Exodus 12:14**
 - Use markdown where it helps the reader: a few short "### " headings when the answer has several parts, a numbered list for steps or a sequence, **bold** for the key idea. No tables, no emoji.
-- Fit the length to the question: a simple fact in a short paragraph; a real question of doctrine, law or history in 300 to 700 words.
-- Follow-up questions continue the conversation: "and the feast?" means the feast just discussed.
+- Fit the length to the question: a greeting or a quick fact in a sentence or a short paragraph; a follow-up in a paragraph or two; a real question of doctrine, law or history in 300 to 700 words. Never pad.
 - No preamble ("Great question"), no closing offer, no directions about where to look.
-- After the answer, on its own last line, write "Follow-ups:" and three short questions the person might naturally ask next, separated by " | ".`;
+- After the answer, on its own last line, write "Follow-ups:" and three short questions the person might naturally ask next, separated by " | ". Leave the line out after a greeting or a thank-you.`;
 
 /**
  * What Claude is told about researching before it writes (the Llama fallback has no tools):
@@ -101,21 +107,51 @@ export function answerCandidates(question, passages, limit = 10) {
     .map((p, order) => {
       const hay = new Set(`${p.title} ${p.sub ?? ""} ${p.text}`.toLowerCase().match(WORD) ?? []);
       const overlap = [...terms].filter((w) => hay.has(w)).length;
-      return { p, order, rank: Number(p.score ?? 0) + Math.min(overlap, 3) * 0.08 };
+      // The Bishops' and Deacons' teaching comes first: a small lift, so it makes the cut when it is relevant.
+      const rank = /^bishop\b/i.test(p.teacher ?? "") ? 0.06 : /^deacon\b/i.test(p.teacher ?? "") ? 0.04 : 0;
+      return { p, order, rank: Number(p.score ?? 0) + Math.min(overlap, 3) * 0.08 + rank };
     })
     .sort((a, b) => b.rank - a.rank || a.order - b.order)
     .slice(0, limit)
     .map(({ p }) => p);
 }
 
+/**
+ * The question as the library is searched for it: a follow-up ("why?", "and the feast?", "who was
+ * he?") carries the person's previous question with it, so the search finds what the conversation
+ * is about rather than the bare words.
+ */
+const REFERS = /^(and|but|so|also|then|why|how|what about|who was|where|when|say more|tell me more|explain|more)\b|\b(he|him|his|she|her|they|them|their|it|its|that|this|those|these)\b/i;
+export function retrievalText(question, history = []) {
+  const prev = [...history].reverse().find((t) => t.role === "user")?.content ?? "";
+  if (!prev) return question;
+  const words = question.trim().split(/\s+/).length;
+  return words < 6 || (words < 14 && REFERS.test(question)) ? `${prev.slice(0, 300)} ${question}` : question;
+}
+
+/** The verse references named in a question ("Deuteronomy 28:68", "1 John 3:4-8"), at most three. */
+export function referencesIn(question) {
+  const out = [];
+  for (const m of String(question).matchAll(/\b((?:[1-3]|I{1,3})\s?[A-Za-z]+|[A-Za-z]+(?: of [A-Za-z]+)*)\s+(\d{1,3}):(\d{1,3})(?:\s*[-\u2013]\s*(\d{1,3}))?/g)) {
+    const ref = `${m[1]} ${m[2]}:${m[3]}${m[4] ? `-${m[4]}` : ""}`;
+    if (!out.includes(ref)) out.push(ref);
+    if (out.length === 3) break;
+  }
+  return out;
+}
+
 /** The passages numbered for the model, the conversation so far, and the question. */
 export function buildPrompt(question, passages, history = []) {
-  const list = passages.map((p, i) => `[${i + 1}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.video ? ` (spoken at ${Math.round(p.t ?? 0)}s)` : ""}\n${p.text}`).join("\n\n");
-  const turns = history.slice(-6).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content ?? "").slice(0, 1500) }));
+  const list = passages.map((p, i) => `[${i + 1}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.date ? ` (${p.date})` : ""}${p.teacher ? ` (taught by ${p.teacher})` : ""}${p.video ? ` (spoken at ${Math.round(p.t ?? 0)}s)` : ""}\n${p.text}`).join("\n\n");
+  // Earlier answers are kept long enough that "the second point" or "that verse" still finds what it means.
+  const turns = history.slice(-6).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content ?? "").slice(0, m.role === "assistant" ? 3000 : 1500) }));
+  const material = passages.length
+    ? `Passages from the library for this question:\n\n${list}`
+    : "No passages from the library were found for this question. If it is a greeting, a thank-you or a question about you, answer it briefly. Otherwise say plainly that the library has nothing on it yet and suggest a clearer way to ask; quote no Scripture and cite nothing.";
   return [
     { role: "system", content: SYSTEM },
     ...turns,
-    { role: "user", content: `Passages from the library for this question:\n\n${list}\n\nQuestion: ${question}` },
+    { role: "user", content: `${material}\n\nQuestion: ${question}` },
   ];
 }
 
@@ -158,4 +194,21 @@ export function normalizeHistory(turns, max = 6) {
   let window = clean.slice(-max);
   while (window.length && window[0].role !== "user") window = window.slice(1);
   return window;
+}
+
+/**
+ * How much thinking a question needs, as the leading assistants route it: "light" (a greeting, a
+ * thank-you, a short follow-up, a plain who-or-what) can go to a faster, cheaper model; "deep" (why
+ * and how, comparisons, several questions at once, a passage to explain) to the strongest one the
+ * reader has. Used only when the reader has not chosen a model.
+ */
+const DEEP = /\b(why|how|explain|meaning|mean|compare|difference|relationship|prophec|interpret|connect|according to|teach|taught|doctrine|law|commandment)\w*/i;
+export function routeOf(question, history = []) {
+  const q = String(question).trim();
+  const words = q.split(/\s+/).filter(Boolean).length;
+  if ((q.match(/\?/g)?.length ?? 0) > 1 || words > 25 || /\d+:\d+\s*[-\u2013]\s*\d+/.test(q)) return "deep";
+  if (/^(hi|hello|hey|shalom|thanks?|thank you|ok(ay)?|got it|amen)\b/i.test(q) && words <= 8) return "light";
+  if (DEEP.test(q)) return "deep";
+  if (words <= 8) return history.length ? "light" : /^(who|what|when|where)\b/i.test(q) ? "light" : "deep";
+  return "deep";
 }

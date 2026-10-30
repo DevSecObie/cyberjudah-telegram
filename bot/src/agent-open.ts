@@ -1,3 +1,4 @@
+import { readAIStream } from "./ai-stream.mjs";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Env } from "./env";
 import { checkInput } from "./assistant.mjs";
@@ -37,6 +38,8 @@ export async function researchOpen(
   emit: (e: AgentEvent) => void,
   maxRounds: number,
   spend?: Spend,
+  streamPlain = false,
+  plainInstruction = 'You have no tools here: answer from the passages given, and cite them by their numbers.',
 ): Promise<Result> {
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
@@ -62,6 +65,7 @@ export async function researchOpen(
       // Not logged: the request carries the reader's question (providers.ts viaGateway).
       const res = await ai.run(model.id, input, { gateway: { id: env.AI_GATEWAY, collectLog: false } });
       if (!res || typeof res !== "object") throw new Error("empty response");
+      if (streamPlain && typeof (res as ReadableStream).getReader === "function") return readAIStream(res as ReadableStream<Uint8Array>, text => emit({ delta: text }));
       return res as Record<string, unknown>;
     } catch (e) { throw unavailable(e); }
   };
@@ -80,10 +84,10 @@ export async function researchOpen(
   emit({ status: "Studying the question" });
 
   if (model.format === "plain") {
-    const res = await call({ messages: [{ role: "system", content: `${system}\n\nYou have no tools here: answer from the passages given, and cite them by their numbers.` }, ...messages], ...length });
+    const res = await call({ messages: [{ role: "system", content: `${system}\n\n${plainInstruction}` }, ...messages], ...length, ...(streamPlain ? { stream: true } : {}) });
     const { text, usage, cut } = chatText(res);
     units += unitsFor(usage, model); calls++; spend?.call(usage, model);
-    if (text) emit({ delta: text });
+    if (text && !streamPlain) emit({ delta: text });
     return { text, units, calls, cut, refused: false };
   }
 
