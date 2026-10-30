@@ -65,8 +65,8 @@ const events = all.filter(hasDetails).map(event => {
       ...(detail.scriptures?.length ? ['Scriptural application', ...detail.scriptures.map(r => `${r.ref}\n${r.why}`)] : []),
       ...(detail.answer?.length ? ['Answer', ...detail.answer.map(r => `${r.ref}\n${r.why}`)] : []),
       ...(detail.sources?.length ? ['Sources', ...detail.sources.map(sourceLine)] : []),
-      detail.uncertainty ? ['Uncertainty', detail.uncertainty] : [],
-      ...(detail.disagreements?.length ? ['Where sources disagree', ...detail.disagreements.map(d => text([d.point, ...d.views]))] : []),
+      // The classes are the authority (owner's direction, 2026-10-30): no source disagreements.
+      detail.uncertainty ? ['Uncertainty', detail.uncertainty.replace(/\s*\(see disagreements\)/gi, '')] : [],
     ] : [],
   ]);
   const picture = portrait(event);

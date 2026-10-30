@@ -124,16 +124,11 @@ export function AgeEventDetail({ slug, source, reviewedThrough }: { slug: string
         </section>
       ) : null}
 
-      {e.disagreements?.length || e.uncertainty ? (
+      {/* The classes are the authority (owner's direction, 2026-10-30): no source disagreements are shown. */}
+      {e.uncertainty ? (
         <section className="tl-event__section fc-section" aria-labelledby={`${slug}-d`}>
-          <h3 id={`${slug}-d`}>Where the sources differ</h3>
-          {e.disagreements?.map((d, i) => (
-            <div key={i} className="fc-differ">
-              <p className="fc-differ__point">{d.point}</p>
-              <ul>{d.views.map((v, j) => <li key={j}>{v}</li>)}</ul>
-            </div>
-          ))}
-          {e.uncertainty ? <p className="fc-para fc-uncertain"><b>Not settled: </b>{e.uncertainty}</p> : null}
+          <h3 id={`${slug}-d`}>Not settled</h3>
+          <p className="fc-para fc-uncertain">{e.uncertainty.replace(/\s*\(see disagreements\)/gi, "")}</p>
         </section>
       ) : null}
 
