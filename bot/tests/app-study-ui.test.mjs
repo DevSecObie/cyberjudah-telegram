@@ -34,8 +34,15 @@ test('generative composition preserves source IDs, creates source previews and b
 test('reference-only citations cannot be promoted to a teacher-backed answer', () => {
   const result = validateStudyProgram('root = StudyAnswer([Teaching("Invented doctrine. [2]", [2]), Context("A reference fact. [2]", [2]), Sources([2])])', sources);
   assert.equal(result.teachingFound, false);
-  assert.ok(result.answer.startsWith(NO_TEACHING));
+  assert.equal(result.answer, 'A reference fact. [2]');
   assert.doesNotMatch(result.program, /Invented doctrine|Teaching\(/);
+});
+
+test('a reference-backed factual answer does not get an irrelevant no-teaching disclaimer', () => {
+  const result = validateStudyProgram('root = StudyAnswer([Context("A historical detail. [2]", [2])])', sources);
+  assert.equal(result.teachingFound, false);
+  assert.equal(result.answer, 'A historical detail. [2]');
+  assert.doesNotMatch(result.program, /I couldn|Supporting context/);
 });
 test('unknown citations and citation laundering are removed', () => {
   const result = validateStudyProgram('root = StudyAnswer([Teaching("Unbacked. [2]", [1]), Context("Unknown. [9]", [9])])', sources);
@@ -57,4 +64,33 @@ test('a photo or arbitrary video does not make a reference a teaching source', (
   assert.equal(evidenceOf({ kind: 'encyclopedia', video: 'abcdefghijk' }), 'reference');
   assert.equal(evidenceOf({ kind: 'spoken' }), 'teaching');
   assert.equal(evidenceOf({ kind: 'verse' }), 'scripture');
+});
+
+test('normalizes grouped citations without appending duplicate markers', () => {
+  const result = validateStudyProgram('root = StudyAnswer([Context("A supported detail. [1, 2] [1] [2]", [1, 2])])', sources);
+  assert.match(result.answer, /A supported detail\. \[1\] \[2\]$/);
+  assert.doesNotMatch(result.answer, /\[1, 2\]/);
+});
+
+test('grouped citations cannot launder an unknown or unlisted source', () => {
+  for (const cite of ['[1, 9]', '[1, 2]']) {
+    const result = validateStudyProgram(`root = StudyAnswer([Teaching("Unsupported. ${cite}", [1])])`, sources);
+    assert.equal(result.teachingFound, false);
+    assert.equal(result.answer, NO_TEACHING);
+  }
+});
+
+test('keeps one source rail with both explicit and automatically included citations', () => {
+  const result = validateStudyProgram('root = StudyAnswer([Teaching("Recorded point. [1]", [1]), Sources([1]), Context("A reference fact. [2]", [2]), Sources([2]), Sources([1])])', sources);
+  assert.equal((result.program.match(/Sources\(/g) || []).length, 1);
+  assert.match(result.program, /Sources\(\[1, 2\]\)/);
+});
+
+test('preserves paragraph structure and source links when stripping model-generated URLs', () => {
+  const raw = 'root = StudyAnswer([Teaching("**The point**\\n\\nA supported explanation. [1](https://untrusted.test)\\n\\nA second paragraph.", [1])])';
+  const result = validateStudyProgram(raw, sources);
+  assert.ok(result.teachingFound);
+  assert.match(result.answer, /\*\*The point\*\*\n\n/);
+  assert.match(result.answer, /\[1\]$/);
+  assert.doesNotMatch(result.program, /https:/);
 });
