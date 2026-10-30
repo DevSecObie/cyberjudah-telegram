@@ -79,7 +79,7 @@
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
-        "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.03", "ASK_FREE_MODELS": "@cf/meta/llama-3.1-8b-instruct-fp8",
+        "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_FREE_MODELS": "@cf/meta/llama-3.1-8b-instruct-fp8",
         "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
       }
