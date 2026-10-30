@@ -5,12 +5,15 @@ const out = new URL('./.build/app-ask.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/app-ask.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error', plugins: [{ name: 'fixtures', setup(b) {
   b.onResolve({ filter: /^\.\/app-identity$/ }, () => ({ path: 'identity', namespace: 'fixture' }));
   b.onResolve({ filter: /^\.\/ai$/ }, () => ({ path: 'ai', namespace: 'fixture' }));
-  b.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({ loader: 'js', contents: args.path === 'identity'
+  b.onResolve({ filter: /^\.\/app-voice$/ }, () => ({ path: 'voice', namespace: 'fixture' }));
+  b.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({ loader: 'js', contents: args.path === 'voice'
+    ? `export async function listen(env, account, audio) { env.voice.push({kind:'listen', account, bytes: audio.byteLength}); return {ok:true,text:'Who was Judah'} } export async function speak(env, account, text, voice) { env.voice.push({kind:'speak', account, text, voice}); return new Response(new Uint8Array([1,2,3]), {headers:{'content-type':'audio/mpeg'}}) }`
+    : args.path === 'identity'
     ? `export async function appReader(req) { return req.headers.get('authorization') === 'Bearer fixture' ? {uid:'firebase-alice'} : null }`
     : `const model = {id:'@cf/free',name:'Free',provider:'Cloudflare'}; export const appAskModels = () => [model]; export const freeModel = () => model; export const takeQuotaKey = async () => true; export async function answerApp(env,q,account,history,consent,ms,opts) { env.calls.push({q,account,history,consent,model:opts.model}); opts.emit?.({delta:'An answer'}); return {ok:true,answer:'An answer',sources:[{n:1,title:'Source',url:'/classes/a',text:'private passage'}],model:model.id,provider:model.provider,ms:1} }` }));
 }}] });
 const { appAsk } = await import(out);
-const env = { PRIVACY_KEY: 'fixture-key', calls: [], SUBS: { put: async () => {} } };
+const env = { PRIVACY_KEY: 'fixture-key', calls: [], voice: [], SUBS: { put: async () => {} } };
 const ctx = { waitUntil: () => {}, passThroughOnException: () => {} };
 const request = (path, body, authorization = 'Bearer fixture') => appAsk.request(`https://example.test${path}`, { method: body ? 'POST' : 'GET', headers: { authorization, 'content-type':'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) }, env, ctx);
 test('models, reports and answers all reject an unauthenticated caller', async () => {
@@ -69,4 +72,18 @@ test('oversized request streams are rejected before inference', async () => {
   const response = await request('/', {q:'a'.repeat(40000),consent:['Cloudflare']});
   assert.equal(response.status, 413);
   assert.equal(env.calls.length, before);
+});
+
+test("voice needs a sign-in and the agreement to the free models' provider before any audio is heard or read", async () => {
+  const audio = (headers) => appAsk.request('https://example.test/listen', { method: 'POST', headers: { 'content-type': 'audio/webm', ...headers }, body: new Uint8Array(40000) }, env, ctx);
+  assert.equal((await audio({})).status, 401);
+  assert.equal((await audio({ authorization: 'Bearer fixture' })).status, 428);
+  assert.equal((await request('/speak', { text: 'An answer', voice: 'orpheus' })).status, 428);
+  assert.equal(env.voice.length, 0);
+  const heard = await audio({ authorization: 'Bearer fixture', 'x-ai-consent': 'Cloudflare (Workers AI)' });
+  assert.equal(heard.status, 200, 'a spoken question larger than a text request is accepted');
+  assert.deepEqual(await heard.json(), { text: 'Who was Judah' });
+  const read = await request('/speak', { text: 'An answer', voice: 'orpheus', consent: ['Cloudflare (Workers AI)'] });
+  assert.equal(read.headers.get('content-type'), 'audio/mpeg');
+  assert.ok(env.voice.every((v) => v.account && v.account !== 'firebase-alice'), 'the account is a keyed hash, never the raw UID');
 });

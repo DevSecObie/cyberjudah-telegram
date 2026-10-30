@@ -699,8 +699,8 @@ export async function similar(env: Env, q: string, limit = 20): Promise<Similar>
   }
 }
 
-const isVoice = (v: string) => VOICES.some((x) => x.id === v);
-const toBytes = async (out: unknown): Promise<Uint8Array | null> => {
+export const isVoice = (v: string) => VOICES.some((x) => x.id === v);
+export const toBytes = async (out: unknown): Promise<Uint8Array | null> => {
   if (out instanceof ReadableStream) return new Uint8Array(await new Response(out).arrayBuffer());
   if (out instanceof ArrayBuffer) return new Uint8Array(out);
   if (out instanceof Uint8Array) return out;
