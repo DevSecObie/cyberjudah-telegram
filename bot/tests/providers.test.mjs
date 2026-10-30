@@ -77,3 +77,16 @@ test("Unified Billing with the gateway unreachable: Claude counts as unavailable
   assert.ok(e instanceof Anthropic.APIConnectionError);
   assert.equal(claudeUnavailable(e), true);
 });
+
+test("own-key billing uses the owner's Anthropic key once it is set, and Unified Billing until then", () => {
+  const env = { CLAUDE_BILLING: "anthropic", AI_GATEWAY: "default", CF_AIG_TOKEN: "t" };
+  assert.equal(unifiedBilling(env), true, "no key yet: Claude stays paid through Cloudflare");
+  assert.equal(unifiedBilling({ ...env, ANTHROPIC_API_KEY: "k" }), false, "with the key, the owner's console pays");
+  assert.equal(hasClaude({ ...env, ANTHROPIC_API_KEY: "k" }), true);
+});
+
+test("an emptied Anthropic console balance hands the answer to the backup", () => {
+  const low = new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." } }, "Your credit balance is too low to access the Anthropic API.", new Headers());
+  assert.equal(claudeUnavailable(low), true);
+  assert.equal(claudeUnavailable(new Anthropic.BadRequestError(400, {}, "messages: field required", new Headers())), false);
+});

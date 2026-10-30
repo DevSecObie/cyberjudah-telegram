@@ -19,10 +19,14 @@ import type { Env } from "./env";
  *   credits, and no Anthropic key is sent: the gateway uses a provider key only when the request
  *   carries none (docs: Unified Billing, credential precedence; Anthropic provider, "With Stored
  *   Keys (BYOK) / Unified Billing"). It needs the gateway and CF_AIG_TOKEN.
+ * - "anthropic": the owner's own Anthropic console credits, through the ANTHROPIC_API_KEY secret.
+ *   Until that secret is set, Claude stays on Unified Billing as above, so switching the setting
+ *   before the key is added never leaves paying readers without Claude.
  * - otherwise: the ANTHROPIC_API_KEY secret, billed by Anthropic.
  * ANTHROPIC_BASE_URL, for the end-to-end tests' stand-in, takes precedence over all of these.
+ * Only paying readers (and admins) reach Claude: free answers use Workers AI models only.
  */
-export const unifiedBilling = (env: Env) => env.CLAUDE_BILLING === "cloudflare" && !!env.AI_GATEWAY && !!env.CF_AIG_TOKEN && !env.ANTHROPIC_BASE_URL;
+export const unifiedBilling = (env: Env) => (env.CLAUDE_BILLING === "cloudflare" || (env.CLAUDE_BILLING === "anthropic" && !env.ANTHROPIC_API_KEY)) && !!env.AI_GATEWAY && !!env.CF_AIG_TOKEN && !env.ANTHROPIC_BASE_URL;
 
 /** Whether Ask can call Claude at all: with Anthropic's key, or paid through Cloudflare. Without either, Ask answers with Workers AI. */
 export const hasClaude = (env: Env) => !!env.ANTHROPIC_API_KEY || unifiedBilling(env);
@@ -65,5 +69,7 @@ export const viaGateway = (env: Env, { log = false }: { log?: boolean } = {}) =>
 export function claudeUnavailable(e: unknown): boolean {
   if (!(e instanceof Anthropic.APIError)) return false;
   const s = e.status;
+  // Anthropic answers an emptied console balance with a 400 ("credit balance is too low"): the backup answers then too.
+  if (s === 400 && /credit balance/i.test(e.message ?? "")) return true;
   return s === undefined || s === 401 || s === 402 || s === 403 || s === 408 || s === 409 || s === 429 || s >= 500;
 }

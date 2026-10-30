@@ -75,7 +75,7 @@
         "SITE_URL": "https://cyberjudah.io",
         "D1_SIZE_ALERT_BYTES": "8000000000",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
-        "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "cloudflare",
+        "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it",
@@ -105,9 +105,12 @@
     // Who pays for Claude. "cloudflare": Unified Billing, from the Cloudflare account's AI Gateway
     // credits (AI → AI Gateway → Credits Available), with no Anthropic key sent; it needs the
     // CF_AIG_TOKEN secret, and until that is set the ANTHROPIC_API_KEY secret is used if present.
+    // "anthropic" (set 2026-10-30, the owner's choice): the owner's Anthropic console credits through
+    // the ANTHROPIC_API_KEY secret; until that secret is added, Unified Billing as above.
     // Anything else: the ANTHROPIC_API_KEY secret, billed by Anthropic. When the credits run
-    // out, Ask answers with Workers AI (the backup) until they are topped up.
-    "CLAUDE_BILLING": "cloudflare",
+    // out, Ask answers with Workers AI (the backup) until they are topped up. Only paying readers
+    // and admins reach Claude; free answers stay on Workers AI models.
+    "CLAUDE_BILLING": "anthropic",
     // Ask CyberJudah's pay-as-you-go balance (shared/credits.mjs), shown in dollars. Readers pay
     // exactly what their answers cost, with no profit: each model call at its model's own price
     // (Cloudflare's catalog, shared/ask-models.json), Unified Billing's fee where it applies
