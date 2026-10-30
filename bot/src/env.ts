@@ -46,6 +46,8 @@ export type Env = {
   ASK_APP_ENABLED?: string;
   /** Routing (ai.mjs routeOf), when the reader has not chosen a model: the lighter Claude model for light questions, the stronger free model for deep ones. */
   CLAUDE_MODEL_LIGHT?: string; ASK_FREE_DEEP_MODEL?: string;
+  /** The app's Ask engine: "agent" (default, as cyberjudah.io/app answers) or "study" (the study cards). */
+  APP_ASK_ENGINE?: string;
   ASK_BILLING?: string; ASK_FREE_MODEL?: string; ASK_FREE_MODELS?: string;
   /** Free-answer budgets: research rounds (3), per-answer estimate ceiling (0.05), and a shared UTC-day allowance (0.11) reserved before non-admin free answers run. Other account AI usage is separate. */
   ASK_FREE_MAX_ROUNDS?: string; ASK_FREE_MAX_USD?: string; ASK_FREE_DAILY_USD_CAP?: string;
