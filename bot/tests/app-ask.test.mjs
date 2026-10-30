@@ -10,7 +10,7 @@ await build({ entryPoints: [new URL('../src/app-ask.ts', import.meta.url).pathna
     ? `export async function listen(env, account, audio) { env.voice.push({kind:'listen', account, bytes: audio.byteLength}); return {ok:true,text:'Who was Judah'} } export async function speak(env, account, text, voice) { env.voice.push({kind:'speak', account, text, voice}); return new Response(new Uint8Array([1,2,3]), {headers:{'content-type':'audio/mpeg'}}) }`
     : args.path === 'identity'
     ? `export async function appReader(req) { return req.headers.get('authorization') === 'Bearer fixture' ? {uid:'firebase-alice'} : null }`
-    : `const model = {id:'@cf/free',name:'Free',provider:'Cloudflare'}; export const appAskModels = () => [model]; export const freeModel = () => model; export const takeQuotaKey = async () => true; export async function answerApp(env,q,account,history,consent,ms,opts) { env.calls.push({q,account,history,consent,model:opts.model}); opts.emit?.({delta:'An answer'}); return {ok:true,answer:'An answer',sources:[{n:1,title:'Source',url:'/classes/a',text:'private passage'}],model:model.id,provider:model.provider,ms:1} }` }));
+    : `const model = {id:'@cf/free',name:'Free',provider:'Cloudflare'}; const claudeModel = {id:'claude-haiku-4-5',name:'Haiku',provider:'Anthropic',format:'anthropic'}; export const appPaidModels = () => [claudeModel]; export async function answerAppPaid(env,q,owner,account,history,consent,opts) { env.calls.push({q,owner,account,consent,model:opts.model,paid:true}); return env.paidResult ?? {ok:true,answer:'A paid answer',sources:[],model:claudeModel.id,provider:claudeModel.provider,ms:1} } export const appAskModels = () => [model]; export const freeModel = () => model; export const takeQuotaKey = async () => true; export async function answerApp(env,q,account,history,consent,ms,opts) { env.calls.push({q,account,history,consent,model:opts.model}); opts.emit?.({delta:'An answer'}); return {ok:true,answer:'An answer',sources:[{n:1,title:'Source',url:'/classes/a',text:'private passage'}],model:model.id,provider:model.provider,ms:1} }` }));
 }}] });
 const { appAsk } = await import(out);
 const env = { PRIVACY_KEY: 'fixture-key', calls: [], voice: [], SUBS: { put: async () => {} } };
@@ -86,4 +86,34 @@ test("voice needs a sign-in and the agreement to the free models' provider befor
   const read = await request('/speak', { text: 'An answer', voice: 'orpheus', consent: ['Cloudflare (Workers AI)'] });
   assert.equal(read.headers.get('content-type'), 'audio/mpeg');
   assert.ok(env.voice.every((v) => v.account && v.account !== 'firebase-alice'), 'the account is a keyed hash, never the raw UID');
+});
+
+test("credit packs stay closed until ASK_PURCHASES is on: no paid models, no wallet", async () => {
+  const models = await (await request('/models')).json();
+  assert.equal(models.billing.purchasesEnabled, false);
+  assert.ok(models.models.every(m => !m.paid));
+  assert.deepEqual(await (await request('/wallet')).json(), { purchasesEnabled: false });
+  const refused = await request('/', { q: 'Who was Judah?', model: 'claude-haiku-4-5', consent: ['Anthropic'] });
+  assert.equal(refused.status, 400, 'a paid model is not reachable while packs are closed');
+});
+
+test("with packs open, a Claude model is paid from the account's own balance, named only by its purchase id", async () => {
+  env.ASK_PURCHASES = 'on';
+  try {
+    const models = await (await request('/models')).json();
+    assert.equal(models.billing.purchasesEnabled, true);
+    assert.ok(models.models.some(m => m.id === 'claude-haiku-4-5' && m.paid));
+    env.calls.length = 0;
+    const res = await request('/', { q: 'Who was Judah?', model: 'claude-haiku-4-5', consent: ['Anthropic'] });
+    assert.equal(res.status, 200);
+    const call = env.calls.at(-1);
+    assert.equal(call.paid, true);
+    assert.match(call.owner, /^app:[0-9a-f]{64}$/);
+    assert.ok(!call.owner.includes('firebase-alice'), 'the Firebase UID is never the balance name');
+    assert.notEqual(call.owner.slice(4), call.account, 'the purchase id is not the Ask quota key');
+    env.paidResult = { ok: false, reason: 'credits', available_mc: 10, need_mc: 1000 };
+    const broke = await request('/', { q: 'Who was Judah?', model: 'claude-haiku-4-5', consent: ['Anthropic'] });
+    assert.equal(broke.status, 402);
+    assert.deepEqual(await broke.json(), { error: 'credits', available_mc: 10, need_mc: 1000 });
+  } finally { delete env.ASK_PURCHASES; delete env.paidResult; }
 });

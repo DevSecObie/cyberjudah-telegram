@@ -76,6 +76,7 @@
         "D1_SIZE_ALERT_BYTES": "8000000000",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
         "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
+        "ASK_PURCHASES": "off", "ASK_APP_PACKS": "credits_499:4.99,credits_999:9.99,credits_1999:19.99", "ASK_STORE_FEE": "0.15", "REVENUECAT_SANDBOX": "on",
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
@@ -111,6 +112,11 @@
     // out, Ask answers with Workers AI (the backup) until they are topped up. Only paying readers
     // and admins reach Claude; free answers stay on Workers AI models.
     "CLAUDE_BILLING": "anthropic",
+    // Prepaid Ask credit packs bought in the app (revenuecat.ts): one-time purchases, nothing renews.
+    // "on" only once the app's purchase screens ship and the owner says so. ASK_APP_PACKS lists each store
+    // product id and its price; a pack adds its price minus ASK_STORE_FEE (the store's cut). The
+    // webhook needs the REVENUECAT_WEBHOOK_AUTH secret. Sandbox purchases count on staging only.
+    "ASK_PURCHASES": "off", "ASK_APP_PACKS": "credits_499:4.99,credits_999:9.99,credits_1999:19.99", "ASK_STORE_FEE": "0.15", "REVENUECAT_SANDBOX": "off",
     // Ask CyberJudah's pay-as-you-go balance (shared/credits.mjs), shown in dollars. Readers pay
     // exactly what their answers cost, with no profit: each model call at its model's own price
     // (Cloudflare's catalog, shared/ask-models.json), Unified Billing's fee where it applies

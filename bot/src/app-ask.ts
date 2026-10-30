@@ -3,13 +3,15 @@ import { bodyLimit } from "hono/body-limit";
 import type { Env } from "./env";
 import { IdentityError } from "./account-links";
 import { appReader } from "./app-identity";
-import { answerApp, appAskModels, freeModel, takeQuotaKey } from "./ai";
+import { answerApp, answerAppPaid, appAskModels, appPaidModels, freeModel, takeQuotaKey } from "./ai";
 import { normalizeHistory } from "./ai.mjs";
 import { keyedHash } from "./privacy.mjs";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
+import { wallet } from "./credits";
+import { appOwner, packs, purchaseIdOf, purchasesOn } from "./revenuecat";
 
-type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string } };
+type AppAsk = { Bindings: Env; Variables: { account: string; purchaseId: string; traceId: string } };
 const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export const appAsk = new Hono<AppAsk>();
 const textLimit = bodyLimit({ maxSize: 32000, onError: c => c.json({ error: "too-large" }, 413) });
@@ -28,14 +30,25 @@ appAsk.use('*', async (c, next) => {
     const identity = await appReader(c.req.raw, c.env);
     if (!identity) return c.json({ error: 'sign_in_required' }, 401);
     c.set('account', await keyedHash(c.env, 'app-ask', identity.uid));
+    c.set('purchaseId', await purchaseIdOf(c.env, identity.uid));
   } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : 'sign_in_unavailable' }, error instanceof IdentityError ? error.status : 503); }
   return next();
 });
 appAsk.get('/models', c => c.json({
   default: freeModel(c.env).id, maxQuestionLength: 4000,
-  models: appAskModels(c.env).map(({ id, name, provider, what }) => ({ id, name, provider, what })),
-  billing: { purchasesEnabled: false },
+  models: [
+    ...appAskModels(c.env).map(({ id, name, provider, what }) => ({ id, name, provider, what })),
+    // With credit packs open, the Claude models too, paid from the reader's own balance at cost.
+    ...(purchasesOn(c.env) ? appPaidModels(c.env).map(({ id, name, provider, what }) => ({ id, name, provider, what, paid: true })) : []),
+  ],
+  billing: { purchasesEnabled: purchasesOn(c.env) },
 }));
+// The reader's prepaid balance, the id the app logs in to RevenueCat with, and the packs on sale.
+appAsk.get('/wallet', async c => {
+  if (!purchasesOn(c.env)) return c.json({ purchasesEnabled: false });
+  const w = await wallet(c.env, appOwner(c.get('purchaseId')));
+  return c.json({ purchasesEnabled: true, purchaseId: c.get('purchaseId'), balance_mc: w.total_mc, packs: packs(c.env) });
+});
 appAsk.post('/report', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 1024) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
@@ -80,7 +93,8 @@ appAsk.post('/', async c => {
   try { body = JSON.parse(raw); } catch { return c.json({ error: 'bad-request' }, 400); }
   if (!body || typeof body !== 'object' || typeof body.q !== 'string') return c.json({ error: 'bad-request' }, 400);
   if (body.q.trim().length < 2 || body.q.length > 4000) return c.json({ error: body.q.length > 4000 ? 'too-long' : 'too-short' }, 400);
-  const model = appAskModels(c.env).find(m => m.id === (body.model || freeModel(c.env).id));
+  const paid = purchasesOn(c.env) ? appPaidModels(c.env).find(m => m.id === body.model) : undefined;
+  const model = paid ?? appAskModels(c.env).find(m => m.id === (body.model || freeModel(c.env).id));
   if (!model) return c.json({ error: 'model-unavailable' }, 400);
   const consent = Array.isArray(body.consent) ? body.consent.filter((x): x is string => typeof x === 'string').slice(0, 40) : [];
   if (!consent.includes(model.provider)) return c.json({ error: 'consent', provider: model.provider }, 428);
@@ -91,7 +105,9 @@ appAsk.post('/', async c => {
     const startedAt = Date.now();
     const traceId = c.get('traceId');
     try {
-      const result = await answerApp(c.env, body.q as string, c.get('account'), history, consent, 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId });
+      const result = paid
+        ? await answerAppPaid(c.env, body.q as string, appOwner(c.get('purchaseId')), c.get('account'), history, consent, { model: model.id, emit, traceId })
+        : await answerApp(c.env, body.q as string, c.get('account'), history, consent, 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId });
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
       return result;
     } catch (error) {
@@ -101,7 +117,7 @@ appAsk.post('/', async c => {
   };
   if (!body.stream) {
     const res = await run();
-    return res.ok ? c.json({ ...res, sources: res.sources.map(({ text, ...source }) => ({ ...source, ...(res.ui ? { excerpt: text.slice(0, 1000) } : {}) })) }) : c.json({ error: res.reason }, res.reason === 'limit' || res.reason === 'free-paused' ? 429 : 503);
+    return res.ok ? c.json({ ...res, sources: res.sources.map(({ text, ...source }) => ({ ...source, ...(res.ui ? { excerpt: text.slice(0, 1000) } : {}) })) }) : c.json({ error: res.reason, ...(res.reason === 'credits' ? { available_mc: res.available_mc, need_mc: res.need_mc } : {}) }, res.reason === 'limit' || res.reason === 'free-paused' ? 429 : res.reason === 'credits' ? 402 : 503);
   }
   const encoder = new TextEncoder();
   let open = true;
@@ -116,7 +132,7 @@ appAsk.post('/', async c => {
             // Never transmit retrieved passage text in the sources payload.
             const sources = result.sources.map(({ text, ...source }) => ({ ...source, ...(result.ui ? { excerpt: text.slice(0, 1000) } : {}) }));
             send({ done: true, answer: result.answer, sources, followups: result.followups ?? [], model: result.model, ...(result.ui ? { ui: result.ui, teachingFound: result.teachingFound } : {}) });
-          } else send({ error: result.reason });
+          } else send({ error: result.reason, ...(result.reason === 'credits' ? { available_mc: result.available_mc, need_mc: result.need_mc } : {}) });
         } catch { send({ error: 'unavailable' }); }
         finally { clearInterval(beat); if (open) { open = false; controller.close(); } }
       })();
