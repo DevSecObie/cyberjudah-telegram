@@ -18,12 +18,20 @@ const RelatedScriptures = defineComponent({ name: 'RelatedScriptures', descripti
 const Explore = defineComponent({ name: 'Explore', description: 'Open an existing app study tool. This only navigates on a user tap; it never reads or changes private data. The fixed native label describes the destination.', props: z.object({ resource: z.enum(STUDY_DESTINATIONS) }), component: () => null });
 const FollowUp = defineComponent({ name: 'FollowUp', description: 'A suggested question the user can choose to ask next, grounded in the same teaching.', props: z.object({ question: z.string().min(4).max(300) }), component: () => null });
 const StudyAnswer = defineComponent({ name: 'StudyAnswer', description: 'Compose the answer from teaching, supporting context, actual sources, related scriptures and relevant app actions. Do not include everything for every question.', props: z.object({ children: z.array(z.union([Teaching.ref, Context.ref, Sources.ref, RelatedScriptures.ref, Explore.ref, FollowUp.ref])).max(16) }), component: () => null });
-export const appStudyLibrary = createLibrary({ components: [StudyAnswer, Teaching, Context, Sources, RelatedScriptures, Explore, FollowUp], root: 'StudyAnswer' });
-export const appStudyPrompt = generateSystemPrompt({ library: appStudyLibrary.toSpec(), promptOptions: {
+// OpenUI mints a random instance ID. Workers permit this only inside a request,
+// so keep module evaluation side-effect free and cache after the first request.
+let library: ReturnType<typeof createLibrary> | undefined;
+export function getAppStudyLibrary() {
+  return library ??= createLibrary({ components: [StudyAnswer, Teaching, Context, Sources, RelatedScriptures, Explore, FollowUp], root: 'StudyAnswer' });
+}
+let prompt: string | undefined;
+export function getAppStudyPrompt() {
+  return prompt ??= generateSystemPrompt({ library: getAppStudyLibrary().toSpec(), promptOptions: {
   preamble: APP_TEACHING_POLICY,
   additionalRules: ['Output only OpenUI Lang, with root = StudyAnswer([...]). No Markdown fences, arbitrary URLs, queries, mutations, state, functions or actions.', 'Use Teaching only with teaching evidence citations. Use Context only for supporting factual context. Never attribute an encyclopedia statement to a teacher.', 'Use at most 12 distinct sources, 3 FollowUp nodes, 3 Explore nodes and one RelatedScriptures node. Source numbers are one-based citation numbers, never array indices.', 'Lead with Teaching when the supplied teaching establishes the answer. Do not invent a teaching to fill the layout. No translation comparisons.'],
   examples: ['root = StudyAnswer([Teaching("The recorded lesson explains this point. [1]", [1]), Sources([1]), Context("The reference entry supplies the historical date. [2]", [2]), Sources([2]), RelatedScriptures(["Romans 3:31"]), Explore("people"), FollowUp("Which related scriptures did the teacher use?")])'],
 } });
+}
 
 export const NO_TEACHING = "I couldn't find a teaching in the retrieved material that establishes an answer to this question.";
 export function evidenceOf(source: Passage): StudySource['evidence'] {
@@ -38,6 +46,7 @@ const node = (typeName: string, props: Record<string, unknown>): ElementNode => 
  * the phone: no state, arbitrary tools, URLs, mutations, partial claims or unsupported citations. */
 export function validateStudyProgram(raw: string, sources: StudySource[], partial = false) {
   if (!raw || raw.length > 60000) return null;
+  const appStudyLibrary = getAppStudyLibrary();
   let parsed;
   try { parsed = createParser(appStudyLibrary.toJSONSchema(), appStudyLibrary.root).parse(raw.replace(/^```(?:openui|text)?\s*\n|\n```\s*$/g, '')); } catch { return null; }
   if (!parsed.root || parsed.rootExpression || parsed.queryStatements.length || parsed.mutationStatements.length || Object.keys(parsed.stateDeclarations).length || (!partial && (parsed.meta.incomplete || parsed.meta.errors.length || parsed.meta.unresolved.length || parsed.meta.orphaned.length))) return null;

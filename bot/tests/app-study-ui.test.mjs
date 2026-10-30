@@ -3,7 +3,16 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 const out = new URL('./.build/app-study-ui.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/app-study-ui.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
-const { validateStudyProgram, APP_TEACHING_POLICY, appStudyPrompt, evidenceOf, NO_TEACHING } = await import(out);
+// Match Workers' startup restriction: importing the route must not mint an ID.
+const originalUUID = globalThis.crypto.randomUUID;
+globalThis.crypto.randomUUID = () => { throw new Error('random UUID outside a request'); };
+let study;
+try { study = await import(out); } finally { globalThis.crypto.randomUUID = originalUUID; }
+const { validateStudyProgram, APP_TEACHING_POLICY, getAppStudyPrompt, getAppStudyLibrary, evidenceOf, NO_TEACHING } = study;
+test('OpenUI initializes lazily and reuses its request-created library', () => {
+  assert.equal(getAppStudyLibrary(), getAppStudyLibrary());
+  assert.equal(getAppStudyPrompt(), getAppStudyPrompt());
+});
 const sources = [
   { n: 1, kind: 'spoken', evidence: 'teaching', title: 'A recorded lesson', url: '/classes/a', text: 'The teacher read Romans 3:31 in this lesson.' },
   { n: 2, kind: 'dictionary', evidence: 'reference', title: 'A reference entry', url: '/dictionary/en/isbe/1/a', text: 'Historical reference material.' },
@@ -11,7 +20,7 @@ const sources = [
 test('native policy supports teachers and explicitly rejects unsupported doctrine and model memory', () => {
   for (const rule of ['not an independent teacher', 'Do not complete gaps from model memory', 'reference entry is not a teacher', 'not decide doctrine yourself']) assert.ok(APP_TEACHING_POLICY.includes(rule));
   assert.ok(!APP_TEACHING_POLICY.includes('draw the whole conclusion yourself'));
-  for (const name of ['Teaching', 'Context', 'Sources', 'RelatedScriptures', 'Explore', 'FollowUp']) assert.ok(appStudyPrompt.includes(name));
+  for (const name of ['Teaching', 'Context', 'Sources', 'RelatedScriptures', 'Explore', 'FollowUp']) assert.ok(getAppStudyPrompt().includes(name));
 });
 test('generative composition preserves source IDs, creates source previews and bounds related scriptures to evidence', () => {
   const result = validateStudyProgram('root = StudyAnswer([Teaching("The recorded explanation.", [1]), Context("Historical detail. [2]", [2]), RelatedScriptures(["Romans 3:31", "Genesis 99:1"]), Explore("people"), FollowUp("What did the lesson say next?")])', sources);
