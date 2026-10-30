@@ -32,7 +32,11 @@ export type AppStudyEvent = AgentEvent | { ui: string; sources: ReturnType<typeo
 /** A malformed or truncated answer may be retried once, but never bypasses provenance
  * validation. The caller must admit the retry within the original budget and deadline. */
 export async function checkAppStudyOutput(first: { text: string; cut: boolean }, sources: StudySource[], repair?: () => Promise<{ text: string; cut: boolean }>) {
-  const check = (text: string) => validateStudyProgram(text, sources) ?? validateStudyProgram(text, sources, false, true);
+  const check = (text: string) => {
+    const checked = validateStudyProgram(text, sources) ?? validateStudyProgram(text, sources, false, true);
+    // A syntactically valid card-only tree or wholly rejected citation set is not an answer.
+    return checked && checked.answer !== NO_TEACHING && checked.sources.length ? checked : null;
+  };
   const checked = !first.cut && check(first.text);
   if (checked) return checked;
   if (!repair) return null;

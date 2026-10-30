@@ -47,10 +47,20 @@ test('the retry cannot promote reference data into doctrine or return truncated 
   const sources = [{ n: 2, kind: 'people', evidence: 'reference', title: 'Person', text: 'A biographical fact.', url: '/person/example' }];
   const first = { text: 'bad format', cut: false };
   const result = await checkAppStudyOutput(first, sources, async () => ({ text: 'root = StudyAnswer([Teaching("Invented doctrine. [2]", [2])])', cut: false }));
-  assert.doesNotMatch(result.program, /Invented doctrine/);
-  assert.equal(result.teachingFound, false);
+  assert.equal(result, null);
   assert.equal(await checkAppStudyOutput(first, sources), null);
   assert.equal(await checkAppStudyOutput(first, sources, async () => ({ text: 'root = StudyAnswer([])', cut: true })), null);
+});
+
+test('a card-only response is retried instead of being mistaken for an answer', async () => {
+  const sources = [{ n: 2, kind: 'people', evidence: 'reference', title: 'Person', text: 'A biographical fact.', url: '/person/example' }];
+  let retries = 0;
+  const result = await checkAppStudyOutput({ text: 'root = StudyAnswer([Sources([2])])', cut: false }, sources, async () => {
+    retries++;
+    return { text: 'root = StudyAnswer([Context("A biographical fact. [2]", [2])])', cut: false };
+  });
+  assert.equal(retries, 1);
+  assert.equal(result.answer, 'A biographical fact. [2]');
 });
 
 test('a valid first answer never incurs a retry', async () => {
