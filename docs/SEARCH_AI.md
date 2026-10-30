@@ -51,3 +51,10 @@ request per run, under the normal free-answer allowance; it sends no Telegram me
 does not touch a real reader's balance. Missing gateway funding, exhausted allowance or an
 uncited answer fails that deployment's verification step. A failed verification after upload
 does not automatically roll the Worker back. Review the run before calling the release ready.
+
+## Ask in the CyberJudah app
+
+`POST /api/app/ask` (`bot/src/index.ts`, `answerApp` in `bot/src/ai.ts`) is Ask for the iPhone and Android app. It accepts any verified Firebase sign-in from project `cyberjudah-app` (`bot/src/app-identity.ts`), linked to Telegram or not; anonymous sign-ins are refused as everywhere else. It answers on the free model only, in one bounded call from the library passages, and returns the answer with the sources it cited. No balance is read or held, nothing is bought and no chat is saved on the server.
+
+Limits: 100 answers a day per account, counted under a keyed hash of the Firebase UID (`ask_app:` in `rate_counts`); the per-IP Ask limit (`ASK_IP_DAILY_LIMIT`); the per-IP Bearer rate limit (`FIREBASE_SESSION_LIMIT`); and the shared daily free-answer budget, which every answer reserves before any model work. The reader must agree to the free model's provider first: without it the server answers 428 `consent` with the provider's name, and nothing is sent to the provider.
+
