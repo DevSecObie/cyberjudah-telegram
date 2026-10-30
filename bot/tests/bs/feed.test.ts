@@ -23,7 +23,7 @@ import { strongCode } from '../../src/bs/strongs.ts';
 const fixture = async (path: string) => JSON.parse(await readFile(new URL(`../fixtures/bs/${path}`, import.meta.url), 'utf8'));
 const paths = [
   'api/kjv/books.json', 'api/kjv/genesis/1.json', 'api/kjv/john/1.json', 'api/kjv/tobit/1.json', 'api/kjv/wisdom-of-solomon/1.json', 'api/kjv/2-maccabees/1.json',
-  'api/lxx/wisdom-of-solomon/1.json', 'api/lxx/2-maccabees/1.json', 'api/strongs/H1.json', 'api/strongs/G3056.json', 'api/strongs/index.json',
+  'api/lxx/wisdom-of-solomon/1.json', 'api/lxx/2-maccabees/1.json', 'api/strongs/H1.json', 'api/strongs/H3.json', 'api/strongs/G3056.json', 'api/strongs/index.json',
   'api/xref/john/1.json', 'api/concordance/john/1.json', 'api/topics/faith.json',
 ];
 const originals = new Map(await Promise.all(paths.map(async path => [`/${path}`, await fixture(path)] as const)));
@@ -60,12 +60,12 @@ beforeEach(async () => { await Promise.all(pending.splice(0)); data.clear(); for
 after(() => { globalThis.fetch = originalFetch; delete (globalThis as any).caches; sqlite.close(); });
 const covered = new Set<string>();
 const allRoutes = [...(await readFile(new URL('../upstream/api.ts.txt', import.meta.url), 'utf8')).matchAll(/HttpApiEndpoint\.(get|post)\(\s*'[^']+',\s*'([^']+)'/g)].map(m => ({ method: m[1].toUpperCase(), path: m[2] }));
-async function request(path: string, schema: Schema.Schema.Any, options: { body?: unknown; status?: number; method?: string } = {}) {
+async function request(path: string, schema: Schema.Schema.Any, options: { body?: unknown; status?: number; method?: string; env?: Record<string, unknown> } = {}) {
   const method = options.method ?? (options.body !== undefined ? 'POST' : 'GET');
   const url = new URL(`https://cyberjudah.io/bs${path}`);
   const route = allRoutes.find(r => r.method === method && new RegExp(`^${r.path.replace(/:[^/]+/g, '[^/]+')}$`).test(url.pathname.slice(3)));
   if (route) covered.add(`${route.method} ${route.path}`);
-  const res = await worker.fetch(new Request(url, { method, ...(options.body !== undefined ? { body: JSON.stringify(options.body), headers: { 'content-type': 'application/json' } } : {}) }), env as any, ctx as any);
+  const res = await worker.fetch(new Request(url, { method, ...(options.body !== undefined ? { body: JSON.stringify(options.body), headers: { 'content-type': 'application/json' } } : {}) }), { ...env, ...options.env } as any, ctx as any);
   const json = await res.json();
   assert.equal(res.status, options.status ?? 200, `${method} ${path}: ${JSON.stringify(json)}`);
   Schema.decodeUnknownSync(schema)(json);
@@ -136,6 +136,14 @@ test('search uses real FTS5, applies filters before paging, counts all matches a
   assert.ok(apoc.results.length > 0); assert.ok(apoc.results.every((r: any) => r.book === 81));
   const { json: section } = await request('/v1/bibles/KJV/search?q=God&section=apoc&limit=1', Bible.BibleSearchResponseDto);
   assert.ok(section.count > 0); assert.ok(section.results.every((r: any) => r.book > 66));
+  // Bible Strong's search has only Old/New Testament filters, so its web port keeps the Apocrypha under the first.
+  const { json: otApoc } = await request('/v1/bibles/KJV/search?q=God&section=ot&book=81', Bible.BibleSearchResponseDto, { env: { BIBLE_STRONG_WEB: '1' } });
+  assert.ok(otApoc.results.length > 0); assert.ok(otApoc.results.every((r: any) => r.book === 81));
+  // The Mini App has its own Apocrypha filter: its Old Testament filter must stay books 1-39.
+  const { json: miniOt } = await request('/v1/bibles/KJV/search?q=God&section=ot&book=81', Bible.BibleSearchResponseDto);
+  assert.equal(miniOt.count, 0);
+  const { json: miniOtAll } = await request('/v1/bibles/KJV/search?q=God&section=ot&limit=100&sortOrder=book&offset=3000', Bible.BibleSearchResponseDto);
+  assert.ok(miniOtAll.results.every((r: any) => r.book <= 39));
   const { json: phrase } = await request('/v1/bibles/KJV/search?q=%22in%20the%20beginning%22&section=nt', Bible.BibleSearchResponseDto);
   assert.ok(phrase.results.every((r: any) => r.text.toLowerCase().includes('in the beginning') && r.book === 43));
   for (const path of ['/v1/bibles/KJV/semantic-search?q=faith', '/v1/bibles/semantic-search?versions=KJV&q=faith']) {
@@ -273,11 +281,11 @@ test('commentary sections agree with the upstream section builder, maintain rank
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
 });
 
-test('cross references, empty timelines and unsupported resources use the documented schemas', async () => {
+test('cross references, published timelines and unsupported resources use the documented schemas', async () => {
   const { json: refs } = await request('/v1/cross-references/fr/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
   assert.ok(refs.references.includes('1-1-1'));
   await request('/v1/cross-references/en/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
-  const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto); assert.deepEqual(timeline.events, []);
+  const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto); assert.equal(timeline.events.length, 517);
   await request('/v1/timelines/en/events/unknown', Problems.ResourceNotFoundProblem, { status: 404 });
   await request('/v1/interlinear-bibles/BHG/languages/en/coverage', Problems.ResourceNotFoundProblem, { status: 404 });
   await request('/v1/interlinear-bibles/BHG/languages/en/books/1/chapters/1', Problems.ResourceNotFoundProblem, { status: 404 });

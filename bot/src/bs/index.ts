@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import { bible } from './bible';
 import { dictionaries } from './dictionary';
+import { readBibleStrongReference } from './upstream-reference';
 import { lexicon, strongBibles } from './strongs';
 import { naves } from './topics';
 import { commentaries } from './commentary';
-import { type App, BOOKS, FeedError, invalid, limit, load, metadata, missing, sha, verseKey } from './core';
+import { timelines } from './timeline';
+import { type App, BOOKS, FeedError, load, metadata, missing, sha, verseKey } from './core';
 
 export const bs = new Hono<App>();
 bs.use('*', async (c, next) => {
@@ -15,6 +17,11 @@ bs.use('*', async (c, next) => {
     c.header('access-control-allow-headers', 'content-type');
     c.header('access-control-max-age', '86400');
     return c.body(null, 204);
+  }
+  if (c.env.BIBLE_STRONG_WEB === '1' && /^\/bs\/v1\/(?:dictionaries|naves)(?:\/|$)/.test(c.req.path)) {
+    const response = await readBibleStrongReference(c.req.raw);
+    response.headers.set('access-control-allow-origin', '*');
+    return response;
   }
   await next();
   // Same public TTLs as /api/dictionary; no shared caching of POST bodies or errors.
@@ -53,14 +60,7 @@ bs.get('/v1/cross-references/:language/verses/:verseKey', async c => {
   }))];
   return c.json({ resource: { kind: 'cross-references', resourceId: 'cyberjudah-xref', language: lang, revision: `cj-xref-${await sha(data)}` }, verseKey: c.req.param('verseKey'), references });
 });
-bs.get('/v1/timelines/:language/events', c => {
-  const lang = c.req.param('language');
-  if (!['en', 'fr'].includes(lang)) return invalid();
-  limit(c, 100, 50);
-  // Episodes have publication dates, not dates/periods of historical events.
-  return c.json({ resource: { kind: 'timeline', language: lang, revision: 'cj-history-no-timeline-v1' }, events: [] });
-});
-bs.get('/v1/timelines/:language/events/:slug', c => missing('TIMELINE_EVENT_NOT_FOUND'));
+bs.route('/v1/timelines', timelines);
 bs.get('/v1/interlinear-bibles/:version/languages/:language/coverage', c => missing('INTERLINEAR_UNSUPPORTED'));
 bs.get('/v1/interlinear-bibles/:version/languages/:language/books/:book/chapters/:chapter', c => missing('INTERLINEAR_UNSUPPORTED'));
 bs.post('/v1/search-events', c => c.json({ accepted: false }, 202));

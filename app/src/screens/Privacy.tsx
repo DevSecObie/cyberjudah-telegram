@@ -15,7 +15,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-10-13";
+export const PRIVACY_UPDATED = "2026-10-28";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -77,6 +77,15 @@ export function Privacy() {
         <p>If you use the Sabbath screen, your location, rounded to three decimal places (about 100 metres), is kept the same way, in Telegram's cloud storage (in this browser when CyberJudah is opened outside Telegram), until you tap Forget. Sunset is worked out on your device, and the location is not kept on CyberJudah's servers; like your settings, it goes into a backup you send to your chat.</p>
       </Section>
 
+      <Section title="The CyberJudah App for iPhone and Android">
+        <p>You can read and study without an account. Your highlights, notes, bookmarks, tags, studies and settings then stay on your phone.</p>
+        <p>If you sign in with Google, Apple or an email address, Google Firebase keeps your sign-in: your email address, the name your sign-in provider shares, and an account ID. Your highlights, notes, bookmarks, tags, links and personal studies, with their earlier versions, are then kept in Google Firebase under that account ID so they follow you between your devices. Only you can read them. They are kept until you delete them or your account.</p>
+        <p>Before some downloads, the app asks Apple or Google to confirm it is a genuine copy of CyberJudah (Firebase App Check). This check does not identify you.</p>
+        <p>When you open a dictionary or Nave topic, CyberJudah's server fetches it from the Bible Strong reference service. Only what you looked up is sent: the entry, verse or search words. Your name, account and sign-in are not.</p>
+        <p>The app has no advertising, no analytics, no crash reporting and nothing to buy.</p>
+        <p>To delete your account and the study data synced to it, choose Delete account in the app's More screen or your profile. If you linked Telegram, your Ask balance and chats are deleted with Delete my data in Telegram. Without the app, see <a href="/delete-account" onClick={(e) => { e.preventDefault(); navigate("/delete-account"); }}>Delete your account</a>.</p>
+      </Section>
+
       <Section title="What CyberJudah Keeps, and for How Long">
         <p>Only what a feature you use needs. Each record is filed under a coded ID, not your Telegram ID, and what it holds is encrypted, with the key kept apart from the data.</p>
         <ul>
@@ -104,6 +113,9 @@ export function Privacy() {
           <li><b>The CyberJudah admins:</b> if you send /paysupport, they receive your name, @username, Telegram ID and your message, so they can answer you. If you report an answer, they are told only which answer it was and why, not who you are.</li>
           <li><b>Your browser's push service</b> (from Apple, Google or Mozilla), only if you turn on push reminders.</li>
           {syncing ? <li><b>Google Firebase</b> keeps your synced highlights, notes, bookmarks, tags, links and personal studies, under your Telegram ID, so the same marks follow you to another device. Delete my data removes them.</li> : null}
+          <li><b>Google Firebase</b> keeps the sign-in and synced study data of the iPhone and Android app, as described above.</li>
+          <li><b>Apple and Google</b> handle Sign in with Apple and Google sign-in under their own privacy policies, and the App Check device check.</li>
+          <li><b>The Bible Strong reference service</b> supplies dictionary and Nave entries to CyberJudah's server, which sends it only what you looked up.</li>
         </ul>
         <p>CyberJudah does not sell your data or use it for advertising.</p>
       </Section>

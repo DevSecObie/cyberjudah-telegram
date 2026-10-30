@@ -10,6 +10,7 @@ export type Env = {
   VEC: Vectorize;
   AUDIO: R2Bucket;
   DATA_ORIGIN: string;
+  BIBLE_STRONG_WEB?: string;
   SITE_URL: string;
   /** The Mini App's direct link from @BotFather (https://t.me/<bot>/<app>); empty until /newapp. */
   APP_URL: string;

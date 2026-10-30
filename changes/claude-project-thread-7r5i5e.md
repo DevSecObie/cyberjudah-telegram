@@ -1,0 +1,1 @@
+- Staging serves the iPhone app's player page from cyberjudah-app cbecb87, which takes a start time, so the reader's class videos play from the moment the verse was read. The People archive is unchanged (cbecb87 includes 2b97180).

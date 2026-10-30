@@ -613,6 +613,14 @@ app.get("/card/:slug/:chapter/:file", async (c) => {
   return res;
 });
 
+// The Expo staging app uses upstream root routes. Preserve old menu/account links.
+app.get("/app", c => c.env.BIBLE_STRONG_WEB === "1" ? c.redirect("/home", 302) : c.env.ASSETS.fetch(c.req.raw));
+app.get("/app/*", async (c, next) => {
+  if (c.env.BIBLE_STRONG_WEB !== "1") return next();
+  const path = c.req.path === "/app/settings/account" ? "/profile" : "/home";
+  return c.redirect(path, 302);
+});
+
 // The Bible Strong fork once lived at /app/strong; it is gone, and its old links open the app.
 app.get("/app/strong", (c) => c.redirect("/app/", 301));
 app.get("/app/strong/*", (c) => c.redirect("/app/", 301));
