@@ -197,6 +197,17 @@ Ask answers with Claude (`CLAUDE_MODEL`), paid for as `CLAUDE_BILLING` says (bel
   - Once Unified Billing is confirmed in the gateway's logs, the `ANTHROPIC_API_KEY` repository secret and Worker secret are no longer used and can be removed.
 - **Dashboard settings:** gateway-level caching, rate limiting and retries are set in the dashboard. Leave caching off for Ask: answers depend on the conversation.
 
+## Prepaid Ask credit packs (app)
+
+The app sells one-time Ask credit packs through Apple and Google; RevenueCat tracks the purchases and tells the Worker (`bot/src/revenuecat.ts`). Nothing renews.
+
+To turn it on (the owner's steps; never paste a secret in chat):
+1. Create the consumable products in App Store Connect and the Play Console, and the same products in RevenueCat. Their ids and prices go in `ASK_APP_PACKS` in `bot/wrangler.jsonc` (`product_id:price_usd,…`).
+2. In RevenueCat, Integrations → Webhooks: URL `https://<worker host>/api/revenuecat/webhook`, and an authorization header value of your choosing. Put the same value in the Worker secret: `npx wrangler secret put REVENUECAT_WEBHOOK_AUTH` (and `--env staging`).
+3. Ship the app's purchase screens (they log in to RevenueCat with `purchaseId` from `GET /api/app/ask/wallet`), then set `ASK_PURCHASES` to `"on"`.
+
+Each pack adds its price minus `ASK_STORE_FEE` (0.15) to the reader's balance, once per store transaction; a store refund takes back what is unspent. Sandbox purchases count only where `REVENUECAT_SANDBOX` is `"on"` (staging). Webhook outcomes are logged as `revenuecat_webhook`; an unknown product as `revenuecat_unknown_product`.
+
 ## Privacy
 
 What is kept about people, for how long, who else handles it and the standards it follows are in

@@ -239,6 +239,20 @@ async function startMeterFor(env: Env, uid: number, model: AskModel, opts: Meter
     }
     return { ok: true, meter: { owner, request, held: 0, spend: makeSpend({ fee, budgetUsd: budget, rates: cfg.research }), model, free: true, admin, reservation, maxRounds: isFree && !admin ? rounds : undefined } };
   }
+  return paidMeter(env, owner, model, opts, request, isAdmin(env, uid));
+}
+
+/**
+ * A paid answer's hold on a balance (a Telegram reader's, or an app account's: `app:<purchase id>`):
+ * at most the limit the reader accepted, at least enough to begin; with less, the free model and a
+ * top-up are offered.
+ */
+async function paidMeter(env: Env, owner: string, model: AskModel, opts: MeterOpts, request: string, admin: boolean): Promise<MeterStart> {
+  const cfg = creditsConfig(env);
+  const viaCf = unifiedBilling(env);
+  const fee = viaUnifiedBilling(model, viaCf) ? cfg.unifiedFee : 0;
+  const est = estimateMc(model, cfg, { claudeViaCloudflare: viaCf });
+  const free = freeModel(env);
   const typical = (await typicalMc(env, model.id).catch(() => null)) ?? est.typicalMc;
   const limit = opts.maxMc ?? opts.caps?.[model.id];
   const accepted = limit && limit > 0 ? Math.round(limit) : null;
@@ -254,7 +268,7 @@ async function startMeterFor(env: Env, uid: number, model: AskModel, opts: Meter
   // Not enough: the free model is offered, and a top-up.
   if (!h.ok && "reason" in h) return { ok: false, status: 409, body: { error: "request-used", message: "This request already started. Wait for its answer or send a new request." } };
   if (!h.ok) return { ok: false, status: 402, body: { error: "credits", model: model.id, name: model.name, available_mc: h.available_mc, need_mc: minMc, typical_mc: typical, free: { id: free.id, name: free.name, provider: free.provider } } };
-  return { ok: true, meter: { owner, request, held: h.held_mc, spend: makeSpend({ fee, budgetUsd: h.held_mc * MC_USD, rates: cfg.research }), model, free: false, admin: isAdmin(env, uid) } };
+  return { ok: true, meter: { owner, request, held: h.held_mc, spend: makeSpend({ fee, budgetUsd: h.held_mc * MC_USD, rates: cfg.research }), model, free: false, admin } };
 }
 
 /**
@@ -329,7 +343,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 
 export type SearchAnswer =
   | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; ui?: string; teachingFound?: boolean }
-  | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit" };
+  | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit" | "credits"; available_mc?: number; need_mc?: number };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
 export function searchModel(env: Env): AskModel | null {
@@ -418,6 +432,66 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   // Only an answer that found and cited teaching is kept; "nothing found" is always asked again.
   if (result.ok && result.sources.length) await keepAnswer(env, key, result, options.traceId);
   return result;
+}
+
+/** The Claude models an app reader with credits may choose (paid from their own balance, at cost). */
+export function appPaidModels(env: Env): AskModel[] {
+  return hasClaude(env) ? MODELS.filter(m => m.format === "anthropic") : [];
+}
+
+/**
+ * A paid answer for an app account with prepaid credits (revenuecat.ts): Claude researches and
+ * writes, as in Telegram, charged to the account's own balance at cost and never past the confirm
+ * limit. When Claude's money has run out the free model answers instead and nothing is charged.
+ */
+export async function answerAppPaid(env: Env, q: string, owner: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model: string; emit?: (event: AppStudyEvent) => void; traceId?: string }): Promise<SearchAnswer> {
+  const t0 = Date.now();
+  const question = q.trim();
+  if (question.length > 4000) return { ok: false, reason: "too-long" };
+  if (question.length < 2) return { ok: false, reason: "too-short" };
+  const approved = approvedFor(question, history);
+  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
+  const model = appPaidModels(env).find(m => m.id === options.model);
+  if (!model) return { ok: false, reason: "model-unavailable" };
+  if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  const key = await cacheKey(question, history, model.id, "app", APP_STUDY_RELEASE.version);
+  const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
+  if (!(await takeQuotaKey(env, `ask_app_paid:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+  await prepare(env, owner);
+  const started = await paidMeter(env, owner, model, { maxMc: creditsConfig(env).confirmAboveMc }, crypto.randomUUID(), false);
+  if (!started.ok) {
+    const body = started.body as { error?: string; available_mc?: number; need_mc?: number };
+    return started.status === 402 ? { ok: false, reason: "credits", available_mc: body.available_mc, need_mc: body.need_mc } : { ok: false, reason: "unavailable" };
+  }
+  const meter = started.meter;
+  const emit = options.emit;
+  try {
+    emit?.({ status: `Searching the classes and library for “${question.slice(0, 160)}”` });
+    const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, meter.spend), 8);
+    let ran: Awaited<ReturnType<typeof runAgent>>;
+    try {
+      ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, meter.spend), (e: AgentEvent) => { if ("status" in e && typeof e.status === "string") emit?.({ status: e.status }); }, undefined, undefined, model, meter.spend);
+    } catch (e) {
+      if (!claudeUnavailable(e)) throw e;
+      console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
+      await alertClaudeFunds(env, e);
+      await finishMeter(env, meter, "backup");
+      // The free model answers, from the free allowance, if the reader agreed to its provider; the balance is untouched.
+      return answerApp(env, question, account, history, consent, SEARCH_ANSWER_DEADLINE_MS, { emit, traceId: options.traceId });
+    }
+    const { answer: written, followups } = splitFollowups(ran.text);
+    const answer = await checkedVerses(env, written);
+    await finishMeter(env, meter, answer.trim() ? "ok" : "empty", Date.now() - t0);
+    if (!answer.trim()) return { ok: false, reason: "empty" };
+    const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    if (result.sources.length) await keepAnswer(env, key, result, options.traceId);
+    return result;
+  } catch (e) {
+    await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
+    console.error(JSON.stringify({ event: "app_paid_answer_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
+    return { ok: false, reason: "unavailable" };
+  }
 }
 
 /**

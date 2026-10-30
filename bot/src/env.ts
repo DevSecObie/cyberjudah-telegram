@@ -46,6 +46,9 @@ export type Env = {
   ASK_APP_ENABLED?: string;
   /** Routing (ai.mjs routeOf), when the reader has not chosen a model: the lighter Claude model for light questions, the stronger free model for deep ones. */
   CLAUDE_MODEL_LIGHT?: string; ASK_FREE_DEEP_MODEL?: string;
+  // Prepaid Ask credit packs in the app (revenuecat.ts): ASK_PURCHASES "on" opens them; ASK_APP_PACKS "product:usd,…";
+  // ASK_STORE_FEE the store's cut taken off each pack; REVENUECAT_WEBHOOK_AUTH a secret; REVENUECAT_SANDBOX "on" on staging only.
+  ASK_PURCHASES?: string; ASK_APP_PACKS?: string; ASK_STORE_FEE?: string; REVENUECAT_WEBHOOK_AUTH?: string; REVENUECAT_SANDBOX?: string;
   ASK_BILLING?: string; ASK_FREE_MODEL?: string; ASK_FREE_MODELS?: string;
   /** Free-answer budgets: research rounds (3), per-answer estimate ceiling (0.05), and a shared UTC-day allowance (0.11) reserved before non-admin free answers run. Other account AI usage is separate. */
   ASK_FREE_MAX_ROUNDS?: string; ASK_FREE_MAX_USD?: string; ASK_FREE_DAILY_USD_CAP?: string;
