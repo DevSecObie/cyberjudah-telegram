@@ -7,6 +7,7 @@ import { answerApp, appAskModels, freeModel, takeQuotaKey } from "./ai";
 import { normalizeHistory } from "./ai.mjs";
 import { keyedHash } from "./privacy.mjs";
 import { listen, speak } from "./app-voice";
+import { dropReported } from "./answer-cache";
 
 type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string } };
 const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -47,7 +48,10 @@ appAsk.post('/report', async c => {
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
   const model = appAskModels(c.env).find(m => m.id === body.model)?.id ?? 'default';
-  await c.env.SUBS.put(`app_ask_report:${day}:${crypto.randomUUID()}`, JSON.stringify({ reason: body.reason, model, at: Date.now(), ...(typeof body.traceId === 'string' && tracePattern.test(body.traceId) ? { traceId: body.traceId.toLowerCase() } : {}) }), { expirationTtl: 90 * 86400 });
+  // A reported answer that came from the answer cache is removed from it (answer-cache.ts).
+  const traced = typeof body.traceId === 'string' && tracePattern.test(body.traceId);
+  if (traced) await dropReported(c.env, body.traceId as string);
+  await c.env.SUBS.put(`app_ask_report:${day}:${crypto.randomUUID()}`, JSON.stringify({ reason: body.reason, model, at: Date.now(), ...(traced ? { traceId: (body.traceId as string).toLowerCase() } : {}) }), { expirationTtl: 90 * 86400 });
   return c.json({ ok: true });
 });
 // Voice (app-voice.ts): a spoken question as text, and an answer read aloud. The reader's agreement

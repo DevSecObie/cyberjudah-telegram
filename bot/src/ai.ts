@@ -3,6 +3,7 @@ import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
 import { guardVerses } from "./verse-guard.mjs";
 import { approvedFor, approvedSources } from "./approved-answers";
+import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
@@ -399,6 +400,11 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (!model) return { ok: false, reason: "model-unavailable" };
   // Nothing is sent to a provider the reader has not agreed to, as in askStream.
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  // The same first question, already answered this week by this model and mode: given at once (answer-cache.ts).
+  const mode = options.study ? "study" : "app";
+  const key = await cacheKey(question, history, model.id, mode, APP_STUDY_RELEASE.version);
+  const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
   if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
   const cfg = creditsConfig(env);
   const budget = Math.min(estimateMc(model, cfg, { rounds: options.study ? 2 : 1 }).maxMc * MC_USD, freeMaxUsd(env));
@@ -408,7 +414,10 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (!reservation) return { ok: false, reason: "free-paused" };
   // A free meter with no owner: finishMeter settles the reservation and never touches a balance.
   const meter: Meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: 1 };
-  return boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, options.study ? "study" : "app", options.traceId);
+  const result = await boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, mode, options.traceId);
+  // Only an answer that found and cited teaching is kept; "nothing found" is always asked again.
+  if (result.ok && result.sources.length) await keepAnswer(env, key, result, options.traceId);
+  return result;
 }
 
 /**
