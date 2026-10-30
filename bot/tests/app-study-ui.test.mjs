@@ -84,6 +84,7 @@ test('keeps one source rail with both explicit and automatically included citati
   const result = validateStudyProgram('root = StudyAnswer([Teaching("Recorded point. [1]", [1]), Sources([1]), Context("A reference fact. [2]", [2]), Sources([2]), Sources([1])])', sources);
   assert.equal((result.program.match(/Sources\(/g) || []).length, 1);
   assert.match(result.program, /Sources\(\[1, 2\]\)/);
+  assert.ok(result.program.indexOf('Sources(') > result.program.indexOf('Context('));
 });
 
 test('preserves paragraph structure and source links when stripping model-generated URLs', () => {

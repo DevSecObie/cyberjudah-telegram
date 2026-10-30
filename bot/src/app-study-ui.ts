@@ -104,7 +104,8 @@ export function validateStudyProgram(raw: string, sources: StudySource[], partia
   }
   if (used.size > 12) return null;
   // One source rail, including every cited source, even when the model emits several lists.
-  if (used.size && children.length < 16) children.splice(sourcesPosition ?? children.length, 0, node('Sources', { numbers: [...used] }));
+  const afterExplanation = children.reduce((last, child, index) => ['Teaching', 'Context'].includes(child.typeName) ? index + 1 : last, 0);
+  if (used.size && children.length < 16) children.splice(Math.max(sourcesPosition ?? children.length, afterExplanation), 0, node('Sources', { numbers: [...used] }));
   // Reference-backed factual answers are valid without a doctrinal Teaching component.
   if (!partial && !text.length) text.push(NO_TEACHING);
   if (partial && !children.length) return null;
