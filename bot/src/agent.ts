@@ -90,7 +90,7 @@ const TOOLS: Anthropic.Tool[] = TOOL_DEFS.map((t) => ({ ...t, eager_input_stream
 const SCHEMAS = new Map(TOOL_DEFS.map((t) => [t.name, t.input_schema]));
 
 const keyOf = (p: Passage) => (p.video ? `v|${p.video}|${Math.round((p.t ?? 0) / 90)}` : `${p.kind}|${p.url}|${p.sub ?? ""}`);
-const listed = (p: Numbered) => `[${p.n}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.date ? ` (${p.date})` : ""}\n${p.text}`;
+const listed = (p: Numbered) => `[${p.n}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.date ? ` (${p.date})` : ""}${p.teacher ? ` (taught by ${p.teacher})` : ""}\n${p.text}`;
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 export async function runAgent(

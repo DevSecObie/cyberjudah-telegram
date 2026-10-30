@@ -6,11 +6,16 @@ import { appReader } from "./app-identity";
 import { answerApp, appAskModels, freeModel, takeQuotaKey } from "./ai";
 import { normalizeHistory } from "./ai.mjs";
 import { keyedHash } from "./privacy.mjs";
+import { listen, speak } from "./app-voice";
+import { dropReported } from "./answer-cache";
 
 type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string } };
 const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export const appAsk = new Hono<AppAsk>();
-appAsk.use("*", bodyLimit({ maxSize: 32000, onError: c => c.json({ error: "too-large" }, 413) }));
+const textLimit = bodyLimit({ maxSize: 32000, onError: c => c.json({ error: "too-large" }, 413) });
+const audioLimit = bodyLimit({ maxSize: 2_000_000, onError: c => c.json({ error: "too-large" }, 413) });
+// A spoken question may be up to about a minute of audio; everything else is small JSON.
+appAsk.use("*", (c, next) => (c.req.path.endsWith("/listen") ? audioLimit : textLimit)(c, next));
 // These endpoints never resolve a Telegram wallet. Identity is always a verified Firebase UID.
 appAsk.use('*', async (c, next) => {
   c.header('cache-control', 'no-store');
@@ -43,8 +48,28 @@ appAsk.post('/report', async c => {
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
   const model = appAskModels(c.env).find(m => m.id === body.model)?.id ?? 'default';
-  await c.env.SUBS.put(`app_ask_report:${day}:${crypto.randomUUID()}`, JSON.stringify({ reason: body.reason, model, at: Date.now(), ...(typeof body.traceId === 'string' && tracePattern.test(body.traceId) ? { traceId: body.traceId.toLowerCase() } : {}) }), { expirationTtl: 90 * 86400 });
+  // A reported answer that came from the answer cache is removed from it (answer-cache.ts).
+  const traced = typeof body.traceId === 'string' && tracePattern.test(body.traceId);
+  if (traced) await dropReported(c.env, body.traceId as string);
+  await c.env.SUBS.put(`app_ask_report:${day}:${crypto.randomUUID()}`, JSON.stringify({ reason: body.reason, model, at: Date.now(), ...(traced ? { traceId: (body.traceId as string).toLowerCase() } : {}) }), { expirationTtl: 90 * 86400 });
   return c.json({ ok: true });
+});
+// Voice (app-voice.ts): a spoken question as text, and an answer read aloud. The reader's agreement
+// to the free models' provider covers both, as it does Ask.
+appAsk.post('/listen', async c => {
+  if (c.env.ASK_APP_ENABLED === 'off') return c.json({ error: 'unavailable' }, 503);
+  const agreed = (c.req.header('x-ai-consent') ?? '').split(',').map(s => s.trim());
+  if (!agreed.includes('Cloudflare (Workers AI)')) return c.json({ error: 'consent', provider: 'Cloudflare (Workers AI)' }, 428);
+  const r = await listen(c.env, c.get('account'), await c.req.arrayBuffer());
+  return r.ok ? c.json({ text: r.text }) : c.json({ error: r.error }, r.status as 400);
+});
+appAsk.post('/speak', async c => {
+  if (c.env.ASK_APP_ENABLED === 'off') return c.json({ error: 'unavailable' }, 503);
+  let body: { text?: unknown; voice?: unknown; consent?: unknown };
+  try { body = await c.req.json(); } catch { return c.json({ error: 'bad-request' }, 400); }
+  const consent = Array.isArray(body?.consent) ? body.consent : [];
+  if (!consent.includes('Cloudflare (Workers AI)')) return c.json({ error: 'consent', provider: 'Cloudflare (Workers AI)' }, 428);
+  return speak(c.env, c.get('account'), typeof body.text === 'string' ? body.text : '', typeof body.voice === 'string' ? body.voice : 'orpheus');
 });
 appAsk.post('/', async c => {
   if (c.env.ASK_APP_ENABLED === 'off') return c.json({ error: 'unavailable' }, 503);

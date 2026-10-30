@@ -58,3 +58,57 @@ test("the answer's last line of follow-up questions is taken off the answer", as
   assert.deepEqual(r.followups, ["Why the lamb?", "What of leaven?", "When is Abib?"]);
   assert.deepEqual(splitFollowups("No suggestions here.").followups, []);
 });
+
+test("a follow-up is searched with the question before it; a new question stands alone", async () => {
+  const { retrievalText } = await import("../src/ai.mjs");
+  const history = [{ role: "user", content: "Who was Melchizedek?" }, { role: "assistant", content: "The king of Salem." }];
+  assert.equal(retrievalText("why?", history), "Who was Melchizedek? why?");
+  assert.equal(retrievalText("what did he bring out to Abram when he met him", history), "Who was Melchizedek? what did he bring out to Abram when he met him");
+  assert.equal(retrievalText("What does the law say about eating swine and the unclean beasts?", history), "What does the law say about eating swine and the unclean beasts?");
+  assert.equal(retrievalText("why?", []), "why?");
+});
+
+test("the verse references a question names are found, numbered books and ranges included", async () => {
+  const { referencesIn } = await import("../src/ai.mjs");
+  assert.deepEqual(referencesIn("What does Deuteronomy 28:68 mean, and how does 1 John 3:4-8 fit?"), ["Deuteronomy 28:68", "1 John 3:4-8"]);
+  assert.deepEqual(referencesIn("Explain Wisdom of Solomon 2:12"), ["Wisdom of Solomon 2:12"]);
+  assert.deepEqual(referencesIn("Who are the Israelites?"), []);
+});
+
+test("with no passages the model is told to say so and to quote and cite nothing", () => {
+  const [, user] = buildPrompt("thanks", []);
+  assert.match(user.content, /No passages from the library were found/);
+  assert.match(user.content, /quote no Scripture and cite nothing/);
+  assert.ok(user.content.endsWith("Question: thanks"));
+});
+
+test("the answer contract keeps the classes' language, the evidence rule, and conversation", () => {
+  assert.match(SYSTEM, /Never invent a reference, a quote, a date, a name/);
+  assert.match(SYSTEM, /Do not soften, tone down or apologise for what the classes teach/);
+  assert.match(SYSTEM, /answer every part, in order/);
+  assert.match(SYSTEM, /answer the most likely meaning, say in one short line which meaning you took/);
+  assert.match(SYSTEM, /say plainly which part the library you were given does not cover/);
+  assert.doesNotMatch(SYSTEM, /Do not quote the captions/);
+});
+
+test("a passage's teacher is shown to the model, and a Bishop's or Deacon's relevant teaching makes the cut first", () => {
+  const [, user] = buildPrompt("Why keep the Passover?", [{ kind: "spoken", title: "Passover", url: "", video: "v", t: 5, teacher: "Bishop Nathanyel", text: "one" }]);
+  assert.match(user.content, /\[1\] Passover \(taught by Bishop Nathanyel\) \(spoken at 5s\)/);
+  const text = "The Passover is kept as a memorial of deliverance from bondage, and the congregation observes it according to the law.";
+  const captain = { kind: "spoken", title: "A", url: "", teacher: "Captain Ashan-El", text, score: 0.70 };
+  const bishop = { kind: "spoken", title: "B", url: "", teacher: "Bishop Nathanyel", text, score: 0.66 };
+  assert.deepEqual(answerCandidates("Why keep the Passover?", [captain, bishop], 1), [bishop]);
+  assert.match(SYSTEM, /Never name a teacher for a passage that is not marked/);
+});
+
+test("questions are routed by how much thinking they need", async () => {
+  const { routeOf } = await import("../src/ai.mjs");
+  assert.equal(routeOf("Shalom!"), "light");
+  assert.equal(routeOf("thank you brother"), "light");
+  assert.equal(routeOf("Who was Naamah?"), "light");
+  assert.equal(routeOf("and the feast?", [{ role: "user", content: "x" }, { role: "assistant", content: "y" }]), "light");
+  assert.equal(routeOf("Why do we keep the Passover?"), "deep");
+  assert.equal(routeOf("Who was Melchizedek? And why is Christ compared to him?"), "deep");
+  assert.equal(routeOf("Explain Isaiah 28:9-13"), "deep");
+  assert.equal(routeOf("the curses"), "deep");
+});

@@ -1,4 +1,4 @@
-export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; text: string };
+export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; teacher?: string; text: string };
 export type Match = { id: string; score: number; metadata?: Record<string, unknown> };
 export const EMBED_MODEL: "@cf/baai/bge-m3";
 export const ANSWER_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
@@ -13,6 +13,8 @@ export function chunkRecord(row: { video: string; t: number; text: string; kind:
 export function answerCandidates<T extends Passage & { score?: number }>(question: string, passages: T[], limit?: number): T[];
 export type Turn = { role: "user" | "assistant"; content: string };
 export function buildPrompt(question: string, passages: Passage[], history?: Turn[]): { role: "system" | "user" | "assistant"; content: string }[];
+export function retrievalText(question: string, history?: Turn[]): string;
+export function referencesIn(question: string): string[];
 export function citations(answer: string, count: number): number[];
 export function dedupeMatches<T extends Match>(matches: T[]): T[];
 
@@ -20,3 +22,4 @@ export const RESEARCH: string;
 export const APP: string;
 export function splitFollowups(text: string): { answer: string; followups: string[] };
 export function normalizeHistory(turns: unknown, max?: number): Turn[];
+export function routeOf(question: string, history?: Turn[]): "light" | "deep";
