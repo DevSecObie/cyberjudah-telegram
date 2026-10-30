@@ -23,7 +23,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
+import { answerApp, ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -50,7 +50,7 @@ import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
 import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
-import { pid, seal } from "./privacy.mjs";
+import { keyedHash, pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
 import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
@@ -58,6 +58,7 @@ import { MAX_BYTES } from "./photos.mjs";
 import { browserAuth, browserSession } from "./browser-auth";
 import { studyBackup } from "./study-backup";
 import { firebaseAuth, firebaseAccount } from "./firebase-auth";
+import { appReader } from "./app-identity";
 import { cors } from "hono/cors";
 import { nave } from "./nave";
 
@@ -97,6 +98,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   // The donation presets, bounds, link and pause state are public, like the resource catalog: a plain-browser visitor sees them too, even though only the Mini App can open a Stars invoice.
   if (c.req.method === "GET" && c.req.path === "/api/donations") return next();
+  // The app's free Ask checks its own Firebase sign-in: it needs no Telegram link (answerApp).
+  if (c.req.method === "POST" && c.req.path === "/api/app/ask") return next();
   if (c.req.header("authorization")?.startsWith("Bearer ")) {
     // A linked Firebase login may read/spend its own Ask balance and manage its data.
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
@@ -255,6 +258,32 @@ app.post("/api/ask", async (c) => {
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
   return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
+});
+// Ask in the CyberJudah app: any verified app sign-in, on the free model only. No balance, no
+// purchases and no saved chats; one answer with the class sources it cited (ai.ts answerApp).
+app.post("/api/app/ask", async (c) => {
+  c.header("cache-control", "no-store");
+  if (Number(c.req.header("content-length") ?? 0) > 32_000) return c.json({ error: "too-large" }, 413);
+  const ip = c.req.header("cf-connecting-ip")?.slice(0, 45);
+  if (ip && !(await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000))))) {
+    return c.json({ error: "limit" }, 429);
+  }
+  let uid: string;
+  try {
+    const identity = await appReader(c.req.raw, c.env);
+    if (!identity) return c.json({ error: "sign_in_required" }, 401);
+    uid = identity.uid;
+  } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : "sign_in_unavailable" }, error instanceof IdentityError ? error.status : 503); }
+  const raw = await c.req.text();
+  if (raw.length > 32_000) return c.json({ error: "too-large" }, 413);
+  let body: { q?: unknown; history?: unknown; consent?: unknown } | null = null;
+  try { body = JSON.parse(raw); } catch { /* answered below */ }
+  if (!body || typeof body !== "object") return c.json({ error: "bad-request" }, 400);
+  const consent = Array.isArray(body.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
+  const res = await answerApp(c.env, String(body.q ?? ""), await keyedHash(c.env, "app-ask", uid), normalizeHistory(body.history as never, 8), consent);
+  if (res.ok) return c.json(res);
+  if (res.reason === "consent") return c.json({ error: "consent", provider: freeModel(c.env).provider }, 428);
+  return c.json({ error: res.reason }, res.reason === "too-short" ? 400 : res.reason === "limit" || res.reason === "free-paused" ? 429 : 503);
 });
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
