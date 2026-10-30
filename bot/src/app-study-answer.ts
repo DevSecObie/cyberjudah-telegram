@@ -9,6 +9,7 @@ import type { Spend } from './spend';
 import { researchOpen } from './agent-open';
 import { createAppResearch, parseResearchPlan, RESEARCH_PLAN_PROMPT } from './app-study-research';
 import { getAppStudyPrompt, NO_TEACHING, studyProgramDiagnostics, validateStudyProgram, type StudySource } from './app-study-ui';
+import { recordAskEvent } from './ask-events';
 
 /** Named scriptures are precise transcript queries; conversational filler previously
  * forced the caption search into a loose match on unrelated words. */
@@ -48,7 +49,9 @@ export async function checkAppStudyOutput(first: { text: string; cut: boolean },
  * the actual findings. It never calls a different provider or accesses Telegram/private data. */
 export async function answerAppStudy(env: Env, question: string, history: Turn[], first: Passage[], model: AskModel, spend: Spend, emit: (e: AppStudyEvent) => void, deadlineAt = Date.now() + 55000, traceId?: string) {
   const startedAt = Date.now();
-  const record = (outcome: string, sources: StudySource[], teachingFound: boolean) => console.log(JSON.stringify({ event: 'app_study_result', traceId, release: APP_STUDY_RELEASE.version, model: model.id, outcome, elapsedMs: Date.now()-startedAt, teachingFound, teachingSources: sources.filter(s => s.evidence === 'teaching').length, transcriptSources: sources.filter(s => s.kind === 'spoken').length, referenceSources: sources.filter(s => s.evidence === 'reference').length, scriptureSources: sources.filter(s => s.evidence === 'scripture').length }));
+  const record = async (outcome: string, sources: StudySource[], teachingFound: boolean) => { console.log(JSON.stringify({ event: 'app_study_result', traceId, release: APP_STUDY_RELEASE.version, model: model.id, outcome, elapsedMs: Date.now()-startedAt, teachingFound, teachingSources: sources.filter(s => s.evidence === 'teaching').length, transcriptSources: sources.filter(s => s.kind === 'spoken').length, referenceSources: sources.filter(s => s.evidence === 'reference').length, scriptureSources: sources.filter(s => s.evidence === 'scripture').length }));
+    await recordAskEvent(env, { traceId, surface: 'study', model: model.id, outcome: outcome === 'ui-rejected' ? 'fallback' : outcome, elapsedMs: Date.now() - startedAt, sources: sources.length, detail: `teaching ${sources.filter(s => s.evidence === 'teaching').length}` });
+  };
   const plainModel = { ...model, format: 'plain' as const };
   const research = createAppResearch(env, first, emit);
   const initialCount = research.sources.length;
@@ -63,7 +66,7 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   if (Date.now() >= deadlineAt) throw new Error('STUDY_RESEARCH_TIMEOUT');
   // Copy after research so a timed-out public read cannot modify the evidence mid-answer.
   const sources = selectAppStudyEvidence(research.sources, initialCount);
-  if (!sources.length) { record('no-evidence', [], false); return { answer: NO_TEACHING, sources: [], followups: [], teachingFound: false }; }
+  if (!sources.length) { await record('no-evidence', [], false); return { answer: NO_TEACHING, sources: [], followups: [], teachingFound: false }; }
   emit({ status: 'Writing from the teachings and supporting sources' });
   const evidence = sources.map(s => `[${s.n}] Evidence type: ${s.evidence}. ${s.title}${s.sub ? ` · ${s.sub}` : ''}${s.teacher ? ` (taught by ${s.teacher})` : ''}\n${s.text}`).join('\n\n');
   let raw = '', lastParsed = 0, snapshots = 0, snapshotBytes = 0;
@@ -87,6 +90,7 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   const checked = await checkAppStudyOutput({ text: result.text || raw, cut: result.cut }, sources, canRetry ? async () => {
     // Log only bounded structural metadata, never prompts, source text or raw model output.
     console.log(JSON.stringify({ event: 'app_study_format_retry', traceId, release: APP_STUDY_RELEASE.version, model: model.id, cut: result.cut, outputChars: (result.text || raw).length, ...studyProgramDiagnostics(result.text || raw) }));
+    await recordAskEvent(env, { traceId, surface: 'study', model: model.id, outcome: 'retry', elapsedMs: Date.now() - startedAt, detail: JSON.stringify({ cut: result.cut, outputChars: (result.text || raw).length, ...studyProgramDiagnostics(result.text || raw) }) });
     emit({ reset: true });
     emit({ status: 'Checking the answer and its sources' });
     return researchOpen(env, plainModel, getAppStudyPrompt(), messages,
@@ -95,10 +99,10 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   } : undefined);
   // Fail closed: a broken UI generation must never become an ungrounded doctrinal prose answer.
   if (!checked) {
-    record('ui-rejected', sources, false);
+    await record('ui-rejected', sources, false);
     emit({ reset: true });
     return { answer: 'I couldn’t produce a source-checked explanation this time. You can read the retrieved teaching and reference sources below, or try again.', sources: sources.slice(0, 12), followups: [], teachingFound: false };
   }
-  record('complete', checked.sources, checked.teachingFound);
+  await record('complete', checked.sources, checked.teachingFound);
   return { answer: checked.answer || NO_TEACHING, ui: checked.program, sources: checked.sources, followups: checked.followups, teachingFound: checked.teachingFound };
 }
