@@ -2,6 +2,7 @@ import type { ResourcePins } from "../../shared/resources";
 import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
 import { guardVerses } from "./verse-guard.mjs";
+import { approvedFor, approvedSources } from "./approved-answers";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
@@ -388,6 +389,9 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
+  // An answer the owner approved for this very question: given at once, with no model and no cost.
+  const approved = approvedFor(question, history);
+  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
   // With no choice, a deep question (routeOf) goes to the stronger free model when one is configured
   // (ASK_FREE_DEEP_MODEL) and approved; everything else to the fast default.
   const deep = !options.model && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? appAskModels(env).find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
@@ -566,6 +570,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
+  // An answer the owner approved for this very question: sent at once, with no provider and no charge.
+  const approved = approvedFor(question, history);
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: approvedSources(approved), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
