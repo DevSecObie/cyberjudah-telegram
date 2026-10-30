@@ -22,8 +22,20 @@ export function appTranscriptQueries(question: string, catalog: readonly BookRow
 /** The renderer admits 12 sources. Give the composer no larger citation set: a small
  * model otherwise tries to display every research result and rejects its whole answer.
  * Prefer targeted transcript/resource research over the initial broad search, retaining IDs. */
+/** Verse references written in teaching text ("Exodus 12:14", "Lev. 23:5-6"), the most cited first. */
+export function citedScriptures(text: string): string[] {
+  const count = new Map<string, number>();
+  for (const m of text.matchAll(/\b((?:[1-4]\s?)?[A-Z][a-z]+\.?(?: of [A-Z][a-z]+)?)\s+(\d{1,3}):(\d{1,3})(?:\s*[-\u2013]\s*(\d{1,3}))?/g)) {
+    const ref = `${m[1].replace(/\.$/, '')} ${m[2]}:${m[3]}${m[4] ? `-${m[4]}` : ''}`;
+    count.set(ref, (count.get(ref) ?? 0) + 1);
+  }
+  return [...count].sort((a, b) => b[1] - a[1]).map(([ref]) => ref).slice(0, 6);
+}
+
 export function selectAppStudyEvidence(sources: StudySource[], initialCount: number) {
-  return [...sources.slice(initialCount), ...sources.slice(0, initialCount)]
+  // The KJV verses read for this question always stay in, ahead of the rest of what was found.
+  const fresh = sources.slice(initialCount), verses = fresh.filter(s => s.kind === 'verse').slice(0, 4);
+  return [...verses, ...fresh.filter(s => !verses.includes(s)), ...sources.slice(0, initialCount)]
     .slice(0, APP_STUDY_RELEASE.maxDisplayedSources).sort((a, b) => a.n - b.n).map(s => ({ ...s }));
 }
 
@@ -73,6 +85,14 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   emit({ status: 'Looking for supporting study resources' });
   const plan = await planning;
   await research.search(parseResearchPlan(plan.text));
+  // The KJV verses the classes and notes found here cite, read in full, so the answer can quote
+  // the Scripture the teachers used (and only that), not just name it.
+  const read = new Set(research.sources.filter(s => s.kind === 'verse').map(s => s.title));
+  const cited = citedScriptures(research.sources.filter(s => s.evidence === 'teaching').map(s => s.text).join('\n')).filter(r => !read.has(r));
+  if (cited.length && Date.now() < deadlineAt - 15000) {
+    emit({ status: 'Reading the scriptures the classes cite' });
+    await research.search(cited.slice(0, 3).map(query => ({ resource: 'scripture' as const, query })));
+  }
   if (Date.now() >= deadlineAt) throw new Error('STUDY_RESEARCH_TIMEOUT');
   // Copy after research so a timed-out public read cannot modify the evidence mid-answer.
   const sources = selectAppStudyEvidence(research.sources, initialCount);
