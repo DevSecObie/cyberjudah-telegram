@@ -1,0 +1,1 @@
+- The CyberJudah app can list a class the hour it is uploaded, before its notes are written, as the Telegram app does: `/api/app/channel/recent` serves the classroom channel's newest uploads and `/api/app/channel/live` the stream that is on, both the channel's public listings (cached at the edge), open to every app reader.

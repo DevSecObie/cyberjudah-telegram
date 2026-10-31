@@ -62,6 +62,7 @@ import { studyBackup } from "./study-backup";
 import { firebaseAuth, firebaseAccount } from "./firebase-auth";
 import { appAsk } from "./app-ask";
 import { appTeachings } from "./app-teachings";
+import { appChannel } from "./app-channel";
 import { cors } from "hono/cors";
 import { nave } from "./nave";
 
@@ -105,6 +106,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/app/ask" || c.req.path.startsWith("/api/app/ask/")) return next();
   // "Said in Class" in the app checks its own Firebase sign-in, like Ask (app-teachings.ts).
   if (c.req.method === "GET" && c.req.path === "/api/app/teachings") return next();
+  // The channel's newest uploads and live stream are public YouTube listings, open to every app reader (app-channel.ts).
+  if (c.req.method === "GET" && (c.req.path === "/api/app/channel/recent" || c.req.path === "/api/app/channel/live")) return next();
   if (c.req.header("authorization")?.startsWith("Bearer ")) {
     // A linked Firebase login may read/spend its own Ask balance and manage its data.
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
@@ -267,6 +270,7 @@ app.post("/api/ask", async (c) => {
 // Native Ask authenticates every route itself with Firebase; Telegram linking stays optional.
 app.route("/api/app/ask", appAsk);
 app.route("/api/app/teachings", appTeachings);
+app.route("/api/app/channel", appChannel);
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
 const NOTE_PATH = /^\/(classes|captains|history|study|encyclopedia)\/[A-Za-z0-9_-][A-Za-z0-9._/-]{0,160}$/;
