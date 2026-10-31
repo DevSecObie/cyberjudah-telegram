@@ -1,0 +1,2 @@
+- Deleting your Firebase login no longer comes back: Telegram stops signing in as a login that was deleted and uses its own account again.
+- Delete my data now also removes everything the Bible Strong app saved for your linked login, including its studies and staging copies.

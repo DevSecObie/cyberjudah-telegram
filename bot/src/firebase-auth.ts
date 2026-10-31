@@ -1,6 +1,7 @@
 import { bodyLimit } from "hono/body-limit";
 import { keyedHash } from "./privacy.mjs";
-import { IdentityError, linkAccounts, linkedFirebase, linkedTelegram, verifyFirebaseIdentity } from "./account-links";
+import { IdentityError, linkAccounts, linkedFirebase, linkedTelegram, removeAccountLink, telegramFirebaseUid, verifyFirebaseIdentity } from "./account-links";
+import { firebaseUserExists } from "./firestore-admin";
 import { Hono } from "hono";
 import { importPKCS8, SignJWT } from "jose";
 import type { Env } from "./env";
@@ -10,11 +11,7 @@ import { SENSITIVE_MAX_AGE, validateInitData } from "./initdata.mjs";
 const AUDIENCE = "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit";
 const PROJECT = "cyberjudah-app";
 
-/** Only call with a verified Telegram identity. Never accept a UID from the client. */
-export function telegramFirebaseUid(id: unknown): string {
-  if (typeof id !== "number" || !Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid Telegram identity");
-  return `tg_${id}`;
-}
+export { telegramFirebaseUid };
 
 export const firebaseAuth = new Hono<{ Bindings: Env; Variables: { firebaseUid: string; telegramId: number; telegramAuthTime: number } }>();
 firebaseAuth.use("/link", bodyLimit({ maxSize: 18000, onError: c => c.json({ error: "invalid_link_request" }, 413) }));
@@ -43,9 +40,17 @@ firebaseAuth.post("/token", async c => {
   // No client UID or claims are accepted.
   if (Object.keys(c.req.query()).length || (await c.req.text()).length > 0) return c.json({ error: "unexpected_sign_in_parameters" }, 400);
   if (!c.env.FIREBASE_SERVICE_ACCOUNT || !c.env.FIREBASE_AUTH_LIMIT) return c.json({ error: "firebase_sign_in_unavailable" }, 503);
-  const uid = c.get("firebaseUid");
+  let uid = c.get("firebaseUid");
   if (!(await c.env.FIREBASE_AUTH_LIMIT.limit({ key: uid })).success) return c.json({ error: "sign_in_rate_limited", message: "Please wait a minute and try again." }, 429);
   try {
+    // A custom token for a deleted UID would recreate that account, and with it the deleted
+    // login's study data. A link to a login that no longer exists is removed, and Telegram
+    // falls back to its own reserved identity.
+    const fallback = telegramFirebaseUid(c.get("telegramId"));
+    if (uid !== fallback && c.env.DB && !(await firebaseUserExists(c.env, uid))) {
+      await removeAccountLink(c.env, c.get("telegramId"));
+      uid = fallback;
+    }
     const token = await mintFirebaseToken(c.env, uid);
     if (c.env.DB) await linkAccounts(c.env, c.get("telegramId"), uid);
     return c.json({ uid, token });
