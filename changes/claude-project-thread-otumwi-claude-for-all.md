@@ -1,1 +1,3 @@
 - App Ask can answer every signed-in reader with Claude, paid from the owner's Anthropic console: Haiku by default and Sonnet for deep questions, under its own daily dollar cap. Off until the owner sets `ASK_CLAUDE_FOR_READERS` to "on" and adds the `ANTHROPIC_API_KEY` secret. Past the cap, the free model answers.
+- When Claude cannot answer a reader, the fallback is always a free model the app offers, even with no default free model named.
+- A budgeted Claude answer sets aside this call's own input before choosing how much it may write. It never asks for more output than what is left pays for, so a reader's answer stays inside what was reserved against Claude's daily cap.

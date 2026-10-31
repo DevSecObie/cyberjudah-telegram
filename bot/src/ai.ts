@@ -448,6 +448,9 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   return result;
 }
 
+/** The free model a Claude answer falls back to: the default free model when the app offers it, else the first free one it offers. */
+const freeFallback = (env: Env, models: AskModel[]) => (models.find((m) => m.id === freeModel(env).id) ?? models.find((m) => m.format !== "anthropic"))?.id ?? freeModel(env).id;
+
 /**
  * The app's Ask, answered the way cyberjudah.io/app and Telegram answer (askStream): the model
  * researches in rounds with the same tools (the classes, the KJV with the Apocrypha, people,
@@ -493,7 +496,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     if (!reservation) {
       // The free model answers this same question: its quota is already counted, and only with the
       // reader's own agreement to the free model's provider (never assumed).
-      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeModel(env).id, adminId: undefined, quotaTaken: true });
+      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
     }
     meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: creditsConfig(env).research }), model, free: true, admin: false, reservation, maxRounds: 4 };
   } else {
@@ -522,7 +525,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
       await finishMeter(env, meter, "backup", Date.now() - t0);
       emit({ reset: true });
       // Only with the reader's own agreement to the free model's provider; a reader's quota is already counted.
-      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeModel(env).id, adminId: undefined, quotaTaken: !adminClaude });
+      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeFallback(env, models), adminId: undefined, quotaTaken: !adminClaude });
     }
     const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
