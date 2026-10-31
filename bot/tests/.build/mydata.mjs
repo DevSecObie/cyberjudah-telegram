@@ -80,8 +80,6 @@ var IdentityError = class extends Error {
     this.status = status;
     this.reason = reason;
   }
-  status;
-  reason;
 };
 var validFirebaseUid = (uid) => typeof uid === "string" && uid.length > 0 && uid.length <= 128 && uid !== "." && uid !== ".." && !/[\u0000-\u001f/]/.test(uid);
 async function verifyFirebaseIdentity(token, recent = false) {

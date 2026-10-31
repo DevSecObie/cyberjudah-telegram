@@ -381,14 +381,32 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
  */
 /** Native apps only expose the configured hosted free models until store entitlements exist. */
 /**
+ * Claude for every signed-in app reader (the owner's choice, 2026-10-31): Haiku answers by default
+ * and Sonnet answers deep questions, paid from the owner's console. It is off unless
+ * ASK_CLAUDE_FOR_READERS is "on", the ANTHROPIC_API_KEY secret (or Unified Billing) is set, and
+ * ASK_CLAUDE_DAILY_USD_CAP is above zero. Its spending has its own daily cap, separate from the free
+ * models' allowance, and each answer is held to ASK_CLAUDE_MAX_USD; when either runs out the free
+ * model answers instead.
+ */
+const usdSetting = (value: string | undefined, fallback: number) => { const n = Number(value ?? fallback); return Number.isFinite(n) && n > 0 ? n : 0; };
+const readerClaudeCap = (env: Env) => usdSetting(env.ASK_CLAUDE_DAILY_USD_CAP, 0);
+const readerClaudeMaxUsd = (env: Env) => Math.min(usdSetting(env.ASK_CLAUDE_MAX_USD, 0.2), readerClaudeCap(env));
+export const claudeForReaders = (env: Env) => env.ASK_CLAUDE_FOR_READERS === "on" && hasClaude(env) && readerClaudeCap(env) > 0;
+function readerClaudes(env: Env): AskModel[] {
+  // The lighter model first: it is the default answer; the everyday model takes the deep questions.
+  const ids = [env.CLAUDE_MODEL_LIGHT || "claude-haiku-4-5", env.CLAUDE_MODEL || CLAUDE_DEFAULT].map((id) => modelOf(id).id);
+  return [...new Set(ids)].map((id) => MODELS.find((m) => m.id === id && m.format === "anthropic")).filter((m): m is AskModel => !!m);
+}
+
+/**
  * The models the app offers: the approved free models, and for an admin's linked account Claude
  * (when it can be called), every day: the owner chose not to pause it on holy days.
  */
-export function appAskModels(env: Env, adminId?: number): AskModel[] {
+export function appAskModels(env: Env, adminId?: number, readers = false): AskModel[] {
   const allowed = freeModels(env);
   const free = MODELS.filter(m => allowed.has(m.id) && APP_STUDY_RELEASE.approvedModels.some(id => id === m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
   const claudeOk = !!adminId && isAdmin(env, adminId) && hasClaude(env);
-  if (!claudeOk) return free;
+  if (!claudeOk) return readers === true && claudeForReaders(env) ? [...readerClaudes(env), ...free] : free;
   // The everyday model first (the app's default), then the lighter one and the admin's own.
   const ids = [env.CLAUDE_MODEL || CLAUDE_DEFAULT, env.CLAUDE_MODEL_LIGHT, defaultModelId(env, adminId)].filter((id): id is string => !!id).map((id) => modelOf(id).id);
   const claudes = [...new Set(ids)].map((id) => MODELS.find((m) => m.id === id && m.format === "anthropic")).filter((m): m is AskModel => !!m);
@@ -445,21 +463,38 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const approved = approvedFor(question, history);
   if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
-  const models = appAskModels(env, options.adminId);
+  const models = appAskModels(env, options.adminId, true);
   const paid = models.filter((m) => m.format === "anthropic");
-  const deep = !options.model && !paid.length && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? models.find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
-  const model = options.model ? models.find(m => m.id === options.model) : deep ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
+  const adminClaude = !!options.adminId && isAdmin(env, options.adminId) && paid.length > 0;
+  const isDeep = !options.model && routeOf(question, history) === "deep";
+  const deep = isDeep && !paid.length && env.ASK_FREE_DEEP_MODEL ? models.find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
+  // A reader's default with Claude on: Haiku (paid[0]), or Sonnet (paid[1]) for a deep question.
+  const readerDefault = !adminClaude && paid.length ? (isDeep ? paid[1] ?? paid[0] : paid[0]) : undefined;
+  const model = options.model ? models.find(m => m.id === options.model) : deep ?? readerDefault ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
   if (!model) return { ok: false, reason: "model-unavailable" };
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const key = await cacheKey(question, history, model.id, "agent", APP_STUDY_RELEASE.version);
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
   let meter: Meter;
-  if (model.format === "anthropic") {
-    // Only reachable for an admin (appAskModels): the admin meter holds nothing and charges no one.
+  if (model.format === "anthropic" && adminClaude) {
+    // An admin's linked account: the admin meter holds nothing and charges no one.
     const started = await startMeter(env, options.adminId!, model, {});
     if (!started.ok) return { ok: false, reason: "unavailable" };
     meter = { ...started.meter, maxRounds: 4 };
+  } else if (model.format === "anthropic") {
+    // A signed-in reader on Claude (claudeForReaders): the reader's daily limit, then the answer's
+    // most is reserved against Claude's own daily cap. Past the cap the free model answers.
+    if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    const budget = readerClaudeMaxUsd(env);
+    let reservation: FreeReservation | null = null;
+    try { reservation = budget > 0 ? await reserveFreeBudget(env, crypto.randomUUID(), budget, Date.now(), { prefix: "claude:", capUsd: readerClaudeCap(env) }) : null; }
+    catch { return { ok: false, reason: "unavailable" }; }
+    if (!reservation) {
+      // The quota was taken for this question; the free answer below takes one more, as the backup path does.
+      return answerAppAgent(env, q, account, history, [...consent, freeModel(env).provider], { ...options, model: freeModel(env).id, adminId: undefined });
+    }
+    meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: creditsConfig(env).research }), model, free: true, admin: false, reservation, maxRounds: 4 };
   } else {
     if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
     const cfg = creditsConfig(env);
