@@ -228,15 +228,21 @@ export async function runAgent(
   for (let round = 0; round < maxRounds; round++) {
     // The request's budget (what was held from the balance for it): past 70% of it the research stops and the
     // answer is written, in no more words than what is left pays for.
-    const last = round === maxRounds - 1 || spend.over(0.7);
-    const room = spend.outputTokensLeft(model, lastInputUsd * 1.15);
+    // This call's own input is set aside first: at least what the last call read again, and never
+    // less than an estimate from the request's size (about 3 bytes a token, more than Claude uses).
+    const inputUsd = spend.budgetUsd == null ? 0 : Math.max(lastInputUsd * 1.15, spend.inputUsd({ input_tokens: Math.ceil(new TextEncoder().encode(JSON.stringify({ system, tools: TOOLS, messages })).length / 3) }, model));
+    const room = spend.outputTokensLeft(model, inputUsd);
+    // Too little left for a reply the API accepts: the request stops here, inside what was set aside.
+    if (room < 256) { cut = true; break; }
+    // Close to the end of the budget the research stops and the answer is written.
+    const last = round === maxRounds - 1 || spend.over(0.7) || room < 1024;
     if (round === 0) emit({ status: "Studying the question" });
     let said = "";
     const stream = client.messages.stream({
       // The reader's chosen Claude model (shared/ask-models.mjs), with adaptive thinking and an
       // effort level only where the model takes them.
       model: model.native ?? model.id,
-      max_tokens: Math.max(256, Math.min(12000, model.maxOutput ?? 12000, room)),
+      max_tokens: Math.min(12000, model.maxOutput ?? 12000, room),
       ...(model.thinking ? { thinking: { type: "adaptive" as const } } : {}),
       ...(model.effort ? { output_config: { effort: "high" as const } } : {}),
       cache_control: { type: "ephemeral" },

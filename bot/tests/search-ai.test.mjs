@@ -451,4 +451,9 @@ test("past Claude's own daily cap a reader is answered by the free model, on the
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(r.model, "@cf/google/gemma-4-26b-a4b-it");
   assert.ok((await freeSpendToday(e)) > 0);
+  // With no default free model named, the fallback is still a free model the app offers.
+  const bare = { ...e, ASK_FREE_MODEL: undefined };
+  const b = await answerAppAgent(bare, "Why do we keep the feast?", "acct-d", [], [...AGREED, "Anthropic"]);
+  assert.equal(b.ok, true, JSON.stringify(b));
+  assert.ok(appAskModels(bare, undefined, true).some((m) => m.id === b.model && m.format !== "anthropic"), b.model);
 });
