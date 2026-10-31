@@ -474,8 +474,13 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const spend = meter.spend;
   const emit = options.emit ?? (() => undefined);
   try {
-    const [found, verses] = await Promise.all([retrieve(env, retrievalText(question, history), 12, spend), versesNamed(env, question)]);
+    // The first search runs before the model does: its steps are shown (the app's "Researched" row)
+    // even when the model answers from these passages without searching again.
+    const searchText = retrievalText(question, history);
+    emit({ status: `Searching the classes and library for “${question.slice(0, 160)}”` });
+    const [found, verses] = await Promise.all([retrieve(env, searchText, 12, spend), versesNamed(env, question)]);
     const first = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
+    for (const passage of first) emit({ status: `Reading ${passage.title.slice(0, 180)}` });
     let ran: Awaited<ReturnType<typeof runAgent>>;
     try {
       ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), emit, undefined, undefined, model, spend, undefined, meter.maxRounds);

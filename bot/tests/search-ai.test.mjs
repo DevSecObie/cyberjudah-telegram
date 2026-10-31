@@ -427,4 +427,5 @@ test("app Ask researches and answers like cyberjudah.io/app, on the free allowan
   assert.deepEqual(r.followups, ["Why for ever?", "When is it kept?"]);
   assert.ok(sent.some((s) => s.model === "@cf/google/gemma-4-26b-a4b-it"));
   assert.ok((await freeSpendToday(e)) > 0, "the free allowance pays for it");
+  assert.match(events.find((x) => x.status)?.status ?? "", /^Searching the classes and library/, "the first search is shown as a step even when the model never searches again");
 });
