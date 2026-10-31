@@ -14,7 +14,3 @@ show Bishop Nathanyel's, Bishop Yawasap's and Bishop Kani's commentaries.
   his chapters, and an unknown id is a 404.
 
 - The "a verse links to each class that read it" browser test opens the verse's "+N" first: Genesis 4:3 now carries two precepts, so the class link sits fourth, behind "+1" (the same test fails on main).
-
-## "Precept for"
-
-- A Bishop commentary entry whose verse was used as the precept when another scripture was opened now leads "Precept for <scripture>" instead of "Read with", as the web reader's Why sheet already says (Obie 2026-10-31).
