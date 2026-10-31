@@ -1,0 +1,1 @@
+export function guardVerses(answer: string, books: { book: string; slug: string; chapters: number }[] | null, chapter: (slug: string, ch: number) => Promise<{ verses: { verse: number; text: string }[] } | null>): Promise<{ text: string; checked: number; fixed: number; removed: number }>;

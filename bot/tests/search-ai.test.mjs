@@ -8,7 +8,7 @@ import { financialDb } from "./helpers/financial-db.mjs";
 // ai.ts is bundled for Node first (as Workers bundles it).
 const out = new URL("./.build/search-ai.mjs", import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/ai.ts"; export * from "./src/credits.ts"; export { searchAnswers } from "./src/search-answer.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { answerApp, answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
+const { answerApp, answerAppAgent, appAskModels, answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
 
 /** A D1 close enough for the meter and spend tables, backed by real SQLite. */
 const d1 = () => {
@@ -294,17 +294,19 @@ test("a reader listed in SEARCH_AI_QUOTA_EXEMPT skips the per-reader count; othe
 
 // The app's Ask (answerApp): any app sign-in, the free model only, no balance.
 const AGREED = ["Cloudflare (Workers AI)"];
+// The app offers only its approved free models (app-study-release.ts), so these run on the default one.
+const appEnv = () => ({ ...env(), ASK_FREE_MODEL: "@cf/google/gemma-4-26b-a4b-it", ASK_FREE_MODELS: "@cf/google/gemma-4-26b-a4b-it" });
 test("app Ask needs the reader's agreement to the free model's provider before anything runs", async () => {
-  const e = env();
+  const e = appEnv();
   assert.deepEqual(await answerApp(e, "who is judah", "acct-a", [], []), { ok: false, reason: "consent" });
   assert.equal(await freeSpendToday(e), 0);
 });
 
 test("app Ask answers on the free model, funded by the free allowance, with no wallet created", async () => {
-  const e = env();
+  const e = appEnv();
   const r = await answerApp(e, "melchizedek", "acct-a", [{ role: "user", content: "who was the priest of salem" }], AGREED);
   assert.equal(r.ok, true);
-  assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
+  assert.equal(r.model, "@cf/google/gemma-4-26b-a4b-it");
   assert.deepEqual(r.sources, []);
   assert.ok((await freeSpendToday(e)) > 0);
   const wallets = await e.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'credit%'").all();
@@ -312,12 +314,117 @@ test("app Ask answers on the free model, funded by the free allowance, with no w
 });
 
 test("app Ask keeps each account to the daily cap, apart from other accounts", async () => {
-  const e = env();
+  const e = appEnv();
   for (let i = 0; i < 100; i++) assert.equal((await answerApp(e, "judah", "acct-b", [], AGREED)).ok, true);
   assert.deepEqual(await answerApp(e, "judah", "acct-b", [], AGREED), { ok: false, reason: "limit" });
   assert.equal((await answerApp(e, "judah", "acct-c", [], AGREED)).ok, true);
 });
 
 test("a too-short app question is refused before the cap is counted", async () => {
-  assert.deepEqual(await answerApp(env(), " x ", "acct-d", [], AGREED), { ok: false, reason: "too-short" });
+  assert.deepEqual(await answerApp(appEnv(), " x ", "acct-d", [], AGREED), { ok: false, reason: "too-short" });
+});
+
+test("app Ask names the verse a question asks about in exact King James text, and returns follow-ups", async (t) => {
+  const sent = [];
+  const e = {
+    ...appEnv(), AI_GATEWAY: "default",
+    AI: { run: async (model, input) => {
+      if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] };
+      sent.push(input);
+      return { response: "The Lord would bring them into Egypt again with ships [1].\n\nFollow-ups: Which ships? | When did it happen? | Who were the enemies?", usage: { prompt_tokens: 900, completion_tokens: 60 } };
+    } },
+    VEC: { query: async () => ({ matches: [] }) },
+    DATA_ORIGIN: "https://data.test",
+  };
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async (url) => {
+    const path = new URL(url).pathname;
+    if (path === "/api/kjv/books.json") return Response.json([{ book: "Deuteronomy", slug: "deuteronomy", chapters: 34 }]);
+    if (path === "/api/kjv/deuteronomy/28.json") return Response.json({ book: "Deuteronomy", chapter: 28, verses: [{ verse: 68, text: "And the LORD shall bring thee into Egypt again with ships…" }] });
+    return new Response("", { status: 404 });
+  };
+  t.after(() => { globalThis.fetch = realFetch; globalThis.caches = realCaches; });
+  const r = await answerApp(e, "What does Deuteronomy 28:68 mean?", "acct-v", [], AGREED);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.sources[0].kind, "verse");
+  assert.equal(r.sources[0].title, "Deuteronomy 28:68 (KJV)");
+  assert.deepEqual(r.followups, ["Which ships?", "When did it happen?", "Who were the enemies?"]);
+  assert.match(JSON.stringify(sent[0].messages), /bring thee into Egypt again with ships/);
+});
+
+test('native Ask rejects paid model selection before touching provider, quota or wallet', async () => {
+  assert.deepEqual(await answerApp(env(), 'Who is Judah?', 'app-owner', [], AGREED, 55000, { model: 'anthropic/claude-opus-5' }), { ok: false, reason: 'model-unavailable' });
+});
+test('native Ask refuses oversized questions rather than silently cutting them', async () => {
+  assert.deepEqual(await answerApp(env(), 'x'.repeat(4001), 'app-owner', [], AGREED), { ok: false, reason: 'too-long' });
+});
+
+test('native model promotion requires the versioned serving registry, not only an environment variable', async () => {
+  const result = await answerApp({ ASK_FREE_MODELS: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' }, 'Who was Abraham?', 'account', [], ['Cloudflare (Workers AI)'], 5000, { model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', study: true });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'model-unavailable');
+});
+
+test('the stronger free model is admitted to native Ask when configured', async () => {
+  const e = { ...env(), ASK_FREE_MODEL: '@cf/google/gemma-4-26b-a4b-it', ASK_FREE_MODELS: '@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.1-8b-instruct-fp8' };
+  const r = await answerApp(e, 'melchizedek', 'acct-g', [], AGREED);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, '@cf/google/gemma-4-26b-a4b-it');
+});
+
+test("passages are tagged with the teacher the published class notes name, and only those", async (t) => {
+  const { withTeachers } = await import(out);
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async (url) => new URL(url).pathname === "/api/notes/index.json"
+    ? Response.json([{ url: "/classes/2026/passover", videoId: "abc123def45", teacher: "Deacon Isaac" }, { url: "/classes/x", videoId: "zzz", teacher: "" }])
+    : new Response("", { status: 404 });
+  t.after(() => { globalThis.fetch = realFetch; globalThis.caches = realCaches; });
+  const tagged = await withTeachers({ DATA_ORIGIN: "https://data.test" }, [
+    { kind: "spoken", title: "A", url: "", video: "abc123def45", text: "x" },
+    { kind: "class", title: "B", url: "/classes/2026/passover?t=30", text: "y" },
+    { kind: "class", title: "C", url: "/classes/x", video: "zzz", text: "z" },
+  ]);
+  assert.deepEqual(tagged.map((p) => p.teacher), ["Deacon Isaac", "Deacon Isaac", undefined]);
+});
+
+test("a deep app question goes to the stronger free model when one is configured; a light one stays on the fast default", async () => {
+  const e = { ...env(), ASK_FREE_MODEL: '@cf/google/gemma-4-26b-a4b-it', ASK_FREE_DEEP_MODEL: '@cf/deepseek-ai/deepseek-v4-flash-0731', ASK_FREE_MODELS: '@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731' };
+  assert.equal((await answerApp(e, 'Why do we keep the Passover?', 'acct-r', [], AGREED)).model, '@cf/deepseek-ai/deepseek-v4-flash-0731');
+  assert.equal((await answerApp(e, 'Who was Naamah?', 'acct-r', [], AGREED)).model, '@cf/google/gemma-4-26b-a4b-it');
+  assert.equal((await answerApp(e, 'Why do we keep the Passover?', 'acct-r', [], AGREED, 55000, { model: '@cf/google/gemma-4-26b-a4b-it' })).model, '@cf/google/gemma-4-26b-a4b-it', 'a chosen model is kept');
+});
+
+// The app's Ask on cyberjudah.io/app's engine (answerAppAgent).
+test("the app offers Claude only to an admin's linked account, every day", () => {
+  const e = { ...appEnv(), ADMIN_IDS: "42", ANTHROPIC_API_KEY: "k", CLAUDE_BILLING: "anthropic", CLAUDE_MODEL: "claude-sonnet-5" };
+  const thursday = Date.parse("2026-10-29T18:00:00Z"), saturday = Date.parse("2026-10-31T18:00:00Z");
+  assert.ok(appAskModels(e, 42, thursday).some((m) => m.format === "anthropic"));
+  assert.ok(appAskModels(e, 42, saturday).some((m) => m.format === "anthropic"), "the owner chose no holy-day pause");
+  assert.ok(!appAskModels(e, 7, thursday).some((m) => m.format === "anthropic"), "a reader gets the free models");
+  assert.ok(!appAskModels(e, undefined, thursday).some((m) => m.format === "anthropic"));
+  assert.ok(!appAskModels(appEnv()).some((m) => m.id.includes("llama-3.1-8b")), "llama-8b is no longer offered");
+});
+
+test("app Ask researches and answers like cyberjudah.io/app, on the free allowance", async () => {
+  const sent = [];
+  const e = {
+    ...appEnv(), AI_GATEWAY: "default",
+    AI: { run: async (model, input) => {
+      if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] };
+      sent.push({ model, input });
+      return { choices: [{ message: { role: "assistant", content: "Keep it for ever, as the classes teach.\n\nFollow-ups: Why for ever? | When is it kept?" }, finish_reason: "stop" }], usage: { prompt_tokens: 900, completion_tokens: 60 } };
+    } },
+    VEC: { query: async () => ({ matches: [] }) },
+  };
+  assert.deepEqual(await answerAppAgent(e, "Why do we keep the Passover?", "acct-p", [], []), { ok: false, reason: "consent" });
+  const events = [];
+  const r = await answerAppAgent(e, "Why do we keep the Passover?", "acct-p", [], AGREED, { emit: (x) => events.push(x) });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, "@cf/google/gemma-4-26b-a4b-it");
+  assert.match(r.answer, /Keep it for ever/);
+  assert.deepEqual(r.followups, ["Why for ever?", "When is it kept?"]);
+  assert.ok(sent.some((s) => s.model === "@cf/google/gemma-4-26b-a4b-it"));
+  assert.ok((await freeSpendToday(e)) > 0, "the free allowance pays for it");
 });

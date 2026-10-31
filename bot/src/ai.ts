@@ -1,10 +1,16 @@
 import type { ResourcePins } from "../../shared/resources";
-import { chapter } from "./data";
+import { books, chapter, dataJson } from "./data";
+import { parseReference } from "./refs.mjs";
+import { guardVerses } from "./verse-guard.mjs";
+import { approvedFor, approvedSources } from "./approved-answers";
+import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
-import { claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
+import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
+import { APP_STUDY_RELEASE } from "./app-study-release";
+import { alertClaudeFunds, claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
@@ -56,7 +62,37 @@ export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend)
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
   // What this search cost: the question embedded, one vector query, and what the reranker read.
   spend?.search({ query: text, contexts: all.length > 1 ? all.map((p) => `${p.title}\n${p.text}`.slice(0, 2000)) : [] });
-  return rerank(env, text, all, topK);
+  return withTeachers(env, await rerank(env, text, all, topK));
+}
+
+/**
+ * Who taught each passage's class, from the published class notes (their recording and page), so
+ * the answer can put the Bishops' and Deacons' teaching first and name a teacher only when the
+ * notes do. A class with no note, or a note with no teacher, stays unnamed: never guessed.
+ */
+type NoteRow = { url?: string; videoId?: string | null; teacher?: string };
+let teacherIndex: { at: number; byVideo: Map<string, string>; byUrl: Map<string, string> } | null = null;
+async function teachers(env: Env) {
+  if (teacherIndex && Date.now() - teacherIndex.at < 3_600_000) return teacherIndex;
+  const rows = await dataJson<NoteRow[]>(env, "/api/notes/index.json").catch(() => null);
+  if (!Array.isArray(rows)) return teacherIndex;
+  const byVideo = new Map<string, string>(), byUrl = new Map<string, string>();
+  for (const r of rows) {
+    const teacher = typeof r.teacher === "string" ? r.teacher.trim().slice(0, 80) : "";
+    if (!teacher) continue;
+    if (r.videoId) byVideo.set(r.videoId, teacher);
+    if (r.url) byUrl.set(r.url, teacher);
+  }
+  teacherIndex = { at: Date.now(), byVideo, byUrl };
+  return teacherIndex;
+}
+export async function withTeachers<T extends Passage>(env: Env, passages: T[]): Promise<T[]> {
+  const index = await teachers(env).catch(() => null);
+  if (!index) return passages;
+  return passages.map((p) => {
+    const teacher = (p.video && index.byVideo.get(p.video)) || (p.url && index.byUrl.get(p.url.split(/[?#]/)[0])) || "";
+    return teacher ? { ...p, teacher } : p;
+  });
 }
 
 /**
@@ -78,12 +114,6 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
 
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; ms: number } | { ok: false; reason: string };
 const ASK_LIMIT = 100;
-
-/** The question with its conversation: a short follow-up borrows the words of the turn before it. */
-const retrievalText = (question: string, history: Turn[]) => {
-  const prev = [...history].reverse().find((t) => t.role === "user")?.content ?? "";
-  return question.split(/\s+/).length < 6 && prev ? `${prev} ${question}` : question;
-};
 
 /** A verse's reading voice: fifty new generations a day per person; the cache is free. */
 const TTS_LIMIT = 50;
@@ -280,7 +310,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
       const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources);
-      const { answer } = splitFollowups(text);
+      const answer = await checkedVerses(env, splitFollowups(text).answer);
       if (meter) await finishMeter(env, meter, answer.trim() ? "ok" : "empty");
       return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
     }
@@ -298,8 +328,8 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 }
 
 export type SearchAnswer =
-  | { ok: true; answer: string; sources: (Passage & { n: number })[]; model: string; provider: string; ms: number }
-  | { ok: false; reason: "too-short" | "unavailable" | "empty" | "free-paused" | "consent" | "limit" };
+  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; ui?: string; teachingFound?: boolean }
+  | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
 export function searchModel(env: Env): AskModel | null {
@@ -349,41 +379,157 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
  * of its Firebase UID; it has the same daily cap as Ask, and every answer is funded from the
  * shared free allowance, so new accounts cannot spend beyond it.
  */
-export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS): Promise<SearchAnswer> {
+/** Native apps only expose the configured hosted free models until store entitlements exist. */
+/**
+ * The models the app offers: the approved free models, and for an admin's linked account Claude
+ * (when it can be called), every day: the owner chose not to pause it on holy days.
+ */
+export function appAskModels(env: Env, adminId?: number): AskModel[] {
+  const allowed = freeModels(env);
+  const free = MODELS.filter(m => allowed.has(m.id) && APP_STUDY_RELEASE.approvedModels.some(id => id === m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
+  const claudeOk = !!adminId && isAdmin(env, adminId) && hasClaude(env);
+  if (!claudeOk) return free;
+  // The everyday model first (the app's default), then the lighter one and the admin's own.
+  const ids = [env.CLAUDE_MODEL || CLAUDE_DEFAULT, env.CLAUDE_MODEL_LIGHT, defaultModelId(env, adminId)].filter((id): id is string => !!id).map((id) => modelOf(id).id);
+  const claudes = [...new Set(ids)].map((id) => MODELS.find((m) => m.id === id && m.format === "anthropic")).filter((m): m is AskModel => !!m);
+  return [...claudes, ...free];
+}
+
+export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS, options: { model?: string; emit?: (event: AppStudyEvent) => void; study?: boolean; traceId?: string } = {}): Promise<SearchAnswer> {
   const t0 = Date.now();
-  const question = q.trim().slice(0, 400);
+  const question = q.trim();
+  if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  const model = freeModel(env);
+  // An answer the owner approved for this very question: given at once, with no model and no cost.
+  const approved = approvedFor(question, history);
+  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
+  // With no choice, a deep question (routeOf) goes to the stronger free model when one is configured
+  // (ASK_FREE_DEEP_MODEL) and approved; everything else to the fast default.
+  const deep = !options.model && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? appAskModels(env).find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
+  const model = deep ?? appAskModels(env).find(m => m.id === (options.model || freeModel(env).id));
+  if (!model) return { ok: false, reason: "model-unavailable" };
   // Nothing is sent to a provider the reader has not agreed to, as in askStream.
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  // The same first question, already answered this week by this model and mode: given at once (answer-cache.ts).
+  const mode = options.study ? "study" : "app";
+  const key = await cacheKey(question, history, model.id, mode, APP_STUDY_RELEASE.version);
+  const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
   if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
   const cfg = creditsConfig(env);
-  const budget = Math.min(estimateMc(model, cfg, { rounds: 1 }).maxMc * MC_USD, freeMaxUsd(env));
+  const budget = Math.min(estimateMc(model, cfg, { rounds: options.study ? 2 : 1 }).maxMc * MC_USD, freeMaxUsd(env));
   let reservation: FreeReservation | null;
   try { reservation = await reserveFreeBudget(env, crypto.randomUUID(), budget); }
   catch { return { ok: false, reason: "unavailable" }; }
   if (!reservation) return { ok: false, reason: "free-paused" };
   // A free meter with no owner: finishMeter settles the reservation and never touches a balance.
   const meter: Meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: 1 };
-  return boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0);
+  const result = await boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, mode, options.traceId);
+  // Only an answer that found and cited teaching is kept; "nothing found" is always asked again.
+  if (result.ok && result.sources.length) await keepAnswer(env, key, result, options.traceId);
+  return result;
+}
+
+/**
+ * The app's Ask, answered the way cyberjudah.io/app and Telegram answer (askStream): the model
+ * researches in rounds with the same tools (the classes, the KJV with the Apocrypha, people,
+ * dictionaries), streaming its steps, then writes a cited answer. Free models run on the shared
+ * free budget; an admin's linked account answers with Claude (CLAUDE_MODEL by default), at no charge to
+ * anyone but the owner's console, except on the Sabbath, feasts and New Moons (no paid calls from
+ * sunset to dark), when the free model answers instead.
+ */
+export async function answerAppAgent(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model?: string; emit?: (event: AgentEvent) => void; traceId?: string; adminId?: number } = {}): Promise<SearchAnswer> {
+  const t0 = Date.now();
+  const question = q.trim();
+  if (question.length > 4000) return { ok: false, reason: "too-long" };
+  if (question.length < 2) return { ok: false, reason: "too-short" };
+  const approved = approvedFor(question, history);
+  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
+  const models = appAskModels(env, options.adminId);
+  const paid = models.filter((m) => m.format === "anthropic");
+  const deep = !options.model && !paid.length && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? models.find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
+  const model = options.model ? models.find(m => m.id === options.model) : deep ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
+  if (!model) return { ok: false, reason: "model-unavailable" };
+  if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  const key = await cacheKey(question, history, model.id, "agent", APP_STUDY_RELEASE.version);
+  const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
+  let meter: Meter;
+  if (model.format === "anthropic") {
+    // Only reachable for an admin (appAskModels): the admin meter holds nothing and charges no one.
+    const started = await startMeter(env, options.adminId!, model, {});
+    if (!started.ok) return { ok: false, reason: "unavailable" };
+    meter = { ...started.meter, maxRounds: 4 };
+  } else {
+    if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    const cfg = creditsConfig(env);
+    const rounds = freeMaxRounds(env);
+    const budget = Math.min(estimateMc(model, cfg, { rounds }).maxMc * MC_USD, freeMaxUsd(env));
+    let reservation: FreeReservation | null;
+    try { reservation = await reserveFreeBudget(env, crypto.randomUUID(), budget); }
+    catch { return { ok: false, reason: "unavailable" }; }
+    if (!reservation) return { ok: false, reason: "free-paused" };
+    meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: rounds };
+  }
+  const spend = meter.spend;
+  const emit = options.emit ?? (() => undefined);
+  try {
+    const [found, verses] = await Promise.all([retrieve(env, retrievalText(question, history), 12, spend), versesNamed(env, question)]);
+    const first = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
+    let ran: Awaited<ReturnType<typeof runAgent>>;
+    try {
+      ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), emit, undefined, undefined, model, spend, undefined, meter.maxRounds);
+    } catch (e) {
+      if (model.format !== "anthropic" || !claudeUnavailable(e)) throw e;
+      // Claude cannot answer now (out of money, overloaded, down): the free model answers instead.
+      await alertClaudeFunds(env, e);
+      await finishMeter(env, meter, "backup", Date.now() - t0);
+      emit({ reset: true });
+      return answerAppAgent(env, q, account, history, [...consent, freeModel(env).provider], { ...options, model: freeModel(env).id, adminId: undefined });
+    }
+    const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
+    if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
+    await finishMeter(env, meter, "ok", Date.now() - t0);
+    const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    if (result.ok && result.sources.length) await keepAnswer(env, key, result, options.traceId);
+    return result;
+  } catch (e) {
+    await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
+    console.error(JSON.stringify({ event: "app_agent_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
+    return { ok: false, reason: "unavailable", detail: `failed: ${(e as Error).message?.slice(0, 160) ?? ""}` };
+  }
 }
 
 /**
  * One library-grounded answer under a free meter: the passages, one plain call to the model,
  * the sources it cited. Shared by search answers and the app's Ask.
  */
-async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number): Promise<SearchAnswer> {
+async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number, emit?: (event: AppStudyEvent) => void, appMode?: "app" | "study", traceId?: string): Promise<SearchAnswer> {
   const spend = meter.spend;
+  emit?.({ status: `Searching the classes and library for “${searchText.slice(0, 160)}”` });
   // One clock for retrieval and the model: it starts when retrieval does.
   const tRetrieve = Date.now();
   const deadlineAt = tRetrieve + deadlineMs;
   let retrieveMs = 0;
   try {
-    const passages = answerCandidates(question, await withDeadline(retrieve(env, searchText, 12, spend), deadlineMs), 8);
+    // The verses the question names, in exact King James text, ahead of what the classes said about
+    // them: the free model has no read_scripture, and may quote only what it is given.
+    const [found, verses] = await withDeadline(Promise.all([retrieve(env, searchText, 12, spend), versesNamed(env, question)]), deadlineMs);
+    const passages = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
     retrieveMs = Date.now() - tRetrieve;
-    if (!passages.length) {
+    for (const passage of passages) emit?.({ status: `Reading ${passage.title.slice(0, 180)}` });
+    if (appMode === "study") {
+      // Await each metered inference before settling its reservation, even if the client
+      // disconnects. A racing timeout must not settle while inference is still spending.
+      const result = await answerAppStudy(env, question, history, passages, model, spend, emit ?? (() => undefined), deadlineAt, traceId);
+      await finishMeter(env, meter, "ok", Date.now() - t0);
+      return { ok: true, ...result, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    }
+    // Nothing found: a greeting or a thank-you is still answered, in a sentence; a real question is
+    // told so plainly, with no model call, rather than answered from the model's own memory.
+    if (!passages.length && !SMALL_TALK.test(question)) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
-      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
+      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question. Try asking it another way, or name the person, book, feast or verse you mean.", sources: [], followups: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }
     // Use the plain adapter even for chat models: one bounded answer, never a research loop.
     const prompt = buildPrompt(question, passages, history);
@@ -393,17 +539,20 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     if (left <= 0) throw new DeadlineError(deadlineMs);
     const tModel = Date.now();
     const ran = await withDeadline(researchOpen(env, { ...model, format: "plain" }, system, messages,
-      [], new Map(), async () => ({ content: "No tools are available." }), () => undefined, 1, spend), left);
+      [], new Map(), async () => ({ content: "No tools are available." }), emit ?? (() => undefined), 1, spend, !!emit), left);
     // Where the time goes, for tuning: finding the passages, and the model writing the answer.
     console.log(JSON.stringify({ event: "search_answer_timing", retrieveMs, modelMs: Date.now() - tModel, totalMs: Date.now() - t0 }));
-    const { answer } = splitFollowups(ran.text);
+    // A reasoning model's private working, if it ever comes back in the text, is not the answer.
+    const { answer: written, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
+    const answer = await checkedVerses(env, written);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
-    return { ok: true, answer, sources: sourcesOf(answer, passages), model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    return { ok: true, answer, sources: passages.length ? sourcesOf(answer, passages) : [], followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
     console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, retrieveMs, message: (e as Error).message?.slice(0, 160) }));
-    return { ok: false, reason: "unavailable" };
+    // The same bounded message, for the monitoring record (ask-events.ts).
+    return { ok: false, reason: "unavailable", detail: `${e instanceof DeadlineError ? "timeout" : "failed"}: ${(e as Error).message?.slice(0, 160) ?? ""}` };
   }
 }
 
@@ -422,6 +571,7 @@ async function answerOnce(env: Env, messages: Msg[]): Promise<string> {
     catch (e) {
       if (!claudeUnavailable(e)) throw e;
       console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
+      await alertClaudeFunds(env, e);
     }
   }
   const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3 }, viaGateway(env)) as { response?: string };
@@ -460,6 +610,38 @@ async function* answerPieces(env: Env, messages: Msg[], backup = false): AsyncGe
   }
 }
 
+/** The answer with every quoted verse checked against the King James text (verse-guard.mjs). */
+async function checkedVerses(env: Env, answer: string): Promise<string> {
+  if (!/^>/m.test(answer)) return answer;
+  try {
+    const r = await guardVerses(answer, await books(env).catch(() => null), (slug, ch) => chapter(env, slug, ch));
+    if (r.fixed || r.removed) console.log(JSON.stringify({ event: "ask_verse_guard", checked: r.checked, fixed: r.fixed, removed: r.removed }));
+    return r.text;
+  } catch { return answer; }
+}
+
+/** A greeting, a thank-you or a question about Ask itself: answered even when the library has no passages for it. */
+const SMALL_TALK = /^\s*(hi|hello|hey|shalom|good (morning|afternoon|evening)|thanks?( you)?|thank you( so much)?|ok(ay)?|got it|who are you|what are you|what can you do|how do(es)? (this|you) work)\b[\s!.?,]*\S{0,40}$/i;
+
+/** The exact King James text of the verses a question names (at most three references, twelve verses each). */
+async function versesNamed(env: Env, question: string): Promise<Passage[]> {
+  const named = referencesIn(question);
+  if (!named.length) return [];
+  const list = await books(env).catch(() => null);
+  if (!list) return [];
+  const out: Passage[] = [];
+  for (const raw of named) {
+    const ref = parseReference(raw, list);
+    if (!ref?.verse) continue;
+    const c = await chapter(env, ref.slug, ref.chapter).catch(() => null);
+    const from = ref.verse, to = Math.min(ref.verseEnd ?? from, from + 11);
+    const verses = c?.verses.filter((v) => v.verse >= from && v.verse <= to) ?? [];
+    if (!verses.length) continue;
+    out.push({ kind: "verse", title: `${ref.book} ${ref.chapter}:${from}${to > from ? `-${to}` : ""} (KJV)`, url: `/bible/${ref.slug}/${ref.chapter}`, sub: "", text: verses.map((v) => `${v.verse} ${v.text}`).join("\n").slice(0, 1400) });
+  }
+  return out;
+}
+
 const sourcesOf = (answer: string, passages: Passage[]) => {
   const used = citations(answer, passages.length);
   return (used.length ? used : passages.slice(0, 4).map((_, i) => i + 1)).map((n) => ({ ...passages[n - 1], n }));
@@ -470,12 +652,18 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
  * answer as the model writes it, then a line with the sources it cited.
  */
 export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = [], opts: MeterOpts = {}): Promise<Response> {
-  // The reader's choice of model, or their configured account default.
-  const model = modelOf(modelId, defaultModelId(env, userId));
   const question = q.trim().slice(0, 400);
+  // The reader's choice of model, or their configured account default. With no choice, a light
+  // question (routeOf) goes to the lighter Claude model when one is configured (CLAUDE_MODEL_LIGHT):
+  // it is answered faster and costs the reader less. Admins keep their own default.
+  const light = !modelId && !isAdmin(env, userId) && env.CLAUDE_MODEL_LIGHT && routeOf(question, history) === "light";
+  const model = modelOf(modelId || (light ? env.CLAUDE_MODEL_LIGHT : undefined), defaultModelId(env, userId));
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
+  // An answer the owner approved for this very question: sent at once, with no provider and no charge.
+  const approved = approvedFor(question, history);
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: approvedSources(approved), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
@@ -483,7 +671,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // The balance: held before anything is spent, settled once at the end with what the answer
   // actually cost (finishMeter). Leaving mid-answer does not cancel it (waitUntil), so it is still
   // settled once. Too little for this model: Ask says so and offers the free model and a top-up.
-  const started = await begin(env, userId, model, opts);
+  // A routed light answer may cost up to what the reader accepted for their default model, which is dearer.
+  const fallbackCap = light ? opts.caps?.[modelOf(undefined, defaultModelId(env, userId)).id] : undefined;
+  const started = await begin(env, userId, model, fallbackCap && !opts.caps?.[model.id] ? { ...opts, caps: { ...opts.caps, [model.id]: fallbackCap } } : opts);
   if (!started.ok) return reply(started.status, started.body);
   const meter = started.meter;
   const spend = meter?.spend ?? freeSpend();
@@ -525,6 +715,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               // backup model answers from the passages already found, and the reader is not charged.
               if (!claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
+              await alertClaudeFunds(env, e);
               await finish("backup");
               send({ reset: true });
               send({ status: "Answering with the backup model" });
@@ -600,8 +791,8 @@ export async function similar(env: Env, q: string, limit = 20): Promise<Similar>
   }
 }
 
-const isVoice = (v: string) => VOICES.some((x) => x.id === v);
-const toBytes = async (out: unknown): Promise<Uint8Array | null> => {
+export const isVoice = (v: string) => VOICES.some((x) => x.id === v);
+export const toBytes = async (out: unknown): Promise<Uint8Array | null> => {
   if (out instanceof ReadableStream) return new Uint8Array(await new Response(out).arrayBuffer());
   if (out instanceof ArrayBuffer) return new Uint8Array(out);
   if (out instanceof Uint8Array) return out;

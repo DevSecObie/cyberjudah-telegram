@@ -1,9 +1,11 @@
+import { askHealth } from "./ask-health";
 import { deviceAuth } from "./device-auth";
 import { IdentityError } from "./account-links";
 import { publicReader, readerContent } from "./reader";
 import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
 import { sweepFreeBudget } from "./free-budget";
+import { sweepAskEvents } from "./ask-events";
 import { CmsError, CONTENT_REPO } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
@@ -23,7 +25,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
-import { answerApp, ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -58,7 +60,7 @@ import { MAX_BYTES } from "./photos.mjs";
 import { browserAuth, browserSession } from "./browser-auth";
 import { studyBackup } from "./study-backup";
 import { firebaseAuth, firebaseAccount } from "./firebase-auth";
-import { appReader } from "./app-identity";
+import { appAsk } from "./app-ask";
 import { cors } from "hono/cors";
 import { nave } from "./nave";
 
@@ -66,7 +68,7 @@ type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
 // Bundled native readers have local webview origins. No cookie credentials are allowed
 // across origins; private endpoints still require their existing signed authorization.
-app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type"], credentials: false }));
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
@@ -99,7 +101,7 @@ app.use("/api/*", async (c, next) => {
   // The donation presets, bounds, link and pause state are public, like the resource catalog: a plain-browser visitor sees them too, even though only the Mini App can open a Stars invoice.
   if (c.req.method === "GET" && c.req.path === "/api/donations") return next();
   // The app's free Ask checks its own Firebase sign-in: it needs no Telegram link (answerApp).
-  if (c.req.method === "POST" && c.req.path === "/api/app/ask") return next();
+  if (c.req.path === "/api/app/ask" || c.req.path.startsWith("/api/app/ask/")) return next();
   if (c.req.header("authorization")?.startsWith("Bearer ")) {
     // A linked Firebase login may read/spend its own Ask balance and manage its data.
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
@@ -259,32 +261,8 @@ app.post("/api/ask", async (c) => {
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
   return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
 });
-// Ask in the CyberJudah app: any verified app sign-in, on the free model only. No balance, no
-// purchases and no saved chats; one answer with the class sources it cited (ai.ts answerApp).
-app.post("/api/app/ask", async (c) => {
-  c.header("cache-control", "no-store");
-  if (Number(c.req.header("content-length") ?? 0) > 32_000) return c.json({ error: "too-large" }, 413);
-  const ip = c.req.header("cf-connecting-ip")?.slice(0, 45);
-  if (ip && !(await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000))))) {
-    return c.json({ error: "limit" }, 429);
-  }
-  let uid: string;
-  try {
-    const identity = await appReader(c.req.raw, c.env);
-    if (!identity) return c.json({ error: "sign_in_required" }, 401);
-    uid = identity.uid;
-  } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : "sign_in_unavailable" }, error instanceof IdentityError ? error.status : 503); }
-  const raw = await c.req.text();
-  if (raw.length > 32_000) return c.json({ error: "too-large" }, 413);
-  let body: { q?: unknown; history?: unknown; consent?: unknown } | null = null;
-  try { body = JSON.parse(raw); } catch { /* answered below */ }
-  if (!body || typeof body !== "object") return c.json({ error: "bad-request" }, 400);
-  const consent = Array.isArray(body.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
-  const res = await answerApp(c.env, String(body.q ?? ""), await keyedHash(c.env, "app-ask", uid), normalizeHistory(body.history as never, 8), consent);
-  if (res.ok) return c.json(res);
-  if (res.reason === "consent") return c.json({ error: "consent", provider: freeModel(c.env).provider }, 428);
-  return c.json({ error: res.reason }, res.reason === "too-short" ? 400 : res.reason === "limit" || res.reason === "free-paused" ? 429 : 503);
-});
+// Native Ask authenticates every route itself with Firebase; Telegram linking stays optional.
+app.route("/api/app/ask", appAsk);
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
 const NOTE_PATH = /^\/(classes|captains|history|study|encyclopedia)\/[A-Za-z0-9_-][A-Za-z0-9._/-]{0,160}$/;
@@ -401,6 +379,12 @@ app.get("/api/admin/usage", async (c) => {
   const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => ({ day, ...(await usageDayCredits(c.env, day)) })));
   const remindersByChannel = await reminderCounts(c.env).catch(() => null);
   return c.json({ ok: true, pricing: { usdPerStar: cfg.usdPerStar, margin: cfg.margin, topups: cfg.topups, unifiedFee: cfg.unifiedFee, confirmAboveMc: cfg.confirmAboveMc, maxRequestMc: cfg.maxRequestMc, research: cfg.research, missing: cfg.missing }, days, reminders: remindersByChannel });
+});
+// The admins' Ask health view: how each model's answers turned out, the latest problems, the budget (ask-health.ts).
+app.get("/api/admin/ask-health", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  const hours = Number(c.req.query("hours") ?? 24);
+  return c.json({ ok: true, ...(await askHealth(c.env, Number.isFinite(hours) ? hours : 24)) });
 });
 // An admin's refund: the Stars back through Telegram, and what that payment added and is unspent taken back.
 app.post("/api/admin/refund", async (c) => {
@@ -673,6 +657,7 @@ export default {
     ctx.waitUntil(pruneBilling(env).catch((e) => console.error(JSON.stringify({ event: "prune_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepWebhookUpdates(env).catch((e) => console.error(JSON.stringify({ event: "webhook_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepFreeBudget(env).catch((e) => console.error(JSON.stringify({ event: "free_budget_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
+    ctx.waitUntil(sweepAskEvents(env).catch((e) => console.error(JSON.stringify({ event: "ask_events_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Yesterday's quota rows are swept here, never on the request path (ai.ts).
     ctx.waitUntil(sweepRateCounts(env).catch((e) => console.error(JSON.stringify({ event: "sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Records still filed under Telegram IDs move to pseudonymous IDs (docs/PRIVACY.md), a bounded amount each hour.

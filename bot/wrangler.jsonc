@@ -75,11 +75,11 @@
         "SITE_URL": "https://cyberjudah.io",
         "D1_SIZE_ALERT_BYTES": "8000000000",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
-        "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "cloudflare",
+        "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
-        "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
-        "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.03", "ASK_FREE_MODELS": "@cf/meta/llama-3.1-8b-instruct-fp8",
+        "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
+        "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_FREE_MODELS": "@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731,@cf/meta/llama-3.1-8b-instruct-fp8",
         "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
       }
@@ -96,7 +96,7 @@
     "APP_URL": "https://cyberjudah.io/app",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
     // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
-    "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
+    "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
     // Cloudflare AI Gateway for Workers AI calls (logs, analytics, rate limits on the dashboard).
     // "default" is created by Cloudflare on the first request (providers.ts). Claude goes through it
     // too once the CF_AIG_TOKEN secret is set; until then Claude is called directly. If Claude
@@ -105,9 +105,12 @@
     // Who pays for Claude. "cloudflare": Unified Billing, from the Cloudflare account's AI Gateway
     // credits (AI → AI Gateway → Credits Available), with no Anthropic key sent; it needs the
     // CF_AIG_TOKEN secret, and until that is set the ANTHROPIC_API_KEY secret is used if present.
+    // "anthropic" (set 2026-10-30, the owner's choice): the owner's Anthropic console credits through
+    // the ANTHROPIC_API_KEY secret; until that secret is added, Unified Billing as above.
     // Anything else: the ANTHROPIC_API_KEY secret, billed by Anthropic. When the credits run
-    // out, Ask answers with Workers AI (the backup) until they are topped up.
-    "CLAUDE_BILLING": "cloudflare",
+    // out, Ask answers with Workers AI (the backup) until they are topped up. Only paying readers
+    // and admins reach Claude; free answers stay on Workers AI models.
+    "CLAUDE_BILLING": "anthropic",
     // Ask CyberJudah's pay-as-you-go balance (shared/credits.mjs), shown in dollars. Readers pay
     // exactly what their answers cost, with no profit: each model call at its model's own price
     // (Cloudflare's catalog, shared/ask-models.json), Unified Billing's fee where it applies
@@ -129,10 +132,9 @@
     // reserved and completed free-answer cost per UTC day (429 free-paused when exhausted).
     // Storage failures block admission. Admins and other account AI uses are separate;
     // this is not a guarantee of a zero provider bill (see docs/OPERATIONS.md).
-    // Kept inside Workers AI's free daily allowance (10,000 neurons, about $0.11): production's
-    // free answers $0.08 a day on the cheapest model only, staging's $0.03 (the two share the
-    // account's allowance; staging needs room for a whole answer's reservation, or its release
-    // check is always paused).
+    // The owner set $1.00 a day for each of production and staging (2026-10-30). Workers AI's free
+    // daily allowance (10,000 neurons, about $0.11) is shared by the two; free answers past it are
+    // billed to the account at Workers AI's rates, up to these caps.
     // ASK_USD_PER_STAR is kept a little under the Star's payout (about $0.013 when this was set),
     // so a fall in the payout never leaves a paid answer to the owner.
     // ASK_IP_DAILY_LIMIT is the Sybil backstop (Ask requests per IP per day); SEARCH_AI_DAILY_LIMIT
@@ -141,9 +143,10 @@
     // events in a day page the admins from the hourly health check.
     // SEARCH_AI_MODEL is a library-only answer; SEARCH_AI_FREE_ONLY rejects third-party billing.
     // Remove the model setting to use ASK_FREE_MODEL. See docs/SEARCH_AI.md for quota limits.
-    // ASK_FREE_MODEL names the default free model (Llama 3.1 8B, cheapest per answer).
-    "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8",
-    "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "0.08", "ASK_FREE_MODELS": "@cf/meta/llama-3.1-8b-instruct-fp8",
+    // ASK_FREE_MODEL names the default free model: it costs less per token than the earlier default
+    // (ask-models.json) and reasons and follows instructions far better; the earlier one stays free.
+    "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
+    "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_FREE_MODELS": "@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731,@cf/meta/llama-3.1-8b-instruct-fp8",
     "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
     // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
