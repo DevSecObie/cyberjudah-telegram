@@ -229,8 +229,9 @@ export async function runAgent(
     // The request's budget (what was held from the balance for it): past 70% of it the research stops and the
     // answer is written, in no more words than what is left pays for.
     // This call's own input is set aside first: at least what the last call read again, and never
-    // less than an estimate from the request's size (about 3 bytes a token, more than Claude uses).
-    const inputUsd = spend.budgetUsd == null ? 0 : Math.max(lastInputUsd * 1.15, spend.inputUsd({ input_tokens: Math.ceil(new TextEncoder().encode(JSON.stringify({ system, tools: TOOLS, messages })).length / 3) }, model));
+    // less than an estimate from the request's size (about 3 bytes a token), all priced as a
+    // prompt-cache write, the dearest way Claude can bill input.
+    const inputUsd = spend.budgetUsd == null ? 0 : Math.max(lastInputUsd * 1.15, spend.inputUsd({ input_tokens: 0, cache_creation_input_tokens: Math.ceil(new TextEncoder().encode(JSON.stringify({ system, tools: TOOLS, messages })).length / 3) }, model));
     const room = spend.outputTokensLeft(model, inputUsd);
     // Too little left for a reply the API accepts: the request stops here, inside what was set aside.
     if (room < 256) { cut = true; break; }

@@ -528,10 +528,18 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
       return answerAppAgent(env, q, account, history, consent, { ...options, model: freeFallback(env, models), adminId: undefined, quotaTaken: !adminClaude });
     }
     const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
+    if (!answer.trim() && ran.cut && model.format === "anthropic" && !adminClaude) {
+      // A reader's Claude answer ran out of what was set aside for it before writing: the free model
+      // answers instead, with the reader's own agreement to its provider and no second quota.
+      await finishMeter(env, meter, "backup", Date.now() - t0);
+      emit({ reset: true });
+      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
+    }
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
     const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
-    if (result.ok && result.sources.length) await keepAnswer(env, key, result, options.traceId);
+    // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
+    if (result.ok && result.sources.length && !ran.cut) await keepAnswer(env, key, result, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
