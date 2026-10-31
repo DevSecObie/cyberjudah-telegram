@@ -12,3 +12,5 @@ show Bishop Nathanyel's, Bishop Yawasap's and Bishop Kani's commentaries.
   answers for builds already installed.
 - `bot/tests/bs/feed.test.ts`: a Bishop's commentary holds only his entries, coverage lists only
   his chapters, and an unknown id is a 404.
+
+- The "a verse links to each class that read it" browser test opens the verse's "+N" first: Genesis 4:3 now carries two precepts, so the class link sits fourth, behind "+1" (the same test fails on main).
