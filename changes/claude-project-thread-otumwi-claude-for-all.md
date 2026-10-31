@@ -4,3 +4,4 @@
 - The input set aside for each Claude call is priced at the prompt-cache write rate, the highest rate Claude bills input at.
 - When a reader's Claude answer runs out of budget before writing anything, the free model answers instead, with the reader's own consent.
 - An answer cut off at its length limit is still shown, but it is never cached as a finished answer.
+- The input set aside is now a strict upper bound, not an estimate. The first call's input is counted with the API's token count, falling back to the request's byte size. Each later call adds the bytes appended since the last measured input, because a token is never shorter than a byte.
