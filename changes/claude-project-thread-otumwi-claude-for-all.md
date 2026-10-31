@@ -1,0 +1,1 @@
+- App Ask can answer every signed-in reader with Claude, paid from the owner's Anthropic console: Haiku by default and Sonnet for deep questions, under its own daily dollar cap. Off until the owner sets `ASK_CLAUDE_FOR_READERS` to "on" and adds the `ANTHROPIC_API_KEY` secret. Past the cap, the free model answers.
