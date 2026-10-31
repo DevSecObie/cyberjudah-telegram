@@ -446,6 +446,7 @@ test("past Claude's own daily cap a reader is answered by the free model, on the
     VEC: { query: async () => ({ matches: [] }) } };
   assert.ok(await reserveFreeBudget(e, "spent-it", 1, Date.now(), { prefix: "claude:", capUsd: 1 }), "the whole Claude allowance is held");
   assert.equal(await freeSpendToday(e), 0, "Claude's allowance is kept apart from the free one");
+  assert.deepEqual(await answerAppAgent(e, "Why do we keep the Passover?", "acct-c", [], ["Anthropic"]), { ok: false, reason: "consent" }, "no agreement to the free provider is assumed");
   const r = await answerAppAgent(e, "Why do we keep the Passover?", "acct-c", [], [...AGREED, "Anthropic"]);
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(r.model, "@cf/google/gemma-4-26b-a4b-it");
