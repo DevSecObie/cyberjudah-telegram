@@ -23,6 +23,9 @@ export type TopicRow = { slug: string; label: string };
 export type Topic = TopicRow & { items: { title: string; url: string; date?: string; teacher?: string }[]; thread?: { url: string; label: string; verses: string; text: string; classes: { title: string; url: string; date: string; teacher: string; video: string | null; t: number; ts: string }[]; precepts: { label: string; url: string; why?: string }[] }[] };
 export const VERSION = 'KJV';
 export const COLLECTION = 'cyberjudah';
+/** One commentary per Bishop: the resource id and the teacher name its entries carry in the class data. */
+export const TEACHER_COLLECTIONS: Readonly<Record<string, string>> = { 'bishop-nathanyel': 'Bishop Nathanyel', 'bishop-yawasap': 'Bishop Yawasap', 'bishop-kani': 'Bishop Kani' };
+export const isCollection = (id: unknown): id is string => typeof id === 'string' && (id === COLLECTION || Object.hasOwn(TEACHER_COLLECTIONS, id));
 export const bibleResource = { kind: 'bible-text' as const, versionId: VERSION, revision: `cj-kjv-${metadata.textSha256}`, textRevision: metadata.textSha256, textSha256: metadata.textSha256 };
 export const strongResource = { kind: 'strong-bible-index' as const, versionId: VERSION, datasetId: 'CYBERJUDAH', revision: `cj-strong-${metadata.strongSha256}`, textRevision: metadata.textSha256, textSha256: metadata.textSha256, strongRevision: metadata.strongSha256 };
 export const emptyPresentation = () => ({ startTags: [], layout: [], notes: [] as { offset: number; order: number; kind: 'note'; markup: string }[], headings: [] });
@@ -80,9 +83,10 @@ export function language(c: Ctx, code: string, query = false) {
   const lang = query ? c.req.query('language') : c.req.param('language');
   if (lang !== 'en') missing(code, 'CyberJudah provides this resource in English only');
 }
-export function collection(c: Ctx) {
+export function collection(c: Ctx): string {
   language(c, 'SUPPLEMENTARY_CONTENT_NOT_FOUND');
-  if (c.req.param('collection') !== COLLECTION) missing('SUPPLEMENTARY_CONTENT_NOT_FOUND');
+  const id = c.req.param('collection');
+  return isCollection(id) ? id : missing('SUPPLEMENTARY_CONTENT_NOT_FOUND');
 }
 export function limit(c: Ctx, max = 500, fallback = 60) { return integer(c.req.query('limit'), 1, max, fallback); }
 export const encodeCursor = (value: unknown) => encodeURIComponent(JSON.stringify(value));

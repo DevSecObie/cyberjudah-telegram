@@ -1009,6 +1009,10 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
 test("a verse links to each class that read it, on YouTube at that moment", async ({ page }) => {
   await preferChips(page);
   await page.goto(`/read/genesis/4${LAUNCH}`);
+  // The verse shows three links and keeps the rest behind "+N"; the class link comes after the precepts.
+  await expect(page.locator("#verset-3 .rel-tag").first()).toBeVisible();
+  const more = page.locator("#verset-3 .rel-more", { hasText: /^\+\d+$/ });
+  if (await more.count()) await more.click();
   const tag = page.locator("#verset-3 .rel-tag", { hasText: "Raising Cain" });
   await expect(tag).toBeVisible();
   if (process.env.SHOTS) { await tag.scrollIntoViewIfNeeded(); await page.screenshot({ path: `${process.env.SHOTS}/watch-links.png` }); }

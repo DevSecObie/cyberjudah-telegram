@@ -289,6 +289,31 @@ test('commentary sections agree with the upstream section builder, maintain rank
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
 });
 
+test('each Bishop commentary holds only his own entries and lists only his chapters', async () => {
+  const variant = structuredClone(originals.get('/api/concordance/john/1.json'));
+  const original = variant.commentary[0];
+  variant.commentary = ['Bishop Kani', 'Bishop Yawasap', 'Deacon Example'].map(teacher => ({ ...original, verses: '1', note: { ...original.note, teacher }, points: [`${teacher} taught this`] }));
+  variant.precepts = [];
+  data.set('/api/concordance/john/1.json', variant);
+  data.set('/api/concordance/teachers.json', { 'Bishop Kani': { john: [1] }, 'Bishop Yawasap': { john: [3, 1] } });
+  const comments = async (id: string) => JSON.parse((await request(`/v1/commentaries/${id}/en/chapters/43/1`, Supplementary.CommentaryChapterResponseDto)).json.serializedComments);
+  const kani = await comments('bishop-kani');
+  assert.equal(kani['1'].length, 1); assert.match(kani['1'][0], /Bishop Kani taught this/);
+  assert.deepEqual(await comments('bishop-nathanyel'), {});
+  assert.equal((await comments('cyberjudah'))['1'].length, 3);
+  const { json: coverage } = await request('/v1/commentaries/bishop-yawasap/en/coverage', Supplementary.CommentaryCoverageResponseDto);
+  assert.equal(coverage.resource.resourceId, 'bishop-yawasap');
+  assert.deepEqual(coverage.books, [43]); assert.deepEqual(coverage.chaptersByBook['43'], [1, 3]);
+  const selection = { book: 43, chapter: 1, resources: [{ resourceId: 'bishop-kani', language: 'en' }, { resourceId: 'bishop-yawasap', language: 'en' }] };
+  const { json: index } = await request('/v1/commentaries/reading-index', Commentary.CommentaryReadingIndexResponse, { body: selection });
+  assert.deepEqual(index.indexes.map((i: { resource: { resourceId: string } }) => i.resource.resourceId), ['bishop-kani', 'bishop-yawasap']);
+  const section = index.indexes[1].sections[0];
+  assert.match(section.id, /^bishop-yawasap-en-43-1-1-1/);
+  const { json: detail } = await request('/v1/commentaries/reading-section', Commentary.CommentaryReadingSectionResponse, { body: { book: 43, chapter: 1, resourceId: 'bishop-yawasap', language: 'en', revision: index.indexes[1].resource.revision, sectionId: section.id } });
+  assert.match(detail.section.content, /Bishop Yawasap taught this/); assert.doesNotMatch(detail.section.content, /Bishop Kani/);
+  await request('/v1/commentaries/bishop-unknown/en/coverage', Problems.ResourceNotFoundProblem, { status: 404 });
+});
+
 test('cross references, published timelines and unsupported resources use the documented schemas', async () => {
   const { json: refs } = await request('/v1/cross-references/fr/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
   assert.ok(refs.references.includes('1-1-1'));
