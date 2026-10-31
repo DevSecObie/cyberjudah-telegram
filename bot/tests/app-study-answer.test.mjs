@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 const out = new URL('./.build/app-study-answer.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/app-study-answer.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
-const { selectAppStudyEvidence, appTranscriptQueries, checkAppStudyOutput } = await import(out);
+const { selectAppStudyEvidence, appTranscriptQueries, checkAppStudyOutput, citedScriptures } = await import(out);
 const uiOut = new URL('./.build/app-study-answer-ui.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/app-study-ui.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: uiOut, logLevel: 'error' });
 const { validateStudyProgram } = await import(uiOut);
@@ -67,4 +67,9 @@ test('a valid first answer never incurs a retry', async () => {
   const sources = [{ n: 1, kind: 'spoken', evidence: 'teaching', title: 'Class', text: 'A recorded point.', url: '/class/example' }];
   const result = await checkAppStudyOutput({ text: 'root = StudyAnswer([Teaching("A recorded point. [1]", [1])])', cut: false }, sources, async () => { throw new Error('Unexpected retry'); });
   assert.equal(result.teachingFound, true);
+});
+test('the scriptures the classes cite are read, the most cited first, and always kept among the sources', () => {
+  assert.deepEqual(citedScriptures('Exodus 12:14 says for ever. Lev. 23:5-6 the passover. Again Exodus 12:14, and 1 Corinthians 5:7.'), ['Exodus 12:14', 'Lev 23:5-6', '1 Corinthians 5:7']);
+  const sources = Array.from({ length: 20 }, (_, i) => ({ n: i+1, kind: i === 19 ? 'verse' : 'spoken', evidence: i === 19 ? 'scripture' : 'teaching', title: `S ${i+1}`, text: 'x', url: `/s/${i+1}` }));
+  assert.ok(selectAppStudyEvidence(sources, 4).some(s => s.n === 20), 'the verse read last is not dropped by the 12-source limit');
 });

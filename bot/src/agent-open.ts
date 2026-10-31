@@ -6,6 +6,9 @@ import { unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import type { AgentEvent } from "./agent";
 import type { Spend } from "./spend";
 
+const DEEPSEEK_V4 = /^@cf\/deepseek-ai\/deepseek-v4/;
+const GEMMA_4 = /^@cf\/google\/gemma-4/;
+
 /**
  * Ask's research with any model other than Claude, through Cloudflare's AI binding and the AI
  * Gateway (Unified Billing for third-party models, Workers AI for Cloudflare-hosted ones). The
@@ -40,6 +43,8 @@ export async function researchOpen(
   spend?: Spend,
   streamPlain = false,
   plainInstruction = 'You have no tools here: answer from the passages given, and cite them by their numbers.',
+  /** think: false asks a reasoning model not to think first, for short mechanical steps such as a research plan. */
+  options: { think?: boolean } = {},
 ): Promise<Result> {
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
@@ -61,6 +66,10 @@ export async function researchOpen(
       const asked = Number((input as Record<string, unknown>)[key] ?? 8000);
       input = { ...(input as Record<string, unknown>), [key]: Math.max(256, Math.min(asked, model.maxOutput ?? asked, room)) };
     }
+    // An answer keeps each model's full reasoning; only a short mechanical step (a research plan)
+    // is asked not to think first, which saves its time without making the answer shallower.
+    if (options.think === false && DEEPSEEK_V4.test(model.id)) input = { ...(input as Record<string, unknown>), reasoning_effort: "none" };
+    else if (options.think === false && GEMMA_4.test(model.id)) input = { ...(input as Record<string, unknown>), chat_template_kwargs: { enable_thinking: false } };
     try {
       // Not logged: the request carries the reader's question (providers.ts viaGateway).
       const res = await ai.run(model.id, input, { gateway: { id: env.AI_GATEWAY, collectLog: false } });

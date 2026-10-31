@@ -22,6 +22,7 @@ import { ScreenBoundary } from "@/ui/boundary";
 import { ThemeApplier } from "@/ui/theme";
 import { Home } from "@/screens/Home";
 import { Tabs as TabsScreen, NewTab } from "@/screens/Tabs";
+const AskHealth = lazy(() => import("@/screens/AskHealth").then((m) => ({ default: m.AskHealth })));
 const NoteRequests = lazy(() => import("@/screens/NoteRequests").then((m) => ({ default: m.NoteRequests })));
 // Every other screen loads on first visit, so the first paint stays small: one chunk per
 // screen module, shared by the routes that use it, cached by the browser afterwards.
@@ -121,6 +122,7 @@ const routes = (
     <Route path="/settings/help" element={<Help />} />
     <Route path="/settings/audio" element={<AudioSettings />} />
     <Route path="/settings/theme" element={<ThemeSettings />} />
+    <Route path="/settings/ask-health" element={<AskHealth />} />
     <Route path="/settings/requests" element={nativeReader ? <NativeReaderNotice /> : <NoteRequests />} />
     <Route path="/plans" element={<ReadingPlans />} />
     <Route path="/plan" element={<Plan />} />

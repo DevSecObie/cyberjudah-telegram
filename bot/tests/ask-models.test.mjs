@@ -117,3 +117,19 @@ test("the agreement card names where a provider is based only when that is known
   const unknown = new Set(["Unbiased"]);
   for (const p of new Set(MODELS.map((m) => m.provider))) assert.ok(PROVIDER_COUNTRY[p] || unknown.has(p), `decide where ${p} is based, or list it as unknown`);
 });
+
+test("an answer keeps each model's full reasoning: no reasoning setting is sent unless a step asks not to think", async () => {
+  const reply = () => ({ choices: [{ message: { role: "assistant", content: "Keep it for ever [1]." }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 10 } });
+  const deep = await research("@cf/deepseek-ai/deepseek-v4-flash-0731", [reply()]);
+  assert.equal(deep.sent[0].input.reasoning_effort, undefined);
+  assert.equal(deep.sent[0].input.chat_template_kwargs, undefined);
+});
+
+test("a step asked not to think: DeepSeek V4 reasons at none and Gemma 4 turns thinking off", async () => {
+  const reply = () => ({ choices: [{ message: { role: "assistant", content: "[]" }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 2 } });
+  for (const [id, check] of [["@cf/deepseek-ai/deepseek-v4-flash-0731", (i) => assert.equal(i.reasoning_effort, "none")], ["@cf/google/gemma-4-26b-a4b-it", (i) => assert.deepEqual(i.chat_template_kwargs, { enable_thinking: false })]]) {
+    const { env, sent } = binding([reply()]);
+    await researchOpen(env, modelOf(id), "S", [{ role: "user", content: "q" }], [], new Map(), async () => ({ content: "" }), () => {}, 1, undefined, false, "Plan.", { think: false });
+    check(sent[0].input);
+  }
+});
