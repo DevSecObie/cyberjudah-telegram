@@ -22,6 +22,16 @@ free allowance; this application counter alone cannot promise a zero provider bi
 Search admins now share the same daily admission limit as other readers. Every answer has a
 per-request budget (`ASK_FREE_MAX_USD`, $0.05), one model call and a bounded output. Missing
 usage or provider failure retains the full reservation; unavailable storage blocks new work.
+
+### Claude for signed-in app readers
+
+The owner chose (2026-10-31) to let every signed-in app reader ask Claude, paid from the owner's
+Anthropic console: Haiku (`CLAUDE_MODEL_LIGHT`) answers by default and Sonnet (`CLAUDE_MODEL`)
+answers deep questions. It is off until `ASK_CLAUDE_FOR_READERS` is `"on"`, the
+`ANTHROPIC_API_KEY` secret is set and `ASK_CLAUDE_DAILY_USD_CAP` is above zero. Each answer
+reserves `ASK_CLAUDE_MAX_USD` ($0.20) against Claude's own daily cap ($5.00 suggested), kept
+apart from the free models' allowance under the `claude:` day prefix. The reader's daily limit
+and the IP limit still apply. Past the cap, or when Claude cannot answer, the free model answers.
 When the allowance is exhausted, ordinary search results remain available without an AI answer.
 
 Production and staging run `bot/scripts/verify-release.mjs` after deployment. It verifies the

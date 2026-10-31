@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { Env } from "./env";
 import { IdentityError, linkedTelegram } from "./account-links";
@@ -36,11 +36,17 @@ appAsk.use('*', async (c, next) => {
   } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : 'sign_in_unavailable' }, error instanceof IdentityError ? error.status : 503); }
   return next();
 });
-appAsk.get('/models', c => c.json({
-  default: freeModel(c.env).id, maxQuestionLength: 4000,
-  models: appAskModels(c.env, c.get('adminId')).map(({ id, name, provider, what }) => ({ id, name, provider, what })),
-  billing: { purchasesEnabled: false },
-}));
+// What this Worker's engine can answer with: Claude for readers runs only on the agent engine (answerAppAgent).
+const offeredModels = (c: Context<AppAsk>) => appAskModels(c.env, c.get('adminId'), c.env.APP_ASK_ENGINE !== 'study');
+appAsk.get('/models', c => {
+  const offered = offeredModels(c);
+  // The advertised default is the model a request without one is answered by (the POST route below).
+  return c.json({
+    default: offered[0]?.id ?? freeModel(c.env).id, maxQuestionLength: 4000,
+    models: offered.map(({ id, name, provider, what }) => ({ id, name, provider, what })),
+    billing: { purchasesEnabled: false },
+  });
+});
 appAsk.post('/report', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 1024) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
@@ -52,7 +58,7 @@ appAsk.post('/report', async c => {
   if (!await takeQuotaKey(c.env, `app_report:${c.get('account')}:${day}`, 10)) return c.json({ error: 'limit' }, 429);
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
-  const model = appAskModels(c.env).find(m => m.id === body.model)?.id ?? 'default';
+  const model = appAskModels(c.env, undefined, true).find(m => m.id === body.model)?.id ?? 'default';
   // A reported answer that came from the answer cache is removed from it (answer-cache.ts).
   const traced = typeof body.traceId === 'string' && tracePattern.test(body.traceId);
   if (traced) await dropReported(c.env, body.traceId as string);
@@ -85,7 +91,7 @@ appAsk.post('/', async c => {
   try { body = JSON.parse(raw); } catch { return c.json({ error: 'bad-request' }, 400); }
   if (!body || typeof body !== 'object' || typeof body.q !== 'string') return c.json({ error: 'bad-request' }, 400);
   if (body.q.trim().length < 2 || body.q.length > 4000) return c.json({ error: body.q.length > 4000 ? 'too-long' : 'too-short' }, 400);
-  const offered = appAskModels(c.env, c.get('adminId'));
+  const offered = offeredModels(c);
   const model = offered.find(m => m.id === (body.model || offered[0]?.id || freeModel(c.env).id));
   if (!model) return c.json({ error: 'model-unavailable' }, 400);
   const consent = Array.isArray(body.consent) ? body.consent.filter((x): x is string => typeof x === 'string').slice(0, 40) : [];
