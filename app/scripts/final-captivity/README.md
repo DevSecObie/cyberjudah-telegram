@@ -67,8 +67,10 @@ documentary photograph of an atrocity, never presented as evidence). See docs/AV
   reads with it, and how it applies them).
 - Nothing is invented: no quotation, casualty figure, date, citation or connection that is not
   in a source that was read. A number appears only as its source gives it.
-- Where sources disagree (with each other, or with the teaching), both are kept in
-  `disagreements`, each said plainly. Neither is corrected silently.
+- The classes are the authority (owner's direction, 2026-10-30): the Timeline shows no source
+  disagreements. Where a source disagrees with the teaching, the teaching stands and the
+  conflicting statement is left out of the account; `disagreements` is no longer written or
+  shown (older entries keep the field, unused).
 - The teacher's meaning is kept. Quotes are word for word from the recording; strong language
   stays as said; a bleeped word is left out.
 - An event without a documented source stays in `drafts.json`. The classes' teaching is added wherever a class taught the event; an event may stand on its documented sources alone.

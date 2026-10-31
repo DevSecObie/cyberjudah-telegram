@@ -2,7 +2,7 @@
 
 The owner requested the timeline from the current CyberJudah app on 2026-10-28. This publication keeps Bible Strong's existing period cards, horizontal timeline, event sheets, scripture previews, search and related-event controls. It imports CyberJudah content; it does not restore Bible Strong's original editorial articles or pictures.
 
-The source is `app/src/data/timeline.json`, regrouped by the current app's `shared/captivities.mjs`. All 991 distinct events remain in 21 periods. The 517 readable events have published case studies, a reign, or a Final Captivity account. Events without details remain visible, disabled as in the original UI. All 434 published Final Captivity accounts retain their history, teaching attribution, references, sources, uncertainty and disagreements. `between-testaments.json` is empty; drafts are not imported.
+The source is `app/src/data/timeline.json`, regrouped by the current app's `shared/captivities.mjs`. All 991 distinct events remain in 21 periods. The 517 readable events have published case studies, a reign, or a Final Captivity account. Events without details remain visible, disabled as in the original UI. All 434 published Final Captivity accounts retain their history, teaching attribution, references, sources and uncertainty; source disagreements are not shown (owner's direction, 2026-10-30). `between-testaments.json` is empty; drafts are not imported.
 
 `bot/data/bs-timeline-cases.json` is a snapshot of the 92 case documents referenced by these events, read from the public `https://data.cyberjudah.io/api/cases/{slug}.json` feed. No account or private data is included. Refresh only those referenced public documents when publishing a new revision.
 
