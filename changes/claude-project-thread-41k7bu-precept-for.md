@@ -1,0 +1,2 @@
+- A Bishop commentary entry whose verse was used as the precept when another scripture was opened now leads "Precept for <scripture>" instead of "Read with", as the web reader's Why sheet already says.
+- A Bishop commentary reads as a Bible Strong commentary does: one section per class passage, headed by the scripture, with each verse's teaching in verse order (the verse number in red, the words he opened in italics), the precepts he lined up under each verse, and the class it came from.

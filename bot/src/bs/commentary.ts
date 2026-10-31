@@ -42,15 +42,59 @@ async function reading(c: Ctx, book: number, chapter: number, resourceId = COLLE
   const data = await load<Concordance>(c, `/api/concordance/${row.slug}/${chapter}.json`);
   const notes = data.precepts?.length ? await load<Notes>(c, '/api/notes/index.json') : [];
   const items: { verses: number[]; teacher: string; date: string; content: string }[] = [];
+  // As a Bible Strong commentary reads: one section per class passage, headed by the scripture,
+  // each verse's teaching in verse order with the precepts the class lined up under it, then
+  // the class it came from. A verse used as the precept for another scripture stands alone.
+  const passages = new Map<string, { note: Note; ts: string; video?: string | null; t?: number; label: string; verses: Map<number, { points: string[]; precepts: string[] }> }>();
+  const passage = (note: Note, ts: string, label: string) => {
+    const key = `${note.url}|${ts}|${note.teacher}`;
+    let row = passages.get(key);
+    if (!row) passages.set(key, row = { note, ts, label, verses: new Map() });
+    if (!row.label) row.label = label;
+    return row;
+  };
+  const at = (row: { verses: Map<number, { points: string[]; precepts: string[] }> }, v: number) => {
+    let cell = row.verses.get(v);
+    if (!cell) row.verses.set(v, cell = { points: [], precepts: [] });
+    return cell;
+  };
+  for (const p of data.commentary ?? []) {
+    const row = passage(p.note, p.ts, p.passage);
+    row.video ??= p.video; row.t ??= p.t;
+    const v = numbers(p.verses)[0];
+    if (v) at(row, v).points.push(...p.points);
+  }
   for (const p of data.precepts ?? []) {
     const moment = (data.moments ?? []).find(m => m.url === p.note.url && m.ts === p.ts);
     const video = moment?.video ?? notes.find(n => n.url === p.note.url)?.videoId;
-    const content = `<h3>${html(p.kind === 'opened' ? 'Read with' : 'Precept')} ${passageLink(p.ref)}</h3>${paragraphs(p.why || p.text)}${citation(p.note, p.ts, video, seconds(p.ts) ?? moment?.t)}`;
-    items.push({ verses: numbers(p.verses), teacher: p.note.teacher, date: p.note.date, content });
+    if (p.kind === 'opened') {
+      const content = `<h3>Precept for ${passageLink(p.ref)}</h3>${paragraphs(p.why || p.text)}${citation(p.note, p.ts, video, seconds(p.ts) ?? moment?.t)}`;
+      items.push({ verses: numbers(p.verses), teacher: p.note.teacher, date: p.note.date, content });
+      continue;
+    }
+    const row = passage(p.note, p.ts, '');
+    row.video ??= video; row.t ??= seconds(p.ts) ?? moment?.t;
+    const v = numbers(p.verses)[0];
+    if (v) at(row, v).precepts.push(`<p><b>Precept</b> ${passageLink(p.ref)}</p>${paragraphs(p.why || p.text)}`);
   }
-  for (const p of data.commentary ?? []) {
-    const content = `<h3>${html(p.passage)}</h3>${p.points.map(paragraphs).join('')}${citation(p.note, p.ts, p.video, p.t)}`;
-    items.push({ verses: numbers(p.verses), teacher: p.note.teacher, date: p.note.date, content });
+  for (const row of passages.values()) {
+    const verses = [...row.verses.keys()].sort((a, b) => a - b);
+    if (!verses.length) continue;
+    const heading = row.label || `${bookById(book).name} ${chapter}:${verses[0]}${verses.length > 1 ? `-${verses[verses.length - 1]}` : ''}`;
+    const body = verses.map(v => {
+      const cell = row.verses.get(v)!;
+      const points = cell.points.map((point, i) => {
+        const lemma = /^([^.?!]{3,100}?):\s+(.+)$/s.exec(point);
+        const text = lemma ? `<i>${html(lemma[1])}:</i> ${html(lemma[2])}` : html(point);
+        return `<p>${i === 0 && verses.length > 1 ? `<b>${v}</b> ` : ''}${text}</p>`;
+      }).join('');
+      const label = !cell.points.length && verses.length > 1 ? `<p><b>${v}</b></p>` : '';
+      return label + points + cell.precepts.join('');
+    }).join('');
+    const content = `<h3>${html(heading)}</h3>${body}${citation(row.note, row.ts, row.video, row.t)}`;
+    const span = [];
+    for (let v = verses[0]; v <= verses[verses.length - 1]; v++) span.push(v);
+    items.push({ verses: span, teacher: row.note.teacher, date: row.note.date, content });
   }
   if (teacher) items.splice(0, items.length, ...items.filter(item => item.teacher === teacher));
   items.sort((a, b) => teacherRank(a.teacher) - teacherRank(b.teacher) || (b.date || '').localeCompare(a.date || ''));
