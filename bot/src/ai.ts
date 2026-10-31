@@ -456,7 +456,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
  * anyone but the owner's console, except on the Sabbath, feasts and New Moons (no paid calls from
  * sunset to dark), when the free model answers instead.
  */
-export async function answerAppAgent(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model?: string; emit?: (event: AgentEvent) => void; traceId?: string; adminId?: number } = {}): Promise<SearchAnswer> {
+export async function answerAppAgent(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model?: string; emit?: (event: AgentEvent) => void; traceId?: string; adminId?: number; quotaTaken?: boolean } = {}): Promise<SearchAnswer> {
   const t0 = Date.now();
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
@@ -485,18 +485,19 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   } else if (model.format === "anthropic") {
     // A signed-in reader on Claude (claudeForReaders): the reader's daily limit, then the answer's
     // most is reserved against Claude's own daily cap. Past the cap the free model answers.
-    if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
     const budget = readerClaudeMaxUsd(env);
     let reservation: FreeReservation | null = null;
     try { reservation = budget > 0 ? await reserveFreeBudget(env, crypto.randomUUID(), budget, Date.now(), { prefix: "claude:", capUsd: readerClaudeCap(env) }) : null; }
     catch { return { ok: false, reason: "unavailable" }; }
     if (!reservation) {
-      // The quota was taken for this question; the free answer below takes one more, as the backup path does.
-      return answerAppAgent(env, q, account, history, [...consent, freeModel(env).provider], { ...options, model: freeModel(env).id, adminId: undefined });
+      // The free model answers this same question: its quota is already counted, and only with the
+      // reader's own agreement to the free model's provider (never assumed).
+      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeModel(env).id, adminId: undefined, quotaTaken: true });
     }
     meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: creditsConfig(env).research }), model, free: true, admin: false, reservation, maxRounds: 4 };
   } else {
-    if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
     const cfg = creditsConfig(env);
     const rounds = freeMaxRounds(env);
     const budget = Math.min(estimateMc(model, cfg, { rounds }).maxMc * MC_USD, freeMaxUsd(env));
@@ -520,7 +521,8 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
       await alertClaudeFunds(env, e);
       await finishMeter(env, meter, "backup", Date.now() - t0);
       emit({ reset: true });
-      return answerAppAgent(env, q, account, history, [...consent, freeModel(env).provider], { ...options, model: freeModel(env).id, adminId: undefined });
+      // Only with the reader's own agreement to the free model's provider; a reader's quota is already counted.
+      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeModel(env).id, adminId: undefined, quotaTaken: !adminClaude });
     }
     const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
