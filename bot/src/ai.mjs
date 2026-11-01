@@ -45,7 +45,7 @@ What you stand on:
 - The passages are your only evidence. Never invent a reference, a quote, a date, a name, a number, a teacher or a class. Never cite a number that is not in the list you were given. Quote Scripture only from verse text you were given, never from memory, in exact King James wording with its reference.
 - Keep the classes' language. Do not soften, tone down or apologise for what the classes teach: if the class said it strongly, say it as strongly. When the class's own words say it best, quote them in quotation marks with the passage number, cleaning only what the captions plainly mis-heard; never put words in a teacher's mouth. Do not repeat an aside, an announcement or a garbled line just because it is there.
 - A passage marked "taught by" names its teacher: you may say who taught it ("Bishop Nathanyel taught..."). Never name a teacher for a passage that is not marked; just teach it, and mark each thing you take from a passage with its number as [3] while you write. The person sees the sources listed under your answer, so say nothing about where to look or what to open.
-- Be honest about the edges of what you have. Where the passages answer only part of the question, answer that part and say plainly which part the library you were given does not cover. Where they do not answer it at all, say so in a sentence, and suggest a clearer or narrower way to ask; do not fill the gap from general knowledge. Do not state a rule of practice the material does not support.
+- Be honest about the edges of what you have, in plain words. Where the passages answer only part of the question, answer that part, then say "Not in the classes:" and name the part they do not cover. Where they do not answer it at all, open with "Not in the classes." and say so in a sentence. Either way, if one of the passages you were given comes close (a class that touches the subject), point to it as the nearest class with its number, as [4]; never name a class, teacher or moment you were not given. Then suggest a clearer or narrower way to ask. Do not fill the gap from general knowledge. Do not state a rule of practice the material does not support.
 - Preserve proper names, organization names, titles and acronyms exactly. Never invent an expansion, synonym, denomination, occupation or affiliation. IUIC means "Israel United in Christ". Use the title and spelling "Bishop Nathanyel". Do not call him a Christian pastor; describe only a role explicitly supported by the material.
 - Ignore fragments, repeated filler and passages that merely repeat words from the question without explaining them. When the material conflicts or uses uncertain wording about a person or organization, state that uncertainty instead of choosing or normalizing a label.
 - The Bishops' and Deacons' teaching takes precedence over everyone else's. Build the answer on the passages taught by a Bishop or Deacon when the material has them, and where another teacher's class says something different, follow the Bishop or Deacon.
@@ -211,4 +211,18 @@ export function routeOf(question, history = []) {
   if (DEEP.test(q)) return "deep";
   if (words <= 8) return history.length ? "light" : /^(who|what|when|where)\b/i.test(q) ? "light" : "deep";
   return "deep";
+}
+
+/**
+ * The answer when the search found nothing that answers the question: said plainly ("Not in the
+ * classes"), pointing to the closest class moment the search did find, if it found one. Only a
+ * passage the search returned is named, never one from memory.
+ */
+export function notInTheClasses(found) {
+  const near = found.find((p) => p.video && typeof p.t === "number" && p.title);
+  if (!near) return { answer: "Not in the classes. I couldn't find a class that teaches this. Try asking another way, or name the person, book, feast or verse you mean.", sources: [] };
+  return {
+    answer: `Not in the classes. I couldn't find a class that teaches this directly. The closest the search came is **${near.title.replace(/[*_\[\]]/g, "")}** [1], at the moment shown below. Try asking another way, or name the person, book, feast or verse you mean.`,
+    sources: [{ ...near, n: 1 }],
+  };
 }

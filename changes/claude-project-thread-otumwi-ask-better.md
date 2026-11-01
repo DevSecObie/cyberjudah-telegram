@@ -1,0 +1,2 @@
+- Ask: when the classes don't answer a question, or part of it, the answer says "Not in the classes" plainly and points to the nearest class it was given (by its number, so it plays at that moment), never one from memory.
+- Ask (free model): with nothing that answers the question, the reply says "Not in the classes." and, when the search found a class moment close to the subject, links it as source 1, so the reader can play it at that moment.
