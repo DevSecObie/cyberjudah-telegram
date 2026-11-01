@@ -1,0 +1,1 @@
+- Staging serves the video player page from cyberjudah-app 3f96d1a7. This version reports the playing time and passes the floating player's play, pause and skip commands (only those three) to the video, so the controls and scrubbing work.
