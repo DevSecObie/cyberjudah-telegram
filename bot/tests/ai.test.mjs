@@ -87,7 +87,7 @@ test("the answer contract keeps the classes' language, the evidence rule, and co
   assert.match(SYSTEM, /Do not soften, tone down or apologise for what the classes teach/);
   assert.match(SYSTEM, /answer every part, in order/);
   assert.match(SYSTEM, /answer the most likely meaning, say in one short line which meaning you took/);
-  assert.match(SYSTEM, /say "Not in the classes:" and name the part they do not cover/);
+  assert.match(SYSTEM, /say "Not discussed in the classes…yet:" and name the part they do not cover/);
   assert.doesNotMatch(SYSTEM, /Do not quote the captions/);
 });
 
