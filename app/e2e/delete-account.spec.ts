@@ -21,3 +21,14 @@ test("the privacy policy covers the iPhone and Android app and links the deletio
   await page.getByRole("link", { name: "Delete your account" }).click();
   await expect(page).toHaveURL(/\/delete-account$/);
 });
+
+// The App Store Support URL: App Review opens it with no app and no sign-in.
+test("Support opens without signing in, with a contact and the steps to delete an account", async ({ page }) => {
+  await page.goto("/support");
+  await expect(page.getByRole("heading", { name: "Support" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "privacy@cyberjudah.io" }).first()).toHaveAttribute("href", /^mailto:privacy@cyberjudah\.io\?subject=CyberJudah%20support$/);
+  await expect(page.getByText("choose Delete account", { exact: false })).toBeVisible();
+  await expect(page.getByText("confirm with Apple", { exact: false })).toBeVisible();
+  await page.getByRole("link", { name: "Delete your account" }).click();
+  await expect(page).toHaveURL(/\/delete-account$/);
+});
