@@ -24,3 +24,4 @@ export function splitFollowups(text: string): { answer: string; followups: strin
 export function normalizeHistory(turns: unknown, max?: number): Turn[];
 export function routeOf(question: string, history?: Turn[]): "light" | "deep";
 export function notInTheClasses<T extends Passage>(found: T[]): { answer: string; sources: (T & { n: number })[] };
+export function withReading(question: string, reading?: string | null): string;

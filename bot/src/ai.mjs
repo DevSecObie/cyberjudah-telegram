@@ -226,3 +226,13 @@ export function notInTheClasses(found) {
     sources: [{ ...near, n: 1 }],
   };
 }
+
+/**
+ * The question with the passage the reader has open in the Bible (Ask from the reader): Ask starts
+ * from that passage's precepts and classes, and "this verse" means it. A question that names its
+ * own reference is left as it is.
+ */
+export function withReading(question, reading) {
+  if (!reading || referencesIn(question).length) return question;
+  return `${question}\n\n(I have ${reading} open in the Bible.)`;
+}

@@ -26,3 +26,10 @@ test("the prompt asks for Not in the classes and only a given nearest class", ()
   assert.match(SYSTEM, /"Not in the classes:"/);
   assert.match(SYSTEM, /never name a class, teacher or moment you were not given/);
 });
+
+import { withReading } from "../src/ai.mjs";
+test("Ask from the reader starts from the open passage, unless the question names its own", () => {
+  assert.equal(withReading("What does this mean?", "Genesis 1:3"), "What does this mean?\n\n(I have Genesis 1:3 open in the Bible.)");
+  assert.equal(withReading("What does Exodus 12:14 mean?", "Genesis 1:3"), "What does Exodus 12:14 mean?");
+  assert.equal(withReading("What does this mean?", undefined), "What does this mean?");
+});

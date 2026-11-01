@@ -1,2 +1,3 @@
 - Ask: when the classes don't answer a question, or part of it, the answer says "Not in the classes" plainly and points to the nearest class it was given (by its number, so it plays at that moment), never one from memory.
 - Ask (free model): with nothing that answers the question, the reply says "Not in the classes." and, when the search found a class moment close to the subject, links it as source 1, so the reader can play it at that moment.
+- App Ask: an optional `reading` (the passage the reader opened Ask from, e.g. "Genesis 1:3") is checked against the Bible's book list and added to the question as "(I have Genesis 1:3 open in the Bible.)", unless the question names its own reference, so Ask starts from that passage's precepts and classes.
