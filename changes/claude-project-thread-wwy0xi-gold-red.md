@@ -1,0 +1,1 @@
+- Bishops' commentary: scripture a Bishop quotes inside his words now shows in gold, and Christ's words in red (also inside the gold verse words and the precept's verse line).

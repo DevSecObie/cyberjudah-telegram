@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { type App, type Ctx, type Concordance, type Note, COLLECTION, TEACHER_COLLECTIONS, isCollection, BOOKS, bookById, collection, html, integer, invalid, load, metadata, missing, numbers, paragraphs, passageLink, readChapter, sha, siteLink, teacherRank, verseKey, youtube } from './core';
+import { type App, type Ctx, type Concordance, type Note, type Said, COLLECTION, TEACHER_COLLECTIONS, isCollection, BOOKS, bookById, collection, html, integer, invalid, load, metadata, missing, numbers, passageLink, readChapter, sha, siteLink, teacherRank, verseKey, youtube } from './core';
 
 type Section = { id: string; rangeStartVerse: number; rangeEndVerse: number; content: string; excerpt: string };
 type Notes = { url: string; videoId?: string | null }[];
@@ -24,16 +24,56 @@ function inVerse(words: string, verse: string | undefined) {
   const have = new Set(wordsOf(verse)), said = wordsOf(words);
   return said.length > 0 && said.every(w => have.has(w));
 }
-/** A point as he opens it on the verse: its words in gold, then what he said on them. */
-function point(text: string, verse: string | undefined) {
+type Span = { start: number; end: number; red?: boolean };
+const wordStarts = (s: string) => [...s.matchAll(/\S+/g)].map(m => m.index ?? 0);
+/** Where words stand in a text: whole, or the part of them the text opens or closes on (three words or more). */
+function find(text: string, words: string): { start: number; end: number } | undefined {
+  const at = text.indexOf(words);
+  if (at >= 0) return { start: at, end: at + words.length };
+  const trimmed = text.trim();
+  if (trimmed && words.includes(trimmed)) { const start = text.indexOf(trimmed); return { start, end: start + trimmed.length }; }
+  for (const k of wordStarts(words).slice(1)) {
+    const tail = words.slice(k).trim();
+    if (tail.split(/\s+/).length >= 3 && text.startsWith(tail)) return { start: 0, end: tail.length };
+  }
+  for (const k of [...wordStarts(words)].reverse()) {
+    const head = words.slice(0, k).trim();
+    if (head.split(/\s+/).length >= 3 && text.endsWith(head)) return { start: text.length - head.length, end: text.length };
+  }
+  return undefined;
+}
+function spansOf(text: string, said: Said[]) {
+  const spans: Span[] = [];
+  for (const s of [...said].sort((a, b) => b.text.length - a.text.length)) {
+    const at = find(text, s.text);
+    if (at && !spans.some(x => at.start < x.end && x.start < at.end)) spans.push({ ...at, red: s.red });
+  }
+  return spans.sort((a, b) => a.start - b.start);
+}
+/** His words, with the scripture he quotes in gold and Christ's words in red. */
+function marked(text: string, said: Said[] = []) {
+  let out = '', i = 0;
+  for (const x of spansOf(text, said)) { out += `${html(text.slice(i, x.start))}<i class="${x.red ? 'cj-christ' : 'cj-scripture'}">${html(text.slice(x.start, x.end))}</i>`; i = x.end; }
+  return out + html(text.slice(i));
+}
+/** KJV words, with Christ's words in them in red. */
+function christ(text: string, red: string[] = []) {
+  let out = '', i = 0;
+  for (const x of spansOf(text, red.map(r => ({ text: r, red: true })))) { out += `${html(text.slice(i, x.start))}<span class="cj-christ">${html(text.slice(x.start, x.end))}</span>`; i = x.end; }
+  return out + html(text.slice(i));
+}
+const markedParagraphs = (s: string, said?: Said[]) => s.split(/\n\s*\n/).filter(Boolean).map(p => `<p>${marked(p, said).replace(/\n/g, '<br>')}</p>`).join('');
+/** A point as he opens it on the verse: its words in gold (Christ's in red), then what he said on them. */
+function point(text: string, verse: { text: string; red?: string[] } | undefined, said?: Said[]) {
+  const lead = (words: string, rest: string) => `<i class="cj-verse">${christ(words, verse?.red)}:</i> ${marked(rest, said)}`;
   const quoted = /^[\u201C"]([^\u201C\u201D"]{3,600}?)[\u201D"]\s*[.,:;]?\s+([\s\S]+)$/.exec(text);
-  if (quoted && inVerse(quoted[1], verse)) return `<i class="cj-verse">${html(quoted[1].replace(/[\s,;:.]+$/, ''))}:</i> ${html(quoted[2])}`;
+  if (quoted && inVerse(quoted[1], verse?.text)) return lead(quoted[1].replace(/[\s,;:.]+$/, ''), quoted[2]);
   const lemma = /^([^.?!]{3,400}?):\s+([\s\S]+)$/.exec(text);
-  if (lemma && inVerse(lemma[1], verse)) return `<i class="cj-verse">${html(lemma[1])}:</i> ${html(lemma[2])}`;
+  if (lemma && inVerse(lemma[1], verse?.text)) return lead(lemma[1], lemma[2]);
   // A point that opens on a sentence of the verse's own words, closed by a full stop.
   const sentence = /^([^.?!:]{12,400}?)[.;]\s+([\s\S]+)$/.exec(text);
-  if (sentence && verse !== undefined && inVerse(sentence[1], verse)) return `<i class="cj-verse">${html(sentence[1])}:</i> ${html(sentence[2])}`;
-  return html(text);
+  if (sentence && verse !== undefined && inVerse(sentence[1], verse.text)) return lead(sentence[1], sentence[2]);
+  return marked(text, said);
 }
 /** What he said on a precept, without his reading of its words again when they are shown above it. */
 function preceptWords(text: string, kjv: string | undefined) {
@@ -41,9 +81,9 @@ function preceptWords(text: string, kjv: string | undefined) {
   const quoted = /^[\u201C"]([^\u201C\u201D"]{3,800}?)[\u201D"]\s*[.,:;]?\s+([\s\S]+)$/.exec(text);
   return quoted && inVerse(quoted[1], kjv) ? quoted[2] : text;
 }
-function precept(p: { ref: { verses?: string; label: string; url: string }; kjv?: string; why?: string; text: string }) {
+function precept(p: { ref: { verses?: string; label: string; url: string }; kjv?: string; red?: string[]; scripture?: Said[]; why?: string; text: string }) {
   const words = preceptWords(p.why || p.text, p.kjv);
-  return `<div class="cj-precept"><p class="cj-label"><b>Precept</b> ${passageLink(p.ref)}</p>${p.kjv ? `<p class="cj-kjv">${html(p.kjv)}</p>` : ''}${paragraphs(words)}</div>`;
+  return `<div class="cj-precept"><p class="cj-label"><b>Precept</b> ${passageLink(p.ref)}</p>${p.kjv ? `<p class="cj-kjv">${christ(p.kjv, p.red)}</p>` : ''}${markedParagraphs(words, p.scripture)}</div>`;
 }
 /** The card's preview: his own words, not the passage, the verse words or the class line. */
 function excerptOf(content: string) {
@@ -86,14 +126,14 @@ async function reading(c: Ctx, book: number, chapter: number, resourceId = COLLE
   const data = await load<Concordance>(c, `/api/concordance/${row.slug}/${chapter}.json`);
   // The verse words a point opens on are checked against the verse, so only the verse's own
   // words are shown as scripture. Without the chapter every lead stays as the class wrote it.
-  const texts = await readChapter(c, book, chapter).then(ch => new Map(ch.verses.map(v => [v.verse, v.text])), () => undefined);
+  const texts = await readChapter(c, book, chapter).then(ch => new Map(ch.verses.map(v => [v.verse, v])), () => undefined);
   const named = !teacher;
   const notes = data.precepts?.length ? await load<Notes>(c, '/api/notes/index.json') : [];
   const items: { verses: number[]; teacher: string; date: string; content: string }[] = [];
   // As a Bible Strong commentary reads: one section per class passage, headed by the scripture,
   // each verse's teaching in verse order with the precepts the class lined up under it, then
   // the class it came from. A verse used as the precept for another scripture stands alone.
-  const passages = new Map<string, { note: Note; ts: string; video?: string | null; t?: number; label: string; verses: Map<number, { points: string[]; precepts: string[] }> }>();
+  const passages = new Map<string, { note: Note; ts: string; video?: string | null; t?: number; label: string; verses: Map<number, { points: string[]; said: Said[]; precepts: string[] }> }>();
   const passage = (note: Note, ts: string, label: string) => {
     const key = `${note.url}|${ts}|${note.teacher}`;
     let row = passages.get(key);
@@ -101,22 +141,22 @@ async function reading(c: Ctx, book: number, chapter: number, resourceId = COLLE
     if (!row.label) row.label = label;
     return row;
   };
-  const at = (row: { verses: Map<number, { points: string[]; precepts: string[] }> }, v: number) => {
+  const at = (row: { verses: Map<number, { points: string[]; said: Said[]; precepts: string[] }> }, v: number) => {
     let cell = row.verses.get(v);
-    if (!cell) row.verses.set(v, cell = { points: [], precepts: [] });
+    if (!cell) row.verses.set(v, cell = { points: [], said: [], precepts: [] });
     return cell;
   };
   for (const p of data.commentary ?? []) {
     const row = passage(p.note, p.ts, p.passage);
     row.video ??= p.video; row.t ??= p.t;
     const v = numbers(p.verses)[0];
-    if (v) at(row, v).points.push(...p.points);
+    if (v) { const cell = at(row, v); cell.points.push(...p.points); cell.said.push(...(p.scripture ?? [])); }
   }
   for (const p of data.precepts ?? []) {
     const moment = (data.moments ?? []).find(m => m.url === p.note.url && m.ts === p.ts);
     const video = moment?.video ?? notes.find(n => n.url === p.note.url)?.videoId;
     if (p.kind === 'opened') {
-      const content = `<h3>Precept for ${passageLink(p.ref)}</h3>${paragraphs(p.why || p.text)}${citation(p.note, p.ts, video, seconds(p.ts) ?? moment?.t, named)}`;
+      const content = `<h3>Precept for ${passageLink(p.ref)}</h3>${markedParagraphs(p.why || p.text, p.scripture)}${citation(p.note, p.ts, video, seconds(p.ts) ?? moment?.t, named)}`;
       items.push({ verses: numbers(p.verses), teacher: p.note.teacher, date: p.note.date, content });
       continue;
     }
@@ -132,7 +172,7 @@ async function reading(c: Ctx, book: number, chapter: number, resourceId = COLLE
     // on them, the precepts he brought there, and the class it came from at the close.
     const body = verses.map(v => {
       const cell = row.verses.get(v)!;
-      const points = cell.points.map((text, i) => `<p>${i === 0 ? `<b class="cj-vno">${v}</b> ` : ''}${point(text, texts?.get(v))}</p>`).join('');
+      const points = cell.points.map((text, i) => `<p>${i === 0 ? `<b class="cj-vno">${v}</b> ` : ''}${point(text, texts?.get(v), cell.said)}</p>`).join('');
       const label = !cell.points.length ? `<p><b class="cj-vno">${v}</b></p>` : '';
       return label + points + cell.precepts.join('');
     }).join('');

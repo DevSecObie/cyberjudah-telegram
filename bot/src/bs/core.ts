@@ -12,12 +12,14 @@ export const metadata = snapshot as {
   chapterHashes: Record<string, string>; strongChapterHashes: Record<string, string>;
   strongChaptersByBook: Record<string, number[]>; strongVerseCountByBookChapter: Record<string, number>;
 };
-export type Verse = { verse: number; text: string; words?: [string, string[]][] };
+export type Verse = { verse: number; text: string; words?: [string, string[]][]; red?: string[] };
+/** Scripture quoted in a teacher's words, found word for word in the KJV; `red` when the words are Christ's. */
+export type Said = { text: string; red?: boolean };
 export type Chapter = { book: string; chapter: number; translation: string; verses: Verse[] };
 export type Note = { label: string; url: string; date: string; teacher: string };
 export type Moment = { verses: string; label: string; url: string; date: string; teacher?: string; video: string; t: number; ts: string };
-export type Precept = { verses: string; kind: string; ref: { verses?: string; label: string; url: string }; text: string; point: string; why?: string; kjv?: string; note: Note; ts: string };
-export type Comment = { verses: string; passage: string; points: string[]; note: Note; ts: string; video: string | null; t: number };
+export type Precept = { verses: string; kind: string; ref: { verses?: string; label: string; url: string }; text: string; point: string; why?: string; kjv?: string; red?: string[]; scripture?: Said[]; note: Note; ts: string };
+export type Comment = { verses: string; passage: string; points: string[]; scripture?: Said[]; note: Note; ts: string; video: string | null; t: number };
 export type Concordance = { cited_by: { label: string; url: string; verses: string }[]; precepts?: Precept[]; commentary?: Comment[]; moments?: Moment[] };
 export type TopicRow = { slug: string; label: string };
 export type Topic = TopicRow & { items: { title: string; url: string; date?: string; teacher?: string }[]; thread?: { url: string; label: string; verses: string; text: string; classes: { title: string; url: string; date: string; teacher: string; video: string | null; t: number; ts: string }[]; precepts: { label: string; url: string; why?: string }[] }[] };
