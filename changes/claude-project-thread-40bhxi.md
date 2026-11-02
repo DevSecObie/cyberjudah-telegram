@@ -1,0 +1,1 @@
+- Library PDFs open from our own copy first (library/<item>.pdf in an R2 bucket bound as LIBRARY, or a file host set in LIBRARY_ORIGIN) and fall back to archive.org when we hold none; the same public-domain allow-list, signed links, byte ranges and 50 MB chat limit apply to both.
