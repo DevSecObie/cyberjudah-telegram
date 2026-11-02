@@ -14,7 +14,7 @@ test('every published timeline event survives the existing captivity grouping, w
   const original = new Set(source.sections.flatMap(s => s.events.map(e => e.slug)));
   const projected = new Set(publication.sections.flatMap(s => s.events.map(e => e.slug)));
   assert.deepEqual(projected, original);
-  assert.equal(projected.size, 943); // 991, less 48 church-doctrine cards (owner, 2026-11-02)
+  assert.equal(projected.size, 991);
   assert.equal(publication.sections.length, 21);
   assert.equal(publication.events.length, new Set(publication.events.map(e => e.slug)).size);
   assert.equal(publication.revision, `cj-timeline-${createHash('sha256').update(JSON.stringify({ geometry: publication.sections, events: publication.events })).digest('hex')}`);

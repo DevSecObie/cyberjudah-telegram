@@ -49,26 +49,11 @@ const DOCTRINE_SECTIONS = new Set(["13"]);
  */
 const INTERPRETATION = /^seven trumpets$|^daniel (2|8|11) - /i;
 /**
- * Church doctrine is not in the KJV and Apocrypha, so it is left out; the history stays
- * (owner, 2026-11-02: "Keep all of its history but remove any christianity doctrine entries").
- * Left out: the churches' teachers and theologians, councils, synods, debates, catechisms and
- * confessions, and the founding of churches and their ordinances. Kept: rulers, wars, treaties,
- * persecutions, and the printing and translating of the Scriptures (Wycliffe, Gutenberg,
- * Erasmus' New Testament, Tyndale, the English Bibles).
+ * Church history stays as dated markers, because it happened (owner, 2026-11-02: "could be used as
+ * historical marks because they happened, but have it teach is what I don't want"). These cards
+ * carry a title and years only: no article, no teaching.
  */
-export const CHURCH_DOCTRINE = new Set([
-  "Calvin Sent Away from Geneva", "Calvin's Ecclesiastical Ordinances Established", "Council of Basel", "Council of Constance",
-  "Diet of Augsburg", "Diet of Regensburg", "Diet of Worms", "Exsurge Domine", "Geneva Academy", "Guillaume Briconnet",
-  "Hans Tausen", "Hugh Latimer", "Implementation of Lutheran Reformation in Denmark", "Jacobus Arminius", "Jacques Lefèvre",
-  "Jan Hus (John Huss)", "Jan Hus (John Huss) Excommunicated", "Jerome of Prague", "John Bunyan", "John Calvin", "John Knox",
-  "Laurentius Petri", "Leipzig Debate", "Luther Begins Lecturing at Wittenburg", "Luther Excommunicated",
-  "Luther Marries Katherine von Bora", "Luther Nails the Ninety-Five Theses", "Luther Travels to Rome", "Marburg Colloquy",
-  "Martin Luther", "Menno Simons", "Olaf Petri", "Peter Waldo Establishes “Waldenses” Church", "Philipp Melanchthon",
-  "Synod of Dort", "The Act of Six Articles", "The Anabaptist Movement", "The Book of Concord", "The Catholic Counter-Reformation",
-  "The Council of Trent", "The Heidelberg Catechism", "The Lollards", "The Zurich Disputations", "Thomas Cranmer",
-  "Thomas Cranmer Appointed Archbishop of Canterbury", "Ulrich Zwingli", "William Farel", "Zwingli Begins His Ministry",
-]);
-const NOT_KEPT = new Set(["Immanuel", ...CHURCH_DOCTRINE]);
+const NOT_KEPT = new Set(["Immanuel"]);
 export const TITLES = { "Ham's Sin and Curse": "Ham's Sin; Canaan Cursed" };
 /** Bible Strong's "Early Church": the Acts of the Apostles, not a church in Israel's place (2026-11-02). */
 export const PERIOD_TITLES = { "Early Church": "The Apostles" };
