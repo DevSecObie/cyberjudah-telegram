@@ -1,0 +1,2 @@
+- The app's Dictionary and Topics now come only from CyberJudah: Easton's Bible Dictionary (less the entries that teach against the KJV and the classes) and the classes' own topics. Bible Strong's dictionaries (Easton + Webster, ISBE, Smith's, Translation Words) and Nave's Topical Bible no longer show.
+- 53 more Easton's entries are left out because they teach church doctrine: Joseph as "foster-father", the Lord's brethren as cousins, the virgin-birth readings, Jesus as God, the church in place of Israel, the law done away, and church catechism doctrines.
