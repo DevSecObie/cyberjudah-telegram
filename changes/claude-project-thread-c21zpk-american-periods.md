@@ -1,0 +1,4 @@
+- Timeline: Into the Ships shows the slave deck of the bark Wildfire, Key West, 1860 (public domain, Wikimedia Commons).
+- Timeline: The House of Bondage shows five generations on Smith's Plantation, Beaufort, South Carolina, 1862 (Timothy O'Sullivan, public domain).
+- Timeline: Reconstruction and Jim Crow shows "The Original Jim Crow" sheet music cover, 1832 (public domain).
+- Timeline: Civil Rights and the Awakening shows the March on Washington, 1963 (Warren K. Leffler, public domain).

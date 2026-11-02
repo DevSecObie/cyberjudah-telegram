@@ -8,10 +8,3 @@ Obie's pictures, each cropped to 640x800, as the cover of the period under each 
 - `fc-into-the-ships` (first period of the American Captivity): the woman on the scarlet beast with seven crowned heads (Revelation 17:3-6), as Deacon Eythan teaches in Our Hidden History ep. 210; sky and ground extended to fit the card.
 
 The five ids are added to the approved period pictures on the web Timeline and in the app timeline builder; `bot/data/bs-timeline.json` is rebuilt (only those periods' images and the revision change).
-
-## Timeline: American Captivity period pictures
-
-- Into the Ships: the slave deck of the bark Wildfire, Key West, 1860 (Harper's Weekly, public domain, Wikimedia Commons).
-- The House of Bondage: five generations on Smith's Plantation, Beaufort, South Carolina, 1862 (Timothy O'Sullivan, public domain, Wikimedia Commons).
-- Reconstruction and Jim Crow: "The Original Jim Crow" sheet music cover, 1832 (public domain).
-- Civil Rights and the Awakening: March on Washington, 1963 (Warren K. Leffler, public domain, Wikimedia Commons).
