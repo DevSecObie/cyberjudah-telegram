@@ -5,7 +5,9 @@ import { IdentityError, linkedTelegram } from "./account-links";
 import { appReader } from "./app-identity";
 import { answerApp, answerAppAgent, appAskModels, freeModel, takeQuotaKey } from "./ai";
 import { isAdmin } from "./edit";
-import { normalizeHistory } from "./ai.mjs";
+import { normalizeHistory, withReading } from "./ai.mjs";
+import { books } from "./data";
+import { parseReference } from "./refs.mjs";
 import { keyedHash } from "./privacy.mjs";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
@@ -87,7 +89,7 @@ appAsk.post('/', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 32000) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
   if (raw.length > 32000) return c.json({ error: 'too-large' }, 413);
-  let body: { q?: unknown; history?: unknown; consent?: unknown; stream?: unknown; model?: unknown; ui?: unknown };
+  let body: { q?: unknown; history?: unknown; consent?: unknown; stream?: unknown; model?: unknown; ui?: unknown; reading?: unknown };
   try { body = JSON.parse(raw); } catch { return c.json({ error: 'bad-request' }, 400); }
   if (!body || typeof body !== 'object' || typeof body.q !== 'string') return c.json({ error: 'bad-request' }, 400);
   if (body.q.trim().length < 2 || body.q.length > 4000) return c.json({ error: body.q.length > 4000 ? 'too-long' : 'too-short' }, 400);
@@ -99,6 +101,13 @@ appAsk.post('/', async c => {
   const ip = c.req.header('cf-connecting-ip')?.slice(0, 45);
   if (ip && !await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000)))) return c.json({ error: 'limit' }, 429);
   const history = normalizeHistory(body.history as never, 8);
+  // The passage the reader has open, when Ask was opened from the Bible: only a reference the
+  // Bible's own book list recognizes, as its canonical label, never the text sent.
+  const reading = typeof body.reading === 'string' && body.reading.length <= 40
+    ? parseReference(body.reading, (await books(c.env).catch(() => null)) ?? [])?.label
+    : undefined;
+  const read = withReading(body.q, reading);
+  const question = read.length <= 4000 ? read : body.q;
   const run = async (emit?: NonNullable<Parameters<typeof answerApp>[6]>['emit']) => {
     const startedAt = Date.now();
     const traceId = c.get('traceId');
@@ -108,8 +117,8 @@ appAsk.post('/', async c => {
     try {
       // The same engine as cyberjudah.io/app (APP_ASK_ENGINE "agent", the default); "study" keeps the study cards.
       const result = c.env.APP_ASK_ENGINE === 'study'
-        ? await answerApp(c.env, body.q as string, c.get('account'), history, consent, body.stream ? 115000 : 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId })
-        : await answerAppAgent(c.env, body.q as string, c.get('account'), history, consent, { model: body.model ? model.id : undefined, emit, traceId, adminId: c.get('adminId') });
+        ? await answerApp(c.env, question, c.get('account'), history, consent, body.stream ? 115000 : 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId })
+        : await answerAppAgent(c.env, question, c.get('account'), history, consent, { model: body.model ? model.id : undefined, emit, traceId, adminId: c.get('adminId') });
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
       // A study answer records its own outcome (app-study-answer.ts); everything else, and every refusal, here.
       if (surface === 'app' || !result.ok) await recordAskEvent(c.env, { traceId, surface, model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, detail: result.ok ? undefined : result.detail, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
