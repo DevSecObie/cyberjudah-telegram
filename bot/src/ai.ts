@@ -6,7 +6,7 @@ import { approvedFor, approvedSources } from "./approved-answers";
 import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
@@ -582,7 +582,8 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     // told so plainly, with no model call, rather than answered from the model's own memory.
     if (!passages.length && !SMALL_TALK.test(question)) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
-      return { ok: true, answer: "The search did not find enough reliable material in the library to answer that question. Try asking it another way, or name the person, book, feast or verse you mean.", sources: [], followups: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
+      const none = notInTheClasses(found);
+      return { ok: true, answer: none.answer, sources: none.sources, followups: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }
     // Use the plain adapter even for chat models: one bounded answer, never a research loop.
     const prompt = buildPrompt(question, passages, history);
