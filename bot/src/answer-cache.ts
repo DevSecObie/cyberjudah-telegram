@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import type { Turn } from "./ai.mjs";
+import { hasToolMarkup } from "./agent-open";
 
 /**
  * Answers already written, kept for a week (KV, ask_cache:…). When the same first question is
@@ -29,14 +30,21 @@ export async function cacheKey(question: string, history: Turn[], model: string,
 
 export async function cachedAnswer<T>(env: Env, key: string | null): Promise<T | null> {
   if (!key) return null;
-  try { return await env.SUBS.get<T>(key, "json"); } catch { return null; }
+  try {
+    const raw = await env.SUBS.get(key);
+    if (!raw) return null;
+    // An answer kept before tool-call markup was removed (agent-open.ts chatText) is dropped,
+    // so the reader gets a fresh answer and never the markup.
+    if (hasToolMarkup(raw)) { await env.SUBS.delete(key).catch(() => undefined); return null; }
+    return JSON.parse(raw) as T;
+  } catch { return null; }
 }
 
 /** Keeps an answer, and links the trace id that served it so a report can remove it. */
 export async function keepAnswer(env: Env, key: string | null, answer: unknown, traceId?: string): Promise<void> {
   if (!key) return;
   const value = JSON.stringify(answer);
-  if (value.length > MAX_BYTES) return;
+  if (value.length > MAX_BYTES || hasToolMarkup(value)) return;
   try {
     await env.SUBS.put(key, value, { expirationTtl: CACHE_TTL_S });
     if (traceId) await linkTrace(env, key, traceId);

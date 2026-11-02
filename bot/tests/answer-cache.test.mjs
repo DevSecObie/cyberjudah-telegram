@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 
 const out = new URL("./.build/answer-cache.mjs", import.meta.url).pathname;
-await build({ entryPoints: [new URL("../src/answer-cache.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", outfile: out, logLevel: "error" });
+await build({ entryPoints: [new URL("../src/answer-cache.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
 const { cacheKey, cachedAnswer, keepAnswer, linkTrace, dropReported, normalizeQuestion, CACHE_TTL_S } = await import(out);
 
 const kv = () => {
@@ -48,4 +48,18 @@ test("an unreadable or unwritable cache never stops an answer", async () => {
   assert.equal(await cachedAnswer(broken, "ask_cache:x"), null);
   await keepAnswer(broken, "ask_cache:x", { ok: true }, "t");
   assert.equal(await dropReported(broken, "t"), false);
+});
+
+test("an answer holding tool-call markup is never kept, and one kept before the fix is dropped, not served", async () => {
+  const B = "｜";
+  const markup = { ok: true, answer: `<${B}DSML${B}tool_calls> <${B}DSML${B}invoke name="search_library"></${B}DSML${B}invoke> </${B}DSML${B}tool_calls>` };
+  const env = { SUBS: kv() };
+  const key = await cacheKey("Who are the twelve tribes today?", [], "m", "app", "v");
+  await keepAnswer(env, key, markup);
+  assert.equal(env.SUBS.m.size, 0, "not kept");
+  env.SUBS.m.set(key, JSON.stringify(markup));
+  assert.equal(await cachedAnswer(env, key), null, "not served");
+  assert.equal(env.SUBS.m.has(key), false, "and removed");
+  await keepAnswer(env, key, { ok: true, answer: "Plain [1]." });
+  assert.deepEqual(await cachedAnswer(env, key), { ok: true, answer: "Plain [1]." });
 });
