@@ -11,13 +11,8 @@ const normalize = (value: string) => value.normalize('NFKD').replace(/[\u0300-\u
 const rows = book.map((entry, i) => ({ ...entry, id: i + 1, word: entry.term, normalizedWord: normalize(entry.term) })).filter(e => !isWithheld(e));
 const summary = (e: typeof rows[number]) => ({ id: e.id, word: e.word, normalizedWord: e.normalizedWord });
 const full = (e: typeof rows[number]) => ({ id: e.id, word: e.word, definition: e.definitions.map(paragraphs).join('') });
-const source = (c: Ctx, e: typeof rows[number]) => ({ resource: resourceFor(listedWork(c)), resourceId: work.resourceId, title: work.title, abbreviation: work.abbreviation, ...summary(e) });
-// The app asks for Easton's by Bible Strong's English work name, "easton-webster". Both names read
-// our Easton's (less the withheld entries), and each answer names the work it was asked for.
-const WORKS = ['easton', 'easton-webster'];
-const listedWork = (c: Ctx) => c.env.BIBLE_STRONG_WEB === '1' ? 'easton-webster' : 'easton';
-const resourceFor = (name: string) => ({ ...resource, work: name });
-function requireWork(c: Ctx): string { language(c, 'DICTIONARY_UNSUPPORTED'); const name = c.req.param('work') ?? ''; return WORKS.includes(name) ? name : missing('DICTIONARY_UNSUPPORTED'); }
+const source = (e: typeof rows[number]) => ({ resource, resourceId: work.resourceId, title: work.title, abbreviation: work.abbreviation, ...summary(e) });
+function requireWork(c: Ctx) { language(c, 'DICTIONARY_UNSUPPORTED'); if (c.req.param('work') !== 'easton') return missing('DICTIONARY_UNSUPPORTED'); }
 function find(word: string) { return rows.find(e => e.normalizedWord === normalize(word) || e.slug === word); }
 function filtered(c: Ctx) {
   const initial = normalize(c.req.query('initial') ?? ''), search = normalize(c.req.query('search') ?? '');
@@ -26,7 +21,7 @@ function filtered(c: Ctx) {
 dictionaries.get('/', c => {
   const lang = c.req.query('language');
   if (lang && !['en', 'fr'].includes(lang)) return invalid();
-  return c.json({ dictionaries: !lang || lang === 'en' ? [{ ...work, resource: resourceFor(listedWork(c)) }] : [] });
+  return c.json({ dictionaries: !lang || lang === 'en' ? [work] : [] });
 });
 dictionaries.get('/directory', c => {
   const lang = c.req.query('language');
@@ -37,7 +32,7 @@ dictionaries.get('/directory', c => {
   const selected = lang === 'fr' ? [] : filtered(c).filter(e => !after || cmp(e.normalizedWord, (after as string[])[0]) > 0 || e.normalizedWord === (after as string[])[0] && cmp(itemKey(e), (after as string[])[1]) > 0);
   selected.sort((a, b) => cmp(a.normalizedWord, b.normalizedWord) || cmp(itemKey(a), itemKey(b)));
   const page = selected.slice(0, take), last = page.at(-1);
-  return c.json({ language: lang, items: page.map(e => ({ key: itemKey(e), label: e.word, normalizedLabel: e.normalizedWord, sources: [source(c, e)] })), limit: take, ...(selected.length > take && last ? { nextCursor: encodeCursor([last.normalizedWord, itemKey(last)]) } : {}) });
+  return c.json({ language: lang, items: page.map(e => ({ key: itemKey(e), label: e.word, normalizedLabel: e.normalizedWord, sources: [source(e)] })), limit: take, ...(selected.length > take && last ? { nextCursor: encodeCursor([last.normalizedWord, itemKey(last)]) } : {}) });
 });
 async function passage(c: Ctx) {
   const ref = verseKey(c.req.param('verseKey') ?? '');
@@ -52,10 +47,10 @@ dictionaries.get('/verses/:verseKey/entries', async c => {
   const lang = c.req.query('language') ?? 'en';
   if (!['en', 'fr'].includes(lang)) return invalid();
   verseKey(c.req.param('verseKey') ?? '');
-  return c.json({ verseKey: c.req.param('verseKey'), entries: lang === 'en' ? (await passage(c)).map(e => ({ resource: resourceFor(listedWork(c)), resourceId: work.resourceId, title: work.title, abbreviation: work.abbreviation, ...e })) : [] });
+  return c.json({ verseKey: c.req.param('verseKey'), entries: lang === 'en' ? (await passage(c)).map(e => ({ resource, resourceId: work.resourceId, title: work.title, abbreviation: work.abbreviation, ...e })) : [] });
 });
 dictionaries.get('/:work/:language/entries', c => {
-  const resource = resourceFor(requireWork(c));
+  requireWork(c);
   const take = limit(c), after = cursor(c);
   if (after !== undefined && (!Array.isArray(after) || typeof after[0] !== 'string' || !Number.isInteger(after[1]))) return invalid();
   const selected = filtered(c).filter(e => !after || cmp(e.normalizedWord, (after as [string, number])[0]) > 0 || e.normalizedWord === (after as [string, number])[0] && e.id > (after as [string, number])[1]);
@@ -63,23 +58,23 @@ dictionaries.get('/:work/:language/entries', c => {
   return c.json({ resource, entries: page.map(summary), limit: take, ...(selected.length > take && last ? { nextCursor: encodeCursor([last.normalizedWord, last.id]) } : {}) });
 });
 dictionaries.get('/:work/:language/entries/batch', c => {
-  const resource = resourceFor(requireWork(c));
+  requireWork(c);
   const words = c.req.query('words')?.split(',');
   if (!words?.length || words.length > 200 || words.some(w => !w.trim())) return invalid();
   return c.json({ resource, entries: [...new Set(words)].flatMap(w => { const e = find(w); return e ? [full(e)] : []; }) });
 });
 dictionaries.get('/:work/:language/entries/by-id/:id', c => {
-  const resource = resourceFor(requireWork(c));
+  requireWork(c);
   const raw = c.req.param('id');
   if (!/^[1-9]\d*$/.test(raw)) return invalid();
   const entry = rows.find(e => e.id === Number(raw));
   return entry ? c.json({ resource, entry: full(entry) }) : missing('DICTIONARY_ENTRY_NOT_FOUND');
 });
 dictionaries.get('/:work/:language/entries/:word', c => {
-  const resource = resourceFor(requireWork(c));
+  requireWork(c);
   const exact = find(c.req.param('word')), related = exact ? undefined : lookup(c.req.param('word'));
   const entry = exact ?? (related ? rows.find(e => e.slug === related.slug) : undefined);
   return entry ? c.json({ resource, entry: full(entry) }) : missing('DICTIONARY_ENTRY_NOT_FOUND');
 });
-dictionaries.get('/:work/:language/verses/:verseKey/words', async c => { const resource = resourceFor(requireWork(c)); return c.json({ resource, verseKey: c.req.param('verseKey'), words: (await passage(c)).map(e => e.word) }); });
-dictionaries.get('/:work/:language/verses/:verseKey/entries', async c => { const resource = resourceFor(requireWork(c)); return c.json({ resource, verseKey: c.req.param('verseKey'), entries: await passage(c) }); });
+dictionaries.get('/:work/:language/verses/:verseKey/words', async c => { requireWork(c); return c.json({ resource, verseKey: c.req.param('verseKey'), words: (await passage(c)).map(e => e.word) }); });
+dictionaries.get('/:work/:language/verses/:verseKey/entries', async c => { requireWork(c); return c.json({ resource, verseKey: c.req.param('verseKey'), entries: await passage(c) }); });
