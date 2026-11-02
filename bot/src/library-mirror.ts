@@ -8,6 +8,12 @@ export type Mirror = {
   get(key: string, range?: string): Promise<Response | null>;
 };
 
+/** The part of an R2 bucket binding used here (structural, so the app's type check needs no Workers types). */
+type Bucket = {
+  head(key: string): Promise<{ size: number } | null>;
+  get(key: string, options?: { range?: { offset: number; length: number } }): Promise<{ body: ReadableStream; httpEtag?: string } | null>;
+};
+
 export const mirrorKey = (item: string) => `library/${item}.pdf`;
 
 const pdfHeaders = (etag?: string) => {
@@ -30,7 +36,7 @@ export function byteRange(range: string, size: number): { offset: number; length
 }
 
 /** A Cloudflare R2 bucket bound to the Worker. */
-export function r2Mirror(bucket: R2Bucket): Mirror {
+export function r2Mirror(bucket: Bucket): Mirror {
   return {
     async head(key) {
       const object = await bucket.head(key);
@@ -81,7 +87,7 @@ export function originMirror(origin: string, fetcher: typeof fetch = fetch): Mir
 }
 
 /** Whichever copy this Worker is configured with: an R2 binding, a file host, or none (archive.org only). */
-export function libraryMirror(env: { LIBRARY?: R2Bucket; LIBRARY_ORIGIN?: string }): Mirror | undefined {
+export function libraryMirror(env: { LIBRARY?: Bucket; LIBRARY_ORIGIN?: string }): Mirror | undefined {
   if (env.LIBRARY) return r2Mirror(env.LIBRARY);
   if (env.LIBRARY_ORIGIN) return originMirror(env.LIBRARY_ORIGIN);
   return undefined;
