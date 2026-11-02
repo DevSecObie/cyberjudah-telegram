@@ -102,6 +102,7 @@ readers' side of this table.
 |---|---|---|---|---|
 | Sign-in | Firebase Authentication, project `cyberjudah-app` | Email address, the name Google or Apple shares, provider, Firebase UID | Until the account is deleted | Delete account in the app (`DeleteAccountModal.tsx`), or a request by email |
 | Synced study data | Firestore `users/<uid>` and its subcollections (highlights, notes, links, bookmarks, tags, relations, studies, word annotations and the rest listed in `firebase/cyberjudah/firestore.rules`), `studies` (field `user.id`), `users-status/<uid>`; staging builds use the `staging_` copies of these collections | What the reader wrote and marked, with note and study revisions | Until replaced, deleted, or the account is deleted | Delete account in the app, or a request by email |
+| Published studies | D1 `published_studies` (`owner` = keyed hash of the Firebase UID; `published-studies.ts`) | A study the reader chose to publish: its title, the name they gave, its text as Markdown, last update. Anyone with its link can read it at `/app/published/<id>`; the page is marked noindex | Until the reader unpublishes it or deletes the account | Unpublish in the app, Delete account (the app calls `DELETE /api/published-studies`), or a request by email |
 
 Firestore rules give each document to its owner only. App Check (App Attest on iPhone, Play
 Integrity on Android) is asked for before protected downloads; it carries no reader identity.
