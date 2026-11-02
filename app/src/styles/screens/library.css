@@ -262,3 +262,4 @@
 /* Class books: what the classes said, under the class's title; archive.org's reader fills the screen. */
 #root .class-book__said { display: block; margin-top: 4px; color: var(--text-2); font-size: 14px; line-height: 1.4; }
 #root .class-book-reader__frame { display: block; width: 100%; height: calc(100dvh - 140px); min-height: 420px; border: 0; border-radius: 12px; background: var(--fill-1); }
+#root .class-book__open { display: block; margin: 8px 0 16px; font-size: 15px; }

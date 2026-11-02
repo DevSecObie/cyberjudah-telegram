@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router";
 import { data, fmtDate, type ClassBook, type ClassBookMoment } from "@/api/data";
 import { useBackButton } from "@/tg/hooks";
 import { haptic } from "@/tg/sdk";
+import { Player } from "@/ui/player";
 import { Empty, List, Loading, Row, Screen, SearchField, Section } from "@/ui/ui";
 
 /**
@@ -63,11 +64,20 @@ export function ClassBookScreen() {
   const { key = "" } = useParams();
   const books = useClassBooks();
   const b = books.data?.find((x) => classBookKey(x) === key);
+  // The class plays right here, from the moment it spoke about the book.
+  const [at, setAt] = useState<ClassBookMoment | null>(null);
   if (books.isPending) return <Screen title="…"><Loading /></Screen>;
   if (!b) return <Screen title="Class books"><Empty title="This book was not found" /></Screen>;
   const when = years(b);
+  const play = (m: ClassBookMoment) => { haptic("select"); setAt(m); window.scrollTo({ top: 0, behavior: "smooth" }); };
   return (
     <Screen title={b.title} kicker={[b.author, b.shelf].filter(Boolean).join(" · ")}>
+      {at ? (
+        <>
+          <Player video={at.video} start={at.t} playing onPlay={() => undefined} title={at.title || "Class"} />
+          <Link className="bs-link class-book__open" to={momentHref(at)}>{at.url ? "Open the class notes at this moment" : "Open this class"}</Link>
+        </>
+      ) : null}
       {b.status === "library" && b.slug ? <Link className="btn btn--bordered" to={`/books/${b.slug}`}>Open in our library</Link>
         : b.archive ? <Link className="btn btn--bordered" to={`/class-books/${key}/read`} onClick={() => haptic("select")}>Read the full book</Link> : null}
       {b.status === "borrow" ? <p className="hint">This book is still in copyright. archive.org lends it for free: sign in to archive.org in the reader and choose Borrow.</p> : null}
@@ -75,7 +85,7 @@ export function ClassBookScreen() {
       {b.moments.length ? (
         <Section title={when ? `What the classes said (${when})` : "What the classes said"}>
           <List>{b.moments.map((m) => (
-            <Row key={`${m.video}-${m.t}`} href={momentHref(m)} title={m.title || "Class"} meta={clock(m.t)}
+            <Row key={`${m.video}-${m.t}`} onClick={() => play(m)} title={m.title || "Class"} meta={clock(m.t)}
               sub={<>{[fmtDate(m.date ?? ""), m.teacher].filter(Boolean).join(" · ")}{m.said ? <span className="class-book__said">{m.said}</span> : null}</>} />
           ))}</List>
         </Section>
