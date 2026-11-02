@@ -1,4 +1,5 @@
 import { FeedError, invalid, missing } from './core';
+import { isWithheld } from '../dictionary';
 
 const origin = 'https://api.bible-strong.app';
 // Both apps agree on books 1–66. Map the shared Apocrypha by identity, never by position.
@@ -37,6 +38,13 @@ export async function readBibleStrongReference(request: Request, fetcher: typeof
   }
   const body = await response.json() as Record<string, unknown>;
   if (originalVerseKey && typeof body.verseKey === 'string') body.verseKey = originalVerseKey;
+  // Easton's entries withheld for church doctrine (bot/data/dictionary-withheld.json) stay hidden
+  // in Bible Strong's combined Easton + Webster too: never listed, never opened.
+  if (/^\/v1\/dictionaries\/easton-webster\//.test(path)) {
+    const hidden = (value: unknown) => !!value && typeof value === 'object' && typeof (value as { word?: unknown }).word === 'string' && isWithheld({ term: (value as { word: string }).word });
+    if (hidden(body.entry)) return missing('DICTIONARY_ENTRY_NOT_FOUND', 'This entry is not available');
+    for (const [key, value] of Object.entries(body)) if (Array.isArray(value)) body[key] = value.filter(item => !hidden(item));
+  }
   if (unmatched) {
     if (response.status !== 200 || typeof body.verseKey !== 'string') return missing(`${family}_PASSAGE_NOT_FOUND`, 'Bible Strong has no corresponding passage for this book');
     for (const [key, value] of Object.entries(body)) if (Array.isArray(value)) body[key] = [];

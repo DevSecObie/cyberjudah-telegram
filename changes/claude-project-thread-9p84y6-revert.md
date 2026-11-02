@@ -1,1 +1,1 @@
-- Dictionary and Topics are back as they were before #473: the app reads Bible Strong's dictionaries and Nave's Topical Bible again, and the web Topics screen reads Nave's. The 53 Easton's entries withheld for church doctrine stay withheld on the web.
+- Dictionary and Topics are back as they were before #473: the app reads Bible Strong's dictionaries and Nave's Topical Bible again, and the web Topics screen reads Nave's. The 53 Easton's entries withheld for church doctrine stay hidden everywhere, including Bible Strong's Easton + Webster in the app.
