@@ -272,7 +272,10 @@ test('commentary sections agree with the upstream section builder, maintain rank
   const upstream = buildCommentaryReadingSections({ entry: { id: 'cyberjudah', publicationId: 'cyberjudah' }, language: 'en', book: 43, chapter: 1, comments });
   const own = makeSections(comments, 43, 1);
   assert.deepEqual(own.map(({ excerpt, ...s }) => s), upstream.map(({ preview, ...s }) => s));
-  assert.deepEqual(own.map(({ content, ...s }) => s), createCommentaryReadingIndex(upstream));
+  // The index matches upstream's, except its preview: ours is the teacher's own words, without
+  // the verse number, the verse words, a precept's scripture or the class line.
+  assert.deepEqual(own.map(({ content, excerpt, ...s }) => s), createCommentaryReadingIndex(upstream).map(({ excerpt, ...s }) => s));
+  for (const s of own) assert.doesNotMatch(s.excerpt, /^\d|youtube|\u25B6/);
   await request('/v1/commentaries/cyberjudah/en/coverage', Supplementary.CommentaryCoverageResponseDto);
   await request('/v1/commentaries/cyberjudah/en/verses/43-1-7', Supplementary.CommentaryVerseResponseDto);
   const selection = { book: 43, chapter: 1, resources: [{ resourceId: 'cyberjudah', language: 'en' }, { resourceId: 'absent', language: 'en' }] };
@@ -287,6 +290,25 @@ test('commentary sections agree with the upstream section builder, maintain rank
   const fragment = '<p>CyberJudah</p>';
   const runs = makeSections({ 1: [fragment], 3: [fragment] }, 43, 1);
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
+});
+
+test('a commentary entry shows the verse words in gold, the precept scripture once, and closes on the class', async () => {
+  const variant = structuredClone(originals.get('/api/concordance/john/1.json'));
+  const original = variant.commentary[0];
+  variant.commentary = [{ ...original, verses: '1', note: { ...original.note, teacher: 'Bishop Kani', date: '2026-10-31' }, points: ['\u201CIn the beginning was the Word\u201D: the Word is the law.', '\u201CThe kingdom is ours\u201D he said, not words of this verse.', 'And the Word was with God. He was there.'] }];
+  variant.precepts = [{ verses: '1', kind: 'precept', ref: { verses: '1', label: 'Genesis 1:1', url: '/bible/genesis/1#v1' }, text: '', point: '', kjv: 'In the beginning God created the heaven and the earth.', why: '\u201CIn the beginning God created the heaven and the earth.\u201D Same beginning.', note: variant.commentary[0].note, ts: original.ts }];
+  data.set('/api/concordance/john/1.json', variant);
+  const comments = JSON.parse((await request('/v1/commentaries/bishop-kani/en/chapters/43/1', Supplementary.CommentaryChapterResponseDto)).json.serializedComments);
+  const entry = comments['1'][0];
+  assert.match(entry, /<b class="cj-vno">1<\/b> <i class="cj-verse">In the beginning was the Word:<\/i> the Word is the law\./);
+  assert.doesNotMatch(entry, /cj-verse">The kingdom is ours/);
+  assert.match(entry, /<i class="cj-verse">And the Word was with God:<\/i> He was there\./);
+  assert.match(entry, /<p class="cj-kjv">In the beginning God created the heaven and the earth\.<\/p><p>Same beginning\.<\/p>/);
+  assert.match(entry, /class="cj-cite"><a href="https:\/\/www\.youtube\.com[^"]*">\u25B6 /);
+  assert.match(entry, /Oct 31, 2026<\/p>$/);
+  assert.doesNotMatch(entry, /Bishop Kani/);
+  const { json: index } = await request('/v1/commentaries/reading-index', Commentary.CommentaryReadingIndexResponse, { body: { book: 43, chapter: 1, resources: [{ resourceId: 'bishop-kani', language: 'en' }] } });
+  assert.match(index.indexes[0].sections[0].excerpt, /^the Word is the law\./);
 });
 
 test('each Bishop commentary holds only his own entries and lists only his chapters', async () => {
