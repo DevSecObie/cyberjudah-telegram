@@ -11,9 +11,9 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ex
     const path = new URL(url).pathname;
     if (path === "/api/health") return json({ ok: true });
     if (["/app/", "/app/read/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
-    if (path === "/bs/v1/dictionaries") return json({ dictionaries: [{ resource: { work: "easton-webster" } }] });
+    if (path === "/bs/v1/dictionaries") return json({ dictionaries: [{ resource: { work: "easton-webster", revision: "cj-easton-abc-withheld-63" } }] });
     if (path === "/bs/v1/dictionaries/easton-webster/en/entries/Aaron") return json({ entry: { word: "Aaron", definition: "Original dictionary definition" } });
-    if (path === "/bs/v1/naves/en/topics/faith") return json({ resource: { kind: "nave", revision: "nave-en-original" }, topic: { normalizedName: "faith", description: "Original Nave" } });
+    if (path === "/bs/v1/naves/en/topics/faith") return json({ resource: { kind: "nave", revision: "cj-topics-abc" }, topic: { normalizedName: "faith", description: "Our Faith topic" } });
     if (path === "/api/auth/status") return json({ available: true });
     if (!headers.authorization) return json({}, 401);
     assert.equal((await validateInitData(headers.authorization.slice(4), "test-token")).user.id, 1);
@@ -97,12 +97,30 @@ test("Bible Strong staging verifies its real reader routes", async () => {
 });
 
 
-test("Bible Strong staging fails if its original dictionary is unavailable", async () => {
+test("Bible Strong staging fails if its dictionary is unavailable", async () => {
   const f = fixture(); const inner = f.options.fetcher;
   await assert.rejects(verifyRelease({ ...f.options, bibleStrongApp: true, fetcher: (url, init) => {
     const path = new URL(url).pathname;
     if (path === "/home" || path === "/bible/kjv/genesis/1") return Promise.resolve(new Response('<div id="root"></div>', {headers:{"content-type":"text/html"}}));
     if (path.startsWith("/bs/v1/dictionaries")) return Promise.resolve(new Response('{}', { status: 503 }));
     return inner(url, init);
-  } }), /Bible Strong dictionaries: expected HTTP 200, received 503/);
+  } }), /App dictionaries: expected HTTP 200, received 503/);
+});
+
+test("Bible Strong staging fails if Bible Strong's own Dictionary or Nave is served", async () => {
+  const f = fixture(); const inner = f.options.fetcher;
+  const html = () => Promise.resolve(new Response('<div id="root"></div>', {headers:{"content-type":"text/html"}}));
+  const json = body => Promise.resolve(Response.json(body));
+  await assert.rejects(verifyRelease({ ...f.options, bibleStrongApp: true, fetcher: (url, init) => {
+    const path = new URL(url).pathname;
+    if (path === "/home" || path === "/bible/kjv/genesis/1") return html();
+    if (path === "/bs/v1/dictionaries") return json({ dictionaries: [{ resource: { work: "easton-webster", revision: "dictionary-easton-webster-en-a3" } }, { resource: { work: "isbe" } }] });
+    return inner(url, init);
+  } }), /App dictionaries: our Easton's is missing/);
+  await assert.rejects(verifyRelease({ ...f.options, bibleStrongApp: true, fetcher: (url, init) => {
+    const path = new URL(url).pathname;
+    if (path === "/home" || path === "/bible/kjv/genesis/1") return html();
+    if (path === "/bs/v1/naves/en/topics/faith") return json({ resource: { kind: "nave", revision: "nave-en-a3ca283196d0eb084276" }, topic: { normalizedName: "faith", description: "Nave" } });
+    return inner(url, init);
+  } }), /App topics: our Faith topic is missing/);
 });
