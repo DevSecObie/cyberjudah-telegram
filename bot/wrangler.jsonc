@@ -10,8 +10,9 @@
   "workers_dev": true,
   // The Mini App lives at cyberjudah.io/app: the SPA under /app, the API it calls under
   // /api, and the verse-card images and frames under /card and /frames. The rest of the
-  // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev.
-  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*", "cyberjudah.io/bs/*"],
+  // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev. The phone
+  // app's video player page (/embed) and its downloads (/offline) are served here too.
+  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*", "cyberjudah.io/bs/*", "cyberjudah.io/embed/*", "cyberjudah.io/offline/*"],
   // The Mini App is a SPA staged by bot/scripts/prepare-assets.sh into .deploy/
   // (the build output at both / and /app/, so it loads on workers.dev and on
   // cyberjudah.io/app); every unknown path serves its index.html. The

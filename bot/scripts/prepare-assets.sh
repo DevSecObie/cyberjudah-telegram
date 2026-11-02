@@ -19,6 +19,10 @@ cp -r app/dist/. .deploy/app/
 # Every page and file: no MIME sniffing, no full URL sent to other sites, and only this site and
 # Telegram's web clients (web.telegram.org frames the Mini App) may show it inside a frame.
 # Telegram's phone and desktop apps open it in their own web view, which frame-ancestors does not touch.
+# The one exception is the video player page (embed/youtube.html, served on staging for the
+# phone app, and /embed/youtube that it redirects to): the app's Bible reader shows it inside a
+# frame from the app's own page, which no frame-ancestors list can name, so that page alone drops
+# the frame rule (owner's call, 2026-10-30). It only plays a YouTube video by id.
 # A script policy is reported only, not enforced, until reports show it fits normal use: scripts
 # from this site, Telegram's Mini App SDK (telegram.org, in index.html), Google's API loader that
 # Firebase Auth fetches on phones and Safari (apis.google.com), and the inline scripts the app
@@ -38,6 +42,10 @@ cat > .deploy/_headers <<HEADERS
   Referrer-Policy: strict-origin-when-cross-origin
   Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org https://*.telegram.org
   Content-Security-Policy-Report-Only: script-src 'self' https://telegram.org https://apis.google.com$INLINE; object-src 'none'; base-uri 'self'
+/embed/youtube.html
+  ! Content-Security-Policy
+/embed/youtube
+  ! Content-Security-Policy
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 /app/assets/*
