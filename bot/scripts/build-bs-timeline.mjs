@@ -16,7 +16,7 @@ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest(
 const sections = byCaptivity(source.sections);
 const all = flatten(sections);
 const image = path => `https://cyberjudah.io/api/img/${path}`;
-const periodPictures = new Set(['1', '2', '4', '5', '6', '7', '8', '9', '10', '11', '12']);
+const periodPictures = new Set(['1', '2', '4', '5', '6', '7', '8', '8-greek', '9', '10', '11', '12']);
 const portrait = event => event.portrait ? image(`people/${event.portrait}-256.webp`) : event.leader ? image(`timeline/leaders/${event.leader}-256.webp`) : undefined;
 const text = parts => parts.flat(Infinity).filter(Boolean).join('\n\n');
 const bookFor = name => books.find(b => [b.name, b.sourceName, b.slug].some(n => n.toLowerCase() === name.toLowerCase()));
