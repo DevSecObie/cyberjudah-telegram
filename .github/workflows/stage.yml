@@ -115,32 +115,32 @@ jobs:
           persist-credentials: false
           sparse-checkout: apps/expo/public
       - name: Serve the native release's own files
-        # iPhone build 304 downloads its People module and plays videos from CyberJudah's own
-        # player page. Add those files beside the web export without replacing any of its own.
+        # The phone plays videos from CyberJudah's own player page. Add it beside the web export
+        # without replacing any of its own files.
         run: |
           set -euo pipefail
           src=native-release/apps/expo/public
-          cp -n "$src/offline/bible_entities.cyberjudah.sqlite.zip" app/dist/offline/
           mkdir -p app/dist/embed
           cp -n "$src/embed/youtube.html" app/dist/embed/
-          sha256sum app/dist/offline/bible_entities.cyberjudah.sqlite.zip app/dist/embed/youtube.html
+          sha256sum app/dist/embed/youtube.html
       - name: Check out CyberJudah's own dictionaries
         uses: actions/checkout@v4
         with:
           repository: DevSecObie/cyberjudah-app
-          ref: 4fab408d38b4b9447e8e3afe223b66e9471f8208
+          ref: d1a837b38eb657d6f414f92892ea89c618b766f5
           path: dictionary-release
           persist-credentials: false
           sparse-checkout: apps/expo/public/offline
       - name: Serve CyberJudah's own dictionaries
-        # The Jewish Encyclopedia download, and the catalog that lists it beside the files above.
+        # The People module and the Jewish Encyclopedia downloads, and the catalog that lists them.
         run: |
           set -euo pipefail
           src=dictionary-release/apps/expo/public/offline
           mkdir -p app/dist/offline/dictionaries
           cp -n "$src/dictionaries/dictionary-jewish-encyclopedia-en.sqlite.zip" app/dist/offline/dictionaries/
+          cp -n "$src/bible_entities.cyberjudah.sqlite.zip" app/dist/offline/
           cp "$src/catalog.json" app/dist/offline/catalog.json
-          sha256sum app/dist/offline/dictionaries/*.zip app/dist/offline/catalog.json
+          sha256sum app/dist/offline/bible_entities.cyberjudah.sqlite.zip app/dist/offline/dictionaries/*.zip app/dist/offline/catalog.json
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
