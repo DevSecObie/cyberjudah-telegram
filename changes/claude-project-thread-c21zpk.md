@@ -1,5 +1,9 @@
-# Captivity period pictures (Persian bear, Greek leopard)
+# Captivity period pictures (Assyrian, Babylonian, Persian, Greek)
 
-- Adds Obie's leopard picture (Daniel 7:6: four heads, four wings) as the cover of the Greek Captivity period (`8-greek`), at 640x800.
-- Adds Obie's bear (Daniel 7:5, raised up on one side, ribs in its mouth) as the cover of the Persian and Mede Captivity period (`8-persian`), frame cropped off, at 640x800.
-- `8-persian` and `8-greek` added to the approved period pictures on the web Timeline and in the app timeline builder; `bot/data/bs-timeline.json` rebuilt (only those periods' images and the revision change).
+Obie's pictures, each cropped to 640x800, as the cover of the period under each captivity:
+- `8-assyrian`: Israelite captives led out of a burning city by an Assyrian commander (Isaiah 10:5).
+- `8-babylonian`: the lion with eagle's wings (Daniel 7:4); the glowing heart on its chest removed at Obie's ask.
+- `8-persian`: the bear raised up on one side with three ribs in its mouth (Daniel 7:5).
+- `8-greek`: the leopard with four heads and four wings (Daniel 7:6).
+
+The four ids are added to the approved period pictures on the web Timeline and in the app timeline builder; `bot/data/bs-timeline.json` is rebuilt (only those periods' images and the revision change).
