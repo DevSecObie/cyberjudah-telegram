@@ -311,6 +311,20 @@ test('a commentary entry shows the verse words in gold, the precept scripture on
   assert.match(index.indexes[0].sections[0].excerpt, /^the Word is the law\./);
 });
 
+test('scripture quoted in his words shows in gold, and Christ\'s words in red', async () => {
+  const variant = structuredClone(originals.get('/api/concordance/john/1.json'));
+  const original = variant.commentary[0];
+  const scripture = [{ text: 'Be fruitful, and multiply, and replenish the earth' }, { text: 'I am the way, the truth, and the life', red: true }];
+  variant.commentary = [{ ...original, verses: '1', note: { ...original.note, teacher: 'Bishop Kani' }, points: ['He said, \u201CBe fruitful, and multiply, and replenish the earth,\u201D and Christ said \u201CI am the way, the truth, and the life.\u201D <not this>'], scripture }];
+  variant.precepts = [{ verses: '1', kind: 'precept', ref: { verses: '6', label: 'John 14:6', url: '/bible/john/14#v6' }, text: '', point: '', kjv: 'Jesus saith unto him, I am the way, the truth, and the life: no man cometh unto the Father, but by me.', red: ['I am the way, the truth, and the life: no man cometh unto the Father, but by me.'], why: 'The way is the law.', note: variant.commentary[0].note, ts: original.ts }];
+  data.set('/api/concordance/john/1.json', variant);
+  const comments = JSON.parse((await request('/v1/commentaries/bishop-kani/en/chapters/43/1', Supplementary.CommentaryChapterResponseDto)).json.serializedComments);
+  const entry = comments['1'][0];
+  assert.match(entry, /He said, \u201C<i class="cj-scripture">Be fruitful, and multiply, and replenish the earth<\/i>,\u201D/);
+  assert.match(entry, /\u201C<i class="cj-christ">I am the way, the truth, and the life<\/i>\.\u201D &lt;not this&gt;/);
+  assert.match(entry, /<p class="cj-kjv">Jesus saith unto him, <span class="cj-christ">I am the way, the truth, and the life: no man cometh unto the Father, but by me\.<\/span><\/p>/);
+});
+
 test('each Bishop commentary holds only his own entries and lists only his chapters', async () => {
   const variant = structuredClone(originals.get('/api/concordance/john/1.json'));
   const original = variant.commentary[0];

@@ -1,1 +1,5 @@
 - Bishops' commentary (look A, approved by the owner 2026-11-02): each verse's number and the verse words a point opens on in gold (only words that are the verse's own), each precept set off with its KJV words shown once, and the entry closing on a play link at the class moment, the class and its date. The card preview now shows the Bishop's own words, not the passage or verse. A Bishop's own commentary no longer repeats his name in the class line; the passage heading is dropped.
+
+## Scripture he quotes in gold, Christ's words in red (2026-11-02)
+- Scripture quoted inside a teacher's words shows as `<i class="cj-scripture">` (gold); Christ's words as `cj-christ` (red), also inside the gold verse words and the precept's KJV line.
+- Uses the content feed's new `scripture` and `red` fields; without them entries render as before.
