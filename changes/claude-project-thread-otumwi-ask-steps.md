@@ -1,0 +1,1 @@
+- App Ask shows its research again: the "Researched" row with the magnifying glass lists the first search and every class it reads, even when the model answers without searching a second time.

@@ -224,19 +224,38 @@ export async function runAgent(
   // (a breakpoint on the system prompt), and the conversation so far cached as it grows (the
   // request's automatic breakpoint on its last block), so each research round re-reads it cheaply.
   const system: Anthropic.TextBlockParam[] = [{ type: "text", text: `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, cache_control: { type: "ephemeral" } }];
-  let lastInputUsd = 0;
+  // A budgeted request sets aside each call's own input before choosing how much it may write, as
+  // a strict upper bound on its tokens, priced as a prompt-cache write (the dearest way Claude bills
+  // input): the first call's tokens are counted by the API; each later call's are the last call's
+  // measured input plus the bytes added since (a token is never shorter than a byte), plus framing.
+  const bytesOf = () => new TextEncoder().encode(JSON.stringify({ system, tools: TOOLS, messages })).length;
+  let knownTokens = 0, bytesAtKnown = 0, bytesThisCall = 0;
   for (let round = 0; round < maxRounds; round++) {
     // The request's budget (what was held from the balance for it): past 70% of it the research stops and the
     // answer is written, in no more words than what is left pays for.
-    const last = round === maxRounds - 1 || spend.over(0.7);
-    const room = spend.outputTokensLeft(model, lastInputUsd * 1.15);
+    let inputUsd = 0;
+    if (spend.budgetUsd != null) {
+      const bytes = bytesOf();
+      let tokens: number;
+      if (round === 0) {
+        try { tokens = (await client.messages.countTokens({ model: model.native ?? model.id, system, tools: TOOLS, messages })).input_tokens + 64; }
+        catch { tokens = bytes + 1024; }
+      } else tokens = knownTokens + Math.max(0, bytes - bytesAtKnown) + 256;
+      bytesThisCall = bytes;
+      inputUsd = spend.inputUsd({ input_tokens: 0, cache_creation_input_tokens: tokens }, model);
+    }
+    const room = spend.outputTokensLeft(model, inputUsd);
+    // Too little left for a reply the API accepts: the request stops here, inside what was set aside.
+    if (room < 256) { cut = true; break; }
+    // Close to the end of the budget the research stops and the answer is written.
+    const last = round === maxRounds - 1 || spend.over(0.7) || room < 1024;
     if (round === 0) emit({ status: "Studying the question" });
     let said = "";
     const stream = client.messages.stream({
       // The reader's chosen Claude model (shared/ask-models.mjs), with adaptive thinking and an
       // effort level only where the model takes them.
       model: model.native ?? model.id,
-      max_tokens: Math.max(256, Math.min(12000, model.maxOutput ?? 12000, room)),
+      max_tokens: Math.min(12000, model.maxOutput ?? 12000, room),
       ...(model.thinking ? { thinking: { type: "adaptive" as const } } : {}),
       ...(model.effort ? { output_config: { effort: "high" as const } } : {}),
       cache_control: { type: "ephemeral" },
@@ -258,7 +277,7 @@ export async function runAgent(
     }
     units += unitsFor(message.usage, model); calls++;
     spend.call(message.usage, model);
-    lastInputUsd = spend.inputUsd(message.usage, model);
+    { const u = message.usage as unknown as Record<string, number | null | undefined>; knownTokens = (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0); bytesAtKnown = bytesThisCall; }
     const uses = message.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     // A refusal can cut a tool request off mid-input: no tool of that turn is run.
     if (message.stop_reason === "refusal") { text = said; refused = true; break; }
