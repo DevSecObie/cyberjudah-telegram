@@ -1,0 +1,2 @@
+- A new page, Support (/support, https://cyberjudah.io/app/support), for the App Store's Support URL: the contact email, the steps to delete an account in the iPhone app, and links to Delete your account and the privacy policy.
+- Delete your account now says that deleting an Apple sign-in asks you to confirm with Apple and revokes CyberJudah's access to your Apple ID, as the app does from build 311.

@@ -1,0 +1,1 @@
+- Studies can be published from the app to our own server: the writer signs in, the study is kept in our database, and anyone with the link reads it at cyberjudah.io/app/published/<id>. Only the writer can update or take it down, and deleting the account takes it down. Nothing goes to Bible Strong.

@@ -45,6 +45,7 @@ const Reminders = lazy(() => import("@/screens/Reminders").then((m) => ({ defaul
 const ReminderSync = lazy(() => import("@/screens/Reminders").then((m) => ({ default: m.ReminderSync })));
 const Privacy = lazy(() => import("@/screens/Privacy").then((m) => ({ default: m.Privacy })));
 const DeleteAccount = lazy(() => import("@/screens/DeleteAccount").then((m) => ({ default: m.DeleteAccount })));
+const Support = lazy(() => import("@/screens/Support").then((m) => ({ default: m.Support })));
 const Terms = lazy(() => import("@/screens/Terms").then((m) => ({ default: m.Terms })));
 const Donate = lazy(() => import("@/screens/Donate").then((m) => ({ default: m.Donate })));
 const Timeline = lazy(() => import("@/screens/Timeline").then((m) => ({ default: m.Timeline })));
@@ -104,6 +105,7 @@ const routes = (
     <Route path="/settings/donate" element={nativeReader ? <NativeReaderNotice /> : <Donate />} />
     <Route path="/privacy" element={<Privacy />} />
     <Route path="/delete-account" element={<DeleteAccount />} />
+    <Route path="/support" element={<Support />} />
     <Route path="/terms" element={<Terms />} />
     <Route path="/search" element={<Search />} />
     <Route path="/classes" element={<Classes />} />

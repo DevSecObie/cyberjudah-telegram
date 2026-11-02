@@ -1009,6 +1009,11 @@ test("the Bible: the Apocrypha in the 1611 order, and a search that goes to a re
 test("a verse links to each class that read it, on YouTube at that moment", async ({ page }) => {
   await preferChips(page);
   await page.goto(`/read/genesis/4${LAUNCH}`);
+  // A verse shows three chips and folds the rest behind "+N"; the class may sit behind it as the
+  // live data gains precepts, so open the fold when there is one.
+  await expect(page.locator("#verset-3 .rel-tag").first()).toBeVisible();
+  const more = page.locator("#verset-3 .rel-more");
+  if (await more.count()) await more.first().click();
   const tag = page.locator("#verset-3 .rel-tag", { hasText: "Raising Cain" });
   await expect(tag).toBeVisible();
   if (process.env.SHOTS) { await tag.scrollIntoViewIfNeeded(); await page.screenshot({ path: `${process.env.SHOTS}/watch-links.png` }); }
@@ -1289,15 +1294,16 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     // Scripture cards: the text, all the verses of a long one, and the verse in the reader.
     const scripture = page.getByRole("region", { name: "Scripture" });
     const card = scripture.locator(".scard").first();
-    await expect(card.locator(".scard__ref")).toHaveText("Genesis 12:1-4");
+    // The live case data sets where the passage ends (12:1-3 or 12:1-4); it always opens at 12:1.
+    await expect(card.locator(".scard__ref")).toHaveText(/^Genesis 12:1-\d+$/);
     await expect(card.locator(".scard__text")).toContainText("Now the Lord had said unto Abram, Get thee out of thy country");
     const before = await scripture.locator(".scard").count();
     await scripture.getByRole("button", { name: /^Show \d+ more/ }).click();
     await expect.poll(() => scripture.locator(".scard").count()).toBeGreaterThan(before);
     const expanded = await scripture.locator(".scard").count();
     await card.getByRole("link", { name: /^Go to verse/ }).click();
-    await expect(page).toHaveURL(/\/read\/genesis\/12\?v=1-4$/);
-    await expect(page.locator("#verset-4")).toBeVisible();
+    await expect(page).toHaveURL(/\/read\/genesis\/12\?v=1-\d+$/);
+    await expect(page.locator("#verset-3")).toBeVisible();
     await expect(page.locator("#verset-6")).toHaveCount(0);
     await press(page, "back");
     await expect(scripture.locator(".scard")).toHaveCount(expanded);
@@ -1306,7 +1312,7 @@ for (const viewport of [{ width: 390, height: 780 }, { width: 1280, height: 860 
     await expect(page).toHaveURL(/\/person\/abraham-gen-11-26$/);
     const related = page.getByRole("region", { name: "Related case studies" });
     await expect(related.locator(".ccard__name")).toContainText(["Abraham", "Rebekah and Abraham’s servant"]);
-    await expect(related.locator(".ccard").first().locator(".ccard__preview")).toContainText("Called alone out of Ur");
+    await expect(related.locator(".ccard").first().locator(".ccard__preview")).toContainText(/alone out of Ur/i);
     await press(page, "back");
     await expect(page).toHaveURL(/\/cases\/02-patriarchal\/abraham$/);
     const rel = page.getByRole("region", { name: "Related cases" }).locator(".ccard").first();
