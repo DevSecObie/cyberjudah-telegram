@@ -48,22 +48,14 @@ const DOCTRINE_SECTIONS = new Set(["13"]);
  * Canaan, not Ham (Genesis 9:25).
  */
 const INTERPRETATION = /^seven trumpets$|^daniel (2|8|11) - /i;
-/**
- * Church history stays as dated markers, because it happened (owner, 2026-11-02: "could be used as
- * historical marks because they happened, but have it teach is what I don't want"). These cards
- * carry a title and years only: no article, no teaching.
- */
 const NOT_KEPT = new Set(["Immanuel"]);
 export const TITLES = { "Ham's Sin and Curse": "Ham's Sin; Canaan Cursed" };
-/** Bible Strong's "Early Church": the Acts of the Apostles, not a church in Israel's place (2026-11-02). */
-export const PERIOD_TITLES = { "Early Church": "The Apostles" };
 export const notKept = (title) => INTERPRETATION.test(title.trim()) || NOT_KEPT.has(title.trim());
 
 /** The KJV corrections above, on sections already in the timeline's shape. */
 export function setRight(sections) {
   return sections.map((s) => ({
     ...s,
-    title: PERIOD_TITLES[s.title] ?? s.title,
     events: s.events.filter((e) => !notKept(e.title)).map((e) => (TITLES[e.title.trim()] ? { ...e, title: TITLES[e.title.trim()] } : e)),
   }));
 }
