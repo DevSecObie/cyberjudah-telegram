@@ -89,7 +89,12 @@ jobs:
           sed -i 's/^          //' web/dist/_headers
           cat web/dist/_headers
           echo "staged $(find web/dist -type f | wc -l) files"
-      - run: npm ci --no-audit --no-fund
+      - name: Install wrangler
+        # The app build set NODE_ENV=production for later steps; wrangler and the postinstall
+        # patch step are devDependencies here, so this install is a development one.
+        env:
+          NODE_ENV: development
+        run: npm ci --no-audit --no-fund --include=dev
       - name: Deploy the web Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
