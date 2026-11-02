@@ -44,7 +44,11 @@ test("the data keeps their history and leaves out their prophetic teaching", () 
   assert.ok(titles.includes("Isaiah Prophecy Concerning Cyrus II"), "a prophecy that is an event in the text stays");
   // Prophecy drawn as history and readings against the KJV are left out or set right; history stays.
   for (const t of ["Seven Trumpets", "Immanuel", "Ham's Sin and Curse"]) assert.ok(!titles.includes(t), t);
-  for (const t of ["Martin Luther", "The Council of Trent", "Fall of Jerusalem July 19", "Judah Falls, Aug 15"]) assert.ok(titles.includes(t), t);
+  for (const t of ["Fall of Jerusalem July 19", "Judah Falls, Aug 15"]) assert.ok(titles.includes(t), t);
+  // Church doctrine is left out; the history stays (owner, 2026-11-02).
+  for (const t of ["Martin Luther", "The Council of Trent", "Luther Nails the Ninety-Five Theses", "The Heidelberg Catechism"]) assert.ok(!titles.includes(t), t);
+  for (const t of ["William Tyndale", "Gutenberg Bible", "Constantine Converts to Christianity", "Thirty Years' War", "The Roman Inquisition"]) assert.ok(titles.includes(t), t);
+  assert.ok(!DATA.sections.some((s) => s.title === "Early Church"), "the Acts of the Apostles, not the Early Church");
   assert.ok(!titles.some((t) => /^Daniel (2|8|11) - /.test(t)), "Daniel's visions are not drawn as history");
   assert.ok(titles.includes("Ham's Sin; Canaan Cursed"), "Genesis 9:25: cursed be Canaan");
   // No pictures or links from their servers: the only link is the Who's Who citation.

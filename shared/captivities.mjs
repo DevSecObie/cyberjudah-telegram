@@ -51,7 +51,8 @@ export const PLACES = {
   9: { under: "roman" },
   10: { cut: [
     { under: "roman", subTitle: "c.34–193 AD", startYear: 35, endYear: 195, interval: 5 },
-    { under: "dark-ages", subTitle: "c.193–330 AD", startYear: 190, endYear: 350, interval: 5 },
+    // Rome overthrown in 193, "followed by the Dark ages" (the booklet, p. 44).
+    { under: "dark-ages", title: "Rome Overthrown", subTitle: "c.193–330 AD", startYear: 190, endYear: 350, interval: 5 },
   ] },
   11: { under: "dark-ages" },
   12: { under: "american" },

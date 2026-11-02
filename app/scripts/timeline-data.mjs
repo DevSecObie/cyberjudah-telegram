@@ -48,14 +48,37 @@ const DOCTRINE_SECTIONS = new Set(["13"]);
  * Canaan, not Ham (Genesis 9:25).
  */
 const INTERPRETATION = /^seven trumpets$|^daniel (2|8|11) - /i;
-const NOT_KEPT = new Set(["Immanuel"]);
+/**
+ * Church doctrine is not in the KJV and Apocrypha, so it is left out; the history stays
+ * (owner, 2026-11-02: "Keep all of its history but remove any christianity doctrine entries").
+ * Left out: the churches' teachers and theologians, councils, synods, debates, catechisms and
+ * confessions, and the founding of churches and their ordinances. Kept: rulers, wars, treaties,
+ * persecutions, and the printing and translating of the Scriptures (Wycliffe, Gutenberg,
+ * Erasmus' New Testament, Tyndale, the English Bibles).
+ */
+export const CHURCH_DOCTRINE = new Set([
+  "Calvin Sent Away from Geneva", "Calvin's Ecclesiastical Ordinances Established", "Council of Basel", "Council of Constance",
+  "Diet of Augsburg", "Diet of Regensburg", "Diet of Worms", "Exsurge Domine", "Geneva Academy", "Guillaume Briconnet",
+  "Hans Tausen", "Hugh Latimer", "Implementation of Lutheran Reformation in Denmark", "Jacobus Arminius", "Jacques Lefèvre",
+  "Jan Hus (John Huss)", "Jan Hus (John Huss) Excommunicated", "Jerome of Prague", "John Bunyan", "John Calvin", "John Knox",
+  "Laurentius Petri", "Leipzig Debate", "Luther Begins Lecturing at Wittenburg", "Luther Excommunicated",
+  "Luther Marries Katherine von Bora", "Luther Nails the Ninety-Five Theses", "Luther Travels to Rome", "Marburg Colloquy",
+  "Martin Luther", "Menno Simons", "Olaf Petri", "Peter Waldo Establishes “Waldenses” Church", "Philipp Melanchthon",
+  "Synod of Dort", "The Act of Six Articles", "The Anabaptist Movement", "The Book of Concord", "The Catholic Counter-Reformation",
+  "The Council of Trent", "The Heidelberg Catechism", "The Lollards", "The Zurich Disputations", "Thomas Cranmer",
+  "Thomas Cranmer Appointed Archbishop of Canterbury", "Ulrich Zwingli", "William Farel", "Zwingli Begins His Ministry",
+]);
+const NOT_KEPT = new Set(["Immanuel", ...CHURCH_DOCTRINE]);
 export const TITLES = { "Ham's Sin and Curse": "Ham's Sin; Canaan Cursed" };
+/** Bible Strong's "Early Church": the Acts of the Apostles, not a church in Israel's place (2026-11-02). */
+export const PERIOD_TITLES = { "Early Church": "The Apostles" };
 export const notKept = (title) => INTERPRETATION.test(title.trim()) || NOT_KEPT.has(title.trim());
 
 /** The KJV corrections above, on sections already in the timeline's shape. */
 export function setRight(sections) {
   return sections.map((s) => ({
     ...s,
+    title: PERIOD_TITLES[s.title] ?? s.title,
     events: s.events.filter((e) => !notKept(e.title)).map((e) => (TITLES[e.title.trim()] ? { ...e, title: TITLES[e.title.trim()] } : e)),
   }));
 }
