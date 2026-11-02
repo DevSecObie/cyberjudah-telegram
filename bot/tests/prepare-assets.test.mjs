@@ -36,7 +36,9 @@ test("hashed build assets are cached as immutable, and nothing else is", () => {
     // Workers Static Assets reads _headers at the root only: one rule per path, then its headers.
     const rules = readFileSync(join(root, ".deploy/_headers"), "utf8").split(/\n(?=\S)/).map((r) => r.trim().split("\n"));
     assert.deepEqual(rules.filter((r) => r.some((h) => /immutable/.test(h))).map((r) => r[0]), ["/assets/*", "/app/assets/*"]);
-    assert.equal(rules.length, 3);
+    assert.equal(rules.length, 5);
+    // The video player page alone may be framed: the phone app's reader shows it in a frame.
+    for (const path of ["/embed/youtube.html", "/embed/youtube"]) assert.deepEqual(rules.find((r) => r[0] === path), [path, "  ! Content-Security-Policy"]);
     // Every response also carries the security headers, framing allowed only for the site and Telegram's web clients.
     const all = rules.find((r) => r[0] === "/*");
     assert.ok(all.includes("  X-Content-Type-Options: nosniff"));

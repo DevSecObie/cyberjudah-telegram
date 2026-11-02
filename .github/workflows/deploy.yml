@@ -81,6 +81,42 @@ jobs:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
           VITE_ACCOUNT_SYNC: ${{ env.ACCOUNT_SYNC }}
           CYBERJUDAH_APP_BASE: /app/
+      # The iPhone app's store build reads these from cyberjudah.io, as the beta reads them from
+      # staging (stage.yml): the video player page, and the offline downloads (the Bible, Strong's,
+      # the Timeline, People and the Jewish Encyclopedia) with the catalog that lists them. Same
+      # pinned commits as staging; the Mini App at /app is not touched.
+      - name: Check out the native release files
+        uses: actions/checkout@v7
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 3f96d1a7de4a06f5fa856165b03dc70c6af9aeae
+          path: native-release
+          persist-credentials: false
+          sparse-checkout: apps/expo/public
+      - name: Check out CyberJudah's own dictionaries
+        uses: actions/checkout@v7
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: d1a837b38eb657d6f414f92892ea89c618b766f5
+          path: dictionary-release
+          persist-credentials: false
+          sparse-checkout: apps/expo/public/offline
+      - name: Serve the phone app's player page and downloads
+        run: |
+          set -euo pipefail
+          mkdir -p app/dist/embed app/dist/offline
+          cp -n native-release/apps/expo/public/embed/youtube.html app/dist/embed/
+          # The whole offline folder of one commit, so every file matches the catalog beside it.
+          cp -R dictionary-release/apps/expo/public/offline/. app/dist/offline/
+          node -e '
+            const fs = require("fs"), crypto = require("crypto");
+            const catalog = JSON.parse(fs.readFileSync("app/dist/offline/catalog.json", "utf8"));
+            for (const r of Object.values(catalog.resources)) {
+              const sum = crypto.createHash("sha256").update(fs.readFileSync("app/dist/offline/" + r.file)).digest("hex");
+              if (sum !== r.archiveSha256) throw new Error(r.file + " does not match the catalog");
+            }
+            console.log("Offline downloads match their catalog:", Object.keys(catalog.resources).length);'
+          sha256sum app/dist/embed/youtube.html
       - name: Upload the app's pictures to R2
         working-directory: bot
         env:
