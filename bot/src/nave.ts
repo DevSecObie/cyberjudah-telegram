@@ -1,18 +1,10 @@
 import { Hono } from "hono";
 import { NaveArticle, NaveLanguage, NavePage, NaveVerse } from "../../shared/nave";
-import { bs } from "./bs";
 
-/** Reads a /v1/naves path with the worker's bindings, and returns its JSON answer. */
-export type NaveSource = (path: string, init: RequestInit, env: unknown) => Response | Promise<Response>;
+const ORIGIN = "https://api.bible-strong.app";
 
-/**
- * The Topics screen reads the classes' topics, as the app does (bot/src/bs/topics.ts), never
- * Bible Strong's Nave's Topical Bible, which teaches church doctrine (owner, 2026-11-02: "If its
- * not in the KJV BIBLE AND APOCRYPHA REMOVE IT"). No credentials or user headers are passed on.
- */
-const ours: NaveSource = (path, init, env) => bs.request(path, init, env as never);
-
-export function createNave(source: NaveSource = ours) {
+/** Only the public online Nave API. No offline artifacts, credentials or user headers. */
+export function createNave(fetcher: typeof fetch = fetch) {
   const api = new Hono();
   api.get("/:language/*", async (c) => {
     const language = NaveLanguage.safeParse(c.req.param("language"));
@@ -42,9 +34,9 @@ export function createNave(source: NaveSource = ours) {
     } else if (suffix === "random") schema = NaveArticle;
     else return c.json({ error: "not-found" }, 404);
     const upstream = name !== undefined ? `topics/${encodeURIComponent(name)}` : suffix;
-    const url = `/v1/naves/${language.data}/${upstream}${params.size ? `?${params}` : ""}`;
+    const url = `${ORIGIN}/v1/naves/${language.data}/${upstream}${params.size ? `?${params}` : ""}`;
     try {
-      const response = await source(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000), redirect: "manual" }, c.env);
+      const response = await fetcher(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000), redirect: "manual" });
       if (response.status === 404 && name !== undefined) return c.json({ error: "not-found" }, 404);
       if (!response.ok) return c.json({ error: "nave-unavailable" }, 503);
       const result = schema.safeParse(await response.json());

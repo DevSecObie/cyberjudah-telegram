@@ -233,30 +233,6 @@ test('Easton catalog, directory, lookup, batches and passage discovery are all o
   assert.match(next.resource.revision, /-withheld-\d+$/);
 });
 
-test('the app reads our own Dictionary and Topics on staging, never Bible Strong\'s', async () => {
-  // The app asks for Easton's as "easton-webster". On staging (BIBLE_STRONG_WEB) the catalog lists our
-  // Easton's under that name, every read answers for the work it was asked, and only CyberJudah data is
-  // fetched (the fetch stub above rejects any other origin, such as api.bible-strong.app).
-  const staging = { env: { BIBLE_STRONG_WEB: '1' } };
-  const { json: catalog } = await request('/v1/dictionaries?language=en', Dictionary.DictionaryCatalogResponseDto, staging);
-  assert.deepEqual(catalog.dictionaries.map((d: any) => [d.resource.work, d.title]), [['easton-webster', "Easton's Bible Dictionary"]]);
-  const { json: entry } = await request('/v1/dictionaries/easton-webster/en/entries/God', Dictionary.DictionaryEntryResponseDto, staging);
-  assert.equal(entry.resource.work, 'easton-webster');
-  const { json: words } = await request('/v1/dictionaries/easton-webster/en/verses/43-1-1/words', Dictionary.DictionaryVerseWordsResponseDto, staging);
-  assert.equal(words.resource.work, 'easton-webster');
-  const { json: directory } = await request('/v1/dictionaries/directory?language=en&limit=1', Dictionary.DictionaryDirectoryResponseDto, staging);
-  assert.equal(directory.items[0].sources[0].resource.work, 'easton-webster');
-  // Owner, 2026-11-02: Easton's entries that teach church doctrine are withheld here too.
-  for (const word of ['Trinity', 'Joseph', 'Brother', 'Incarnation', 'Church']) {
-    await request(`/v1/dictionaries/easton-webster/en/entries/${word}`, Problems.ResourceNotFoundProblem, { status: 404, ...staging });
-  }
-  for (const work of ['isbe', 'smith', 'unfoldingword-translation-words']) {
-    await request(`/v1/dictionaries/${work}/en/entries/God`, Problems.ResourceNotFoundProblem, { status: 404, ...staging });
-  }
-  const { json: topics } = await request('/v1/naves/en/topics', Nave.NaveTopicListResponseDto, staging);
-  assert.deepEqual(topics.topics.map((t: any) => t.normalizedName), ['faith']);
-});
-
 test('Nave routes map our topic threads, including exact verse associations', async () => {
   await request('/v1/naves/en/topics', Nave.NaveTopicListResponseDto);
   const { json: topic } = await request('/v1/naves/en/topics/faith', Nave.NaveTopicResponseDto);

@@ -9,15 +9,15 @@ const resource = { kind: 'nave', language: 'en', revision: 'test' };
 const topic = { normalizedName: 'aaron', name: 'Aaron', initial: 'a', description: '<p>Aaron</p>' };
 const page = { resource, topics: [topic], limit: 50, nextCursor: '%5B%22Aaron%22%2C%22aaron%22%5D' };
 
-test('Nave reads our own topics for English list, search and opaque cursor reads, without user headers', async () => {
+test('Nave forwards English list, search and opaque cursor reads without user headers', async () => {
   const calls = [];
   const api = createNave(async (url, init) => { calls.push([url, init]); return Response.json(page); });
   const response = await api.request('/en/topics?initial=a&search=Aaron&limit=50&cursor=%255B%2522x%2522%255D', { headers: { authorization: 'never-forward-this', cookie: 'private=1' } });
   assert.equal(response.status, 200);
   const [url, init] = calls[0];
-  // Our own feed, in the same worker: never api.bible-strong.app (owner, 2026-11-02).
-  assert.ok(url.startsWith('/v1/naves/en/topics?'), url);
-  assert.equal(new URL(url, 'https://x.test').searchParams.get('cursor'), '%5B%22x%22%5D');
+  assert.equal(new URL(url).origin, 'https://api.bible-strong.app');
+  assert.equal(new URL(url).pathname, '/v1/naves/en/topics');
+  assert.equal(new URL(url).searchParams.get('cursor'), '%5B%22x%22%5D');
   assert.deepEqual(init.headers, { accept: 'application/json' });
   assert.equal(init.redirect, 'manual');
   assert.deepEqual((await response.json()).topics, [{ normalizedName: 'aaron', name: 'Aaron', initial: 'a' }]);
@@ -26,7 +26,7 @@ test('Nave reads our own topics for English list, search and opaque cursor reads
 test('Nave serves articles, verse/chapter topics, and a random article', async () => {
   const paths = [];
   const api = createNave(async url => {
-    paths.push(new URL(url, 'https://x.test').pathname);
+    paths.push(new URL(url).pathname);
     return Response.json(url.includes('/verses/') ? { resource, verseKey: '1-1-1', verseTopics: [{ normalizedName: 'aaron', name: 'Aaron' }], chapterTopics: [] } : { resource, topic });
   });
   for (const path of ['/en/topics/aaron', '/en/random', '/en/verses/1-1-1/topics']) assert.equal((await api.request(path)).status, 200);

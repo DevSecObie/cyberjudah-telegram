@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { bible } from './bible';
 import { dictionaries } from './dictionary';
 import { jewishEncyclopedia } from './jewish-encyclopedia';
+import { readBibleStrongReference } from './upstream-reference';
 import { lexicon, strongBibles } from './strongs';
 import { naves } from './topics';
 import { commentaries } from './commentary';
@@ -18,8 +19,11 @@ bs.use('*', async (c, next) => {
     c.header('access-control-max-age', '86400');
     return c.body(null, 204);
   }
-  // Dictionary and Topics are always our own: Easton's less the withheld entries, and the classes'
-  // topics. Bible Strong's dictionaries and Nave's teach church doctrine (owner, 2026-11-02).
+  if (c.env.BIBLE_STRONG_WEB === '1' && !c.req.path.startsWith('/bs/v1/dictionaries/jewish-encyclopedia/') && /^\/bs\/v1\/(?:dictionaries|naves)(?:\/|$)/.test(c.req.path)) {
+    const response = await readBibleStrongReference(c.req.raw);
+    response.headers.set('access-control-allow-origin', '*');
+    return response;
+  }
   await next();
   // Same public TTLs as /api/dictionary; no shared caching of POST bodies or errors.
   c.header('cache-control', c.req.method === 'GET' && c.res.status === 200 ? `public, max-age=${/\/entries\/[^/]+$|\/books\/\d+\/chapters\/\d+$/.test(c.req.path) ? 86400 : 3600}` : 'no-store');
