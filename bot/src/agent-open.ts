@@ -153,8 +153,17 @@ export async function researchOpen(
     const { text, usage, cut, toolCalls } = chatText(res);
     units += unitsFor(usage, model); calls++; spend?.call(usage, model);
     if (!toolCalls.length || last) {
-      if (text) emit({ delta: text });
-      return { text, units, calls, cut, refused: false };
+      if (text || !hadToolMarkup(res)) {
+        if (text) emit({ delta: text });
+        return { text, units, calls, cut, refused: false };
+      }
+      // The model wrote only tool calls when it was told to answer: ask once more, with no tools
+      // offered, so the reader gets prose and never the call markup.
+      if (spend?.over(0.9)) return { text: "", units, calls, cut: true, refused: false };
+      const again = chatText(await call({ messages: [...convo, { role: "user", content: "Write the answer now from what you have read, in plain prose, citing the sources by their numbers. Do not call any tools." }], ...length }));
+      units += unitsFor(again.usage, model); calls++; spend?.call(again.usage, model);
+      if (again.text) emit({ delta: again.text });
+      return { text: again.text, units, calls, cut: again.cut, refused: false };
     }
     convo.push({ role: "assistant", content: text || "", tool_calls: toolCalls.map((c) => ({ id: c.id, type: "function", function: { name: c.name, arguments: c.arguments } })) });
     for (const c of toolCalls) convo.push({ role: "tool", tool_call_id: c.id, content: await tool(c.name, c.arguments) });
@@ -168,6 +177,54 @@ export async function researchOpen(
  * (`choices[0].message`) or Workers AI's own (`response`, `tool_calls`).
  */
 export function chatText(res: Record<string, unknown>): { text: string; toolCalls: ToolCall[]; usage: Record<string, unknown> | undefined; cut: boolean } {
+  const read = chatTextRaw(res);
+  if (!hasToolMarkup(read.text)) return read;
+  // Some models (DeepSeek V4 on Workers AI) can write their tool calls into the answer text as
+  // DSML markup instead of the tool_calls field. Run those calls as tools, and never show the markup.
+  const found = toolMarkupCalls(read.text);
+  return { ...read, text: stripToolMarkup(read.text), toolCalls: read.toolCalls.length ? read.toolCalls : found };
+}
+
+/** Whether a chat reply's text carried tool-call markup (see chatText). */
+function hadToolMarkup(res: Record<string, unknown>): boolean {
+  try { return hasToolMarkup(chatTextRaw(res).text); } catch { return false; }
+}
+
+// DeepSeek's DSML: <｜DSML｜tool_calls> <｜DSML｜invoke name="…"> <｜DSML｜parameter name="…" string="true">…</｜DSML｜parameter> …
+// The bars are U+FF5C (fullwidth) in the model's output; a plain "|" is accepted too.
+const BAR = "[\\uFF5C|]\\s*";
+const DSML = `<?\\s*${BAR}DSML\\s*${BAR}`;
+const DSML_CLOSE = `<?\\s*/\\s*${BAR}DSML\\s*${BAR}`;
+const MARKUP = new RegExp(`${DSML}(?:tool|function)_calls\\s*>[\\s\\S]*?(?:${DSML_CLOSE}(?:tool|function)_calls\\s*>|$)`, "g");
+const INVOKE = new RegExp(`${DSML}invoke\\s+name\\s*=\\s*"([^"]+)"\\s*>([\\s\\S]*?)(?=${DSML_CLOSE}invoke\\s*>|${DSML}invoke\\b|${DSML_CLOSE}(?:tool|function)_calls|$)`, "g");
+const PARAM = new RegExp(`${DSML}parameter\\s+name\\s*=\\s*"([^"]+)"(?:\\s+string\\s*=\\s*"(true|false)")?\\s*>([\\s\\S]*?)${DSML_CLOSE}parameter\\s*>`, "g");
+
+export function hasToolMarkup(text: string): boolean {
+  return new RegExp(`${DSML}(?:tool|function)_calls`).test(text);
+}
+
+/** The tool calls written as DSML markup in a model's text, as chat tool calls. */
+export function toolMarkupCalls(text: string): ToolCall[] {
+  const calls: ToolCall[] = [];
+  for (const block of text.match(MARKUP) ?? []) {
+    for (const [, name, body] of block.matchAll(INVOKE)) {
+      const args: Record<string, unknown> = {};
+      for (const [, key, isString, value] of body.matchAll(PARAM)) {
+        if (isString === "false") { try { args[key] = JSON.parse(value.trim()); continue; } catch { /* kept as text */ } }
+        args[key] = value.trim();
+      }
+      calls.push({ id: `dsml_${calls.length}`, name, arguments: JSON.stringify(args) });
+    }
+  }
+  return calls;
+}
+
+/** A model's text without any tool-call markup in it. */
+export function stripToolMarkup(text: string): string {
+  return text.replace(MARKUP, "").trim();
+}
+
+function chatTextRaw(res: Record<string, unknown>): { text: string; toolCalls: ToolCall[]; usage: Record<string, unknown> | undefined; cut: boolean } {
   const usage = res.usage as Record<string, unknown> | undefined;
   const choice = Array.isArray(res.choices) ? (res.choices[0] as Record<string, unknown> | undefined) : undefined;
   if (choice) {
