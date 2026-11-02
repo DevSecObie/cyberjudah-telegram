@@ -2,3 +2,4 @@
 - 53 more Easton's entries are left out because they teach church doctrine: Joseph as "foster-father", the Lord's brethren as cousins, the virgin-birth readings, Jesus as God, the church in place of Israel, the law done away, and church catechism doctrines.
 - Timeline: 48 church-doctrine cards are left out (the reformers and theologians, church councils and synods, debates, catechisms and confessions, and the founding of churches). The history stays: rulers, wars, treaties, persecutions, and the printing and translating of the Scriptures (Wycliffe, Gutenberg, Erasmus' New Testament, Tyndale, the English Bibles).
 - Timeline: the period "Early Church" is now "The Apostles", and its part after 193 is "Rome Overthrown", the booklet's words.
+- Web and Telegram: the Nave screen, the Topic of the day and a verse's topics now read the classes' topics, as the app does, and no longer Bible Strong's Nave's Topical Bible.
