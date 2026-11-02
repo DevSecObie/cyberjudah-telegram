@@ -52,7 +52,7 @@ const reviewed = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString([]
  * The others wait on a depiction the assembly has not settled (docs/TIMELINE_PARITY.md) and show
  * the period's colour in its place.
  */
-const PERIOD_PICTURES = new Set(["1", "2", "4", "5", "6", "7", "8", "8-assyrian", "8-babylonian", "8-persian", "8-greek", "9", "10", "11", "12", "fc-into-the-ships", "fc-house-of-bondage", "fc-jim-crow", "fc-civil-rights-awakening"]);
+const PERIOD_PICTURES = new Set(["1", "2", "4", "5", "6", "7", "8", "8-assyrian", "8-babylonian", "8-persian", "8-greek", "9", "10", "10-roman", "11", "12", "fc-into-the-ships", "fc-house-of-bondage", "fc-jim-crow", "fc-civil-rights-awakening"]);
 
 /** An admin's cover or the existing approved period artwork; no image for unapproved periods. */
 function usePeriodPicture(s: TimelineSection) {

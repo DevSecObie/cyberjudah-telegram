@@ -16,7 +16,16 @@ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest(
 const sections = byCaptivity(source.sections);
 const all = flatten(sections);
 const image = path => `https://cyberjudah.io/api/img/${path}`;
-const periodPictures = new Set(['1', '2', '4', '5', '6', '7', '8', '8-assyrian', '8-babylonian', '8-persian', '8-greek', '9', '10', '11', '12', 'fc-into-the-ships', 'fc-house-of-bondage', 'fc-jim-crow', 'fc-civil-rights-awakening']);
+const periodPictures = new Set(['1', '2', '4', '5', '6', '7', '8', '8-assyrian', '8-babylonian', '8-persian', '8-greek', '9', '10', '10-roman', '11', '12', 'fc-into-the-ships', 'fc-house-of-bondage', 'fc-jim-crow', 'fc-civil-rights-awakening']);
+// Who made each period picture taken from Wikimedia Commons, shown under the period's text.
+const periodPictureCredits = {
+  'fc-into-the-ships': 'Picture: the slave deck of the bark Wildfire, Key West, 1860. Public domain, Wikimedia Commons.',
+  'fc-house-of-bondage': "Picture: five generations on Smith's Plantation, Beaufort, South Carolina, 1862, by Timothy H. O'Sullivan. Public domain, Wikimedia Commons.",
+  'fc-jim-crow': 'Picture: "The Original Jim Crow" sheet music cover, New York, 1832. Public domain.',
+  'fc-civil-rights-awakening': 'Picture: the March on Washington, 1963, by Warren K. Leffler. Public domain, Wikimedia Commons.',
+  '10-roman': 'Picture: the spoils of the Temple carried to Rome, Arch of Titus, AD 81. Photo by José Luiz, CC BY-SA 3.0, Wikimedia Commons.',
+  '12': 'Picture: title page of the King James Bible, first edition, 1611. Public domain, Wikimedia Commons.',
+};
 const portrait = event => event.portrait ? image(`people/${event.portrait}-256.webp`) : event.leader ? image(`timeline/leaders/${event.leader}-256.webp`) : undefined;
 const text = parts => parts.flat(Infinity).filter(Boolean).join('\n\n');
 const bookFor = name => books.find(b => [b.name, b.sourceName, b.slug].some(n => n.toLowerCase() === name.toLowerCase()));
@@ -82,7 +91,7 @@ const events = all.filter(hasDetails).map(event => {
 });
 const geometry = sections.map(section => {
   const captivity = captivityOf(section);
-  const description = text([section.sectionTitle, section.subTitle, captivity ? [captivity.age, captivity.years, captivity.prophets.length ? `Prophets: ${captivity.prophets.join(', ')}` : '', captivity.figures.length ? `Main people: ${captivity.figures.join(', ')}` : '', captivity.note, `Source: Captivity packets, Nathanyel Ben Israel, Israel United in Christ, p. ${captivity.page}. All dates are at best approximates.`] : 'Source: Bible Strong timeline geometry; CyberJudah case studies and scripture references.']);
+  const description = text([section.sectionTitle, section.subTitle, captivity ? [captivity.age, captivity.years, captivity.prophets.length ? `Prophets: ${captivity.prophets.join(', ')}` : '', captivity.figures.length ? `Main people: ${captivity.figures.join(', ')}` : '', captivity.note, `Source: Captivity packets, Nathanyel Ben Israel, Israel United in Christ, p. ${captivity.page}. All dates are at best approximates.`] : 'Source: Bible Strong timeline geometry; CyberJudah case studies and scripture references.', periodPictures.has(section.id) ? periodPictureCredits[section.id] : '']);
   return {
     id: section.id, title: section.title, titleEn: section.title,
     sectionTitle: section.sectionTitle, sectionTitleEn: section.sectionTitle,
