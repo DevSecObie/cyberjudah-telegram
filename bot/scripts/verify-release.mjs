@@ -36,19 +36,21 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
   }
   log("App and Bible reader: available");
   if (bibleStrongApp) {
+    // The app's Dictionary and Topics are our own (owner, 2026-11-02): Easton's, which the app asks for
+    // as "easton-webster", and the classes' topics. Neither may come from Bible Strong's server.
     const catalog = await get("/bs/v1/dictionaries?language=en");
-    requireStatus(catalog, 200, "Bible Strong dictionaries");
+    requireStatus(catalog, 200, "App dictionaries");
     const dictionaries = (await catalog.json()).dictionaries;
-    if (!Array.isArray(dictionaries) || !dictionaries.some(item => item.resource?.work === "easton-webster")) throw new Error("Bible Strong dictionaries: the original catalog is missing.");
+    if (!Array.isArray(dictionaries) || dictionaries.length !== 1 || dictionaries[0].resource?.work !== "easton-webster" || !String(dictionaries[0].resource?.revision ?? "").startsWith("cj-easton-")) throw new Error("App dictionaries: our Easton's is missing or Bible Strong's catalog is served.");
     const entry = await get("/bs/v1/dictionaries/easton-webster/en/entries/Aaron");
-    requireStatus(entry, 200, "Bible Strong dictionary entry");
-    if (!(await entry.json()).entry?.definition) throw new Error("Bible Strong dictionary entry: definition is missing.");
-    log("Bible Strong original dictionary catalog and entry: available");
+    requireStatus(entry, 200, "App dictionary entry");
+    if (!(await entry.json()).entry?.definition) throw new Error("App dictionary entry: definition is missing.");
+    log("App dictionary (our Easton's): available");
     const nave = await get("/bs/v1/naves/en/topics/faith");
-    requireStatus(nave, 200, "Bible Strong Nave");
+    requireStatus(nave, 200, "App topics");
     const topic = await nave.json();
-    if (topic.resource?.kind !== "nave" || !topic.topic?.description || topic.topic?.normalizedName !== "faith" || topic.resource?.revision?.startsWith("cj-")) throw new Error("Bible Strong Nave: the original Faith topic is missing.");
-    log("Bible Strong original Nave topic: available");
+    if (topic.resource?.kind !== "nave" || !topic.topic?.description || topic.topic?.normalizedName !== "faith" || !topic.resource?.revision?.startsWith("cj-")) throw new Error("App topics: our Faith topic is missing or Bible Strong's Nave is served.");
+    log("App topics (the classes' topics): available");
   }
   const query = "/api/search/answer?q=Melchizedek";
   requireStatus(await get(query), 401, "Unsigned search");
