@@ -63,6 +63,7 @@ import { firebaseAuth, firebaseAccount } from "./firebase-auth";
 import { appAsk } from "./app-ask";
 import { cors } from "hono/cors";
 import { nave } from "./nave";
+import { publishedStudies, publishedStudyPage } from "./published-studies";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -76,6 +77,9 @@ app.route("/api/auth/device", deviceAuth);
 app.route("/api/auth", browserAuth);
 app.route("/api/reader", publicReader);
 app.route("/api/nave", nave);
+// Studies a reader published from the app: they sign each change with Firebase themselves (published-studies.ts).
+app.route("/api/published-studies", publishedStudies);
+app.route("/app/published", publishedStudyPage);
 app.on(["GET", "HEAD"], "/api/audio/*", (c) => recordingAudio(c.req.raw, c.env));
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 
