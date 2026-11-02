@@ -1,0 +1,1 @@
+- Staging deploys again: its /app/* route already covers published studies, so the separate /app/published/* rule is dropped before deploying (wrangler rejected it as redundant).
