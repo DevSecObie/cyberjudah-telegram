@@ -1,0 +1,107 @@
+name: web
+
+# The CyberJudah web app at web.cyberjudah.io: the iPhone app's own web export, built from one
+# pinned commit of DevSecObie/cyberjudah-app with the store app's production settings (it reads
+# cyberjudah.io, like the App Store build). Runs only by hand, and the production environment's
+# reviewer approves it before anything goes live. Roll back with `wrangler rollback` on the
+# cyberjudah-web Worker (seconds); the Telegram Worker and the cyberjudah.io site are not touched.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-production
+  cancel-in-progress: false
+
+env:
+  # The app commit the iPhone build was checked against. Change it in a pull request.
+  APP_COMMIT: c5e2762cd590409a8031353677c96794d6110696
+
+jobs:
+  deploy:
+    environment:
+      name: production
+      url: https://web.cyberjudah.io/home
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CI: "1"
+      EXPO_NO_TELEMETRY: "1"
+      SENTRY_DISABLE_AUTO_UPLOAD: "true"
+      NODE_OPTIONS: --max-old-space-size=6144
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check out the app
+        uses: actions/checkout@v4
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: ${{ env.APP_COMMIT }}
+          path: cyberjudah-app
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Install the app
+        working-directory: cyberjudah-app
+        run: |
+          corepack enable
+          yarn workspaces focus @bible-strong/expo
+      - name: Use only the CyberJudah production settings
+        working-directory: cyberjudah-app
+        run: |
+          cp apps/expo/.env.cyberjudah.production.example apps/expo/.env.local
+          # Bible Strong's own environment files must not be loadable by the bundler.
+          rm -f apps/expo/.env.production apps/expo/.env.staging apps/expo/.env.development
+          # Only the app's public settings, for every later step's bundler process too.
+          grep -E '^(EXPO_PUBLIC_[A-Z0-9_]+|APP_NAME)=' apps/expo/.env.cyberjudah.production.example | sed -E 's/^([A-Z0-9_]+)="?([^"]*)"?$/\1=\2/' >> "$GITHUB_ENV"
+          echo NODE_ENV=production >> "$GITHUB_ENV"
+      - run: yarn workspace @bible-strong/expo typecheck
+        working-directory: cyberjudah-app
+      - name: Export the web app
+        working-directory: cyberjudah-app
+        run: yarn workspace @bible-strong/expo web:export
+      - name: Check the export
+        working-directory: cyberjudah-app
+        run: |
+          set -euo pipefail
+          node apps/expo/scripts/check-web-assets.mjs
+          # The production servers must be in the bundle, and the profile must be CyberJudah's.
+          grep -rqF 'https://cyberjudah.io/bs' apps/expo/dist/_expo/static/js/web || { echo "::error::The export does not read cyberjudah.io/bs: the production settings were not applied."; exit 1; }
+          grep -rqF 'cyberjudah-app.firebaseapp.com' apps/expo/dist/_expo/static/js/web || { echo "::error::The export does not use CyberJudah's Firebase project."; exit 1; }
+      - name: Stage the files
+        run: |
+          set -euo pipefail
+          rm -rf web/dist
+          cp -R cyberjudah-app/apps/expo/dist web/dist
+          # Every page: no MIME sniffing, no full URL sent to other sites, and no other site may
+          # show the app inside a frame. Expo names each script by its content, so those keep a year.
+          cat > web/dist/_headers <<'HEADERS'
+          /*
+            X-Content-Type-Options: nosniff
+            Referrer-Policy: strict-origin-when-cross-origin
+            Content-Security-Policy: frame-ancestors 'self'
+          /_expo/static/*
+            Cache-Control: public, max-age=31536000, immutable
+          HEADERS
+          sed -i 's/^          //' web/dist/_headers
+          cat web/dist/_headers
+          echo "staged $(find web/dist -type f | wc -l) files"
+      - run: npm ci --no-audit --no-fund
+      - name: Deploy the web Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler deploy --config web/wrangler.jsonc \
+            || { echo "::error::The deploy failed. If the message is about the custom domain or a zone, give the CLOUDFLARE_API_TOKEN the Zone · Workers Routes · Edit and Zone · DNS · Edit permissions for cyberjudah.io (Cloudflare dashboard → My Profile → API Tokens)."; exit 1; }
+      - name: Check web.cyberjudah.io
+        run: |
+          # A new custom domain can take a few minutes to get its certificate.
+          for i in $(seq 1 20); do
+            if curl -sf https://web.cyberjudah.io/home | grep -q '_expo/static/js/web/'; then echo "web.cyberjudah.io serves the app"; exit 0; fi
+            sleep 30
+          done
+          echo "::error::web.cyberjudah.io did not serve the app within 10 minutes."; exit 1

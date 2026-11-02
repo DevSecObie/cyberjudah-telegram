@@ -69,9 +69,10 @@ import { publishedStudies, publishedStudyPage } from "./published-studies";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
-// Bundled native readers have local webview origins. No cookie credentials are allowed
+// Bundled native readers have local webview origins, and the web app lives at web.cyberjudah.io.
+// No cookie credentials are allowed
 // across origins; private endpoints still require their existing signed authorization.
-app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
