@@ -13,6 +13,9 @@ rm -rf .deploy
 mkdir -p .deploy/app
 cp -r app/dist/. .deploy/
 cp -r app/dist/. .deploy/app/
+# The People module's people, places and groups, read by the /bs feed (src/bs/entities.ts).
+mkdir -p .deploy/bs-data/entities
+cp bot/data/entities/people.json .deploy/bs-data/entities/people.json
 # Vite names every file under assets/ by its content hash, so a browser may keep one for a
 # year without asking again; a new build references new names. index.html, sw.js and the
 # public files keep their names across builds and keep the default caching.

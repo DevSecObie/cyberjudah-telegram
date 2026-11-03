@@ -55,7 +55,9 @@ insert.run('class', 'God', '/classes/test', '', 'God', '', '');
 const db = { prepare(sql: string) {
   return { bind(...params: unknown[]) { const stmt = sqlite.prepare(sql); return { first: async () => stmt.get(...params), all: async () => ({ results: stmt.all(...params) }) }; } };
 } };
-const env = { DATA_ORIGIN: 'https://data.cyberjudah.io', DB: db, ASSETS: { fetch: () => { throw new Error('A /bs request fell through to the SPA'); } } };
+const peopleJson = await readFile(new URL('../../data/entities/people.json', import.meta.url), 'utf8');
+// The worker's static assets hold only the People module the feed reads; any other asset request is a /bs route falling through to the SPA.
+const env = { DATA_ORIGIN: 'https://data.cyberjudah.io', DB: db, ASSETS: { fetch: (r: Request) => { if (new URL(r.url).pathname === '/bs-data/entities/people.json') return Promise.resolve(new Response(peopleJson, { headers: { 'content-type': 'application/json' } })); throw new Error('A /bs request fell through to the SPA'); } } };
 beforeEach(async () => { await Promise.all(pending.splice(0)); data.clear(); for (const [key, value] of originals) data.set(key, structuredClone(value)); cache.clear(); fetched.length = 0; failure = undefined; });
 after(() => { globalThis.fetch = originalFetch; delete (globalThis as any).caches; sqlite.close(); });
 const covered = new Set<string>();
@@ -154,7 +156,7 @@ test('search uses real FTS5, applies filters before paging, counts all matches a
 
 test('lexicon routes, modules, cursors, batch cards and unavailable enhancements match schemas', async () => {
   await request('/v1/strong-lexicon/modules/core', Lexicon.StrongLexiconModuleStateDto);
-  const { json: module } = await request('/v1/strong-lexicon/modules/entities', Lexicon.StrongLexiconModuleStateDto); assert.equal(module.status, 'unavailable');
+  const { json: module } = await request('/v1/strong-lexicon/modules/entities', Lexicon.StrongLexiconModuleStateDto); assert.equal(module.status, 'available'); assert.match(module.revision, /^cj-entities-/);
   const { json: entry } = await request('/v1/strong-lexicon/entries/G03056?language=en', Lexicon.StrongLexiconEntryDto);
   assert.equal(entry.classicStrong, 'G3056'); assert.equal(entry.original, 'λόγος'); assert.equal(entry.stepCode, 'G3056');
   const { json: cards } = await request('/v1/strong-lexicon/entries/batch?language=en&identities=strong:H0001,strong:G3056,estrong:G3056A', Lexicon.StrongLexiconEntryCardsDto);
@@ -174,6 +176,14 @@ test('lexicon routes, modules, cursors, batch cards and unavailable enhancements
   await request('/v1/strong-lexicon/random?language=en&lexicalLanguage=greek', Lexicon.StrongLexiconSearchResponseDto);
   await request('/v1/strong-lexicon/morphologies?language=en&codes=N-NSM', Lexicon.StrongLexiconMorphologyResponseDto);
   await request('/v1/strong-lexicon/entities/chapters/John/1?language=en', Lexicon.StrongLexiconChapterEntitiesResponseDto);
+  // The People module the iPhone app downloads, read online: Matthew 1 names Jesus Christ, his page names his parents.
+  const { json: mat1 } = await request('/v1/strong-lexicon/entities/chapters/Mat/1?language=en', Lexicon.StrongLexiconChapterEntitiesResponseDto);
+  const jesus = mat1.entities.find((e: any) => e.uniqueName === 'jesus-mat-1-1');
+  assert.ok(jesus); assert.equal(jesus.name, 'Jesus Christ'); assert.ok(jesus.verses.includes(1));
+  const { json: page1 } = await request('/v1/strong-lexicon/entities/jesus-mat-1-1?language=en', Lexicon.StrongLexiconEntityResponseDto);
+  assert.equal(page1.entity.name, 'Jesus Christ'); assert.ok(page1.entity.relations.length);
+  const listed = await worker.fetch(new Request('https://cyberjudah.io/bs/v1/strong-lexicon/entities?language=en'), env as any, ctx as any);
+  const all = await listed.json() as any; assert.ok(all.entities.some((e: any) => e.category === 'place' && typeof e.latitude === 'number'));
   await request('/v1/strong-lexicon/entities/unknown?language=en', Problems.ResourceNotFoundProblem, { status: 404 });
 });
 

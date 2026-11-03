@@ -1,0 +1,2 @@
+- The Bishops' commentaries (Bishop Nathanyel, Bishop Yawasap, Bishop Kani) are served again on the live site, one commentary per Bishop, verse by verse, as on staging.
+- The Biblical entities (people, places and groups of the People module) are served to the web app, so they open on web.cyberjudah.io.
