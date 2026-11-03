@@ -1,0 +1,1 @@
+- A private MCP server at `/mcp` lets the owner's AI assistants read CyberJudah directly: the KJV with the Apocrypha, what the classes taught on a verse, class search with the moment in the video, People, the Timeline, the Law handbook, the precepts and the dictionaries. Every tool only reads, and the route answers nothing until the owner sets the `MCP_KEY` Worker secret.
