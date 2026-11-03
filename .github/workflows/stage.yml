@@ -1,6 +1,8 @@
 name: stage
 
-# Ready pull requests against main get deployed to the staging worker; drafts run checks only.
+# Pull requests run the checks only. Staging is deployed only when someone runs this workflow by
+# hand (Actions → stage → Run workflow, on the branch to try), because the TestFlight beta reads
+# staging and a pull request must never change what testers see (owner's pick, 2026-11-03).
 # This exercises the bot, the app
 # and the hourly jobs are exercised against staging resources before anything reaches
 # production. Production (deploy.yml) still only runs on pushes to main.
@@ -34,8 +36,8 @@ jobs:
     if: ${{ !inputs.verify_only && !inputs.diagnose_login }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -50,9 +52,8 @@ jobs:
           CYBERJUDAH_APP_BASE: /app/
 
   stage:
-    # CMS review branches require an owner workflow_dispatch to stage, even when ready.
-    # Dependabot's pull request runs get no repository secrets, so they cannot deploy to staging.
-    if: ${{ !inputs.verify_only && !inputs.diagnose_login && github.actor != 'dependabot[bot]' && github.event.pull_request.user.login != 'dependabot[bot]' && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))) }}
+    # Only by hand: the TestFlight beta reads staging, so pull requests never deploy it.
+    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.verify_only && !inputs.diagnose_login && github.actor != 'dependabot[bot]' }}
     needs: check
     runs-on: ubuntu-latest
     environment:
@@ -75,8 +76,8 @@ jobs:
             exit 1
           fi
           echo "All four staging secrets are set."
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -88,7 +89,7 @@ jobs:
           VITE_ACCOUNT_SYNC_SCOPE: staging
           CYBERJUDAH_APP_BASE: /app/
       - name: Check out the Bible Strong app port
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           repository: DevSecObie/cyberjudah-app
           ref: 4a04c2e2d75ab29009718a8e62c1edc98ba6f35e
@@ -107,7 +108,7 @@ jobs:
           rm -rf ../app/dist
           cp -R apps/expo/dist ../app/dist
       - name: Check out the native release files
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           repository: DevSecObie/cyberjudah-app
           ref: 82e732304ea41e32ea5767c86c3075c081764a80
@@ -229,10 +230,11 @@ jobs:
   verify-current:
     if: github.event_name == 'workflow_dispatch' && (inputs.verify_only || inputs.diagnose_login)
     runs-on: ubuntu-latest
+    environment: staging
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
       - name: Resolve the staging worker address

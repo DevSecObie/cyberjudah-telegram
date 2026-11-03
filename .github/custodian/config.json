@@ -1,0 +1,109 @@
+{
+  "label": "custodian",
+  "health_issue_title": "Deployment health",
+  "owner_mention": "@DevSecObie",
+  "recent_days": 14,
+  "max_deletions_per_run": 100,
+  "stale_pr_hours": 48,
+  "inactive_environment_days": 30,
+  "keep_branches": [],
+  "required_secrets": [
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "BOT_TOKEN",
+    "STAGING_BOT_TOKEN",
+    "CYBERJUDAH_TOKEN"
+  ],
+  "endpoints": [
+    {
+      "name": "Production Worker health",
+      "url": "https://cyberjudah-telegram.oisrae1.workers.dev/api/health"
+    },
+    {
+      "name": "Mini App at cyberjudah.io/app",
+      "url": "https://cyberjudah.io/app/"
+    },
+    {
+      "name": "Web app",
+      "url": "https://web.cyberjudah.io/home"
+    },
+    {
+      "name": "Staging Worker health",
+      "url": "https://cyberjudah-telegram-staging.oisrae1.workers.dev/api/health",
+      "critical": false
+    }
+  ],
+  "release": {
+    "workflow": "deploy.yml",
+    "branch": "main",
+    "event": "push"
+  },
+  "watch_repos": [
+    "DevSecObie/cyberjudah",
+    "DevSecObie/open-ota",
+    "DevSecObie/cyberjudah-app"
+  ],
+  "watch_workflows": [
+    {
+      "name": "Production deploy (Telegram Worker)",
+      "file": "deploy.yml",
+      "event": "push",
+      "branch": "main"
+    },
+    {
+      "name": "Web app deploy (web.cyberjudah.io)",
+      "file": "web.yml"
+    },
+    {
+      "name": "Staging deploys (pull requests)",
+      "file": "stage.yml",
+      "critical": false
+    },
+    {
+      "name": "Daily live check of production",
+      "file": "live-smoke.yml"
+    },
+    {
+      "name": "Rollback (by hand)",
+      "file": "rollback.yml",
+      "critical": false
+    },
+    {
+      "name": "Security scan",
+      "file": "security.yml",
+      "event": "push",
+      "critical": false
+    }
+  ],
+  "ota_watch": {
+    "url": "https://updates.cyberjudah.io/manifest",
+    "channels": [
+      "production",
+      "staging"
+    ],
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "runtimes": [
+      "28.3"
+    ],
+    "client_id": "custodian-ota-watch"
+  },
+  "revert": {
+    "workflow": "deploy",
+    "live_step": "Deploy the worker",
+    "rollback_step": "Roll back a release that failed after going live"
+  },
+  "production_only_secrets": [
+    "WEBHOOK_SECRET",
+    "PRIVACY_KEY",
+    "STAGING_WEBHOOK_SECRET",
+    "TELEGRAM_LOGIN_CLIENT_ID",
+    "TELEGRAM_LOGIN_CLIENT_SECRET",
+    "VAPID_PUBLIC_KEY",
+    "VAPID_PRIVATE_KEY",
+    "VAPID_SUBJECT",
+    "CF_AIG_TOKEN"
+  ]
+}

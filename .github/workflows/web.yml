@@ -18,7 +18,7 @@ concurrency:
 
 env:
   # The app commit the iPhone build was checked against. Change it in a pull request.
-  APP_COMMIT: 1301cb773ad266fef1007336dd70b5a8a6e8b0c6
+  APP_COMMIT: a3569cd5a75c072cbc922d01e67ad383e1cddef6
 
 jobs:
   deploy:
@@ -33,15 +33,15 @@ jobs:
       SENTRY_DISABLE_AUTO_UPLOAD: "true"
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Check out the app
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           repository: DevSecObie/cyberjudah-app
           ref: ${{ env.APP_COMMIT }}
           path: cyberjudah-app
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
       - name: Install the app
