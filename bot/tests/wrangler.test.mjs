@@ -57,3 +57,23 @@ test("only staging exempts the release check's synthetic reader from the search 
   assert.equal(config.vars.SEARCH_AI_QUOTA_EXEMPT, "");
   assert.equal(config.env.staging.vars.SEARCH_AI_QUOTA_EXEMPT, "1");
 });
+
+test("signed-in requests are limited per person; per-address limits leave room for a class on one Wi-Fi", () => {
+  for (const env of [config, config.env.staging]) {
+    const limit = name => env.ratelimits.find(r => r.name === name)?.simple.limit;
+    assert.equal(limit("FIREBASE_UID_LIMIT"), 60);
+    assert.ok(limit("FIREBASE_SESSION_LIMIT") >= 600);
+    assert.ok(limit("READER_LIMIT") >= 600);
+  }
+  const ids = [...config.ratelimits, ...config.env.staging.ratelimits].map(r => r.namespace_id);
+  assert.equal(new Set(ids).size, ids.length, "every limiter has its own namespace");
+});
+
+test("free Ask answers stay inside Workers AI's free daily allowance (the owner spends $0)", () => {
+  const prod = Number(config.vars.ASK_FREE_DAILY_USD_CAP), staging = Number(config.env.staging.vars.ASK_FREE_DAILY_USD_CAP);
+  assert.ok(prod + staging <= 0.11, `${prod} + ${staging} is over the free allowance`);
+  for (const vars of [config.vars, config.env.staging.vars]) {
+    assert.equal(vars.ASK_DAILY_LIMIT, "20");
+    assert.equal(vars.ASK_CLAUDE_FOR_READERS, "off");
+  }
+});

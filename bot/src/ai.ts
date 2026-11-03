@@ -113,7 +113,11 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
 }
 
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; ms: number } | { ok: false; reason: string };
-const ASK_LIMIT = 100;
+/** Ask answers a day per person (ASK_DAILY_LIMIT; a hundred when unset). */
+export function askLimit(env: Env): number {
+  const n = Number(env.ASK_DAILY_LIMIT);
+  return Number.isInteger(n) && n > 0 ? n : 100;
+}
 
 /** A verse's reading voice: fifty new generations a day per person; the cache is free. */
 const TTS_LIMIT = 50;
@@ -154,9 +158,9 @@ export async function sweepRateCounts(env: Env, now = Date.now()): Promise<numbe
   return Number((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0);
 }
 
-/** A hundred answers a day per person. */
+/** ASK_DAILY_LIMIT answers a day per person. */
 async function allowed(env: Env, userId: number): Promise<boolean> {
-  return takeQuota(env, "ask", userId, ASK_LIMIT);
+  return takeQuota(env, "ask", userId, askLimit(env));
 }
 
 /**
@@ -433,7 +437,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const key = await cacheKey(question, history, model.id, mode, APP_STUDY_RELEASE.version);
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
-  if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+  if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
   const cfg = creditsConfig(env);
   const budget = Math.min(estimateMc(model, cfg, { rounds: options.study ? 2 : 1 }).maxMc * MC_USD, freeMaxUsd(env));
   let reservation: FreeReservation | null;
@@ -488,7 +492,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   } else if (model.format === "anthropic") {
     // A signed-in reader on Claude (claudeForReaders): the reader's daily limit, then the answer's
     // most is reserved against Claude's own daily cap. Past the cap the free model answers.
-    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
     const budget = readerClaudeMaxUsd(env);
     let reservation: FreeReservation | null = null;
     try { reservation = budget > 0 ? await reserveFreeBudget(env, crypto.randomUUID(), budget, Date.now(), { prefix: "claude:", capUsd: readerClaudeCap(env) }) : null; }
@@ -500,7 +504,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     }
     meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: creditsConfig(env).research }), model, free: true, admin: false, reservation, maxRounds: 4 };
   } else {
-    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
     const cfg = creditsConfig(env);
     const rounds = freeMaxRounds(env);
     const budget = Math.min(estimateMc(model, cfg, { rounds }).maxMc * MC_USD, freeMaxUsd(env));

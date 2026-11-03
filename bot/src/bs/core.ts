@@ -100,16 +100,34 @@ export async function sha(value: unknown) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(value)));
   return [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
+/**
+ * Parsed data files kept in this server copy's memory for a few minutes, so a busy screen does not
+ * re-read and re-parse the same file (the Strong's list is 1.6 MB) on every request. Callers treat
+ * loaded data as read-only. The data set changes at most a few times a day; the edge cache below
+ * already holds a file for an hour.
+ */
+const MEMO_MS = 10 * 60_000, MEMO_MAX = 48;
+const memo = new Map<string, { at: number; data: unknown }>();
+/** Tests only: forget the files kept in memory. */
+export function forgetLoaded() { memo.clear(); }
+function remember(url: string, data: unknown) {
+  memo.delete(url);
+  memo.set(url, { at: Date.now(), data });
+  while (memo.size > MEMO_MAX) memo.delete(memo.keys().next().value!);
+}
 export async function load<T>(c: Ctx, path: string, optional = false): Promise<T> {
   const url = `${c.env.DATA_ORIGIN.replace(/\/$/, '')}${path}`;
+  const kept = memo.get(url);
+  if (kept && Date.now() - kept.at < MEMO_MS) return kept.data as T;
   const cache = typeof caches === 'undefined' ? undefined : caches.default;
   try {
     const hit = await cache?.match(url);
-    if (hit) return await hit.json() as T;
+    if (hit) { const data = await hit.json() as T; remember(url, data); return data; }
     const response = await fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
     if (response.status === 404 && optional) return null as T;
     if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
     const data = await response.json() as T;
+    remember(url, data);
     if (cache) {
       const put = cache.put(url, new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' } }));
       try { c.executionCtx.waitUntil(put); } catch { await put; }
