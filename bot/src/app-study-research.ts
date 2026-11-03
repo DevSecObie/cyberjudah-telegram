@@ -339,10 +339,16 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
     try {
       const books = await library();
       const reads = books.flatMap(b => b.reads.filter(r => moments.some(m => m.video === r.video)).map(r => ({ b, r, near: Math.min(...moments.filter(m => m.video === r.video).map(m => Math.abs((r.t ?? 0) - m.t))) })))
-        .sort((x, y) => x.near - y.near).filter((x, i, all) => all.findIndex(y => y.b.slug === x.b.slug && y.r.vol === x.r.vol && y.r.page === x.r.page) === i).slice(0, 3);
-      for (const { b, r } of reads) {
+        .sort((x, y) => x.near - y.near).filter((x, i, all) => all.findIndex(y => y.b.slug === x.b.slug && y.r.vol === x.r.vol && y.r.page === x.r.page) === i).slice(0, 8);
+      let added = 0;
+      for (const { b, r, near } of reads) {
+        if (added >= 3) break;
         const url = `/books/${b.slug}/p/${r.vol}-${r.page}`, page = await pageText(b.slug, b.chapters, r.vol, r.page, r.video);
-        if (page) add({ kind: 'book', title: b.title, url, sub: [b.by, page.sub, 'read in class', 'reference material'].filter(Boolean).join(' · '), text: `${page.text.slice(0, 1800)}\n${readIn(r)}${page.said ? `\nWhat the class said there: ${page.said.slice(0, 500)}` : ''}` });
+        // Only a page read near the moment found, or one that speaks to the question itself.
+        const low = page ? `${page.text} ${page.said}`.toLowerCase() : '';
+        if (!page || (near > 900 && !asked.some(w => low.includes(w)))) continue;
+        added++;
+        add({ kind: 'book', title: b.title, url, sub: [b.by, page.sub, 'read in class', 'reference material'].filter(Boolean).join(' · '), text: `${page.text.slice(0, 1800)}\n${readIn(r)}${page.said ? `\nWhat the class said there: ${page.said.slice(0, 500)}` : ''}` });
       }
     } catch { unavailable.push('library'); }
   },
