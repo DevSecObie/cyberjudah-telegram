@@ -6,6 +6,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    environment: automation
     timeout-minutes: 15
     env:
       WORKER_URL: ${{ vars.WORKER_URL || 'https://cyberjudah.io' }}
