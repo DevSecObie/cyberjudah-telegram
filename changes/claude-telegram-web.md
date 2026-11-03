@@ -1,1 +1,2 @@
 - The Telegram bot's "Open" buttons (chat button and inline-query button) open web.cyberjudah.io in production, through a new WEB_APP_URL setting. Staging leaves it empty and keeps the Worker's own Mini App. The bot itself, its commands and its links stay the same; the BotFather menu link is changed by hand.
+- web.cyberjudah.io may now be framed by Telegram Web (https://web.telegram.org) so the bot's Open button works there too; every other site is still refused.
