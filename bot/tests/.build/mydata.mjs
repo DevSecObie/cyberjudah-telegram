@@ -152,20 +152,6 @@ async function removeAccountLink(env, id2) {
 
 // src/firebase-auth.ts
 import { bodyLimit } from "hono/body-limit";
-
-// src/app-identity.ts
-async function limitSession(request, env) {
-  if (!env.FIREBASE_SESSION_LIMIT || !env.PRIVACY_KEY) throw new IdentityError(503, "firebase_sign_in_unavailable");
-  const key2 = await keyedHash(env, "firebase-session-ip", request.headers.get("cf-connecting-ip") ?? "unknown");
-  if (!(await env.FIREBASE_SESSION_LIMIT.limit({ key: key2 })).success) throw new IdentityError(429, "sign_in_rate_limited");
-}
-async function limitPerson(env, uid) {
-  if (!env.FIREBASE_UID_LIMIT) return;
-  const key2 = await keyedHash(env, "firebase-session-uid", uid);
-  if (!(await env.FIREBASE_UID_LIMIT.limit({ key: key2 })).success) throw new IdentityError(429, "sign_in_rate_limited");
-}
-
-// src/firebase-auth.ts
 import { Hono } from "hono";
 import { importPKCS8, SignJWT } from "jose";
 
@@ -298,9 +284,10 @@ firebaseAuth.post("/link", async (c) => {
 async function firebaseAccount(request, env, recent = false) {
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return null;
-  await limitSession(request, env);
+  if (!env.FIREBASE_SESSION_LIMIT || !env.PRIVACY_KEY) throw new IdentityError(503, "firebase_sign_in_unavailable");
+  const key2 = await keyedHash(env, "firebase-session-ip", request.headers.get("cf-connecting-ip") ?? "unknown");
+  if (!(await env.FIREBASE_SESSION_LIMIT.limit({ key: key2 })).success) throw new IdentityError(429, "sign_in_rate_limited");
   const identity = await verifyFirebaseIdentity(header.slice(7), recent);
-  await limitPerson(env, identity.uid);
   const id2 = await linkedTelegram(env, identity.uid);
   return { identity, user: id2 ? { id: id2, first_name: identity.name } : null };
 }
