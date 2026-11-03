@@ -8,6 +8,10 @@ if (!origin || !/^https:\/\/cyberjudah-telegram-staging\.[a-z0-9-]+\.workers\.de
   process.exit(2);
 }
 const visits = Math.min(5000, Number(visitsArg)), parallel = Math.min(200, Number(parallelArg));
+if (!Number.isInteger(visits) || visits < 1 || !Number.isInteger(parallel) || parallel < 1) {
+  console.error("Visits and visits at the same time must be whole numbers of 1 or more.");
+  process.exit(2);
+}
 const letters = "abcdefghijklmnopqrstuvwxyz";
 const visit = i => [
   "/bs/v1/bibles/KJV/coverage",

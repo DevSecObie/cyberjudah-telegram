@@ -107,13 +107,30 @@ export async function sha(value: unknown) {
  * already holds a file for an hour.
  */
 const MEMO_MS = 10 * 60_000, MEMO_MAX = 48;
-const memo = new Map<string, { at: number; data: unknown }>();
+/** Kept files' source size, in characters; a Worker has 128 MB, and parsed JSON is several times
+ * its text. One file larger than MEMO_FILE_MAX is never kept. */
+const MEMO_TOTAL_MAX = 12_000_000, MEMO_FILE_MAX = 3_000_000;
+const memo = new Map<string, { at: number; size: number; data: unknown }>();
+let memoSize = 0;
 /** Tests only: forget the files kept in memory. */
-export function forgetLoaded() { memo.clear(); }
-function remember(url: string, data: unknown) {
-  memo.delete(url);
-  memo.set(url, { at: Date.now(), data });
-  while (memo.size > MEMO_MAX) memo.delete(memo.keys().next().value!);
+export function forgetLoaded() { memo.clear(); memoSize = 0; }
+function forget(url: string) {
+  const old = memo.get(url);
+  if (old) { memoSize -= old.size; memo.delete(url); }
+}
+function remember(url: string, data: unknown, size: number) {
+  forget(url);
+  if (size > MEMO_FILE_MAX) return;
+  memo.set(url, { at: Date.now(), size, data });
+  memoSize += size;
+  while (memo.size > MEMO_MAX || memoSize > MEMO_TOTAL_MAX) forget(memo.keys().next().value!);
+}
+/** Parses a response, keeping it in memory when it is small enough. */
+async function parse<T>(url: string, response: Response): Promise<T> {
+  const text = await response.text();
+  const data = JSON.parse(text) as T;
+  remember(url, data, text.length);
+  return data;
 }
 export async function load<T>(c: Ctx, path: string, optional = false): Promise<T> {
   const url = `${c.env.DATA_ORIGIN.replace(/\/$/, '')}${path}`;
@@ -122,12 +139,11 @@ export async function load<T>(c: Ctx, path: string, optional = false): Promise<T
   const cache = typeof caches === 'undefined' ? undefined : caches.default;
   try {
     const hit = await cache?.match(url);
-    if (hit) { const data = await hit.json() as T; remember(url, data); return data; }
+    if (hit) return await parse<T>(url, hit);
     const response = await fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
     if (response.status === 404 && optional) return null as T;
     if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
-    const data = await response.json() as T;
-    remember(url, data);
+    const data = await parse<T>(url, response);
     if (cache) {
       const put = cache.put(url, new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' } }));
       try { c.executionCtx.waitUntil(put); } catch { await put; }
