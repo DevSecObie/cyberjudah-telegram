@@ -55,7 +55,7 @@ async function resourceJson(env: Env, path: string) {
 export function createAppResearch(env: Env, initial: Passage[], emit: (e: { status: string }) => void, ctx?: Exec) {
   const sources: StudySource[] = [], unavailable: string[] = [];
   let activeSearch = 0;
-  const add = (p: Passage & { thumb?: string }) => {
+  const add = (p: Passage & { thumb?: string; entity?: string }) => {
     const old = sources.find(s => s.url === p.url && s.sub === p.sub && s.t === p.t);
     if (old) return { n: old.n, fresh: false };
     if (sources.length >= APP_STUDY_RELEASE.maxEvidenceSources || !p.text.trim()) return null;
@@ -71,7 +71,7 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
   };
   const run = async ({ resource, query }: Request) => {
     const search = ++activeSearch;
-    const addCurrent = (p: Passage & { thumb?: string }) => search === activeSearch ? add(p) : null;
+    const addCurrent = (p: Passage & { thumb?: string; entity?: string }) => search === activeSearch ? add(p) : null;
     emit({ status: `Searching ${resource.replaceAll('-', ' ')} for “${query}”` });
     if (resource === 'transcripts') {
       const hits = await searchTeachings(env, query, '', 0);
@@ -161,7 +161,7 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
         // The site has no place page yet; the place's first verse opens in the reader today.
         const first = /^([a-z0-9-]+)\/(\d+)\/(\d+)$/.exec(Array.isArray(place.verses) ? String(place.verses[0] ?? '') : '');
         if (!first) continue;
-        addCurrent({ kind: 'place', title: str(place.name) || title(row), url: `/bible/${first[1]}/${first[2]}#v${first[3]}`, sub: 'Place', text: [str(place.description), names && `Also called: ${names}.`, Array.isArray(place.verses) ? `Named in ${place.verses.slice(0, 6).map(v => String(v).replace(/^([a-z0-9-]+)\/(\d+)\/(\d+)$/, (_, b: string, c: string, n: string) => `${b.replace(/-/g, ' ')} ${c}:${n}`)).join('; ')}.` : ''].filter(Boolean).join('\n') });
+        addCurrent({ kind: 'place', entity: id, title: str(place.name) || title(row), url: `/bible/${first[1]}/${first[2]}#v${first[3]}`, sub: 'Place', text: [str(place.description), names && `Also called: ${names}.`, Array.isArray(place.verses) ? `Named in ${place.verses.slice(0, 6).map(v => String(v).replace(/^([a-z0-9-]+)\/(\d+)\/(\d+)$/, (_, b: string, c: string, n: string) => `${b.replace(/-/g, ' ')} ${c}:${n}`)).join('; ')}.` : ''].filter(Boolean).join('\n') });
       }
       return;
     }
