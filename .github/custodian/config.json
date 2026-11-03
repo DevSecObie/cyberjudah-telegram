@@ -11,12 +11,7 @@
     "CLOUDFLARE_API_TOKEN",
     "CLOUDFLARE_ACCOUNT_ID",
     "BOT_TOKEN",
-    "WEBHOOK_SECRET",
-    "PRIVACY_KEY",
     "STAGING_BOT_TOKEN",
-    "STAGING_WEBHOOK_SECRET",
-    "TELEGRAM_LOGIN_CLIENT_ID",
-    "TELEGRAM_LOGIN_CLIENT_SECRET",
     "CYBERJUDAH_TOKEN"
   ],
   "endpoints": [
@@ -80,10 +75,35 @@
       "critical": false
     }
   ],
-  "environment_secrets_note": "Secrets kept only inside an environment (production, staging) are not visible to this report; deploy.yml checks its own when it runs.",
+  "ota_watch": {
+    "url": "https://updates.cyberjudah.io/manifest",
+    "channels": [
+      "production",
+      "staging"
+    ],
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "runtimes": [
+      "28.3"
+    ],
+    "client_id": "custodian-ota-watch"
+  },
   "revert": {
     "workflow": "deploy",
     "live_step": "Deploy the worker",
     "rollback_step": "Roll back a release that failed after going live"
-  }
+  },
+  "production_only_secrets": [
+    "WEBHOOK_SECRET",
+    "PRIVACY_KEY",
+    "STAGING_WEBHOOK_SECRET",
+    "TELEGRAM_LOGIN_CLIENT_ID",
+    "TELEGRAM_LOGIN_CLIENT_SECRET",
+    "VAPID_PUBLIC_KEY",
+    "VAPID_PRIVATE_KEY",
+    "VAPID_SUBJECT",
+    "CF_AIG_TOKEN"
+  ]
 }

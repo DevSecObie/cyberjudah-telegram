@@ -17,6 +17,7 @@ on:
     types: [closed]
   schedule:
     - cron: "37 12 * * *"
+    - cron: "*/15 * * * *"
   # After each production deploy finishes, refresh the report (and, for a deploy that failed
   # after going live, propose a revert).
   workflow_run:
@@ -27,7 +28,7 @@ on:
       task:
         description: "What to run"
         type: choice
-        options: [health, branches]
+        options: [health, branches, ota]
         default: health
       backlog:
         description: "branches: include every merged branch, not only the last 14 days"
@@ -70,7 +71,7 @@ jobs:
 
   branches:
     if: >-
-      github.event_name == 'schedule' ||
+      (github.event_name == 'schedule' && github.event.schedule == '37 12 * * *') ||
       (github.event_name == 'workflow_dispatch' && inputs.task == 'branches')
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -95,11 +96,15 @@ jobs:
     needs: [branches]
     if: >-
       ${{ !cancelled() && (
-      github.event_name == 'schedule' ||
+      (github.event_name == 'schedule' && github.event.schedule == '37 12 * * *') ||
       (github.event_name == 'workflow_dispatch' && inputs.task == 'health') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.event != 'pull_request')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Secrets for unattended jobs live in the "automation" environment (main only, no reviewer).
+    environment:
+      name: automation
+      deployment: false
     permissions:
       contents: read
       actions: read
@@ -120,20 +125,12 @@ jobs:
               "CLOUDFLARE_API_TOKEN": ${{ secrets.CLOUDFLARE_API_TOKEN != '' }},
               "CLOUDFLARE_ACCOUNT_ID": ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }},
               "BOT_TOKEN": ${{ secrets.BOT_TOKEN != '' }},
-              "WEBHOOK_SECRET": ${{ secrets.WEBHOOK_SECRET != '' }},
-              "PRIVACY_KEY": ${{ secrets.PRIVACY_KEY != '' }},
               "STAGING_BOT_TOKEN": ${{ secrets.STAGING_BOT_TOKEN != '' }},
-              "STAGING_WEBHOOK_SECRET": ${{ secrets.STAGING_WEBHOOK_SECRET != '' }},
-              "TELEGRAM_LOGIN_CLIENT_ID": ${{ secrets.TELEGRAM_LOGIN_CLIENT_ID != '' }},
-              "TELEGRAM_LOGIN_CLIENT_SECRET": ${{ secrets.TELEGRAM_LOGIN_CLIENT_SECRET != '' }},
               "CYBERJUDAH_TOKEN": ${{ secrets.CYBERJUDAH_TOKEN != '' }},
               "ANTHROPIC_API_KEY": ${{ secrets.ANTHROPIC_API_KEY != '' }},
               "APP_REPO_TOKEN": ${{ secrets.APP_REPO_TOKEN != '' }},
               "ADMIN_IDS": ${{ secrets.ADMIN_IDS != '' }},
-              "VAPID_PUBLIC_KEY": ${{ secrets.VAPID_PUBLIC_KEY != '' }},
-              "VAPID_PRIVATE_KEY": ${{ secrets.VAPID_PRIVATE_KEY != '' }},
-              "VAPID_SUBJECT": ${{ secrets.VAPID_SUBJECT != '' }},
-              "CF_AIG_TOKEN": ${{ secrets.CF_AIG_TOKEN != '' }}
+              "CUSTODIAN_ALERT_CHAT_ID": ${{ secrets.CUSTODIAN_ALERT_CHAT_ID != '' }}
             }
           # Used only to ask Cloudflare, Telegram and GitHub whether each token still works and
           # when it expires. custodian.py never prints them, nor any error text that could hold one.
@@ -175,3 +172,31 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
         run: python3 .github/custodian/custodian.py revert "run_id=$RUN_ID"
+
+  ota-watch:
+    # Alerts the owner when what updates.cyberjudah.io serves changes (publish, promote, rollback or a
+    # rollout reaching every device). It reads only the public manifest endpoint, as one fixed
+    # device id, and holds no update-server secret.
+    if: >-
+      (github.event_name == 'schedule' && github.event.schedule == '*/15 * * * *') ||
+      (github.event_name == 'workflow_dispatch' && inputs.task == 'ota')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Secrets for unattended jobs live in the "automation" environment (main only, no reviewer).
+    environment:
+      name: automation
+      deployment: false
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: .github/custodian
+          persist-credentials: false
+      - name: Check what the update server serves
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ALERT_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ALERT_CHAT_IDS: ${{ secrets.CUSTODIAN_ALERT_CHAT_ID || secrets.ADMIN_IDS }}
+        run: python3 .github/custodian/custodian.py ota

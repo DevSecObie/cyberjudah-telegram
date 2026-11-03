@@ -24,6 +24,7 @@ import datetime as dt
 import fnmatch
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.error
@@ -280,6 +281,9 @@ def secret_checks(cfg):
     rows, problems = [], []
     present = json.loads(os.environ.get("CUSTODIAN_SECRETS_PRESENT", "{}") or "{}")
     required = set(cfg.get("required_secrets", []))
+    for name in sorted(cfg.get("production_only_secrets", [])):
+        # Kept inside a deploy environment, behind the owner's Approve. This job never asks for them.
+        rows.append((name, "kept in a deploy environment behind your Approve (not checked here)"))
     for name in sorted(present):
         ok = present[name] is True or present[name] == "true"
         state = "set" if ok else ("**missing**" if name in required else "not set (optional)")
@@ -558,6 +562,23 @@ def other_repos(cfg):
 ALERT_MARK = "<!-- custodian-alerted:"
 
 
+def telegram(text):
+    """Send one message to the owner. Returns True when at least one chat got it. Never prints the token."""
+    token = os.environ.get("ALERT_BOT_TOKEN", "")
+    chats = [c.strip() for c in os.environ.get("ALERT_CHAT_IDS", "").split(",") if c.strip()]
+    sent = False
+    for chat in chats[:3]:
+        data = urllib.parse.urlencode({"chat_id": chat, "text": text, "disable_web_page_preview": "true"}).encode()
+        try:
+            # The token is part of the URL, so no exception text from this call is ever printed.
+            urllib.request.urlopen(f"https://api.telegram.org/bot{token}/sendMessage", data=data, timeout=20).read()
+            sent = True
+        except Exception:
+            pass
+    print("Telegram alert sent." if sent else "Telegram alert could not be sent.")
+    return sent
+
+
 def send_alerts(cfg, issue, problems, others):
     """Message the owner on Telegram about problems not alerted before. Never prints the token."""
     token = os.environ.get("ALERT_BOT_TOKEN", "")
@@ -581,19 +602,13 @@ def send_alerts(cfg, issue, problems, others):
         else:
             text = "CyberJudah deploy watch: all clear again."
         text += f"\n\n{issue.get('html_url', '')}"
-        for chat in chats[:3]:
-            data = urllib.parse.urlencode({"chat_id": chat, "text": text, "disable_web_page_preview": "true"}).encode()
-            try:
-                # The token is part of the URL, so no exception text from this call is ever printed.
-                urllib.request.urlopen(f"https://api.telegram.org/bot{token}/sendMessage", data=data, timeout=20).read()
-                print("Telegram alert sent.")
-                sent = True
-            except Exception:
-                print("Telegram alert could not be sent.")
+        sent = telegram(text)
     if not sent:
         return  # try again on the next run
     # Remember what was alerted, so the same problem is never sent twice.
-    body = body.split(ALERT_MARK, 1)[0].rstrip() + f"\n{ALERT_MARK}{json.dumps(keys)}-->"
+    head, _, tail = body.partition(ALERT_MARK)
+    tail = tail.split("-->", 1)[1] if "-->" in tail else ""
+    body = head.rstrip() + f"\n{ALERT_MARK}{json.dumps(keys)}-->" + tail
     gh("PATCH", f"/repos/{REPO}/issues/{issue['number']}", {"body": body})
 
 
@@ -626,9 +641,10 @@ def upsert_issue(cfg, body, problems):
         except Exception:
             old = []
     full = body + f"\n\n{MARK}{json.dumps(problems)}-->"
-    kept = (issue.get("body") or "").split(ALERT_MARK, 1) if issue else [""]
-    if len(kept) == 2:
-        full += f"\n{ALERT_MARK}" + kept[1].split("-->", 1)[0] + "-->"
+    for keep in (ALERT_MARK, OTA_MARK):
+        kept = (issue.get("body") or "").split(keep, 1) if issue else [""]
+        if len(kept) == 2:
+            full += f"\n{keep}" + kept[1].split("-->", 1)[0] + "-->"
     if issue:
         gh("PATCH", f"/repos/{REPO}/issues/{issue['number']}", {"body": full})
     else:
@@ -646,6 +662,92 @@ def upsert_issue(cfg, body, problems):
         text = " ".join(msg) + (f" {owner}" if owner and new else "")
         gh("POST", f"/repos/{REPO}/issues/{issue['number']}/comments", {"body": text})
     return issue
+
+
+# ---------------------------------------------------------------- app update watch
+
+OTA_MARK = "<!-- custodian-ota:"
+
+
+def ota_serving(url, channel, platform, runtime, client_id=""):
+    """What the public manifest endpoint serves a device with no update yet: an update id, a directive or an error."""
+    headers = {
+        "User-Agent": "repo-custodian", "expo-protocol-version": "1", "expo-platform": platform,
+        "expo-runtime-version": runtime, "expo-channel-name": channel,
+        "accept": "multipart/mixed,application/expo+json,application/json"}
+    if client_id:
+        # One fixed id, so the watch shows up as a single device in the update server's metrics.
+        headers["eas-client-id"] = client_id
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            raw = r.read(2_000_000).decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        return f"error {e.code}"
+    except Exception as e:
+        return f"error {type(e).__name__}"
+    for part in ("manifest", "directive"):
+        tag = f'name="{part}"'
+        if tag in raw:
+            body = raw.split(tag, 1)[1]
+            body = body.split("\r\n\r\n", 1)[-1] if "\r\n\r\n" in body else body.split("\n\n", 1)[-1]
+            body = body.split("\n--", 1)[0].strip()
+            try:
+                doc = json.loads(body)
+            except Exception:
+                return f"unreadable {part}"
+            # Server text goes into a chat message and an issue comment: keep it short and plain.
+            clean = lambda v: re.sub(r"[^A-Za-z0-9._:-]", "", str(v))[:64] or "?"
+            if part == "manifest":
+                return "update " + clean(doc.get("id", "?"))
+            return clean(doc.get("type", "directive"))
+    return "no update"
+
+
+def cmd_ota(cfg, args):
+    """Alert the owner whenever what the update server serves changes (a publish, promote, rollback or rollout
+    reaching every device). Uses only the public manifest endpoint: no update-server secret is needed."""
+    w = cfg.get("ota_watch")
+    if not w:
+        print("No update server to watch.")
+        return 0
+    now = {}
+    for ch in w.get("channels", []):
+        for pf in w.get("platforms", ["ios", "android"]):
+            for rt in w.get("runtimes", []):
+                now[f"{ch} {pf} {rt}"] = ota_serving(w["url"], ch, pf, rt, w.get("client_id", ""))
+    for k, v in sorted(now.items()):
+        print(f"{k}: {v}")
+    issue = find_issue(cfg)
+    if not issue:
+        print("No Deployment health issue yet; the next health run creates it.")
+        return 0
+    body = gh("GET", f"/repos/{REPO}/issues/{issue['number']}").get("body") or ""
+    before = read_marker(body, OTA_MARK)
+    changed = [(k, (before or {}).get(k), v) for k, v in sorted(now.items())
+               if before is not None and (before or {}).get(k) != v and not v.startswith("error")]
+    errors = [k for k, v in now.items() if v.startswith("error")]
+    if errors:
+        print("Could not read: " + ", ".join(sorted(errors)))
+    if changed:
+        lines = [f"• {k}: {old or 'nothing recorded'} → {new}" for k, old, new in changed]
+        text = ("CyberJudah app updates changed on updates.cyberjudah.io. If you did not publish or roll back, "
+                "treat it as an incident.\n\n" + "\n".join(lines[:12]) + f"\n\n{issue.get('html_url', '')}")
+        sent = telegram(text) if os.environ.get("ALERT_BOT_TOKEN") else False
+        owner = cfg.get("owner_mention", "")
+        gh("POST", f"/repos/{REPO}/issues/{issue['number']}/comments",
+           {"body": "App update server now serves something new:\n" + "\n".join(l.replace("• ", "- ") for l in lines)
+                    + f"\n\nIf you did not publish or roll back, treat it as an incident. {owner}".rstrip()})
+        if not sent:
+            print("Owner told on GitHub only.")
+    if before is None or changed:
+        keep = {k: v for k, v in now.items() if not v.startswith("error")}
+        merged = {**(before or {}), **keep}
+        body = body.split(OTA_MARK, 1)
+        rest = body[1].split("-->", 1)[1] if len(body) == 2 else ""
+        body = body[0].rstrip() + f"\n{OTA_MARK}{json.dumps(merged)}-->" + rest
+        gh("PATCH", f"/repos/{REPO}/issues/{issue['number']}", {"body": body})
+    return 0
 
 
 # ---------------------------------------------------------------- revert
@@ -742,7 +844,7 @@ def main():
     for a in sys.argv[2:]:
         k, _, v = a.partition("=")
         args[k.lstrip("-")] = {"true": True, "false": False}.get(v, v)
-    fn = {"health": cmd_health, "branches": cmd_branches, "revert": cmd_revert}.get(cmd)
+    fn = {"health": cmd_health, "branches": cmd_branches, "revert": cmd_revert, "ota": cmd_ota}.get(cmd)
     if not fn:
         sys.exit(f"Unknown task {cmd!r}")
     sys.exit(fn(cfg, args))

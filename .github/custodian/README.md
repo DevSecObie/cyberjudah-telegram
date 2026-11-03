@@ -13,6 +13,7 @@ CyberJudah repository (cyberjudah, cyberjudah-telegram, cyberjudah-app, cyberjud
 | Every day | Same check for branches merged in the last 14 days (catches any the merge event missed). |
 | By hand: task `branches`, `backlog` on | Lists every older merged branch that could go. Turn `delete` on as well to remove them (at most 100 per run). |
 | A production deploy fails **after going live** (cyberjudah-telegram) | `deploy.yml` already puts production back on the version serving before it. The custodian then opens a revert pull request for the owner to approve, so the next merge does not ship the same change again. |
+| Every 15 minutes (cyberjudah-telegram) | **App update watch.** Asks the public `updates.cyberjudah.io/manifest` what each channel (production, staging) serves on iPhone and Android, as one fixed device id (`custodian-ota-watch`). When that changes (a publish, promote, rollback, or a rollout that reaches every device), it sends the owner a Telegram message and comments on the health issue. It needs no update-server secret. |
 
 Every deleted branch can be brought back with **Restore branch** on its pull request page.
 
@@ -26,6 +27,9 @@ Every deleted branch can be brought back with **Restore branch** on its pull req
   (`secrets.NAME != ''` is evaluated by GitHub). The token checks print only valid, rejected
   or the expiry date, and never print error text from a call that carries a token.
 - Create or rotate secrets.
+- Ask for a deploy secret. The report lists those as "kept in a deploy environment behind your Approve
+  (not checked here)". The health and app-update jobs run in the `automation` environment (main
+  only, no reviewer), which holds only the tokens they check or alert with.
 
 ## Keep list
 
