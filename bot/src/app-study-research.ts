@@ -204,7 +204,7 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
         for (const block of str(note.body).split(/\n(?=## |\*\*\[|\*\[\[)/)) {
           const m = /[?&]t=(\d+)s/.exec(block);
           if (m) at = Number(m[1]);
-          for (const para of block.replace(/<!--[\s\S]*?-->/g, '').split(/\n\s*\n/)) {
+          for (const para of block.replace(/<!--[\s\S]*?-->/g, '').replace(/<!--|-->/g, '').split(/\n\s*\n/)) {
             // A Scripture reading quoted in the note is not the teacher's words: the KJV is read separately.
             if (para.trim().split('\n').every(l => !l.trim() || /^\s*>/.test(l) || /^\s*\*\*\[[^\]]+\]\([^)]*\)\*\*/.test(l))) continue;
             const text = noteText(para).replace(/^\[\d{1,2}(?::\d{2}){1,2}\]\s*/, '');
