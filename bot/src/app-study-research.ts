@@ -65,7 +65,7 @@ function splitVerse(text: string, verse: string) {
   return { scripture: clauses.slice(0, n).join(' '), teaching: clauses.slice(n).join(' ') };
 }
 /** A class note's Markdown as reading text, without links, marks or embedded HTML. */
-const noteText = (md: string) => decodeHTML(md.replace(/<sup>.*?<\/sup>/g, '').replace(/<[^>]*>/g, ' ').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/^\s*(?:[-*>]|#+)\s*/gm, '').replace(/\*+|_{2,}/g, '')).replace(/[ \t]+/g, ' ').replace(/\n{2,}/g, '\n').trim();
+const noteText = (md: string) => htmlToText(md.replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/^\s*(?:[-*>]|#+)\s*/gm, '').replace(/\*+|_{2,}/g, '')).replace(/\n{2,}/g, '\n');
 const clock = (t: number) => `${t >= 3600 ? `${Math.floor(t / 3600)}:${String(Math.floor(t / 60) % 60).padStart(2, '0')}` : Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 const STOP = new Set(['the', 'and', 'what', 'who', 'why', 'how', 'was', 'were', 'is', 'are', 'did', 'does', 'do', 'about', 'with', 'that', 'this', 'from', 'for', 'still', 'keep', 'mean', 'means', 'tell', 'explain', 'teach', 'taught', 'say', 'said', 'they', 'them', 'their', 'our', 'we', 'you', 'your', 'can', 'into', 'of', 'in', 'on', 'to', 'a', 'an', 'it']);
 const termsOf = (q: string) => [...new Set(q.toLowerCase().match(/[a-z0-9']+/g)?.filter(w => w.length > 2 && !STOP.has(w)) ?? [])];
@@ -204,7 +204,7 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
         for (const block of str(note.body).split(/\n(?=## |\*\*\[|\*\[\[)/)) {
           const m = /[?&]t=(\d+)s/.exec(block);
           if (m) at = Number(m[1]);
-          for (const para of block.replace(/<!--[\s\S]*?-->/g, '').replace(/<!--|-->/g, '').split(/\n\s*\n/)) {
+          for (const para of block.split(/\n\s*\n/)) {
             // A Scripture reading quoted in the note is not the teacher's words: the KJV is read separately.
             if (para.trim().split('\n').every(l => !l.trim() || /^\s*>/.test(l) || /^\s*\*\*\[[^\]]+\]\([^)]*\)\*\*/.test(l))) continue;
             const text = noteText(para).replace(/^\[\d{1,2}(?::\d{2}){1,2}\]\s*/, '');
