@@ -1,0 +1,173 @@
+name: custodian
+
+# Deployment manager and repository custodian (.github/custodian/README.md).
+#   * Daily, and after every production deploy: one "Deployment health" issue with the latest
+#     deploys, runs waiting for approval, environments, live endpoints, which secrets are set or
+#     expiring, and pull requests waiting more than 48 hours. A comment is added only when
+#     something new turns red.
+#   * When a pull request merges: its branch is deleted, if nobody pushed to it after the merge,
+#     no open pull request uses it, and it is not protected or on the keep list (codex/*,
+#     *revenuecat*, release/*, staging*, archive/* ...). A daily sweep catches any it missed.
+#     Older merged branches are cleared only when you run this workflow by hand with "backlog".
+# It never merges, deploys, approves a deployment, deletes an environment, or reads a secret's
+# value into a log. Production deploys keep the production environment's Approve gate.
+
+on:
+  pull_request:
+    types: [closed]
+  schedule:
+    - cron: "7 12 * * *"
+  # After each production deploy finishes, refresh the report (and, for a deploy that failed
+  # after going live, propose a revert).
+  workflow_run:
+    workflows: ["deploy", "web", "rollback"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "What to run"
+        type: choice
+        options: [health, branches]
+        default: health
+      backlog:
+        description: "branches: include every merged branch, not only the last 14 days"
+        type: boolean
+        default: false
+      delete:
+        description: "branches: really delete (off = only list what would go)"
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: custodian-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  merged-branch:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # The custodian's own code always comes from the default branch, never from the PR.
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: .github/custodian
+          persist-credentials: false
+      - name: Delete the merged branch if it is safe to
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: python3 .github/custodian/custodian.py branches mode=pr delete=true "branch=$HEAD_REF"
+
+  branches:
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.task == 'branches')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: .github/custodian
+          persist-credentials: false
+      - name: Clean up merged branches
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.backlog && 'backlog' || 'recent' }}
+          # The daily run deletes recent merges on its own; a run by hand only lists unless "delete" is on.
+          DELETE: ${{ github.event_name == 'schedule' || inputs.delete }}
+        run: python3 .github/custodian/custodian.py branches "mode=$MODE" "delete=$DELETE"
+
+  health:
+    # Runs after the sweep on the daily run (whatever the sweep's result), on its own otherwise.
+    needs: [branches]
+    if: >-
+      ${{ !cancelled() && (
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.task == 'health') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event != 'pull_request')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+      deployments: read
+      issues: write
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: .github/custodian
+          persist-credentials: false
+      - name: Update the Deployment health issue
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          # true/false only: the expression is evaluated by GitHub, so no value reaches the runner.
+          CUSTODIAN_SECRETS_PRESENT: |
+            {
+              "CLOUDFLARE_API_TOKEN": ${{ secrets.CLOUDFLARE_API_TOKEN != '' }},
+              "CLOUDFLARE_ACCOUNT_ID": ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }},
+              "BOT_TOKEN": ${{ secrets.BOT_TOKEN != '' }},
+              "WEBHOOK_SECRET": ${{ secrets.WEBHOOK_SECRET != '' }},
+              "PRIVACY_KEY": ${{ secrets.PRIVACY_KEY != '' }},
+              "STAGING_BOT_TOKEN": ${{ secrets.STAGING_BOT_TOKEN != '' }},
+              "STAGING_WEBHOOK_SECRET": ${{ secrets.STAGING_WEBHOOK_SECRET != '' }},
+              "TELEGRAM_LOGIN_CLIENT_ID": ${{ secrets.TELEGRAM_LOGIN_CLIENT_ID != '' }},
+              "TELEGRAM_LOGIN_CLIENT_SECRET": ${{ secrets.TELEGRAM_LOGIN_CLIENT_SECRET != '' }},
+              "CYBERJUDAH_TOKEN": ${{ secrets.CYBERJUDAH_TOKEN != '' }},
+              "ANTHROPIC_API_KEY": ${{ secrets.ANTHROPIC_API_KEY != '' }},
+              "APP_REPO_TOKEN": ${{ secrets.APP_REPO_TOKEN != '' }},
+              "ADMIN_IDS": ${{ secrets.ADMIN_IDS != '' }},
+              "VAPID_PUBLIC_KEY": ${{ secrets.VAPID_PUBLIC_KEY != '' }},
+              "VAPID_PRIVATE_KEY": ${{ secrets.VAPID_PRIVATE_KEY != '' }},
+              "VAPID_SUBJECT": ${{ secrets.VAPID_SUBJECT != '' }},
+              "CF_AIG_TOKEN": ${{ secrets.CF_AIG_TOKEN != '' }}
+            }
+          # Used only to ask Cloudflare, Telegram and GitHub whether each token still works and
+          # when it expires. custodian.py never prints them, nor any error text that could hold one.
+          CHECK_CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CHECK_CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CHECK_TELEGRAM_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHECK_TELEGRAM_STAGING_BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
+          CHECK_GITHUB_CYBERJUDAH_TOKEN: ${{ secrets.CYBERJUDAH_TOKEN }}
+          CHECK_GITHUB_APP_REPO_TOKEN: ${{ secrets.APP_REPO_TOKEN }}
+        run: python3 .github/custodian/custodian.py health
+
+  revert:
+    # deploy.yml already puts production back on the version serving before a release that failed
+    # after going live. This job then opens a revert pull request so the next merge does not ship
+    # the same change again. It never merges, deploys or approves anything.
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'deploy' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 200
+      - name: Open a revert pull request for a release that failed after going live
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: python3 .github/custodian/custodian.py revert "run_id=$RUN_ID"
