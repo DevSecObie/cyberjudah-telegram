@@ -38,6 +38,16 @@
       "critical": false
     }
   ],
+  "release": {
+    "workflow": "deploy.yml",
+    "branch": "main",
+    "event": "push"
+  },
+  "watch_repos": [
+    "DevSecObie/cyberjudah",
+    "DevSecObie/open-ota",
+    "DevSecObie/cyberjudah-app"
+  ],
   "watch_workflows": [
     {
       "name": "Production deploy (Telegram Worker)",

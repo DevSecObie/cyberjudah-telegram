@@ -464,11 +464,137 @@ def cmd_health(cfg, args):
     except ApiError as e:
         lines.append(f"Could not count merged branches: {e}")
 
+    rec = release_section(cfg, default)
+    if rec:
+        lines[1:1] = rec
+
+    others, other_lines = other_repos(cfg)
+    if other_lines:
+        lines.append("\n### Other repositories\n")
+        lines += other_lines
+
     status = "🟢 All clear" if not problems else "🔴 Needs attention: " + "; ".join(problems)
     body = f"## {status}\n\n" + "\n".join(lines)
-    upsert_issue(cfg, body, problems)
+    issue = upsert_issue(cfg, body, problems)
+    send_alerts(cfg, issue, problems, others)
     summary(body)
     return 0
+
+
+def release_section(cfg, default):
+    """Today's deploy recommendation: what is merged but not live yet."""
+    rc = cfg.get("release")
+    if not rc:
+        return []
+    out = ["### Today's release recommendation\n"]
+    runs = latest_runs(rc["workflow"], rc.get("branch", default), rc.get("event"), limit=30)
+    if runs and "error" in runs[0]:
+        return out + [f"Could not read deploys: {runs[0]['error']}", ""]
+    live = next((r for r in runs if r["conclusion"] == "success"), None)
+    head = gh("GET", f"/repos/{REPO}/commits/{urllib.parse.quote(rc.get('branch', default), safe='')}")
+    if not live:
+        return out + ["No successful deploy in the last 30 runs, so what is live is unknown.", ""]
+    if live["head_sha"] == head["sha"]:
+        return out + [f"Nothing to deploy: production runs the newest `{default}` "
+                      f"([deploy #{live['run_number']}]({live['html_url']}), {ago(ts(live['created_at']))}).", ""]
+    try:
+        cmp = gh("GET", f"/repos/{REPO}/compare/{live['head_sha']}...{head['sha']}")
+    except ApiError as e:
+        return out + [f"Could not compare the live release with `{default}`: {e}", ""]
+    titles = []
+    for c in cmp.get("commits", [])[-30:]:
+        first = c["commit"]["message"].splitlines()[0]
+        if "[skip ci]" in first:
+            continue
+        titles.append(first)
+    waiting = [r for r in runs if r["status"] in ("waiting", "action_required") and r["head_sha"] == head["sha"]]
+    out.append(f"**{cmp.get('ahead_by', len(titles))} change(s) are merged but not live** "
+               f"(live: `{live['head_sha'][:7]}` from {ago(ts(live['created_at']))}).")
+    for t in titles[-15:]:
+        out.append(f"- {t}")
+    if waiting:
+        w = waiting[0]
+        out.append(f"\n**Recommendation:** approve [deploy #{w['run_number']}]({w['html_url']}). It is the newest "
+                   "and carries every change above; older runs still waiting can be rejected.")
+    else:
+        out.append("\n**Recommendation:** no deploy of the newest commit is waiting. "
+                   f"Run **{rc['workflow']}** by hand when you want these live.")
+    out.append("")
+    return out
+
+
+def read_marker(body, mark):
+    if body and mark in body:
+        try:
+            return json.loads(body.split(mark, 1)[1].split("-->", 1)[0])
+        except Exception:
+            return None
+    return None
+
+
+def other_repos(cfg):
+    """Read the other repositories' Deployment health issues (state only) for one combined view."""
+    others, lines = {}, []
+    title = cfg.get("health_issue_title", "Deployment health")
+    for repo in cfg.get("watch_repos", []):
+        try:
+            items = gh("GET", f"/repos/{repo}/issues?state=open&labels={urllib.parse.quote(cfg.get('label', 'custodian'))}&per_page=20")
+        except ApiError as e:
+            lines.append(f"- {repo}: could not read ({e.status})")
+            continue
+        issue = next((i for i in items if i["title"] == title and "pull_request" not in i), None)
+        if not issue:
+            lines.append(f"- {repo}: no report yet")
+            continue
+        probs = read_marker(issue.get("body"), MARK)
+        if probs is None:
+            lines.append(f"- [{repo}]({issue['html_url']}): report unreadable")
+            continue
+        others[repo] = probs
+        lines.append(f"- [{repo}]({issue['html_url']}): " + ("🟢 all clear" if not probs else "🔴 " + "; ".join(probs)))
+    return others, lines
+
+
+ALERT_MARK = "<!-- custodian-alerted:"
+
+
+def send_alerts(cfg, issue, problems, others):
+    """Message the owner on Telegram about problems not alerted before. Never prints the token."""
+    token = os.environ.get("ALERT_BOT_TOKEN", "")
+    chats = [c.strip() for c in os.environ.get("ALERT_CHAT_IDS", "").split(",") if c.strip()]
+    if not token or not chats or not issue:
+        return
+    keys = [f"{REPO.split('/')[1]}: {p}" for p in problems]
+    for repo, probs in others.items():
+        keys += [f"{repo.split('/')[1]}: {p}" for p in probs]
+    body = gh("GET", f"/repos/{REPO}/issues/{issue['number']}").get("body") or ""
+    before = read_marker(body, ALERT_MARK)
+    new = [k for k in keys if k not in (before or [])]
+    cleared = bool(before) and not keys
+    if before is None:
+        before = []
+    sent = True
+    if new or cleared:
+        sent = False
+        if new:
+            text = "CyberJudah deploy watch: something new needs you.\n\n" + "\n".join("• " + k for k in new[:15])
+        else:
+            text = "CyberJudah deploy watch: all clear again."
+        text += f"\n\n{issue.get('html_url', '')}"
+        for chat in chats[:3]:
+            data = urllib.parse.urlencode({"chat_id": chat, "text": text, "disable_web_page_preview": "true"}).encode()
+            try:
+                # The token is part of the URL, so no exception text from this call is ever printed.
+                urllib.request.urlopen(f"https://api.telegram.org/bot{token}/sendMessage", data=data, timeout=20).read()
+                print("Telegram alert sent.")
+                sent = True
+            except Exception:
+                print("Telegram alert could not be sent.")
+    if not sent:
+        return  # try again on the next run
+    # Remember what was alerted, so the same problem is never sent twice.
+    body = body.split(ALERT_MARK, 1)[0].rstrip() + f"\n{ALERT_MARK}{json.dumps(keys)}-->"
+    gh("PATCH", f"/repos/{REPO}/issues/{issue['number']}", {"body": body})
 
 
 def ensure_label(name):
@@ -500,6 +626,9 @@ def upsert_issue(cfg, body, problems):
         except Exception:
             old = []
     full = body + f"\n\n{MARK}{json.dumps(problems)}-->"
+    kept = (issue.get("body") or "").split(ALERT_MARK, 1) if issue else [""]
+    if len(kept) == 2:
+        full += f"\n{ALERT_MARK}" + kept[1].split("-->", 1)[0] + "-->"
     if issue:
         gh("PATCH", f"/repos/{REPO}/issues/{issue['number']}", {"body": full})
     else:
@@ -516,6 +645,7 @@ def upsert_issue(cfg, body, problems):
         owner = cfg.get("owner_mention")
         text = " ".join(msg) + (f" {owner}" if owner and new else "")
         gh("POST", f"/repos/{REPO}/issues/{issue['number']}/comments", {"body": text})
+    return issue
 
 
 # ---------------------------------------------------------------- revert
