@@ -12,11 +12,13 @@ import { bs } from './bs';
 import { searchTeachings, transcriptAround } from './teachings';
 import { searchJewishEncyclopedia } from './bs/jewish-encyclopedia';
 import { evidenceOf, type StudySource } from './app-study-ui';
+import { BOOKS, COLLECTION } from './bs/core';
+import { htmlToText } from './html-text';
 
-export const RESEARCH_RESOURCES = ['transcripts', 'teachings', 'people', 'encyclopedia', 'jewish-encyclopedia', 'study-notes', 'topics', 'law', 'precepts', 'cases', 'glossary', 'doctrines', 'timeline', 'strong', 'dictionary', 'nave', 'scripture', 'verse-study'] as const;
+export const RESEARCH_RESOURCES = ['transcripts', 'teachings', 'people', 'encyclopedia', 'jewish-encyclopedia', 'study-notes', 'topics', 'law', 'precepts', 'cases', 'glossary', 'doctrines', 'timeline', 'strong', 'dictionary', 'nave', 'scripture', 'verse-study', 'commentary', 'class-notes', 'places', 'library'] as const;
 export const researchPlanSchema = z.object({ searches: z.array(z.object({ resource: z.enum(RESEARCH_RESOURCES), query: z.string().trim().min(2).max(120) })).max(APP_STUDY_RELEASE.maxSupplementarySearches) });
 export const RESEARCH_PLAN_PROMPT = `Choose up to four public CyberJudah resources that will help answer the reader's question. The teachers' recordings and notes are always searched first. Return JSON only: {"searches":[{"resource":"people","query":"Abraham"}]}.
-Allowed resources: transcripts (the teachers’ recorded words, with surrounding captions and video timestamps); teachings (recorded classes, captions, public notes); people (biography, family and teachings about a person); encyclopedia (CyberJudah encyclopedia); jewish-encyclopedia (the published 1901–1906 historical reference, not teacher authority); study-notes (chapter studies); topics; law (commandments handbook); precepts; cases (case studies); glossary; doctrines (the app's published teaching on rejected doctrines); timeline (events and dates); strong (Hebrew/Greek word or Strong number); dictionary (Bible Strong's original dictionary); nave (Bible Strong's original topical Bible); scripture (exact KJV reference, including Apocrypha); verse-study (classes, cross-references and precepts attached to a scripture).
+Allowed resources: transcripts (the teachers’ recorded words, with surrounding captions and video timestamps); teachings (recorded classes, captions, public notes); people (biography, family and teachings about a person); encyclopedia (CyberJudah encyclopedia); jewish-encyclopedia (the published 1901–1906 historical reference, not teacher authority); study-notes (chapter studies); topics; law (commandments handbook); precepts; cases (case studies); glossary; doctrines (the app's published teaching on rejected doctrines); timeline (events and dates); strong (Hebrew/Greek word or Strong number); dictionary (Bible Strong's original dictionary); nave (Bible Strong's original topical Bible); scripture (exact KJV reference, including Apocrypha); verse-study (classes, cross-references and precepts attached to a scripture); commentary (the Bishops' and teachers' class breakdowns on one verse, each with its class and moment; give one verse like "Deuteronomy 28:68"); class-notes (the written notes of the classes that match, read in full for the passages on the subject); places (a place or nation in Scripture: what and where it is, and its verses); library (the books the classes read from, page by page: reference material, never a teacher).
 Use a short specific search term or scripture reference, not the whole question. Choose only relevant resources. Always choose scripture or verse-study when explaining a named scripture. Do not interpret doctrine: this step only chooses research. Private notes, account data, transactions, web searches and mutations are not available.`;
 export function parseResearchPlan(raw: string) {
   try { return researchPlanSchema.parse(JSON.parse(raw.trim().replace(/^```(?:json)?\s*\n|\n```\s*$/g, ''))).searches; } catch { return []; }
@@ -95,6 +97,60 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
       const found = await runSearch(env.DB, query, resource === 'encyclopedia' ? 'encyclopedia' : resource === 'study-notes' ? 'study' : ['class', 'captains', 'history', 'study'], 2, true);
       if (!found.ok) throw new Error('RESOURCE_UNAVAILABLE');
       found.hits.slice(0, 5).forEach(h => addCurrent({ ...h, text: h.text || h.snippet }));
+      return;
+    }
+    if (resource === 'library') {
+      const found = await runSearch(env.DB, query, 'book', 3, true);
+      if (!found.ok) throw new Error('RESOURCE_UNAVAILABLE');
+      found.hits.slice(0, 3).forEach(h => addCurrent({ ...h, kind: 'book', sub: [h.sub, 'library book · reference material'].filter(Boolean).join(' · '), text: h.text || h.snippet }));
+      return;
+    }
+    if (resource === 'commentary') {
+      const catalog = await books(env, ctx), ref = catalog && parseReference(query, catalog);
+      if (!ref || ref.verse == null) return;
+      const book = (BOOKS as { id: number; slug: string }[]).find(b => b.slug === ref.slug);
+      if (!book) return;
+      const data = await resourceJson(env, `commentaries/${COLLECTION}/en/verses/${book.id}-${ref.chapter}-${ref.verse}`);
+      // One entry per class breakdown, each kept with its own class note and moment.
+      for (const entry of str(data.content).split('<hr>').filter(Boolean).slice(0, 4)) {
+        // The class it came from is the entry's last own-site link; earlier ones are scripture links.
+        const note = [...entry.matchAll(/href="https:\/\/cyberjudah\.io(\/[a-z0-9][a-z0-9/_-]*)"/gi)].map(m => m[1]).filter(u => !u.startsWith('/bible/')).pop();
+        const moment = /youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})&amp;t=(\d+)s/.exec(entry);
+        addCurrent({ kind: 'commentary', title: `${ref.label} · commentary`, url: note || `/bible/${ref.slug}/${ref.chapter}#v${ref.verse}`, sub: 'CyberJudah commentary · class breakdown', text: htmlToText(entry), ...(moment ? { video: moment[1], t: Number(moment[2]) } : {}) });
+      }
+      return;
+    }
+    if (resource === 'class-notes') {
+      const index = list(await read('/api/notes/index.json')).filter(r => ['class', 'captains', 'history'].includes(str(r.kind)));
+      const words = query.toLowerCase().match(/[a-z0-9]+/g)?.filter(w => w.length > 2) ?? [];
+      const score = (r: Row) => words.reduce((n, w) => n + (title(r).toLowerCase().includes(w) ? 4 : 0) + ((Array.isArray(r.topics) ? r.topics.join(' ') : '').toLowerCase().includes(w) ? 2 : 0) + (str(r.summary).toLowerCase().includes(w) ? 1 : 0), 0);
+      const notes = index.map(r => ({ r, n: score(r) })).filter(x => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 2).map(x => x.r);
+      for (const row of notes) {
+        const url = str(row.url);
+        if (!/^\/[a-z0-9][a-z0-9/_-]*$/i.test(url)) continue;
+        emit({ status: `Reading the notes of ${title(row).slice(0, 160)}` });
+        const note = object(await read(`/api/notes${url}.json`));
+        // The note read whole, then the paragraphs that speak to the question, in the note's own order.
+        const paragraphs = str(note.body).split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 40);
+        const hits = paragraphs.map((p, i) => ({ p, i, n: words.filter(w => p.toLowerCase().includes(w)).length })).filter(x => x.n > 0).sort((a, b) => b.n - a.n).slice(0, 4).sort((a, b) => a.i - b.i);
+        const text = (hits.length ? hits.map(x => x.p) : paragraphs.slice(0, 3)).join('\n\n');
+        const video = str(note.videoId);
+        addCurrent({ kind: str(note.kind) || 'class', title: str(note.title) || title(row), url, sub: [str(note.teacher), 'class notes'].filter(Boolean).join(' · '), date: str(note.date), text, ...(/^[A-Za-z0-9_-]{11}$/.test(video) ? { video } : {}) });
+      }
+      return;
+    }
+    if (resource === 'places') {
+      const rows = list(await read('/api/places/index.json'));
+      for (const row of pick(rows, query)) {
+        const id = str(row.id);
+        if (!/^[a-z0-9-]+$/.test(id)) continue;
+        const place = object(await read(`/api/places/${id}.json`));
+        const names = Array.isArray(place.names) ? place.names.filter(n => typeof n === 'string').slice(0, 6).join(', ') : '';
+        // The site has no place page yet; the place's first verse opens in the reader today.
+        const first = /^([a-z0-9-]+)\/(\d+)\/(\d+)$/.exec(Array.isArray(place.verses) ? String(place.verses[0] ?? '') : '');
+        if (!first) continue;
+        addCurrent({ kind: 'place', title: str(place.name) || title(row), url: `/bible/${first[1]}/${first[2]}#v${first[3]}`, sub: 'Place', text: [str(place.description), names && `Also called: ${names}.`, Array.isArray(place.verses) ? `Named in ${place.verses.slice(0, 6).map(v => String(v).replace(/^([a-z0-9-]+)\/(\d+)\/(\d+)$/, (_, b: string, c: string, n: string) => `${b.replace(/-/g, ' ')} ${c}:${n}`)).join('; ')}.` : ''].filter(Boolean).join('\n') });
+      }
       return;
     }
     if (resource === 'jewish-encyclopedia') {

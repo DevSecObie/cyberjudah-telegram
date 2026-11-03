@@ -48,7 +48,8 @@ export const NO_TEACHING = "I couldn't find enough supporting information in Cyb
 export function evidenceOf(source: Passage): StudySource['evidence'] {
   if (source.kind === 'verse') return 'scripture';
   // A video alone is not proof of a teaching; require the known class/transcript collection.
-  if (['spoken', 'class', 'captains', 'history', 'study', 'teaching'].includes(source.kind)) return 'teaching';
+  // Commentary entries are class breakdowns, each kept with its own class and moment.
+  if (['spoken', 'class', 'captains', 'history', 'study', 'teaching', 'commentary'].includes(source.kind)) return 'teaching';
   return 'reference';
 }
 const node = (typeName: string, props: Record<string, unknown>): ElementNode => ({ type: 'element', typeName, props, partial: false });
