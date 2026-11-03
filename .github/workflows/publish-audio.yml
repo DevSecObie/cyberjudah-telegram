@@ -39,6 +39,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-24.04
+    environment: automation
     timeout-minutes: 120
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
