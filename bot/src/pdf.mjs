@@ -21,7 +21,7 @@ const MOMENT = /^\d{1,2}:\d{2}(?::\d{2})?$/;
 export async function notePdf(note, { site = "https://cyberjudah.io" } = {}) {
   const doc = await PDFDocument.create();
   const title = String(note.title ?? "Class notes");
-  doc.setTitle(title); doc.setAuthor(note.teacher || "CyberJudah"); doc.setCreator("CyberJudah"); doc.setProducer("CyberJudah");
+  doc.setTitle(title); if (note.teacher) doc.setAuthor(note.teacher); doc.setCreator("CyberJudah"); doc.setProducer("CyberJudah");
   doc.setSubject(`${COLLECTION[note.kind] ?? "Note"}${note.date ? `, ${longDate(note.date)}` : ""}`);
   const F = {
     serif: await doc.embedFont(StandardFonts.TimesRoman), serifB: await doc.embedFont(StandardFonts.TimesRomanBold),

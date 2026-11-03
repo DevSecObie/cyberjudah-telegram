@@ -32,6 +32,17 @@ function worker(bindings = { MCP_KEY: KEY }, seen = []) {
       if (path === '/api/notes/classes/2026/test-class.json') return Response.json({ title: 'Test Class', teacher: 'Bishop Nathanyel', date: '2026-10-31', videoId: 'abcdefghijk', body: 'Word for word.' });
       if (path === '/api/cases/index.json') return Response.json({ cases: [{ slug: 'edom', name: 'Edom' }] });
       if (path === '/api/cases/edom.json') return Response.json({ name: 'Edom', summary: 'The case of Edom.' });
+      if (path === '/api/notes/index.json') return Response.json([
+        { kind: 'class', title: 'The Passover', url: '/classes/2026/passover', teacher: 'Bishop Nathanyel', topics: ['passover'], summary: '' },
+        { kind: 'class', title: 'Another class', url: '/classes/2026/other', teacher: 'Deacon Test', topics: [], summary: '' },
+      ]);
+      if (path === '/api/notes/classes/2026/passover.json') return Response.json({ kind: 'class', title: 'The Passover', url: '/classes/2026/passover', teacher: 'Bishop Nathanyel', date: '2026-04-01', videoId: 'abcdefghijk', body: 'An opening paragraph that greets the class and says nothing more.\n\nThe passover is a memorial kept for ever, the teacher said, word for word from the class.\n\nA closing paragraph about something else entirely, said at the end.' });
+      if (path === '/api/xref/exodus/12.json') return Response.json({ 14: [['exodus', 12, 13], ['nowhere', 1, 1]] });
+      if (path === '/api/places/index.json') return Response.json([{ id: 'goshen-gen-45-10', name: 'Goshen', names: ['Goshen'], description: 'Where Israel dwelt in Egypt (Genesis 45:10)' }]);
+      if (path === '/api/places/goshen-gen-45-10.json') return Response.json({ id: 'goshen-gen-45-10', name: 'Goshen', names: ['Goshen'], description: 'Where Israel dwelt in Egypt (Genesis 45:10)', verses: ['genesis/45/10', 'exodus/8/22'] });
+      if (path === '/api/concordance/exodus/12.json') return Response.json({ cited_by: [], commentary: [
+        { verses: '14', passage: 'Exodus 12:14', points: ['A memorial: the feast kept for ever.'], note: { label: 'The Passover', url: '/classes/2026/passover', date: '2026-04-01', teacher: 'Bishop Nathanyel' }, ts: '1:05', video: 'abcdefghijk', t: 65 },
+      ] });
       return new Response('not found', { status: 404 });
     },
   }));
@@ -134,5 +145,37 @@ test('/mcp reads any public note or data file, and nothing outside them', async 
       assert.equal(r.isError, true, path);
     }
     assert.ok(seen.every((u) => u.startsWith('https://data.cyberjudah.test/')), seen.join(', '));
+  } finally { await mf.dispose(); }
+});
+
+test('Ask research reads the commentary, the whole class notes and the places', async () => {
+  const mf = worker();
+  try {
+    await rpc(mf, init);
+    const call = async (args) => (await message(await rpc(mf, { jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name: 'search_library', arguments: args } }))).result;
+
+    const commentary = await call({ resource: 'commentary', query: 'Exodus 12:14' });
+    assert.equal(commentary.isError, undefined, commentary.content[0].text);
+    assert.match(commentary.content[0].text, /A memorial: the feast kept for ever\./);
+    assert.match(commentary.content[0].text, /Bishop Nathanyel/);
+    assert.match(commentary.content[0].text, /^Exodus 12:14 · commentary · Bishop Nathanyel · class breakdown$/m);
+    assert.doesNotMatch(commentary.content[0].text, /CyberJudah commentary/);
+    assert.match(commentary.content[0].text, /Link: https:\/\/cyberjudah\.test\/classes\/2026\/passover$/m);
+
+    const notes = await call({ resource: 'class-notes', query: 'passover memorial' });
+    assert.equal(notes.isError, undefined, notes.content[0].text);
+    assert.match(notes.content[0].text, /^The Passover · Bishop Nathanyel · class notes \(2026-04-01\)\nThe passover is a memorial kept for ever/);
+    assert.doesNotMatch(notes.content[0].text, /greets the class|closing paragraph/);
+
+    const xref = await call({ resource: 'cross-references', query: 'Exodus 12:14' });
+    assert.equal(xref.isError, undefined, xref.content[0].text);
+    assert.match(xref.content[0].text, /^Exodus 12:13 · Cross-reference of Exodus 12:14\nExodus 12:13 And the blood shall be to you for a token/);
+    assert.doesNotMatch(xref.content[0].text, /nowhere/);
+
+    const place = await call({ resource: 'places', query: 'Goshen' });
+    assert.equal(place.isError, undefined, place.content[0].text);
+    assert.match(place.content[0].text, /Where Israel dwelt in Egypt/);
+    assert.match(place.content[0].text, /Named in genesis 45:10; exodus 8:22\./);
+    assert.match(place.content[0].text, /Link: https:\/\/cyberjudah\.test\/bible\/genesis\/45#v10$/m);
   } finally { await mf.dispose(); }
 });

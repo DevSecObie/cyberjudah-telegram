@@ -11,7 +11,7 @@ import { createAppResearch, RESEARCH_RESOURCES } from "./app-study-research";
 import { bs } from "./bs";
 import { BOOKS, COLLECTION } from "./bs/core";
 import { dataJson } from "./data";
-import { Parser } from "htmlparser2";
+import { htmlToText } from "./html-text";
 
 /**
  * CyberJudah for AI assistants: an MCP server at /mcp, laid out after Bible Strong's
@@ -132,17 +132,6 @@ async function readTranscript(env: Env, video: string, at: number, span: number,
 }
 
 /** HTML as the text a reader sees: a real parser, so no markup survives into the answer. */
-function htmlToText(html: string): string {
-  let out = "";
-  const parser = new Parser({
-    ontext: (t) => { out += t; },
-    onclosetag: (name) => { if (/^(?:p|h[1-6]|li|blockquote|div|br)$/.test(name)) out += "\n"; },
-  }, { decodeEntities: true });
-  parser.write(html);
-  parser.end();
-  return out.replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
-}
-
 /** The app's public resource feed, asked in the Worker itself (bs/index.ts), GET only. */
 async function feed(env: Env, path: string): Promise<{ status: number; text: string }> {
   const res = await bs.request(`https://mcp.internal/${path}`, { method: "GET" }, env);
@@ -171,7 +160,7 @@ async function readCommentary(env: Env, reference: string, ctx?: Exec): Promise<
   try { const c = (JSON.parse(r.text) as { content?: unknown }).content; html = typeof c === "string" ? c : ""; } catch { /* below */ }
   if (!html) return answer(`No commentary yet on ${ref.label}.`);
   const text = htmlToText(html);
-  return answer(part(`${ref.label} (CyberJudah commentary)\n\n${text}`, 0));
+  return answer(part(`${ref.label} (commentary from the classes)\n\n${text}`, 0));
 }
 
 async function readData(env: Env, path: string, offset: number, ctx?: Exec): Promise<Answer> {
@@ -209,7 +198,7 @@ export function createCyberJudahServer(env: Env, ctx?: Exec): McpServer {
   tool("precepts", "Precepts on a subject", "The scriptures lined up precept upon precept on one subject, with their text.",
     { topic: z.string().trim().min(1).max(120) }, ({ topic }) => lookup(env, ctx, "precepts", { topic }));
 
-  tool("search_library", "Search one part of the library", "Search one public resource of the app: transcripts (the teachers' recorded words with the moment), teachings (classes, captions, notes), people, encyclopedia, jewish-encyclopedia, study-notes, topics, law, precepts, cases, glossary, doctrines, timeline, strong, dictionary, nave, scripture or verse-study.",
+  tool("search_library", "Search one part of the library", "Search one public resource of the app: transcripts (the teachers' recorded words with the moment), teachings (classes, captions, notes), people, encyclopedia, jewish-encyclopedia, study-notes, topics, law, precepts, cases, glossary, doctrines, timeline, strong, dictionary, nave, scripture, verse-study, commentary (one verse), class-notes (the class notes read in full), places, library (the books the classes read from) or cross-references (one verse).",
     { resource: z.enum(RESEARCH_RESOURCES), query: z.string().trim().min(2).max(120) }, ({ resource, query }) => searchLibrary(env, resource, query, ctx));
   tool("read_note", "Read a class or study note", "The whole note of a class, a study chapter or an episode, word for word: give its site path from an index or a link, like /classes/2026/<slug> or /study/genesis/2. Long notes come in parts: pass offset to read on.",
     { path: z.string().trim().regex(SITE_PATH).max(200), offset: z.number().int().min(0).optional() }, ({ path, offset }) => readNote(env, path, offset ?? 0, ctx));

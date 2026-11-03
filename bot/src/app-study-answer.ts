@@ -32,11 +32,34 @@ export function citedScriptures(text: string): string[] {
   return [...count].sort((a, b) => b[1] - a[1]).map(([ref]) => ref).slice(0, 6);
 }
 
+/** The classes' order: Bishops, then Deacons, then Captains, then everyone else; Zakai always last. */
+export function teacherOrder(s: Pick<StudySource, 'teacher' | 'sub' | 'title'>) {
+  const who = `${s.teacher ?? ''} ${s.sub ?? ''}`;
+  return /\bzakai\b/i.test(who) ? 4 : /\bbishop\b/i.test(who) ? 0 : /\bdeacon\b/i.test(who) ? 1 : /\bcaptain\b/i.test(who) ? 2 : 3;
+}
+const classPage = (url: string) => url.replace(/[?#].*$/, '');
+
 export function selectAppStudyEvidence(sources: StudySource[], initialCount: number) {
   // The KJV verses read for this question always stay in, ahead of the rest of what was found.
   const fresh = sources.slice(initialCount), verses = fresh.filter(s => s.kind === 'verse').slice(0, 4);
-  return [...verses, ...fresh.filter(s => !verses.includes(s)), ...sources.slice(0, initialCount)]
-    .slice(0, APP_STUDY_RELEASE.maxDisplayedSources).sort((a, b) => a.n - b.n).map(s => ({ ...s }));
+  // Priority order: targeted research before the initial broad search.
+  const priority = [...verses, ...fresh.filter(s => !verses.includes(s)), ...sources.slice(0, initialCount)].map(s => s.n);
+  const chosen = sources.map(s => ({ ...s })).sort((a, b) => a.n - b.n);
+  // One source per class: its commentary, notes and transcript moments read as one.
+  const merged: StudySource[] = [];
+  for (const s of chosen) {
+    const same = s.evidence === 'teaching' && s.url.startsWith('/') ? merged.find(m => m.evidence === 'teaching' && classPage(m.url) === classPage(s.url)) : undefined;
+    if (!same) { merged.push(s); continue; }
+    same.text = `${same.text}\n\n${s.text}`.slice(0, 4000);
+    if (same.t == null && s.t != null) { same.video ??= s.video; same.t = s.t; }
+  }
+  // Teaching first in the classes' order, then Scripture, then reference; numbered afresh 1..n.
+  const group = (s: StudySource) => s.evidence === 'teaching' ? teacherOrder(s) : s.evidence === 'scripture' ? 5 : 6;
+  // When more was found than can be shown: the verses, the classes, the books the classes read, then the rest.
+  const keep = (s: StudySource) => verses.some(v => v.n === s.n) ? 0 : s.evidence === 'teaching' ? 1 : /read in class/.test(s.sub ?? '') ? 2 : 3;
+  const kept = new Set(merged.map(s => ({ s, i: priority.indexOf(s.n) })).sort((a, b) => keep(a.s) - keep(b.s) || a.i - b.i).slice(0, APP_STUDY_RELEASE.maxDisplayedSources).map(x => x.s));
+  return merged.filter(s => kept.has(s)).map((s, i) => ({ s, i }))
+    .sort((a, b) => group(a.s) - group(b.s) || a.i - b.i).map(({ s }, i) => ({ ...s, n: i + 1 }));
 }
 
 export const publicStudySource = ({ text, ...source }: StudySource) => ({ ...source, excerpt: text.slice(0, 1000) });
@@ -65,7 +88,7 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
     await recordAskEvent(env, { traceId, surface: 'study', model: model.id, outcome: outcome === 'ui-rejected' ? 'fallback' : outcome, elapsedMs: Date.now() - startedAt, sources: sources.length, detail: `teaching ${sources.filter(s => s.evidence === 'teaching').length}` });
   };
   const plainModel = { ...model, format: 'plain' as const };
-  const research = createAppResearch(env, first, emit);
+  const research = createAppResearch(env, first, emit, undefined, question);
   const initialCount = research.sources.length;
   const catalog = /\d+:\d+/.test(question) ? await books(env).catch(() => null) : null;
   // The research plan needs only the question, so it is written while the classes are searched,
@@ -85,6 +108,8 @@ export async function answerAppStudy(env: Env, question: string, history: Turn[]
   emit({ status: 'Looking for supporting study resources' });
   const plan = await planning;
   await research.search(parseResearchPlan(plan.text));
+  // The public-domain books the found classes read from, page by page.
+  if (Date.now() < deadlineAt - 20000) await research.classBooks();
   // The KJV verses the classes and notes found here cite, read in full, so the answer can quote
   // the Scripture the teachers used (and only that), not just name it.
   const read = new Set(research.sources.filter(s => s.kind === 'verse').map(s => s.title));
