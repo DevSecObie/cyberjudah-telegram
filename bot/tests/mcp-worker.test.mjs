@@ -158,6 +158,8 @@ test('Ask research reads the commentary, the whole class notes and the places', 
     assert.equal(commentary.isError, undefined, commentary.content[0].text);
     assert.match(commentary.content[0].text, /A memorial: the feast kept for ever\./);
     assert.match(commentary.content[0].text, /Bishop Nathanyel/);
+    assert.match(commentary.content[0].text, /^Exodus 12:14 · commentary · Bishop Nathanyel · class breakdown$/m);
+    assert.doesNotMatch(commentary.content[0].text, /CyberJudah commentary/);
     assert.match(commentary.content[0].text, /Link: https:\/\/cyberjudah\.test\/classes\/2026\/passover$/m);
 
     const notes = await call({ resource: 'class-notes', query: 'passover memorial' });

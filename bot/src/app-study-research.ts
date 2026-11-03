@@ -116,7 +116,10 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
         // The class it came from is the entry's last own-site link; earlier ones are scripture links.
         const note = [...entry.matchAll(/href="https:\/\/cyberjudah\.io(\/[a-z0-9][a-z0-9/_-]*)"/gi)].map(m => m[1]).filter(u => !u.startsWith('/bible/')).pop();
         const moment = /youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})&amp;t=(\d+)s/.exec(entry);
-        addCurrent({ kind: 'commentary', title: `${ref.label} · commentary`, url: note || `/bible/${ref.slug}/${ref.chapter}#v${ref.verse}`, sub: 'CyberJudah commentary · class breakdown', text: htmlToText(entry), ...(moment ? { video: moment[1], t: Number(moment[2]) } : {}) });
+        // The citation reads "class · date · teacher"; the teacher is named, never CyberJudah.
+        const cite = [...entry.matchAll(/href="https:\/\/cyberjudah\.io\/(?!bible\/)[^"]*">[^<]*<\/a>((?: · [^<]*)+)/gi)].pop()?.[1] ?? '';
+        const teacher = htmlToText(cite.split(' · ').map(s => s.trim()).filter(s => s && !/^\d{4}-\d{2}-\d{2}$/.test(s)).pop() ?? '').trim();
+        addCurrent({ kind: 'commentary', title: `${ref.label} · commentary`, url: note || `/bible/${ref.slug}/${ref.chapter}#v${ref.verse}`, sub: [teacher && !/cyberjudah/i.test(teacher) ? teacher : '', 'class breakdown'].filter(Boolean).join(' · '), text: htmlToText(entry), ...(moment ? { video: moment[1], t: Number(moment[2]) } : {}) });
       }
       return;
     }

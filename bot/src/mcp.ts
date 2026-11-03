@@ -160,7 +160,7 @@ async function readCommentary(env: Env, reference: string, ctx?: Exec): Promise<
   try { const c = (JSON.parse(r.text) as { content?: unknown }).content; html = typeof c === "string" ? c : ""; } catch { /* below */ }
   if (!html) return answer(`No commentary yet on ${ref.label}.`);
   const text = htmlToText(html);
-  return answer(part(`${ref.label} (CyberJudah commentary)\n\n${text}`, 0));
+  return answer(part(`${ref.label} (commentary from the classes)\n\n${text}`, 0));
 }
 
 async function readData(env: Env, path: string, offset: number, ctx?: Exec): Promise<Answer> {
