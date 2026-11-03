@@ -76,7 +76,7 @@ jobs:
           set -euo pipefail
           rm -rf web/dist
           cp -R cyberjudah-app/apps/expo/dist web/dist
-          # Every page: no MIME sniffing, no full URL sent to other sites, and no other site may
+          # Every page: no MIME sniffing, no full URL sent to other sites, and no site but Telegram Web may
           # show the app inside a frame. Expo names each script by its content, so those keep a year.
           cat > web/dist/_headers <<'HEADERS'
           /*
