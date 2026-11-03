@@ -1,0 +1,1 @@
+- The web app ships the eight library pages rebuilt on Bible Strong's components (Topics, Glossary, False doctrines, Encyclopedia, Case studies, Precepts, The law, Books), and 4 Chapters a Day in Library opens the plan.
