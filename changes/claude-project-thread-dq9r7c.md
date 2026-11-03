@@ -1,2 +1,1 @@
-- The CyberJudah web app (the iPhone app's own web version) gets its home at web.cyberjudah.io: a new hand-run `web` workflow builds it from one pinned app commit with the store app's production settings and deploys it as its own Worker, after the production reviewer approves.
-- The API answers the web app at web.cyberjudah.io, so its classes, books, Said in Class and Ask load from cyberjudah.io as they do in the store app. No other site is let in.
+- Web app hotfix: web.cyberjudah.io now builds from app commit bdd4968 (Bishops' commentary layout, class notes people/places/topics, clay figures by genealogy, Jesus Christ naming, plan notes fit their pane).
