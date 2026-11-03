@@ -11,7 +11,7 @@ import { createAppResearch, RESEARCH_RESOURCES } from "./app-study-research";
 import { bs } from "./bs";
 import { BOOKS, COLLECTION } from "./bs/core";
 import { dataJson } from "./data";
-import { decodeHTML } from "entities";
+import { Parser } from "htmlparser2";
 
 /**
  * CyberJudah for AI assistants: an MCP server at /mcp, laid out after Bible Strong's
@@ -131,6 +131,18 @@ async function readTranscript(env: Env, video: string, at: number, span: number,
   return answer(`${w.title}${w.date ? ` (${w.date})` : ""}\nVideo: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s${w.url ? `\nNotes: ${linkOn(env, w.url)}` : ""}\n\n${w.chunks.map((c) => `[${clock(c.t)}] ${c.text}`).join("\n")}`);
 }
 
+/** HTML as the text a reader sees: a real parser, so no markup survives into the answer. */
+function htmlToText(html: string): string {
+  let out = "";
+  const parser = new Parser({
+    ontext: (t) => { out += t; },
+    onclosetag: (name) => { if (/^(?:p|h[1-6]|li|blockquote|div|br)$/.test(name)) out += "\n"; },
+  }, { decodeEntities: true });
+  parser.write(html);
+  parser.end();
+  return out.replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
+}
+
 /** The app's public resource feed, asked in the Worker itself (bs/index.ts), GET only. */
 async function feed(env: Env, path: string): Promise<{ status: number; text: string }> {
   const res = await bs.request(`https://mcp.internal/${path}`, { method: "GET" }, env);
@@ -158,7 +170,7 @@ async function readCommentary(env: Env, reference: string, ctx?: Exec): Promise<
   let html = "";
   try { const c = (JSON.parse(r.text) as { content?: unknown }).content; html = typeof c === "string" ? c : ""; } catch { /* below */ }
   if (!html) return answer(`No commentary yet on ${ref.label}.`);
-  const text = decodeHTML(html.replace(/<\/(?:p|h\d|li|blockquote)>|<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "")).replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
+  const text = htmlToText(html);
   return answer(part(`${ref.label} (CyberJudah commentary)\n\n${text}`, 0));
 }
 
