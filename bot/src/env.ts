@@ -97,6 +97,10 @@ export type Env = {
   REMIND_LIMIT?: RateLimit;
   /** Public, read-only native library requests; 60 per IP per minute at each edge location. */
   READER_LIMIT?: RateLimit;
+  /** Worker secret, set by the owner only: the key the private MCP server at /mcp asks for (mcp.ts). Unset, /mcp answers nothing. */
+  MCP_KEY?: string;
+  /** Calls to /mcp a minute (mcp.ts). */
+  MCP_LIMIT?: RateLimit;
 };
 
 /** A daily-verse subscription, KV key sub:<userId>. hour is local, tz the offset in minutes. */
