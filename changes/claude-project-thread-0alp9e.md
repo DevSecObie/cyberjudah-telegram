@@ -1,0 +1,1 @@
+- Timeline: Jesus is shown as "Jesus Christ" on his Timeline event, its picture caption and the name chip on the Mary case card (Obie, 2026-11-03). Scripture quotes are unchanged.
