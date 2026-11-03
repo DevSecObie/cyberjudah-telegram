@@ -134,7 +134,7 @@ function useSections(scope: Scope, active: boolean, text: string, settled: strin
   const timeline = useMemo(() => scope === "timeline" ? timelineItems(text) : [], [scope, text]);
   const one = (s: Section | null, loading = false, failed: Failure = null) => ({ sections: s && s.items.length ? [s] : [], loading, failed });
   switch (scope) {
-    case "bible": return one({ id: "passages", title: "Passages", items: passages.items, hasMore: passages.hasMore, more: passages.more, loading: passages.loading }, passages.loading || text !== settled, passages.failed);
+    case "bible": return one({ id: "passages", title: "Scriptures", items: passages.items, hasMore: passages.hasMore, more: passages.more, loading: passages.loading }, passages.loading || text !== settled, passages.failed);
     case "strong": return one({ id: "strong", title: "Strong", ...strongs }, strongs.loading || text !== settled, strongs.failed);
     case "nave": return one({ id: "nave", title: "Nave", ...topics }, topics.loading || text !== settled, topics.failed);
     case "dictionary": return one({ id: "dictionary", title: "Dictionary", ...dictionary }, dictionary.loading || text !== settled, dictionary.failed);
