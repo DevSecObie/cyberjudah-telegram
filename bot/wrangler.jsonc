@@ -76,6 +76,8 @@
         "SITE_URL": "https://cyberjudah.io",
         "D1_SIZE_ALERT_BYTES": "8000000000",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
+        // Staging has no web app of its own: its buttons keep opening this Worker's Mini App.
+        "WEB_APP_URL": "",
         "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
@@ -95,6 +97,8 @@
     "D1_SIZE_ALERT_BYTES": "8000000000",
     // The Mini App's direct link from @BotFather (/newapp). Shared links and buttons open the app.
     "APP_URL": "https://cyberjudah.io/app",
+    // The app Telegram opens from the bot's buttons: the web app, one front end for every reader.
+    "WEB_APP_URL": "https://web.cyberjudah.io",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
     // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
     "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",

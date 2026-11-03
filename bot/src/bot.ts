@@ -23,12 +23,12 @@ let botInfo: UserFromGetMe | undefined;
 
 /**
  * A button that opens the app. Private chats may open a Mini App straight from a keyboard
- * (web_app, at this Worker's own URL with the start param in the query, where the app reads
+ * (web_app, at the web app's URL, else this Worker's own, with the start param in the query, where the app reads
  * it); groups and channels get the t.me deep link, or the site until the app is registered.
  */
 export function openButton(env: Env, origin: string, chatType: string | undefined, param: string, text = "Open in CyberJudah"): InlineKeyboard {
   const kb = new InlineKeyboard();
-  const base = origin || env.WORKER_URL;
+  const base = env.WEB_APP_URL || origin || env.WORKER_URL;
   if (chatType === "private" && base) return kb.webApp(text, `${base}/${param ? `?tgWebAppStartParam=${param}` : ""}`);
   return kb.url(text, openLink(env, param));
 }
@@ -286,7 +286,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
       cache_time: 300,
       is_personal: false,
       next_offset,
-      button: origin || env.WORKER_URL ? { text: "Open CyberJudah", web_app: { url: `${origin || env.WORKER_URL}/` } } : undefined,
+      button: env.WEB_APP_URL || origin || env.WORKER_URL ? { text: "Open CyberJudah", web_app: { url: `${env.WEB_APP_URL || origin || env.WORKER_URL}/` } } : undefined,
     });
   });
 

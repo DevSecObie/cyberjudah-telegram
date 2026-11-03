@@ -16,6 +16,8 @@ export type Env = {
   APP_URL: string;
   /** This Worker's public URL (https://cyberjudah-telegram.<account>.workers.dev), for web_app buttons sent by the cron. */
   WORKER_URL: string;
+  /** The web app Telegram opens from the bot's buttons (web.cyberjudah.io); empty keeps this Worker's Mini App. */
+  WEB_APP_URL?: string;
   /** The repository the transcripts are read from (owner/name); DevSecObie/cyberjudah when unset. */
   TRANSCRIPTS_REPO?: string;
   BOT_TOKEN: string;
