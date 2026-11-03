@@ -2,7 +2,7 @@ import { decodeHTML } from 'entities';
 import { z } from 'zod';
 import { APP_STUDY_RELEASE } from './app-study-release';
 import { Hono } from 'hono';
-import type { Env } from './env';
+import type { Env, Exec } from './env';
 import type { Passage } from './ai.mjs';
 import { dataJson, books, chapter } from './data';
 import { parseReference } from './refs.mjs';
@@ -37,6 +37,9 @@ function textOf(value: unknown, depth = 0): string {
   if (depth > 7) return '';
   if (typeof value === 'string') return clean(value).slice(0, 2400);
   if (Array.isArray(value)) return value.slice(0, 16).map(v => textOf(v, depth + 1)).filter(Boolean).join('\n').slice(0, 3200);
+  // A missing field is nothing to read. Without this, every absent key recursed into all 19 keys
+  // again, 19^7 calls deep: one case or doctrine file blocked the Worker until it was killed.
+  if (!value || typeof value !== 'object') return '';
   const r = object(value);
   return ['title', 'name', 'label', 'text', 'description', 'summary', 'definition', 'article', 'body', 'content', 'points', 'entries', 'thread', 'items', 'refs', 'answers', 'sense', 'account', 'claim'].map(k => textOf(r[k], depth + 1)).filter(Boolean).join('\n').slice(0, 3200);
 }
@@ -47,7 +50,7 @@ async function resourceJson(env: Env, path: string) {
   return object(await res.json());
 }
 
-export function createAppResearch(env: Env, initial: Passage[], emit: (e: { status: string }) => void) {
+export function createAppResearch(env: Env, initial: Passage[], emit: (e: { status: string }) => void, ctx?: Exec) {
   const sources: StudySource[] = [], unavailable: string[] = [];
   let activeSearch = 0;
   const add = (p: Passage & { thumb?: string }) => {
@@ -60,7 +63,7 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
   };
   initial.slice(0, 8).forEach(add);
   const read = async (path: string) => {
-    const data = await dataJson<unknown>(env, path);
+    const data = await dataJson<unknown>(env, path, ctx);
     if (!data) throw new Error('RESOURCE_UNAVAILABLE');
     return data;
   };
@@ -99,9 +102,9 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
       return;
     }
     if (resource === 'scripture') {
-      const catalog = await books(env), ref = catalog && parseReference(query, catalog);
+      const catalog = await books(env, ctx), ref = catalog && parseReference(query, catalog);
       if (!ref) return;
-      const data = await chapter(env, ref.slug, ref.chapter);
+      const data = await chapter(env, ref.slug, ref.chapter, ctx);
       if (!data) throw new Error('RESOURCE_UNAVAILABLE');
       const from = ref.verse ?? 1, to = Math.min(from + 15, ref.verseEnd ?? ref.verse ?? 16);
       addCurrent({ kind: 'verse', title: ref.label, url: `/bible/${ref.slug}/${ref.chapter}#v${from}`, text: data.verses.filter(v => v.verse >= from && v.verse <= to).map(v => `${ref.book} ${ref.chapter}:${v.verse} ${v.text}`).join('\n') });
@@ -111,7 +114,7 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
       const tool = resource === 'people' ? 'person' : resource === 'verse-study' ? 'verse_study' : resource;
       const arg = tool === 'person' ? 'name' : tool === 'verse_study' ? 'reference' : tool === 'precepts' ? 'topic' : 'query';
       const before = sources.length;
-      const result = await MORE_RUN[tool](env, { [arg]: query }, undefined, emit, (name, text, url) => {
+      const result = await MORE_RUN[tool](env, { [arg]: query }, ctx, emit, (name, text, url) => {
         const n = addCurrent({ kind: resource, title: name, text, url });
         return n ? `[${n.n}] ${name}: ${text}` : '';
       }, addCurrent);

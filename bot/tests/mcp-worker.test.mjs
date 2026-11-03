@@ -29,6 +29,9 @@ function worker(bindings = { MCP_KEY: KEY }, seen = []) {
       const path = new URL(request.url).pathname;
       if (path === '/api/kjv/books.json') return Response.json(books);
       if (path === '/api/kjv/exodus/12.json') return Response.json(exodus12);
+      if (path === '/api/notes/classes/2026/test-class.json') return Response.json({ title: 'Test Class', teacher: 'Bishop Nathanyel', date: '2026-10-31', videoId: 'abcdefghijk', body: 'Word for word.' });
+      if (path === '/api/cases/index.json') return Response.json({ cases: [{ slug: 'edom', name: 'Edom' }] });
+      if (path === '/api/cases/edom.json') return Response.json({ name: 'Edom', summary: 'The case of Edom.' });
       return new Response('not found', { status: 404 });
     },
   }));
@@ -78,7 +81,7 @@ test('/mcp lists only read tools, and reads a passage word for word with its lin
 
     const listed = await message(await rpc(mf, { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }));
     const names = listed.result.tools.map((t) => t.name).sort();
-    assert.deepEqual(names, ['law', 'look_up_word', 'person', 'precepts', 'read_passage', 'search_classes', 'timeline', 'verse_study']);
+    assert.deepEqual(names, ['commentary', 'law', 'look_up_word', 'person', 'precepts', 'read_data', 'read_note', 'read_passage', 'read_resource', 'read_transcript', 'search_classes', 'search_library', 'timeline', 'verse_study']);
     for (const t of listed.result.tools) {
       assert.equal(t.annotations.readOnlyHint, true, t.name);
       assert.equal(t.annotations.destructiveHint, false, t.name);
@@ -95,5 +98,41 @@ test('/mcp lists only read tools, and reads a passage word for word with its lin
     const bad = await message(await rpc(mf, { jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'read_passage', arguments: { reference: 'Hezekiah 4:1' } } }));
     assert.equal(bad.result.isError, true);
     assert.match(bad.result.content[0].text, /not a reference this Bible has/);
+  } finally { await mf.dispose(); }
+});
+
+test('/mcp reads any public note or data file, and nothing outside them', async () => {
+  const seen = [];
+  const mf = worker({ MCP_KEY: KEY }, seen);
+  try {
+    await rpc(mf, init);
+    const call = async (name, args) => (await message(await rpc(mf, { jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name, arguments: args } }))).result;
+
+    const note = await call('read_note', { path: '/classes/2026/test-class' });
+    assert.equal(note.isError, undefined);
+    assert.match(note.content[0].text, /title: Test Class\nteacher: Bishop Nathanyel/);
+    assert.match(note.content[0].text, /Video: https:\/\/www\.youtube\.com\/watch\?v=abcdefghijk/);
+    assert.match(note.content[0].text, /Word for word\.$/);
+
+    const data = await call('read_data', { path: 'api/cases/index.json' });
+    assert.deepEqual(JSON.parse(data.content[0].text), { cases: [{ slug: 'edom', name: 'Edom' }] });
+
+    // A case file with most fields missing once sent the reader into a 19^7 recursion.
+    const started = Date.now();
+    const found = await call('search_library', { resource: 'cases', query: 'Edom' });
+    assert.equal(found.isError, undefined, found.content[0].text);
+    assert.match(found.content[0].text, /^Edom\nEdom\nThe case of Edom\.\nLink: https:\/\/cyberjudah\.test\/cases\/edom$/);
+    assert.ok(Date.now() - started < 5000);
+
+    // Only the public data site's own files: no climbing out, no other host.
+    for (const path of ['api/../secrets.json', 'https://evil.test/api/x.json', '/api/cases/index.json', 'api/cases/index']) {
+      const r = await call('read_data', { path });
+      assert.equal(r.isError, true, path);
+    }
+    for (const path of ['/classes/../../admin', 'classes/2026/x', '//evil.test/x']) {
+      const r = await call('read_note', { path });
+      assert.equal(r.isError, true, path);
+    }
+    assert.ok(seen.every((u) => u.startsWith('https://data.cyberjudah.test/')), seen.join(', '));
   } finally { await mf.dispose(); }
 });

@@ -5,16 +5,22 @@ import type { Env, Exec } from "./env";
 import { MORE_RUN } from "./ask-tools";
 import { books, chapter } from "./data";
 import { parseReference } from "./refs.mjs";
-import { searchTeachings } from "./teachings";
+import { searchTeachings, transcriptAround } from "./teachings";
 import { FEED_LABEL } from "./teachings.mjs";
+import { createAppResearch, RESEARCH_RESOURCES } from "./app-study-research";
+import { bs } from "./bs";
+import { BOOKS, COLLECTION } from "./bs/core";
+import { dataJson } from "./data";
+import { decodeHTML } from "entities";
 
 /**
  * CyberJudah for AI assistants: an MCP server at /mcp, laid out after Bible Strong's
  * (packages/mcp-service in smontlouis/bible-strong, ADR-0085) and Cloudflare's stateless
  * remote MCP guide. One server is built for each request; nothing is kept between requests.
  *
- * - Every tool only reads, and only what the app already shows a reader. Nothing about a
- *   person (accounts, studies, chats, credits) and no outside web.
+ * - Every tool only reads, and only what the app already shows every reader: the public data
+ *   site (data.cyberjudah.io), the public resource feed (/bs/v1) and the class search. Nothing
+ *   about a person (accounts, studies, chats, credits) and no outside web.
  * - The text comes from the app's data, never from the model: a tool takes a reference, a
  *   name or a subject and answers with the app's own words and a link.
  * - For now it is private: it answers only a request carrying the owner's key (MCP_KEY, a
@@ -27,7 +33,10 @@ export const INSTRUCTIONS =
   "the People, the Timeline, the Law handbook and Strong's. Never quote Scripture or a class from " +
   "memory: read it with a tool, then cite the reference and the class with its link. Keep the " +
   "classes' own words; do not soften or reword them. The Bishops' and Deacons' teaching comes " +
-  "first. Give each link a tool returns with what it supports; never build one yourself.";
+  "first. Give each link a tool returns with what it supports; never build one yourself. " +
+  "To read everything: the indexes in read_data (api/notes/index.json lists every class, study " +
+  "note and episode; api/index.json lists every data file) lead to read_note and read_data for " +
+  "each item, and search_library searches any one resource.";
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: true } as const;
 
@@ -80,6 +89,86 @@ async function searchClasses(env: Env, query: string, feed: string, page: number
 const lookup = (env: Env, ctx: Exec | undefined, tool: keyof typeof MORE_RUN, input: Record<string, unknown>) =>
   MORE_RUN[tool](env, input, ctx, quiet, lineOn(env), noCitations).then((r) => (r.error ? failure(r.content) : answer(r.content)));
 
+
+/** Site paths and data files a reader can already open; nothing else is read. */
+const SITE_PATH = /^\/[a-z0-9][a-z0-9/_-]*$/i;
+const DATA_PATH = /^(?:api|search)\/[a-z0-9][a-z0-9/_.-]*\.json$/i;
+const RESOURCE_PATH = /^v1\/[a-z0-9-]+\/[A-Za-z0-9/_.,:-]*(?:\?[A-Za-z0-9_.,:%&=+ -]*)?$/;
+const PART = 40_000;
+const noDots = (p: string) => !p.split(/[/?]/).some((seg) => seg === ".." || seg === ".");
+
+/** A long text in parts, so one answer never floods the assistant. */
+function part(text: string, offset: number): string {
+  if (offset >= text.length) return offset ? "Nothing more: that was the end." : text;
+  const end = Math.min(text.length, offset + PART);
+  return `${text.slice(offset, end)}${end < text.length ? `\n\n[Part ${Math.floor(offset / PART) + 1}: characters ${offset} to ${end} of ${text.length}. Call again with offset ${end} to read on.]` : ""}`;
+}
+
+async function searchLibrary(env: Env, resource: (typeof RESEARCH_RESOURCES)[number], query: string, ctx?: Exec): Promise<Answer> {
+  const research = createAppResearch(env, [], quiet, ctx);
+  await research.search([{ resource, query }]);
+  if (research.unavailable.length) return failure(`${resource.replaceAll("-", " ")} could not be read just now. Try again in a moment.`);
+  if (!research.sources.length) return answer(`Nothing in ${resource.replaceAll("-", " ")} for “${query}”. Try other words.`);
+  return answer(research.sources.map((s) => {
+    const at = s.video ? `\nVideo: https://www.youtube.com/watch?v=${s.video}${s.t ? `&t=${Math.floor(s.t)}s` : ""}` : "";
+    return `${s.title}${s.sub ? ` · ${s.sub}` : ""}${s.date ? ` (${s.date})` : ""}\n${s.text}\nLink: ${linkOn(env, s.url)}${at}`;
+  }).join("\n\n"));
+}
+
+async function readNote(env: Env, path: string, offset: number, ctx?: Exec): Promise<Answer> {
+  if (!noDots(path)) return failure("Give a site path like /classes/2026/<slug>.");
+  const note = await dataJson<Record<string, unknown>>(env, `/api/notes${path.replace(/\/$/, "")}.json`, ctx);
+  if (!note) return failure(`No note at ${path}. Find its path in read_data api/notes/index.json.`);
+  const head = ["title", "teacher", "date", "range", "series"].map((k) => (typeof note[k] === "string" && note[k] ? `${k}: ${note[k]}` : "")).filter(Boolean).join("\n");
+  const video = typeof note.videoId === "string" ? `\nVideo: https://www.youtube.com/watch?v=${note.videoId}` : "";
+  return answer(part(`${head}${video}\nLink: ${linkOn(env, path)}\n\n${typeof note.body === "string" ? note.body : JSON.stringify(note)}`, offset));
+}
+
+async function readTranscript(env: Env, video: string, at: number, span: number, ctx?: Exec): Promise<Answer> {
+  const w = await transcriptAround(env, video, at, ctx, span);
+  if (!w.ok) return failure("No transcript for that video and moment.");
+  const clock = (t: number) => `${Math.floor(t / 3600)}:${String(Math.floor((t % 3600) / 60)).padStart(2, "0")}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+  return answer(`${w.title}${w.date ? ` (${w.date})` : ""}\nVideo: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s${w.url ? `\nNotes: ${linkOn(env, w.url)}` : ""}\n\n${w.chunks.map((c) => `[${clock(c.t)}] ${c.text}`).join("\n")}`);
+}
+
+/** The app's public resource feed, asked in the Worker itself (bs/index.ts), GET only. */
+async function feed(env: Env, path: string): Promise<{ status: number; text: string }> {
+  const res = await bs.request(`https://mcp.internal/${path}`, { method: "GET" }, env);
+  return { status: res.status, text: await res.text() };
+}
+
+async function readResource(env: Env, path: string, offset: number): Promise<Answer> {
+  if (!noDots(path)) return failure("Give a path after /bs/ like v1/naves/en/topics?search=sabbath.");
+  const r = await feed(env, path);
+  if (r.status === 404 || r.status === 400) return failure(`Nothing at /bs/${path}.`);
+  if (r.status !== 200) return failure("The resource feed is not answering just now. Try again in a moment.");
+  return answer(part(r.text, offset));
+}
+
+async function readCommentary(env: Env, reference: string, ctx?: Exec): Promise<Answer> {
+  const list = await books(env, ctx);
+  const ref = list ? parseReference(reference, list) : null;
+  if (!ref || ref.verse == null) return failure(`Give one verse, like "Deuteronomy 28:68".`);
+  const book = (BOOKS as { id: number; slug: string }[]).find((b) => b.slug === ref.slug);
+  if (!book) return failure(`${ref.book} has no commentary.`);
+  const r = await feed(env, `v1/commentaries/${COLLECTION}/en/verses/${book.id}-${ref.chapter}-${ref.verse}`);
+  if (r.status === 404) return answer(`No commentary yet on ${ref.label}.`);
+  if (r.status !== 200) return failure("The commentary is not answering just now. Try again in a moment.");
+  // The feed's commentary is HTML for the app's screen; the assistant reads it as plain text.
+  let html = "";
+  try { const c = (JSON.parse(r.text) as { content?: unknown }).content; html = typeof c === "string" ? c : ""; } catch { /* below */ }
+  if (!html) return answer(`No commentary yet on ${ref.label}.`);
+  const text = decodeHTML(html.replace(/<\/(?:p|h\d|li|blockquote)>|<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, "")).replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
+  return answer(part(`${ref.label} (CyberJudah commentary)\n\n${text}`, 0));
+}
+
+async function readData(env: Env, path: string, offset: number, ctx?: Exec): Promise<Answer> {
+  if (!noDots(path)) return failure("Give a data path like api/cases/index.json.");
+  const data = await dataJson<unknown>(env, `/${path}`, ctx);
+  if (data == null) return failure(`No data file at ${path}. Start at api/index.json.`);
+  return answer(part(JSON.stringify(data), offset));
+}
+
 export function createCyberJudahServer(env: Env, ctx?: Exec): McpServer {
   const server = new McpServer({ name: "cyberjudah", title: "CyberJudah", version: "1.0.0" }, { instructions: INSTRUCTIONS });
   const tool = <S extends z.ZodRawShape>(name: string, title: string, description: string, input: S, read: (args: z.infer<z.ZodObject<S>>) => Promise<Answer>) =>
@@ -107,6 +196,19 @@ export function createCyberJudahServer(env: Env, ctx?: Exec): McpServer {
     { query: z.string().trim().min(1).max(120) }, ({ query }) => lookup(env, ctx, "law", { query }));
   tool("precepts", "Precepts on a subject", "The scriptures lined up precept upon precept on one subject, with their text.",
     { topic: z.string().trim().min(1).max(120) }, ({ topic }) => lookup(env, ctx, "precepts", { topic }));
+
+  tool("search_library", "Search one part of the library", "Search one public resource of the app: transcripts (the teachers' recorded words with the moment), teachings (classes, captions, notes), people, encyclopedia, jewish-encyclopedia, study-notes, topics, law, precepts, cases, glossary, doctrines, timeline, strong, dictionary, nave, scripture or verse-study.",
+    { resource: z.enum(RESEARCH_RESOURCES), query: z.string().trim().min(2).max(120) }, ({ resource, query }) => searchLibrary(env, resource, query, ctx));
+  tool("read_note", "Read a class or study note", "The whole note of a class, a study chapter or an episode, word for word: give its site path from an index or a link, like /classes/2026/<slug> or /study/genesis/2. Long notes come in parts: pass offset to read on.",
+    { path: z.string().trim().regex(SITE_PATH).max(200), offset: z.number().int().min(0).optional() }, ({ path, offset }) => readNote(env, path, offset ?? 0, ctx));
+  tool("read_transcript", "Read what was said in a class", "The verbatim transcript of a class or episode around a moment: give the YouTube video id and the second (from search_classes or a note). Span is how many seconds either side, up to 600.",
+    { video: z.string().regex(/^[A-Za-z0-9_-]{11}$/), at: z.number().min(0).max(86400), span: z.number().int().min(30).max(600).optional() }, ({ video, at, span }) => readTranscript(env, video, at, span ?? 180, ctx));
+  tool("commentary", "The Bishops' commentary on a verse", "What CyberJudah's commentary holds for one verse: the class breakdowns on it, each with its teacher and the moment. Give a single verse, like \"Deuteronomy 28:68\".",
+    { reference }, ({ reference }) => readCommentary(env, reference, ctx));
+  tool("read_data", "Read any public data file", "Read any file of the public data site as JSON: start at api/index.json (every file) or api/notes/index.json (every note). For example api/cases/index.json, api/cases/<slug>.json, api/doctrine/<slug>.json, api/places/<id>.json, api/history/<slug>.json (an episode with its verbatim transcript), api/topics/<slug>.json, api/encyclopedia/index.json, api/library/index.json, api/concordance/<book>/<chapter>.json. Long files come in parts: pass offset to read on.",
+    { path: z.string().trim().regex(DATA_PATH).max(200), offset: z.number().int().min(0).optional() }, ({ path, offset }) => readData(env, path, offset ?? 0, ctx));
+  tool("read_resource", "Read the study resource feed", "Read the app's public study resource feed (the one its Bible Strong screens use) as JSON, by its path after /bs/: v1/commentaries/cyberjudah/en/verses/<book>-<chapter>-<verse>, v1/strong-lexicon/entries/<H430>, v1/dictionaries/directory?language=en&search=<word>, v1/naves/en/topics?search=<word>, v1/timelines/en/events, v1/cross-references/en/verses/<key>. Book numbers run 1 (Genesis) to 81 in the 1611 order.",
+    { path: z.string().trim().regex(RESOURCE_PATH).max(240), offset: z.number().int().min(0).optional() }, ({ path, offset }) => readResource(env, path, offset ?? 0));
 
   return server;
 }

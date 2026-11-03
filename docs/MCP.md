@@ -9,22 +9,27 @@ answers over Streamable HTTP, nothing kept between requests.
 
 ## What it answers
 
+Everything a reader can open in the app, read only:
+
 | Tool | Reads |
 | --- | --- |
 | `read_passage` | The KJV text (with the Apocrypha) of a chapter, verse or range |
 | `verse_study` | The classes and notes on a verse, its precepts and cross-references |
+| `commentary` | CyberJudah's commentary on one verse: the class breakdowns, teacher and moment |
 | `search_classes` | Where the classes said something, with the video at that moment |
-| `person` | A person's entry in People |
-| `timeline` | Timeline events, classes first |
-| `look_up_word` | Easton's and Strong's |
-| `law` | The Law handbook |
-| `precepts` | Precept topics |
+| `read_transcript` | The verbatim transcript around a moment of a class or episode |
+| `read_note` | A whole class, study or episode note, word for word, in parts |
+| `search_library` | Any one public resource: transcripts, teachings, people, encyclopedia, Jewish Encyclopedia, study notes, topics, law, precepts, cases, glossary, doctrines, Timeline, Strong's, dictionary, Nave, scripture, verse study |
+| `read_data` | Any file of the public data site (`data.cyberjudah.io`), from `api/index.json` and `api/notes/index.json` down to each case, doctrine, place, episode, topic and library book |
+| `read_resource` | The public study resource feed (`/bs/v1`): commentary, Strong's lexicon, dictionaries, Nave, Timeline, cross-references |
+| `person`, `timeline`, `look_up_word`, `law`, `precepts` | Ask's own lookups |
 
-Each tool reuses Ask's own lookup (`ask-tools.ts`, `teachings.ts`, `data.ts`), so the
-assistant reads exactly what a reader sees in the app. Every tool is marked read-only.
+Long answers come in parts of 40,000 characters; the tool says which offset reads on.
+Paths are checked against strict patterns (no `..`, no other host), so only the public data
+site and the public feed are ever read.
 
-Never exposed: accounts, unpublished studies, chats, credits, purchases, admin, or outside
-web pages (Ask's `outside_source` is left out).
+Never exposed: accounts, studies, chats, credits, purchases, admin, studies other readers
+published, or outside web pages (Ask's `outside_source` is left out).
 
 ## Who may call it
 
