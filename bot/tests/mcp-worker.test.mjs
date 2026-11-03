@@ -37,6 +37,7 @@ function worker(bindings = { MCP_KEY: KEY }, seen = []) {
         { kind: 'class', title: 'Another class', url: '/classes/2026/other', teacher: 'Deacon Test', topics: [], summary: '' },
       ]);
       if (path === '/api/notes/classes/2026/passover.json') return Response.json({ kind: 'class', title: 'The Passover', url: '/classes/2026/passover', teacher: 'Bishop Nathanyel', date: '2026-04-01', videoId: 'abcdefghijk', body: 'An opening paragraph that greets the class and says nothing more.\n\nThe passover is a memorial kept for ever, the teacher said, word for word from the class.\n\nA closing paragraph about something else entirely, said at the end.' });
+      if (path === '/api/xref/exodus/12.json') return Response.json({ 14: [['exodus', 12, 13], ['nowhere', 1, 1]] });
       if (path === '/api/places/index.json') return Response.json([{ id: 'goshen-gen-45-10', name: 'Goshen', names: ['Goshen'], description: 'Where Israel dwelt in Egypt (Genesis 45:10)' }]);
       if (path === '/api/places/goshen-gen-45-10.json') return Response.json({ id: 'goshen-gen-45-10', name: 'Goshen', names: ['Goshen'], description: 'Where Israel dwelt in Egypt (Genesis 45:10)', verses: ['genesis/45/10', 'exodus/8/22'] });
       if (path === '/api/concordance/exodus/12.json') return Response.json({ cited_by: [], commentary: [
@@ -163,6 +164,11 @@ test('Ask research reads the commentary, the whole class notes and the places', 
     assert.equal(notes.isError, undefined, notes.content[0].text);
     assert.match(notes.content[0].text, /^The Passover · Bishop Nathanyel · class notes \(2026-04-01\)\nThe passover is a memorial kept for ever/);
     assert.doesNotMatch(notes.content[0].text, /greets the class|closing paragraph/);
+
+    const xref = await call({ resource: 'cross-references', query: 'Exodus 12:14' });
+    assert.equal(xref.isError, undefined, xref.content[0].text);
+    assert.match(xref.content[0].text, /^Exodus 12:13 · Cross-reference of Exodus 12:14\nExodus 12:13 And the blood shall be to you for a token/);
+    assert.doesNotMatch(xref.content[0].text, /nowhere/);
 
     const place = await call({ resource: 'places', query: 'Goshen' });
     assert.equal(place.isError, undefined, place.content[0].text);

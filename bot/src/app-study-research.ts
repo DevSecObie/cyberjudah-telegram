@@ -15,10 +15,10 @@ import { evidenceOf, type StudySource } from './app-study-ui';
 import { BOOKS, COLLECTION } from './bs/core';
 import { htmlToText } from './html-text';
 
-export const RESEARCH_RESOURCES = ['transcripts', 'teachings', 'people', 'encyclopedia', 'jewish-encyclopedia', 'study-notes', 'topics', 'law', 'precepts', 'cases', 'glossary', 'doctrines', 'timeline', 'strong', 'dictionary', 'nave', 'scripture', 'verse-study', 'commentary', 'class-notes', 'places', 'library'] as const;
+export const RESEARCH_RESOURCES = ['transcripts', 'teachings', 'people', 'encyclopedia', 'jewish-encyclopedia', 'study-notes', 'topics', 'law', 'precepts', 'cases', 'glossary', 'doctrines', 'timeline', 'strong', 'dictionary', 'nave', 'scripture', 'verse-study', 'commentary', 'class-notes', 'places', 'library', 'cross-references'] as const;
 export const researchPlanSchema = z.object({ searches: z.array(z.object({ resource: z.enum(RESEARCH_RESOURCES), query: z.string().trim().min(2).max(120) })).max(APP_STUDY_RELEASE.maxSupplementarySearches) });
 export const RESEARCH_PLAN_PROMPT = `Choose up to four public CyberJudah resources that will help answer the reader's question. The teachers' recordings and notes are always searched first. Return JSON only: {"searches":[{"resource":"people","query":"Abraham"}]}.
-Allowed resources: transcripts (the teachers’ recorded words, with surrounding captions and video timestamps); teachings (recorded classes, captions, public notes); people (biography, family and teachings about a person); encyclopedia (CyberJudah encyclopedia); jewish-encyclopedia (the published 1901–1906 historical reference, not teacher authority); study-notes (chapter studies); topics; law (commandments handbook); precepts; cases (case studies); glossary; doctrines (the app's published teaching on rejected doctrines); timeline (events and dates); strong (Hebrew/Greek word or Strong number); dictionary (Bible Strong's original dictionary); nave (Bible Strong's original topical Bible); scripture (exact KJV reference, including Apocrypha); verse-study (classes, cross-references and precepts attached to a scripture); commentary (the Bishops' and teachers' class breakdowns on one verse, each with its class and moment; give one verse like "Deuteronomy 28:68"); class-notes (the written notes of the classes that match, read in full for the passages on the subject); places (a place or nation in Scripture: what and where it is, and its verses); library (the books the classes read from, page by page: reference material, never a teacher).
+Allowed resources: transcripts (the teachers’ recorded words, with surrounding captions and video timestamps); teachings (recorded classes, captions, public notes); people (biography, family and teachings about a person); encyclopedia (CyberJudah encyclopedia); jewish-encyclopedia (the published 1901–1906 historical reference, not teacher authority); study-notes (chapter studies); topics; law (commandments handbook); precepts; cases (case studies); glossary; doctrines (the app's published teaching on rejected doctrines); timeline (events and dates); strong (Hebrew/Greek word or Strong number); dictionary (Bible Strong's original dictionary); nave (Bible Strong's original topical Bible); scripture (exact KJV reference, including Apocrypha); verse-study (classes, cross-references and precepts attached to a scripture); commentary (the Bishops' and teachers' class breakdowns on one verse, each with its class and moment; give one verse like "Deuteronomy 28:68"); class-notes (the written notes of the classes that match, read in full for the passages on the subject); places (a place or nation in Scripture: what and where it is, and its verses); library (the books the classes read from, page by page: reference material, never a teacher); cross-references (the KJV verses cross-referenced to one verse, read word for word; give one verse).
 Use a short specific search term or scripture reference, not the whole question. Choose only relevant resources. Always choose scripture or verse-study when explaining a named scripture. Do not interpret doctrine: this step only chooses research. Private notes, account data, transactions, web searches and mutations are not available.`;
 export function parseResearchPlan(raw: string) {
   try { return researchPlanSchema.parse(JSON.parse(raw.trim().replace(/^```(?:json)?\s*\n|\n```\s*$/g, ''))).searches; } catch { return []; }
@@ -136,6 +136,18 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
         const text = (hits.length ? hits.map(x => x.p) : paragraphs.slice(0, 3)).join('\n\n');
         const video = str(note.videoId);
         addCurrent({ kind: str(note.kind) || 'class', title: str(note.title) || title(row), url, sub: [str(note.teacher), 'class notes'].filter(Boolean).join(' · '), date: str(note.date), text, ...(/^[A-Za-z0-9_-]{11}$/.test(video) ? { video } : {}) });
+      }
+      return;
+    }
+    if (resource === 'cross-references') {
+      const catalog = await books(env, ctx), ref = catalog && parseReference(query, catalog);
+      if (!catalog || !ref || ref.verse == null) return;
+      const data = object(await read(`/api/xref/${ref.slug}/${ref.chapter}.json`));
+      // Each cross-reference is [book-slug, chapter, verse]; the verse itself is read from the KJV.
+      const refs = (Array.isArray(data[String(ref.verse)]) ? data[String(ref.verse)] as unknown[] : []).filter((r): r is [string, number, number] => Array.isArray(r) && typeof r[0] === 'string' && /^[a-z0-9-]+$/.test(r[0]) && Number.isInteger(r[1]) && Number.isInteger(r[2])).slice(0, 5);
+      for (const [slug, ch, v] of refs) {
+        const book = catalog.find(b => b.slug === slug), text = book && (await chapter(env, slug, ch, ctx))?.verses.find(x => x.verse === v)?.text;
+        if (book && text) addCurrent({ kind: 'verse', title: `${book.book} ${ch}:${v}`, url: `/bible/${slug}/${ch}#v${v}`, sub: `Cross-reference of ${ref.label}`, text: `${book.book} ${ch}:${v} ${text}` });
       }
       return;
     }
