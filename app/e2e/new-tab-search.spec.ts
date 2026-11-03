@@ -62,7 +62,7 @@ test("a reference typed is offered first, and opens at its verses", async ({ pag
   await setup(page);
   await page.locator(".ntcard--hero").click();
   await sheet(page).getByRole("textbox").fill("gen 1:2-5");
-  await expect(sheet(page).locator(".spick__head")).toContainText("Passages");
+  await expect(sheet(page).locator(".spick__head")).toContainText("Scriptures");
   await sheet(page).locator(".spick__main").first().click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2-5$/);
 });
