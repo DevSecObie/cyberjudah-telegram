@@ -1,0 +1,1 @@
+- Search in a new tab: the Bible results are titled "Scriptures", as everywhere else in the app.

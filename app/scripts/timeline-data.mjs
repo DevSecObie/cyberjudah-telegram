@@ -28,7 +28,7 @@ const OUT = path.join(ROOT, "app/src/data/timeline.json");
 const PORTRAITS = path.join(ROOT, "app/scripts/timeline-portraits.json");
 /** The kings' reigns from Who's Who in the Bible (its Chronology), as facts: name, kingdom, years BC. */
 const REIGNS = path.join(ROOT, "app/scripts/whoswho-reigns.json");
-/** The Twelve Caesars' reigns (a chart Obie sent): history, added to the periods they fall in. */
+/** The Twelve Caesars' reigns (from the IPM chart): history, added to the periods they fall in. */
 const CAESARS = path.join(ROOT, "app/scripts/timeline-caesars.json");
 
 /**

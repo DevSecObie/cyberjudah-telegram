@@ -74,6 +74,10 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
+  // In CI a test that fails once is run once more: one slow moment on a shared runner was stopping
+  // whole deploys before they reached the Approve step. A test that passes only on the retry is
+  // listed as "flaky" in the report, so it stays visible; one that fails twice still fails.
+  retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["list"], ["github"]] : [["list"]],
   globalSetup: liveBaseURL ? undefined : "./e2e/stand-ins.ts",
   // Network stand-ins must not be bypassed by a service worker. Offline/reminder

@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import indexData from '../../data/bs-strong-index.json';
 import { type App, type Ctx, type Verse, bookById, cmp, cursor, encodeCursor, html, integer, invalid, language, limit, load, metadata, missing, readChapter, sha, strongResource, version } from './core';
+import { chapterEntities, entitiesAvailable, entity, listEntities } from './entities';
 
 type Entry = { number: string; language: string; lemma: string; xlit: string; pron: string; derivation: string; def: string; kjv: string; source: string };
 type IndexRow = { n: string; lemma: string; xlit: string; def: string; count: number };
@@ -143,9 +144,13 @@ async function entry(c: Ctx, raw: string) {
     relations: [], resources: [], lsjAbsent: true, modules: { resources: unavailableModule('resources'), entities: unavailableModule('entities') },
   };
 }
-lexicon.get('/modules/:moduleId', c => {
+lexicon.get('/modules/:moduleId', async c => {
   const moduleId = c.req.param('moduleId');
   if (!['core', 'resources', 'entities', 'simple-fr', 'simple-en'].includes(moduleId)) return missing('STRONG_LEXICON_ENTRY_NOT_FOUND');
+  if (moduleId === 'entities') {
+    const people = await entitiesAvailable(c);
+    return c.json({ moduleId, status: people ? 'available' : 'unavailable', ...(people ? { revision: people.revision } : {}) });
+  }
   return c.json({ moduleId, status: moduleId === 'core' ? 'available' : 'unavailable', ...(moduleId === 'core' ? { revision: strongResource.strongRevision } : {}) });
 });
 lexicon.get('/entries/batch', async c => {
@@ -190,5 +195,7 @@ async function browse(c: Ctx, random: boolean) {
 lexicon.get('/entries', c => browse(c, false));
 lexicon.get('/random', c => browse(c, true));
 lexicon.get('/morphologies', c => { language(c, 'STRONG_LEXICON_ENTRY_NOT_FOUND', true); if (!c.req.query('codes')) return invalid(); return c.json({ resource: { revision: strongResource.strongRevision }, morphologies: [] }); });
-lexicon.get('/entities/chapters/:bookCode/:chapter', c => { language(c, 'STRONG_LEXICON_ENTITY_NOT_FOUND', true); integer(c.req.param('chapter'), 1, 200); return c.json({ resource: { revision: strongResource.strongRevision }, entities: [] }); });
-lexicon.get('/entities/:uniqueName', c => missing('STRONG_LEXICON_ENTITY_NOT_FOUND'));
+// The People module: the people, places and groups the iPhone app downloads (src/bs/entities.ts).
+lexicon.get('/entities', c => listEntities(c));
+lexicon.get('/entities/chapters/:bookCode/:chapter', c => chapterEntities(c, c.req.param('bookCode'), c.req.param('chapter')));
+lexicon.get('/entities/:uniqueName', c => entity(c, c.req.param('uniqueName')));
