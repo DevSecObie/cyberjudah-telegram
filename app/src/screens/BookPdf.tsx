@@ -63,7 +63,8 @@ export function BookPdfScreen() {
     if (!file.data?.url) return;
     let disposed = false;
     setBusy(true);
-    const task = getDocument({ url: file.data.url, isEvalSupported: false, disableAutoFetch: true, disableStream: true, rangeChunkSize: 256 * 1024 });
+    // pdf.js 6 removed isEvalSupported along with its eval-compiled font path, so no option is needed.
+    const task = getDocument({ url: file.data.url, disableAutoFetch: true, disableStream: true, rangeChunkSize: 256 * 1024 });
     task.promise.then(pdf => { if (!disposed) { setDoc(pdf); setBusy(false); } }).catch(() => { if (!disposed) { setBusy(false); setError("This PDF did not load. Try again in a moment."); } });
     return () => { disposed = true; void task.destroy(); };
   }, [file.data?.url]);
