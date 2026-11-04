@@ -1,0 +1,1 @@
+- The CyberJudah bot now messages the owner on Telegram, once per run, whenever a deploy or store build in cyberjudah-telegram, cyberjudah, cyberjudah-app or open-ota is waiting for Approve, with the commit it carries, the link, and a note when an older waiting run is superseded. The custodian also keeps working in repositories with Issues turned off.
