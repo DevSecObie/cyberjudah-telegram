@@ -1,11 +1,13 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import type { Env } from "./env";
 import { IdentityError, linkedTelegram } from "./account-links";
 import { appReader } from "./app-identity";
 import { answerApp, answerAppAgent, appAskModels, freeModel, takeQuotaKey } from "./ai";
 import { isAdmin } from "./edit";
-import { normalizeHistory } from "./ai.mjs";
+import { normalizeHistory, withReading } from "./ai.mjs";
+import { books } from "./data";
+import { parseReference } from "./refs.mjs";
 import { keyedHash } from "./privacy.mjs";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
@@ -36,11 +38,17 @@ appAsk.use('*', async (c, next) => {
   } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : 'sign_in_unavailable' }, error instanceof IdentityError ? error.status : 503); }
   return next();
 });
-appAsk.get('/models', c => c.json({
-  default: freeModel(c.env).id, maxQuestionLength: 4000,
-  models: appAskModels(c.env, c.get('adminId')).map(({ id, name, provider, what }) => ({ id, name, provider, what })),
-  billing: { purchasesEnabled: false },
-}));
+// What this Worker's engine can answer with: Claude for readers runs only on the agent engine (answerAppAgent).
+const offeredModels = (c: Context<AppAsk>) => appAskModels(c.env, c.get('adminId'), c.env.APP_ASK_ENGINE !== 'study');
+appAsk.get('/models', c => {
+  const offered = offeredModels(c);
+  // The advertised default is the model a request without one is answered by (the POST route below).
+  return c.json({
+    default: offered[0]?.id ?? freeModel(c.env).id, maxQuestionLength: 4000,
+    models: offered.map(({ id, name, provider, what }) => ({ id, name, provider, what })),
+    billing: { purchasesEnabled: false },
+  });
+});
 appAsk.post('/report', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 1024) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
@@ -52,7 +60,7 @@ appAsk.post('/report', async c => {
   if (!await takeQuotaKey(c.env, `app_report:${c.get('account')}:${day}`, 10)) return c.json({ error: 'limit' }, 429);
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
-  const model = appAskModels(c.env).find(m => m.id === body.model)?.id ?? 'default';
+  const model = appAskModels(c.env, undefined, true).find(m => m.id === body.model)?.id ?? 'default';
   // A reported answer that came from the answer cache is removed from it (answer-cache.ts).
   const traced = typeof body.traceId === 'string' && tracePattern.test(body.traceId);
   if (traced) await dropReported(c.env, body.traceId as string);
@@ -81,11 +89,11 @@ appAsk.post('/', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 32000) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
   if (raw.length > 32000) return c.json({ error: 'too-large' }, 413);
-  let body: { q?: unknown; history?: unknown; consent?: unknown; stream?: unknown; model?: unknown; ui?: unknown };
+  let body: { q?: unknown; history?: unknown; consent?: unknown; stream?: unknown; model?: unknown; ui?: unknown; reading?: unknown };
   try { body = JSON.parse(raw); } catch { return c.json({ error: 'bad-request' }, 400); }
   if (!body || typeof body !== 'object' || typeof body.q !== 'string') return c.json({ error: 'bad-request' }, 400);
   if (body.q.trim().length < 2 || body.q.length > 4000) return c.json({ error: body.q.length > 4000 ? 'too-long' : 'too-short' }, 400);
-  const offered = appAskModels(c.env, c.get('adminId'));
+  const offered = offeredModels(c);
   const model = offered.find(m => m.id === (body.model || offered[0]?.id || freeModel(c.env).id));
   if (!model) return c.json({ error: 'model-unavailable' }, 400);
   const consent = Array.isArray(body.consent) ? body.consent.filter((x): x is string => typeof x === 'string').slice(0, 40) : [];
@@ -93,6 +101,13 @@ appAsk.post('/', async c => {
   const ip = c.req.header('cf-connecting-ip')?.slice(0, 45);
   if (ip && !await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000)))) return c.json({ error: 'limit' }, 429);
   const history = normalizeHistory(body.history as never, 8);
+  // The passage the reader has open, when Ask was opened from the Bible: only a reference the
+  // Bible's own book list recognizes, as its canonical label, never the text sent.
+  const reading = typeof body.reading === 'string' && body.reading.length <= 40
+    ? parseReference(body.reading, (await books(c.env).catch(() => null)) ?? [])?.label
+    : undefined;
+  const read = withReading(body.q, reading);
+  const question = read.length <= 4000 ? read : body.q;
   const run = async (emit?: NonNullable<Parameters<typeof answerApp>[6]>['emit']) => {
     const startedAt = Date.now();
     const traceId = c.get('traceId');
@@ -102,8 +117,8 @@ appAsk.post('/', async c => {
     try {
       // The same engine as cyberjudah.io/app (APP_ASK_ENGINE "agent", the default); "study" keeps the study cards.
       const result = c.env.APP_ASK_ENGINE === 'study'
-        ? await answerApp(c.env, body.q as string, c.get('account'), history, consent, body.stream ? 115000 : 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId })
-        : await answerAppAgent(c.env, body.q as string, c.get('account'), history, consent, { model: body.model ? model.id : undefined, emit, traceId, adminId: c.get('adminId') });
+        ? await answerApp(c.env, question, c.get('account'), history, consent, body.stream ? 115000 : 55000, { model: model.id, emit, study: body.ui === 'study-v1', traceId })
+        : await answerAppAgent(c.env, question, c.get('account'), history, consent, { model: body.model ? model.id : undefined, emit, traceId, adminId: c.get('adminId') });
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
       // A study answer records its own outcome (app-study-answer.ts); everything else, and every refusal, here.
       if (surface === 'app' || !result.ok) await recordAskEvent(c.env, { traceId, surface, model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, detail: result.ok ? undefined : result.detail, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });

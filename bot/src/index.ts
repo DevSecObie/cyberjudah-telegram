@@ -61,14 +61,19 @@ import { browserAuth, browserSession } from "./browser-auth";
 import { studyBackup } from "./study-backup";
 import { firebaseAuth, firebaseAccount } from "./firebase-auth";
 import { appAsk } from "./app-ask";
+import { appTeachings } from "./app-teachings";
+import { appChannel } from "./app-channel";
 import { cors } from "hono/cors";
 import { nave } from "./nave";
+import { publishedStudies, publishedStudyPage } from "./published-studies";
+import { mcp } from "./mcp";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
-// Bundled native readers have local webview origins. No cookie credentials are allowed
+// Bundled native readers have local webview origins, and the web app lives at web.cyberjudah.io.
+// No cookie credentials are allowed
 // across origins; private endpoints still require their existing signed authorization.
-app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
@@ -76,6 +81,11 @@ app.route("/api/auth/device", deviceAuth);
 app.route("/api/auth", browserAuth);
 app.route("/api/reader", publicReader);
 app.route("/api/nave", nave);
+// Studies a reader published from the app: they sign each change with Firebase themselves (published-studies.ts).
+app.route("/api/published-studies", publishedStudies);
+app.route("/app/published", publishedStudyPage);
+// The private MCP server for the owner's assistants: it checks its own key (mcp.ts).
+app.all("/mcp", (c) => mcp(c.req.raw, c.env, c.executionCtx));
 app.on(["GET", "HEAD"], "/api/audio/*", (c) => recordingAudio(c.req.raw, c.env));
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 
@@ -102,6 +112,10 @@ app.use("/api/*", async (c, next) => {
   if (c.req.method === "GET" && c.req.path === "/api/donations") return next();
   // The app's free Ask checks its own Firebase sign-in: it needs no Telegram link (answerApp).
   if (c.req.path === "/api/app/ask" || c.req.path.startsWith("/api/app/ask/")) return next();
+  // "Said in Class" in the app checks its own Firebase sign-in, like Ask (app-teachings.ts).
+  if (c.req.method === "GET" && c.req.path === "/api/app/teachings") return next();
+  // The channel's newest uploads and live stream are public YouTube listings, open to every app reader (app-channel.ts).
+  if (c.req.method === "GET" && (c.req.path === "/api/app/channel/recent" || c.req.path === "/api/app/channel/live")) return next();
   if (c.req.header("authorization")?.startsWith("Bearer ")) {
     // A linked Firebase login may read/spend its own Ask balance and manage its data.
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
@@ -263,6 +277,8 @@ app.post("/api/ask", async (c) => {
 });
 // Native Ask authenticates every route itself with Firebase; Telegram linking stays optional.
 app.route("/api/app/ask", appAsk);
+app.route("/api/app/teachings", appTeachings);
+app.route("/api/app/channel", appChannel);
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
 const NOTE_PATH = /^\/(classes|captains|history|study|encyclopedia)\/[A-Za-z0-9_-][A-Za-z0-9._/-]{0,160}$/;

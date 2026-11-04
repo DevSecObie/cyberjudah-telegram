@@ -10,8 +10,9 @@
   "workers_dev": true,
   // The Mini App lives at cyberjudah.io/app: the SPA under /app, the API it calls under
   // /api, and the verse-card images and frames under /card and /frames. The rest of the
-  // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev.
-  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*", "cyberjudah.io/bs/*"],
+  // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev. The phone
+  // app's video player page (/embed) and its downloads (/offline) are served here too.
+  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*", "cyberjudah.io/bs/*", "cyberjudah.io/embed/*", "cyberjudah.io/offline/*"],
   // The Mini App is a SPA staged by bot/scripts/prepare-assets.sh into .deploy/
   // (the build output at both / and /app/, so it loads on workers.dev and on
   // cyberjudah.io/app); every unknown path serves its index.html. The
@@ -24,7 +25,7 @@
     // on to the app. /__scheduled reaches the
     // Worker so `wrangler dev --test-scheduled` (the end-to-end tests) can run the cron; a
     // deployed Worker has no such route and hands it to the assets like any unknown path.
-    "run_worker_first": ["/api/*", "/webhook", "/__scheduled", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*"]
+    "run_worker_first": ["/api/*", "/webhook", "/__scheduled", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*", "/app/published/*"]
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.
@@ -46,7 +47,10 @@
   // (so each reader's own time is reached in every time zone, including :30 and :45 offsets).
   "triggers": { "crons": ["0 * * * *", "15,30,45 * * * *"] },
   // Abuse protection for the reading-reminder endpoints (remind.ts): per caller, per minute.
-  "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }, { "name": "FIREBASE_AUTH_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }, { "name": "READER_LIMIT", "namespace_id": "1005", "simple": { "limit": 60, "period": 60 } }, { "name": "FIREBASE_SESSION_LIMIT", "namespace_id": "1007", "simple": { "limit": 60, "period": 60 } }],
+  // READER_LIMIT and FIREBASE_SESSION_LIMIT count per internet address, so they are generous
+  // (600 a minute): a class on one Wi-Fi, or a carrier that shares addresses, shares them.
+  // FIREBASE_UID_LIMIT counts each signed-in person (60 a minute), after the sign-in is verified.
+  "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } }, { "name": "FIREBASE_AUTH_LIMIT", "namespace_id": "1003", "simple": { "limit": 10, "period": 60 } }, { "name": "READER_LIMIT", "namespace_id": "1005", "simple": { "limit": 600, "period": 60 } }, { "name": "MCP_LIMIT", "namespace_id": "1009", "simple": { "limit": 60, "period": 60 } }, { "name": "FIREBASE_SESSION_LIMIT", "namespace_id": "1007", "simple": { "limit": 600, "period": 60 } }, { "name": "FIREBASE_UID_LIMIT", "namespace_id": "1011", "simple": { "limit": 60, "period": 60 } }],
   // Staging: the same code against separate resources, deployed by .github/workflows/stage.yml.
   // The staging bot is a second @BotFather bot; its token and webhook secret live in the
   // STAGING_BOT_TOKEN / STAGING_WEBHOOK_SECRET repository secrets. The teaching database,
@@ -63,7 +67,7 @@
         { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
       ],
       "kv_namespaces": [{ "binding": "SUBS", "id": "00000000000000000000000000000000" }],
-      "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }, { "name": "FIREBASE_AUTH_LIMIT", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } }, { "name": "READER_LIMIT", "namespace_id": "1006", "simple": { "limit": 60, "period": 60 } }, { "name": "FIREBASE_SESSION_LIMIT", "namespace_id": "1008", "simple": { "limit": 60, "period": 60 } }],
+      "ratelimits": [{ "name": "REMIND_LIMIT", "namespace_id": "1002", "simple": { "limit": 30, "period": 60 } }, { "name": "FIREBASE_AUTH_LIMIT", "namespace_id": "1004", "simple": { "limit": 10, "period": 60 } }, { "name": "READER_LIMIT", "namespace_id": "1006", "simple": { "limit": 600, "period": 60 } }, { "name": "MCP_LIMIT", "namespace_id": "1010", "simple": { "limit": 60, "period": 60 } }, { "name": "FIREBASE_SESSION_LIMIT", "namespace_id": "1008", "simple": { "limit": 600, "period": 60 } }, { "name": "FIREBASE_UID_LIMIT", "namespace_id": "1012", "simple": { "limit": 60, "period": 60 } }],
       // These bindings are not inherited from the top-level Worker configuration.
       "ai": { "binding": "AI" },
       "vectorize": [{ "binding": "VEC", "index_name": "cyberjudah-teachings" }],
@@ -75,12 +79,12 @@
         "SITE_URL": "https://cyberjudah.io",
         "D1_SIZE_ALERT_BYTES": "8000000000",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
-        "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
+        "CLAUDE_MODEL": "claude-sonnet-5-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-5-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
-        "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_FREE_MODELS": "@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731,@cf/meta/llama-3.1-8b-instruct-fp8",
-        "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+        "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_CLAUDE_FOR_READERS": "off", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.20", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
+        "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1"
       }
     }
@@ -96,7 +100,7 @@
     "APP_URL": "https://cyberjudah.io/app",
     // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
     // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
-    "CLAUDE_MODEL": "claude-sonnet-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-4-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
+    "CLAUDE_MODEL": "claude-sonnet-5-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-5-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
     // Cloudflare AI Gateway for Workers AI calls (logs, analytics, rate limits on the dashboard).
     // "default" is created by Cloudflare on the first request (providers.ts). Claude goes through it
     // too once the CF_AIG_TOKEN secret is set; until then Claude is called directly. If Claude
@@ -132,9 +136,10 @@
     // reserved and completed free-answer cost per UTC day (429 free-paused when exhausted).
     // Storage failures block admission. Admins and other account AI uses are separate;
     // this is not a guarantee of a zero provider bill (see docs/OPERATIONS.md).
-    // The owner set $1.00 a day for each of production and staging (2026-10-30). Workers AI's free
-    // daily allowance (10,000 neurons, about $0.11) is shared by the two; free answers past it are
-    // billed to the account at Workers AI's rates, up to these caps.
+    // $1.00 a day for each of production and staging, so every free model keeps answering (each
+    // answer reserves up to ASK_FREE_MAX_USD). Workers AI's free daily allowance (10,000 neurons,
+    // about $0.11) is shared by the two; free answers past it are billed to the account at Workers
+    // AI's rates, up to these caps. ASK_DAILY_LIMIT is each person's Ask answers a day (20).
     // ASK_USD_PER_STAR is kept a little under the Star's payout (about $0.013 when this was set),
     // so a fall in the payout never leaves a paid answer to the owner.
     // ASK_IP_DAILY_LIMIT is the Sybil backstop (Ask requests per IP per day); SEARCH_AI_DAILY_LIMIT
@@ -146,8 +151,8 @@
     // ASK_FREE_MODEL names the default free model: it costs less per token than the earlier default
     // (ask-models.json) and reasons and follows instructions far better; the earlier one stays free.
     "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
-    "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_FREE_MODELS": "@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731,@cf/meta/llama-3.1-8b-instruct-fp8",
-    "ASK_IP_DAILY_LIMIT": "1000", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+    "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_CLAUDE_FOR_READERS": "on", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.20", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
+    "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
     // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
     // DONATION_URL (the owner's own HTTPS giving link) is not set here: it is not secret, but no

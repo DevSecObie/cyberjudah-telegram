@@ -14,7 +14,7 @@ Google is not enabled. Removing `SEARCH_AI_MODEL` uses `ASK_FREE_MODEL` with the
 
 Cloudflare provides 10,000 free neurons per UTC day, shared by the account. Its Workers Paid
 plan bills usage above that allowance. The app's existing dollar-equivalent admission budget
-(`ASK_FREE_DAILY_USD_CAP`, $0.11 per Worker per day) limits Search and free Ask together; it is
+(`ASK_FREE_DAILY_USD_CAP`, $0.08 on production and $0.03 on staging, together inside the account's free allowance) limits Search and free Ask together; it is
 not an account-wide Cloudflare billing limit. Other Workers, embeddings, staging and Ask admin
 requests may also consume the account's allowance. Keep account usage within the provider's
 free allowance; this application counter alone cannot promise a zero provider bill.
@@ -22,7 +22,21 @@ free allowance; this application counter alone cannot promise a zero provider bi
 Search admins now share the same daily admission limit as other readers. Every answer has a
 per-request budget (`ASK_FREE_MAX_USD`, $0.05), one model call and a bounded output. Missing
 usage or provider failure retains the full reservation; unavailable storage blocks new work.
-When the allowance is exhausted, ordinary search results remain available without an AI answer.
+
+### Claude for signed-in app readers
+
+Signed-in app readers can ask Claude: `CLAUDE_MODEL_LIGHT` answers by default and `CLAUDE_MODEL`
+answers deep questions. It runs only while `ASK_CLAUDE_FOR_READERS` is `"on"`, the
+`ANTHROPIC_API_KEY` secret is set and `ASK_CLAUDE_DAILY_USD_CAP` is above zero. Each answer
+reserves `ASK_CLAUDE_MAX_USD` before any model call, against `ASK_CLAUDE_DAILY_USD_CAP` (per UTC
+day) and `ASK_CLAUDE_TOTAL_USD_CAP` (over all days), kept apart from the free models' allowance
+under the `claude:` day prefix. The reader's daily limit and the IP limit still apply. Past either
+cap, or when Claude cannot answer, the free model answers. When the allowance is exhausted,
+ordinary search results remain available without an AI answer.
+
+Every free Workers AI text model is offered in the app's model picker; `ASK_FREE_MODELS` can
+narrow the list. Each free answer is held to `ASK_FREE_MAX_USD` and all of them together to
+`ASK_FREE_DAILY_USD_CAP`.
 
 Production and staging run `bot/scripts/verify-release.mjs` after deployment. It verifies the
 configured hosted model returns an answer with library citations, under the normal reader
@@ -58,5 +72,5 @@ does not automatically roll the Worker back. Review the run before calling the r
 
 The app sends the conversation so far (`history`), so a follow-up such as "why?" or "who was he?" is searched together with the question before it (`retrievalText` in `bot/src/ai.mjs`). Verses the question names ("Deuteronomy 28:68") are read from the King James text and given to the model first, so it can quote them exactly. The response carries `followups`: up to three next questions the reader might ask. A greeting or a thank-you is answered briefly even when the library has nothing for it; a real question with no passages is told so, with no model call.
 
-Limits: 100 answers a day per account, counted under a keyed hash of the Firebase UID (`ask_app:` in `rate_counts`); the per-IP Ask limit (`ASK_IP_DAILY_LIMIT`); the per-IP Bearer rate limit (`FIREBASE_SESSION_LIMIT`); and the shared daily free-answer budget, which every answer reserves before any model work. The reader must agree to the free model's provider first: without it the server answers 428 `consent` with the provider's name, and nothing is sent to the provider.
+Limits: `ASK_DAILY_LIMIT` answers a day per account (20), counted under a keyed hash of the Firebase UID (`ask_app:` in `rate_counts`); the per-IP Ask limit (`ASK_IP_DAILY_LIMIT`); the per-IP Bearer rate limit (`FIREBASE_SESSION_LIMIT`); and the shared daily free-answer budget, which every answer reserves before any model work. The reader must agree to the free model's provider first: without it the server answers 428 `consent` with the provider's name, and nothing is sent to the provider.
 

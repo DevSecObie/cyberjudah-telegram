@@ -102,3 +102,14 @@ test('Apocrypha books Bible Strong lacks get its own empty answer, never another
   assert.ok(seen.every(url => url.includes('/verses/1-1-1/')), 'an unmapped book id is never forwarded');
   await assert.rejects(readBibleStrongReference(new Request('https://staging.example/bs/v1/naves/en/verses/75-1-1/topics'), async () => Response.json({ code: 'X' }, { status: 404 })), /no corresponding passage/);
 });
+
+test("the Easton's entries withheld for church doctrine stay hidden in Bible Strong's Easton + Webster", async () => {
+  const list = await readBibleStrongReference(new Request('https://staging.example/bs/v1/dictionaries/easton-webster/en/entries?limit=3'), async () =>
+    Response.json({ entries: [{ id: 1, word: 'Trinity' }, { id: 2, word: 'Aaron' }, { id: 3, word: 'Incarnation' }] }));
+  assert.deepEqual(await list.json(), { entries: [{ id: 2, word: 'Aaron' }] });
+  await assert.rejects(readBibleStrongReference(new Request('https://staging.example/bs/v1/dictionaries/easton-webster/en/entries/trinity'), async () =>
+    Response.json({ entry: { id: 7912, word: 'Trinity', definition: '<p>three distinct Persons</p>' } })), /not available/);
+  const open = await readBibleStrongReference(new Request('https://staging.example/bs/v1/dictionaries/easton-webster/en/entries/aaron'), async () =>
+    Response.json({ entry: { id: 1, word: 'Aaron', definition: '<p>Aaron</p>' } }));
+  assert.equal((await open.json()).entry.word, 'Aaron');
+});

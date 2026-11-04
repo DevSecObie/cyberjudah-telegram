@@ -1,0 +1,7 @@
+- Timeline: Into the Ships shows the slave deck of the bark Wildfire, Key West, 1860 (public domain, Wikimedia Commons).
+- Timeline: The House of Bondage shows five generations on Smith's Plantation, Beaufort, South Carolina, 1862 (Timothy O'Sullivan, public domain).
+- Timeline: Reconstruction and Jim Crow shows "The Original Jim Crow" sheet music cover, 1832 (public domain).
+- Timeline: Civil Rights and the Awakening shows the March on Washington, 1963 (Warren K. Leffler, public domain).
+- Timeline: Early Church shows the spoils of the Temple carried to Rome, from the Arch of Titus (photo by José Luiz, CC BY-SA 3.0).
+- Timeline: Reformation shows the title page of the 1611 King James Bible (public domain).
+- Timeline: each period picture from Wikimedia Commons now names its source under the period's text.

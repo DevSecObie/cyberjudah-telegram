@@ -19,7 +19,7 @@ Only the repository owner merges, approves the production deploy and tags releas
 | `check` | stage.yml, deploy.yml | `npm ci`, `npm run typecheck`, `npm test` (app and bot), `npm run build` |
 | `browser-tests (chromium / firefox / webkit)` | e2e.yml | The Playwright suite in `app/e2e`, one job per engine |
 | `playwright` | e2e.yml | A summary job. It is red when any engine is red, and when a newer push cancelled the run. Read the engine jobs, not this one. |
-| `stage` | stage.yml | Deploys the PR to the staging Worker, then runs `bot/scripts/verify-release.mjs` against it. Runs take turns (one staging Worker), so they queue. |
+| `stage` | stage.yml | Skipped on pull requests. Run by hand only: deploys the chosen branch to the staging Worker (which the TestFlight beta reads), then runs `bot/scripts/verify-release.mjs` against it. Runs take turns, so they queue. |
 | `changelog` | changelog.yml | Needs a new `changes/<branch with / as ->.md` file with `- ` lines, or `Changelog: not applicable — <reason>` in the PR description |
 | `codeql`, `dependency-review`, `cms-content`, `ios`, `android` | security.yml, cms.yml, native-build.yml | Usually green; read the log if not |
 

@@ -1,0 +1,3 @@
+- Ask for app readers uses Claude Haiku 5.5 by default and Claude Sonnet 5.5 for deep questions, with a new all-time spend cap (`ASK_CLAUDE_TOTAL_USD_CAP`) beside the daily one.
+- Every free Workers AI text model is offered in the app's model picker.
+- The model catalog adds Claude Haiku 5.5, Claude Sonnet 5.5 and two new Workers AI models; the catalog builder keeps conversation models that are also tagged for classification.

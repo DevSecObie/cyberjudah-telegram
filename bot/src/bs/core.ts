@@ -23,6 +23,9 @@ export type TopicRow = { slug: string; label: string };
 export type Topic = TopicRow & { items: { title: string; url: string; date?: string; teacher?: string }[]; thread?: { url: string; label: string; verses: string; text: string; classes: { title: string; url: string; date: string; teacher: string; video: string | null; t: number; ts: string }[]; precepts: { label: string; url: string; why?: string }[] }[] };
 export const VERSION = 'KJV';
 export const COLLECTION = 'cyberjudah';
+/** One commentary per Bishop: the resource id and the teacher name its entries carry in the class data. */
+export const TEACHER_COLLECTIONS: Readonly<Record<string, string>> = { 'bishop-nathanyel': 'Bishop Nathanyel', 'bishop-yawasap': 'Bishop Yawasap', 'bishop-kani': 'Bishop Kani' };
+export const isCollection = (id: unknown): id is string => typeof id === 'string' && (id === COLLECTION || Object.hasOwn(TEACHER_COLLECTIONS, id));
 export const bibleResource = { kind: 'bible-text' as const, versionId: VERSION, revision: `cj-kjv-${metadata.textSha256}`, textRevision: metadata.textSha256, textSha256: metadata.textSha256 };
 export const strongResource = { kind: 'strong-bible-index' as const, versionId: VERSION, datasetId: 'CYBERJUDAH', revision: `cj-strong-${metadata.strongSha256}`, textRevision: metadata.textSha256, textSha256: metadata.textSha256, strongRevision: metadata.strongSha256 };
 export const emptyPresentation = () => ({ startTags: [], layout: [], notes: [] as { offset: number; order: number; kind: 'note'; markup: string }[], headings: [] });
@@ -80,9 +83,10 @@ export function language(c: Ctx, code: string, query = false) {
   const lang = query ? c.req.query('language') : c.req.param('language');
   if (lang !== 'en') missing(code, 'CyberJudah provides this resource in English only');
 }
-export function collection(c: Ctx) {
+export function collection(c: Ctx): string {
   language(c, 'SUPPLEMENTARY_CONTENT_NOT_FOUND');
-  if (c.req.param('collection') !== COLLECTION) missing('SUPPLEMENTARY_CONTENT_NOT_FOUND');
+  const id = c.req.param('collection');
+  return isCollection(id) ? id : missing('SUPPLEMENTARY_CONTENT_NOT_FOUND');
 }
 export function limit(c: Ctx, max = 500, fallback = 60) { return integer(c.req.query('limit'), 1, max, fallback); }
 export const encodeCursor = (value: unknown) => encodeURIComponent(JSON.stringify(value));
@@ -96,16 +100,50 @@ export async function sha(value: unknown) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(value)));
   return [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
+/**
+ * Parsed data files kept in this server copy's memory for a few minutes, so a busy screen does not
+ * re-read and re-parse the same file (the Strong's list is 1.6 MB) on every request. Callers treat
+ * loaded data as read-only. The data set changes at most a few times a day; the edge cache below
+ * already holds a file for an hour.
+ */
+const MEMO_MS = 10 * 60_000, MEMO_MAX = 48;
+/** Kept files' source size, in characters; a Worker has 128 MB, and parsed JSON is several times
+ * its text. One file larger than MEMO_FILE_MAX is never kept. */
+const MEMO_TOTAL_MAX = 12_000_000, MEMO_FILE_MAX = 3_000_000;
+const memo = new Map<string, { at: number; size: number; data: unknown }>();
+let memoSize = 0;
+/** Tests only: forget the files kept in memory. */
+export function forgetLoaded() { memo.clear(); memoSize = 0; }
+function forget(url: string) {
+  const old = memo.get(url);
+  if (old) { memoSize -= old.size; memo.delete(url); }
+}
+function remember(url: string, data: unknown, size: number) {
+  forget(url);
+  if (size > MEMO_FILE_MAX) return;
+  memo.set(url, { at: Date.now(), size, data });
+  memoSize += size;
+  while (memo.size > MEMO_MAX || memoSize > MEMO_TOTAL_MAX) forget(memo.keys().next().value!);
+}
+/** Parses a response, keeping it in memory when it is small enough. */
+async function parse<T>(url: string, response: Response): Promise<T> {
+  const text = await response.text();
+  const data = JSON.parse(text) as T;
+  remember(url, data, text.length);
+  return data;
+}
 export async function load<T>(c: Ctx, path: string, optional = false): Promise<T> {
   const url = `${c.env.DATA_ORIGIN.replace(/\/$/, '')}${path}`;
+  const kept = memo.get(url);
+  if (kept && Date.now() - kept.at < MEMO_MS) return kept.data as T;
   const cache = typeof caches === 'undefined' ? undefined : caches.default;
   try {
     const hit = await cache?.match(url);
-    if (hit) return await hit.json() as T;
+    if (hit) return await parse<T>(url, hit);
     const response = await fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
     if (response.status === 404 && optional) return null as T;
     if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
-    const data = await response.json() as T;
+    const data = await parse<T>(url, response);
     if (cache) {
       const put = cache.put(url, new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' } }));
       try { c.executionCtx.waitUntil(put); } catch { await put; }

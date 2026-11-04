@@ -19,7 +19,7 @@ export function DeleteAccount() {
     <Screen title="Delete Your Account" kicker="CyberJudah" className="privacy">
       <Section title="In the App">
         <ul>
-          <li><b>CyberJudah for iPhone and Android:</b> open More, or your profile, and choose Delete account. You are asked to type a confirmation first, and to sign in again if you last signed in more than a few minutes ago. This deletes your sign-in and the study data synced to it. If you linked Telegram, your Ask balance and chats are deleted with Delete my data in Telegram.</li>
+          <li><b>CyberJudah for iPhone and Android:</b> open More, or your profile, and choose Delete account. You are asked to type a confirmation first, and to sign in again if you last signed in more than a few minutes ago. If you signed in with Apple, you confirm with Apple, and CyberJudah's access to your Apple ID is revoked. This deletes your sign-in and the study data synced to it. If you linked Telegram, your Ask balance and chats are deleted with Delete my data in Telegram.</li>
           <li><b>CyberJudah in Telegram:</b> open Settings → Privacy and choose Delete my data, or send /deletemydata to the bot.</li>
           <li><b>CyberJudah in a browser, signed in:</b> open <a href="/privacy" onClick={go("/privacy")}>Privacy</a> and choose Delete my data.</li>
         </ul>
