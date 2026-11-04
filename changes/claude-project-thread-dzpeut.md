@@ -1,2 +1,0 @@
-- The staging worker serves the app's offline study files: the English Strong's lexicon, the Brown-Driver-Briggs Hebrew lexicon, and the Hebrew & Greek Bible with its English index, from a pinned app commit, beside the web export.
-- The Credits page lists the Westminster Leningrad Codex with the Open Scriptures Hebrew word tags, Scrivener's 1894 Textus Receptus, Robinson's Strong's numbers and morphology, and the Brown-Driver-Briggs Hebrew lexicon.

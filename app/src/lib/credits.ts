@@ -17,7 +17,6 @@ export type CreditGroup = { title: string; note?: string; items: Credit[] };
 
 const GPL = "https://www.gnu.org/licenses/gpl-3.0.html";
 const CC_BY_SA_4 = "https://creativecommons.org/licenses/by-sa/4.0/";
-const CC_BY_4 = "https://creativecommons.org/licenses/by/4.0/";
 const OFL = "https://openfontlicense.org/open-font-license-official-text/";
 
 export const CREDIT_GROUPS: CreditGroup[] = [
@@ -37,10 +36,6 @@ export const CREDIT_GROUPS: CreditGroup[] = [
       { name: "Strong's numbers in the King James text", by: "James Strong, Exhaustive Concordance of the Bible (1890); tagged text from github.com/kaiserlik/kjv", license: "Public domain", source: "https://github.com/kaiserlik/kjv" },
       { name: "Strong's Hebrew and Greek dictionaries (1894)", by: "James Strong; JSON edition by Open Scriptures", license: "CC BY-SA (Open Scriptures)", source: "https://github.com/openscriptures/strongs", changes: "Where a definition calls the land of Israel \"Palestine\", it says \"Canaan\"." },
       { name: "Swete's Septuagint (1909–1930), the Greek of the Apocrypha", by: "Henry Barclay Swete; digital text by Eliran Wong", license: "Public domain; digital text GNU GPL v3", licenseUrl: GPL, source: "https://github.com/eliranwong/LXX-Swete-1930" },
-      { name: "Westminster Leningrad Codex, the Hebrew of the Old Testament", by: "Westminster Hebrew Institute; word tags (lemmas and morphology) by the Open Scriptures Hebrew Bible Project", license: "Text public domain; word tags CC BY 4.0", licenseUrl: CC_BY_4, source: "https://github.com/openscriptures/morphhb", changes: "Verses placed on the King James verse numbers with the project's own verse map; the English under each word is the King James rendering." },
-      { name: "Scrivener's Textus Receptus (1894), the Greek of the New Testament", by: "F. H. A. Scrivener; digital text by the Byzantine Text project", license: "Public domain", source: "https://github.com/byztxt/greektext-scrivener", changes: "The English under each word is the King James rendering." },
-      { name: "Strong's numbers and morphology of the Textus Receptus", by: "Maurice A. Robinson", license: "Public domain", source: "https://github.com/byztxt/greektext-textus-receptus", changes: "Matched word by word to Scrivener's 1894 text." },
-      { name: "Brown-Driver-Briggs Hebrew and English Lexicon (1906)", by: "Francis Brown, S. R. Driver and Charles A. Briggs; transcription by the Open Scriptures Hebrew Bible Project", license: "Text public domain; transcription CC BY 4.0", licenseUrl: CC_BY_4, source: "https://github.com/openscriptures/HebrewLexicon" },
       { name: "Cross references", by: "OpenBible.info", license: "CC BY (OpenBible.info)", source: "https://www.openbible.info/labs/cross-references/", changes: "Up to twelve references a verse, in Bible order." },
     ],
   },
