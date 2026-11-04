@@ -16,7 +16,7 @@ import * as Problems from '../upstream/problems.ts';
 import { buildCommentaryReadingSections, createCommentaryReadingIndex } from '../upstream/contracts/commentarySections.ts';
 import { getStrongBibleConcordanceCandidates } from '../upstream/strongBibleConcordance.ts';
 import worker from '../../src/index.ts';
-import { BOOKS, metadata, bibleResource } from '../../src/bs/core.ts';
+import { BOOKS, metadata, bibleResource, forgetLoaded } from '../../src/bs/core.ts';
 import { makeSections } from '../../src/bs/commentary.ts';
 import { strongCode } from '../../src/bs/strongs.ts';
 
@@ -58,7 +58,7 @@ const db = { prepare(sql: string) {
 const peopleJson = await readFile(new URL('../../data/entities/people.json', import.meta.url), 'utf8');
 // The worker's static assets hold only the People module the feed reads; any other asset request is a /bs route falling through to the SPA.
 const env = { DATA_ORIGIN: 'https://data.cyberjudah.io', DB: db, ASSETS: { fetch: (r: Request) => { if (new URL(r.url).pathname === '/bs-data/entities/people.json') return Promise.resolve(new Response(peopleJson, { headers: { 'content-type': 'application/json' } })); throw new Error('A /bs request fell through to the SPA'); } } };
-beforeEach(async () => { await Promise.all(pending.splice(0)); data.clear(); for (const [key, value] of originals) data.set(key, structuredClone(value)); cache.clear(); fetched.length = 0; failure = undefined; });
+beforeEach(async () => { await Promise.all(pending.splice(0)); data.clear(); for (const [key, value] of originals) data.set(key, structuredClone(value)); cache.clear(); forgetLoaded(); fetched.length = 0; failure = undefined; });
 after(() => { globalThis.fetch = originalFetch; delete (globalThis as any).caches; sqlite.close(); });
 const covered = new Set<string>();
 const allRoutes = [...(await readFile(new URL('../upstream/api.ts.txt', import.meta.url), 'utf8')).matchAll(/HttpApiEndpoint\.(get|post)\(\s*'[^']+',\s*'([^']+)'/g)].map(m => ({ method: m[1].toUpperCase(), path: m[2] }));
@@ -118,7 +118,7 @@ test('the release gate serves the published Tobit chapter and still rejects chan
   assert.equal(json.verses[0].text, originals.get('/api/kjv/tobit/1.json').verses[0].text);
   assert.equal(json.resource.textSha256, metadata.textSha256);
   await Promise.all(pending.splice(0));
-  cache.clear();
+  cache.clear(); forgetLoaded();
   const changed = structuredClone(originals.get('/api/kjv/tobit/1.json'));
   changed.verses[0].text += ' changed';
   data.set('/api/kjv/tobit/1.json', changed);
