@@ -89,7 +89,7 @@ jobs:
           VITE_ACCOUNT_SYNC_SCOPE: staging
           CYBERJUDAH_APP_BASE: /app/
       - name: Check out the Bible Strong app port
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: DevSecObie/cyberjudah-app
           ref: 4a04c2e2d75ab29009718a8e62c1edc98ba6f35e
@@ -108,7 +108,7 @@ jobs:
           rm -rf ../app/dist
           cp -R apps/expo/dist ../app/dist
       - name: Check out the native release files
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: DevSecObie/cyberjudah-app
           ref: 82e732304ea41e32ea5767c86c3075c081764a80
