@@ -27,8 +27,8 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -70,8 +70,8 @@ jobs:
             exit 1
           fi
           echo "All four secrets are set."
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -81,6 +81,42 @@ jobs:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}
           VITE_ACCOUNT_SYNC: ${{ env.ACCOUNT_SYNC }}
           CYBERJUDAH_APP_BASE: /app/
+      # The iPhone app's store build reads these from cyberjudah.io, as the beta reads them from
+      # staging (stage.yml): the video player page, and the offline downloads (the Bible, Strong's,
+      # the Timeline, People and the Jewish Encyclopedia) with the catalog that lists them. Same
+      # pinned commits as staging; the Mini App at /app is not touched.
+      - name: Check out the native release files
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 3f96d1a7de4a06f5fa856165b03dc70c6af9aeae
+          path: native-release
+          persist-credentials: false
+          sparse-checkout: apps/expo/public
+      - name: Check out CyberJudah's own dictionaries
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: d1a837b38eb657d6f414f92892ea89c618b766f5
+          path: dictionary-release
+          persist-credentials: false
+          sparse-checkout: apps/expo/public/offline
+      - name: Serve the phone app's player page and downloads
+        run: |
+          set -euo pipefail
+          mkdir -p app/dist/embed app/dist/offline
+          cp -n native-release/apps/expo/public/embed/youtube.html app/dist/embed/
+          # The whole offline folder of one commit, so every file matches the catalog beside it.
+          cp -R dictionary-release/apps/expo/public/offline/. app/dist/offline/
+          node -e '
+            const fs = require("fs"), crypto = require("crypto");
+            const catalog = JSON.parse(fs.readFileSync("app/dist/offline/catalog.json", "utf8"));
+            for (const r of Object.values(catalog.resources)) {
+              const sum = crypto.createHash("sha256").update(fs.readFileSync("app/dist/offline/" + r.file)).digest("hex");
+              if (sum !== r.archiveSha256) throw new Error(r.file + " does not match the catalog");
+            }
+            console.log("Offline downloads match their catalog:", Object.keys(catalog.resources).length);'
+          sha256sum app/dist/embed/youtube.html
       - name: Upload the app's pictures to R2
         working-directory: bot
         env:
@@ -234,13 +270,45 @@ jobs:
           npx wrangler rollback "$PREVIOUS" --message "Automatic rollback: run ${{ github.run_id }} failed after deploying" --yes
           echo "::error::This release failed after going live and was rolled back to version $PREVIOUS, the one serving before it."
 
+  tell-owner:
+    # GitHub's 15-minute schedule runs hours late here, so the deploy itself tells the owner on
+    # Telegram that it is waiting for Approve (custodian "waiting" task: also lists any other
+    # waiting runs and marks older ones as superseded). Read-only; it never approves anything.
+    needs: [check, release-browser-checks]
+    # Main only: the automation environment's secrets are limited to main.
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: automation
+      deployment: false
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: .github/custodian
+          persist-credentials: false
+      - name: Tell the owner this deploy waits for Approve
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ALERT_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ALERT_CHAT_IDS: ${{ secrets.CUSTODIAN_ALERT_CHAT_ID || secrets.ADMIN_IDS }}
+          RUN_ID: ${{ github.run_id }}
+        run: python3 .github/custodian/custodian.py waiting "wait_for=$RUN_ID"
+
   refresh-search:
     # The library changes when the cyberjudah repo publishes; keep the search index fresh.
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    environment: automation
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
       - run: npm ci --no-audit --no-fund
@@ -261,10 +329,11 @@ jobs:
     needs: deploy
     if: always() && needs.deploy.result != 'failure' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.embed))
     runs-on: ubuntu-latest
+    environment: automation
     timeout-minutes: 340
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
       - run: npm ci --no-audit --no-fund

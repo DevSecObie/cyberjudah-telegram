@@ -1,0 +1,1 @@
+- Ask: an answer kept in the answer cache that holds tool-call markup is dropped instead of served, and such an answer is never kept, so a question answered before the DeepSeek markup fix gets a fresh answer.

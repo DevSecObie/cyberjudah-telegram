@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import indexData from '../../data/bs-strong-index.json';
 import { type App, type Ctx, type Verse, bookById, cmp, cursor, encodeCursor, html, integer, invalid, language, limit, load, metadata, missing, readChapter, sha, strongResource, version } from './core';
+import { chapterEntities, entitiesAvailable, entity, listEntities } from './entities';
 
 type Entry = { number: string; language: string; lemma: string; xlit: string; pron: string; derivation: string; def: string; kjv: string; source: string };
 type IndexRow = { n: string; lemma: string; xlit: string; def: string; count: number };
@@ -8,6 +9,32 @@ type Span = { ordinal: number; startOffset: number; length: number; identities: 
 const concordance = indexData as Record<string, string>;
 export const strongBibles = new Hono<App>();
 export const lexicon = new Hono<App>();
+
+// The published Greek entries carry no transliteration (their xlit is empty), so a search for
+// "agape" or "logos" could never find them. This writes the lemma in Latin letters the way
+// Strong's does (ἀγάπη agapē, λόγος logos, χάρις charis, ῥῆμα rhēma), for search and display.
+const GREEK: Record<string, string> = { α: 'a', β: 'b', γ: 'g', δ: 'd', ε: 'e', ζ: 'z', η: 'ē', θ: 'th', ι: 'i', κ: 'k', λ: 'l', μ: 'm', ν: 'n', ξ: 'x', ο: 'o', π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't', υ: 'u', φ: 'ph', χ: 'ch', ψ: 'ps', ω: 'ō' };
+export function greekTransliteration(lemma: string): string {
+  const words = lemma.normalize('NFD').toLowerCase().split(/\s+/);
+  return words.map(word => {
+    let out = '';
+    const letters = [...word];
+    for (let i = 0; i < letters.length; i++) {
+      const ch = letters[i];
+      if (/[\u0300-\u036f]/.test(ch)) continue;
+      const marks = letters.slice(i + 1).join('').match(/^[\u0300-\u036f]*/)?.[0] ?? '';
+      const rough = marks.includes('\u0314');
+      if (ch === 'γ' && /[γκξχ]/.test(letters[i + 1] ?? '')) { out += 'n'; continue; }
+      if (ch === 'υ' && /[αεηο]/.test(out.slice(-1))) { out += 'u'; continue; }
+      const latin = GREEK[ch] ?? (/[a-z]/.test(ch) ? ch : '');
+      if (ch === 'ρ' && rough) { out += 'rh'; continue; }
+      // A rough breathing is an h before the word's first vowel, or before its opening diphthong (υἱός huios).
+      out = rough && /^[aeēiouō]*$/.test(out) ? `h${out}${latin}` : out + latin;
+    }
+    return out;
+  }).join(' ');
+}
+const xlitOf = (code: string, xlit: string | undefined, lemma: string | undefined) => xlit || (code[0] === 'G' && lemma ? greekTransliteration(lemma) : '');
 export function strongCode(raw: string, book?: number): string {
   const input = raw.trim().toUpperCase();
   const prefixed = /^[HG]/.test(input) ? input : book ? `${book <= 39 ? 'H' : 'G'}${input}` : input;
@@ -83,20 +110,47 @@ strongBibles.get('/:version/books/:book/identities/:reference/lemmas', c => {
   // The dataset has no lexeme/POS disambiguation. Do not invent STEP lemma IDs.
   return c.json({ resource: strongResource, identity: identity(code), lemmas: [] });
 });
+// Strong's own order: derivation, then definition. The source sometimes files the start of a Greek
+// definition in the derivation field (G2316 "of uncertain affinity; a deity, ..."), so the gloss keeps it.
+const ORIGIN = /^(?:from|of|compare|apparently|probably|perhaps|akin|including|namely|used|which|and|or|by|through|in|as|occurs|an? (?:prolonged|primary|reduplicated|form|derivative|middle|adverb|particle)|adverb|feminine|neuter|masculine|plural|contracted|corresponding|another|\()/i;
+function clauses(text: string): string[] {
+  const out: string[] = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')') depth = Math.max(0, depth - 1);
+    else if (text[i] === ';' && depth === 0) { out.push(text.slice(start, i)); start = i + 1; }
+  }
+  return [...out, text.slice(start)].map(s => s.trim()).filter(Boolean);
+}
+export function strongText(data: Pick<Entry, 'derivation' | 'def'>): string {
+  return [data.derivation, data.def].map(s => (s ?? '').trim()).filter(Boolean).join(' ');
+}
+export function strongGloss(code: string, data: Pick<Entry, 'derivation' | 'def' | 'kjv'>): string {
+  const def = (data.def ?? '').trim();
+  const parts = code[0] === 'G' ? clauses(data.derivation ?? '') : [];
+  const first = parts.findIndex((p, i) => i > 0 && !ORIGIN.test(p));
+  const lead = first < 0 ? '' : parts.slice(first).join('; ');
+  return [lead, def].filter(Boolean).join('; ') || (data.kjv ?? '').trim();
+}
 async function entry(c: Ctx, raw: string) {
   const code = strongCode(raw), data = await load<Entry | null>(c, `/api/strongs/${code}.json`, true);
   if (!data) return missing('STRONG_LEXICON_ENTRY_NOT_FOUND');
   return {
     resource: { revision: `cj-lexicon-${await sha(data)}` }, id: id(code), selectedIdentity: identity(code), stepCode: code, classicStrong: code, eStrong: '', dStrong: '',
-    language: code[0] === 'H' ? 'hebrew' as const : 'greek' as const, baseCode: Number(code.slice(1)), original: data.lemma, transliteration: data.xlit || '',
-    ...(data.pron ? { pronunciation: data.pron } : {}), gloss: data.def || data.kjv || '',
-    definitionHtml: [data.def, data.derivation, data.kjv, data.source].filter(Boolean).map(t => `<p>${html(t)}</p>`).join(''),
+    language: code[0] === 'H' ? 'hebrew' as const : 'greek' as const, baseCode: Number(code.slice(1)), original: data.lemma, transliteration: xlitOf(code, data.xlit, data.lemma),
+    ...(data.pron ? { pronunciation: data.pron } : {}), gloss: strongGloss(code, data),
+    definitionHtml: [strongText(data), data.kjv?.trim(), data.source?.trim()].filter(Boolean).map(t => `<p>${html(t)}</p>`).join(''),
     relations: [], resources: [], lsjAbsent: true, modules: { resources: unavailableModule('resources'), entities: unavailableModule('entities') },
   };
 }
-lexicon.get('/modules/:moduleId', c => {
+lexicon.get('/modules/:moduleId', async c => {
   const moduleId = c.req.param('moduleId');
   if (!['core', 'resources', 'entities', 'simple-fr', 'simple-en'].includes(moduleId)) return missing('STRONG_LEXICON_ENTRY_NOT_FOUND');
+  if (moduleId === 'entities') {
+    const people = await entitiesAvailable(c);
+    return c.json({ moduleId, status: people ? 'available' : 'unavailable', ...(people ? { revision: people.revision } : {}) });
+  }
   return c.json({ moduleId, status: moduleId === 'core' ? 'available' : 'unavailable', ...(moduleId === 'core' ? { revision: strongResource.strongRevision } : {}) });
 });
 lexicon.get('/entries/batch', async c => {
@@ -107,7 +161,9 @@ lexicon.get('/entries/batch', async c => {
   // Omit unsupported identities and unknown entries, as the batch contract permits.
   for (const item of [...new Set(ids)]) {
     if (!item.startsWith('strong:')) continue;
-    try { entries.push(await entry(c, item.slice(7))); } catch (e) { if (!(e instanceof Error && 'status' in e && e.status === 404)) throw e; }
+    // Each card names the identity as it was asked for (H0430, not H430): the app matches cards to
+    // its own identities, and dropped every card whose code it had written with zeros.
+    try { entries.push({ ...(await entry(c, item.slice(7))), selectedIdentity: identity(item.slice(7)) }); } catch (e) { if (!(e instanceof Error && 'status' in e && e.status === 404)) throw e; }
   }
   return c.json({ entries });
 });
@@ -121,19 +177,25 @@ async function browse(c: Ctx, random: boolean) {
   const index = await load<IndexRow[]>(c, '/api/strongs/index.json');
   const lexical = c.req.query('lexicalLanguage');
   if (lexical && !['hebrew', 'greek'].includes(lexical) || random && !lexical) return invalid();
-  const search = (c.req.query('search') ?? '').toLowerCase(), prefix = (c.req.query('prefix') ?? '').toLowerCase();
-  let rows = index.filter(r => (!lexical || r.n[0] === (lexical === 'hebrew' ? 'H' : 'G')) && (!search || [r.n, r.lemma, r.xlit, r.def].some(s => s.toLowerCase().includes(search))) && (!prefix || [r.n, r.lemma, r.xlit, r.def].some(s => s.toLowerCase().startsWith(prefix))));
-  const key = (r: IndexRow) => ({ gloss: r.def, baseCode: Number(r.n.slice(1)), id: id(r.n) });
+  // Accents fold away on both sides, so "agape" finds agápē; a typed code (H430, G0026) is the code.
+  const fold = (s: string | undefined) => (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const asCode = (s: string) => { const m = /^([hg])0*([1-9]\d*)$/.exec(s); return m ? `${m[1].toUpperCase()}${m[2]}` : ''; };
+  const search = fold(c.req.query('search')), prefix = fold(c.req.query('prefix'));
+  const code = asCode(search);
+  let rows = index.filter(r => (!lexical || r.n[0] === (lexical === 'hebrew' ? 'H' : 'G')) && (!search || (code ? r.n === code : [r.n, r.lemma, xlitOf(r.n, r.xlit, r.lemma), r.def].some(s => fold(s).includes(search)))) && (!prefix || [r.n, r.lemma, xlitOf(r.n, r.xlit, r.lemma), r.def].some(s => fold(s).startsWith(prefix))));
+  const key = (r: IndexRow) => ({ gloss: (r.def ?? '').trim(), baseCode: Number(r.n.slice(1)), id: id(r.n) });
   const compare = (a: ReturnType<typeof key>, b: ReturnType<typeof key>) => cmp(a.gloss, b.gloss) || a.baseCode - b.baseCode || a.id - b.id;
   rows.sort((a, b) => compare(key(a), key(b)));
   const after = cursor(c) as ReturnType<typeof key> | undefined;
   if (after !== undefined && (!after || Array.isArray(after) || typeof after !== 'object' || typeof after.gloss !== 'string' || !Number.isInteger(after.id) || !Number.isInteger(after.baseCode))) return invalid();
   if (after) rows = rows.filter(r => compare(key(r), after) > 0);
   const take = random ? 1 : limit(c), page = random ? rows.slice(Math.floor(Math.random() * rows.length)).slice(0, 1) : rows.slice(0, take);
-  return c.json({ resource: { revision: `cj-lexicon-${await sha(index)}` }, entries: page.map(r => ({ id: id(r.n), stepCode: r.n, classicStrong: r.n, language: r.n[0] === 'H' ? 'hebrew' : 'greek', original: r.lemma, transliteration: r.xlit || '', gloss: r.def })), ...(!random && rows.length > take ? { nextCursor: encodeCursor(key(page.at(-1)!)) } : {}) });
+  return c.json({ resource: { revision: `cj-lexicon-${await sha(index)}` }, entries: page.map(r => ({ id: id(r.n), stepCode: r.n, classicStrong: r.n, language: r.n[0] === 'H' ? 'hebrew' : 'greek', original: r.lemma, transliteration: xlitOf(r.n, r.xlit, r.lemma), gloss: (r.def ?? '').trim() })), ...(!random && rows.length > take ? { nextCursor: encodeCursor(key(page.at(-1)!)) } : {}) });
 }
 lexicon.get('/entries', c => browse(c, false));
 lexicon.get('/random', c => browse(c, true));
 lexicon.get('/morphologies', c => { language(c, 'STRONG_LEXICON_ENTRY_NOT_FOUND', true); if (!c.req.query('codes')) return invalid(); return c.json({ resource: { revision: strongResource.strongRevision }, morphologies: [] }); });
-lexicon.get('/entities/chapters/:bookCode/:chapter', c => { language(c, 'STRONG_LEXICON_ENTITY_NOT_FOUND', true); integer(c.req.param('chapter'), 1, 200); return c.json({ resource: { revision: strongResource.strongRevision }, entities: [] }); });
-lexicon.get('/entities/:uniqueName', c => missing('STRONG_LEXICON_ENTITY_NOT_FOUND'));
+// The People module: the people, places and groups the iPhone app downloads (src/bs/entities.ts).
+lexicon.get('/entities', c => listEntities(c));
+lexicon.get('/entities/chapters/:bookCode/:chapter', c => chapterEntities(c, c.req.param('bookCode'), c.req.param('chapter')));
+lexicon.get('/entities/:uniqueName', c => entity(c, c.req.param('uniqueName')));

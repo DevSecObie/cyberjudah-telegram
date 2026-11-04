@@ -16,14 +16,14 @@ import * as Problems from '../upstream/problems.ts';
 import { buildCommentaryReadingSections, createCommentaryReadingIndex } from '../upstream/contracts/commentarySections.ts';
 import { getStrongBibleConcordanceCandidates } from '../upstream/strongBibleConcordance.ts';
 import worker from '../../src/index.ts';
-import { BOOKS, metadata, bibleResource } from '../../src/bs/core.ts';
+import { BOOKS, metadata, bibleResource, forgetLoaded } from '../../src/bs/core.ts';
 import { makeSections } from '../../src/bs/commentary.ts';
 import { strongCode } from '../../src/bs/strongs.ts';
 
 const fixture = async (path: string) => JSON.parse(await readFile(new URL(`../fixtures/bs/${path}`, import.meta.url), 'utf8'));
 const paths = [
   'api/kjv/books.json', 'api/kjv/genesis/1.json', 'api/kjv/john/1.json', 'api/kjv/tobit/1.json', 'api/kjv/wisdom-of-solomon/1.json', 'api/kjv/2-maccabees/1.json',
-  'api/lxx/wisdom-of-solomon/1.json', 'api/lxx/2-maccabees/1.json', 'api/strongs/H1.json', 'api/strongs/G3056.json', 'api/strongs/index.json',
+  'api/lxx/wisdom-of-solomon/1.json', 'api/lxx/2-maccabees/1.json', 'api/strongs/H1.json', 'api/strongs/H3.json', 'api/strongs/G3056.json', 'api/strongs/index.json',
   'api/xref/john/1.json', 'api/concordance/john/1.json', 'api/topics/faith.json',
 ];
 const originals = new Map(await Promise.all(paths.map(async path => [`/${path}`, await fixture(path)] as const)));
@@ -55,17 +55,19 @@ insert.run('class', 'God', '/classes/test', '', 'God', '', '');
 const db = { prepare(sql: string) {
   return { bind(...params: unknown[]) { const stmt = sqlite.prepare(sql); return { first: async () => stmt.get(...params), all: async () => ({ results: stmt.all(...params) }) }; } };
 } };
-const env = { DATA_ORIGIN: 'https://data.cyberjudah.io', DB: db, ASSETS: { fetch: () => { throw new Error('A /bs request fell through to the SPA'); } } };
-beforeEach(async () => { await Promise.all(pending.splice(0)); data.clear(); for (const [key, value] of originals) data.set(key, structuredClone(value)); cache.clear(); fetched.length = 0; failure = undefined; });
+const peopleJson = await readFile(new URL('../../data/entities/people.json', import.meta.url), 'utf8');
+// The worker's static assets hold only the People module the feed reads; any other asset request is a /bs route falling through to the SPA.
+const env = { DATA_ORIGIN: 'https://data.cyberjudah.io', DB: db, ASSETS: { fetch: (r: Request) => { if (new URL(r.url).pathname === '/bs-data/entities/people.json') return Promise.resolve(new Response(peopleJson, { headers: { 'content-type': 'application/json' } })); throw new Error('A /bs request fell through to the SPA'); } } };
+beforeEach(async () => { await Promise.all(pending.splice(0)); data.clear(); for (const [key, value] of originals) data.set(key, structuredClone(value)); cache.clear(); forgetLoaded(); fetched.length = 0; failure = undefined; });
 after(() => { globalThis.fetch = originalFetch; delete (globalThis as any).caches; sqlite.close(); });
 const covered = new Set<string>();
 const allRoutes = [...(await readFile(new URL('../upstream/api.ts.txt', import.meta.url), 'utf8')).matchAll(/HttpApiEndpoint\.(get|post)\(\s*'[^']+',\s*'([^']+)'/g)].map(m => ({ method: m[1].toUpperCase(), path: m[2] }));
-async function request(path: string, schema: Schema.Schema.Any, options: { body?: unknown; status?: number; method?: string } = {}) {
+async function request(path: string, schema: Schema.Schema.Any, options: { body?: unknown; status?: number; method?: string; env?: Record<string, unknown> } = {}) {
   const method = options.method ?? (options.body !== undefined ? 'POST' : 'GET');
   const url = new URL(`https://cyberjudah.io/bs${path}`);
   const route = allRoutes.find(r => r.method === method && new RegExp(`^${r.path.replace(/:[^/]+/g, '[^/]+')}$`).test(url.pathname.slice(3)));
   if (route) covered.add(`${route.method} ${route.path}`);
-  const res = await worker.fetch(new Request(url, { method, ...(options.body !== undefined ? { body: JSON.stringify(options.body), headers: { 'content-type': 'application/json' } } : {}) }), env as any, ctx as any);
+  const res = await worker.fetch(new Request(url, { method, ...(options.body !== undefined ? { body: JSON.stringify(options.body), headers: { 'content-type': 'application/json' } } : {}) }), { ...env, ...options.env } as any, ctx as any);
   const json = await res.json();
   assert.equal(res.status, options.status ?? 200, `${method} ${path}: ${JSON.stringify(json)}`);
   Schema.decodeUnknownSync(schema)(json);
@@ -116,7 +118,7 @@ test('the release gate serves the published Tobit chapter and still rejects chan
   assert.equal(json.verses[0].text, originals.get('/api/kjv/tobit/1.json').verses[0].text);
   assert.equal(json.resource.textSha256, metadata.textSha256);
   await Promise.all(pending.splice(0));
-  cache.clear();
+  cache.clear(); forgetLoaded();
   const changed = structuredClone(originals.get('/api/kjv/tobit/1.json'));
   changed.verses[0].text += ' changed';
   data.set('/api/kjv/tobit/1.json', changed);
@@ -136,6 +138,14 @@ test('search uses real FTS5, applies filters before paging, counts all matches a
   assert.ok(apoc.results.length > 0); assert.ok(apoc.results.every((r: any) => r.book === 81));
   const { json: section } = await request('/v1/bibles/KJV/search?q=God&section=apoc&limit=1', Bible.BibleSearchResponseDto);
   assert.ok(section.count > 0); assert.ok(section.results.every((r: any) => r.book > 66));
+  // Bible Strong's search has only Old/New Testament filters, so its web port keeps the Apocrypha under the first.
+  const { json: otApoc } = await request('/v1/bibles/KJV/search?q=God&section=ot&book=81', Bible.BibleSearchResponseDto, { env: { BIBLE_STRONG_WEB: '1' } });
+  assert.ok(otApoc.results.length > 0); assert.ok(otApoc.results.every((r: any) => r.book === 81));
+  // The Mini App has its own Apocrypha filter: its Old Testament filter must stay books 1-39.
+  const { json: miniOt } = await request('/v1/bibles/KJV/search?q=God&section=ot&book=81', Bible.BibleSearchResponseDto);
+  assert.equal(miniOt.count, 0);
+  const { json: miniOtAll } = await request('/v1/bibles/KJV/search?q=God&section=ot&limit=100&sortOrder=book&offset=3000', Bible.BibleSearchResponseDto);
+  assert.ok(miniOtAll.results.every((r: any) => r.book <= 39));
   const { json: phrase } = await request('/v1/bibles/KJV/search?q=%22in%20the%20beginning%22&section=nt', Bible.BibleSearchResponseDto);
   assert.ok(phrase.results.every((r: any) => r.text.toLowerCase().includes('in the beginning') && r.book === 43));
   for (const path of ['/v1/bibles/KJV/semantic-search?q=faith', '/v1/bibles/semantic-search?versions=KJV&q=faith']) {
@@ -146,10 +156,18 @@ test('search uses real FTS5, applies filters before paging, counts all matches a
 
 test('lexicon routes, modules, cursors, batch cards and unavailable enhancements match schemas', async () => {
   await request('/v1/strong-lexicon/modules/core', Lexicon.StrongLexiconModuleStateDto);
-  const { json: module } = await request('/v1/strong-lexicon/modules/entities', Lexicon.StrongLexiconModuleStateDto); assert.equal(module.status, 'unavailable');
+  const { json: module } = await request('/v1/strong-lexicon/modules/entities', Lexicon.StrongLexiconModuleStateDto); assert.equal(module.status, 'available'); assert.match(module.revision, /^cj-entities-/);
   const { json: entry } = await request('/v1/strong-lexicon/entries/G03056?language=en', Lexicon.StrongLexiconEntryDto);
   assert.equal(entry.classicStrong, 'G3056'); assert.equal(entry.original, 'λόγος'); assert.equal(entry.stepCode, 'G3056');
-  await request('/v1/strong-lexicon/entries/batch?language=en&identities=strong:H0001,strong:G3056,estrong:G3056A', Lexicon.StrongLexiconEntryCardsDto);
+  const { json: cards } = await request('/v1/strong-lexicon/entries/batch?language=en&identities=strong:H0001,strong:G3056,estrong:G3056A', Lexicon.StrongLexiconEntryCardsDto);
+  // Each card keeps the identity as asked, zeros and all, so the app can match it.
+  assert.deepEqual(cards.entries.map((e: any) => e.selectedIdentity), [{ kind: 'strong', code: 'H0001' }, { kind: 'strong', code: 'G3056' }]);
+  const { json: byCode } = await request('/v1/strong-lexicon/entries?language=en&search=G03056', Lexicon.StrongLexiconSearchResponseDto);
+  assert.deepEqual(byCode.entries.map((e: any) => e.stepCode), ['G3056']);
+  const { json: folded } = await request('/v1/strong-lexicon/entries?language=en&search=logos&lexicalLanguage=greek&limit=100', Lexicon.StrongLexiconSearchResponseDto);
+  assert.ok(folded.entries.some((e: any) => e.stepCode === 'G3056'));
+  const { json: agape } = await request('/v1/strong-lexicon/entries/G3056?language=en', Lexicon.StrongLexiconEntryDto);
+  assert.equal(agape.transliteration, 'logos');
   const { json: page } = await request('/v1/strong-lexicon/entries?language=en&limit=1', Lexicon.StrongLexiconSearchResponseDto);
   assert.ok(page.nextCursor); assert.ok(Lexicon.decodeStrongLexiconPageCursor(page.nextCursor));
   await request(`/v1/strong-lexicon/entries/${page.entries[0].stepCode}?language=en`, Lexicon.StrongLexiconEntryDto);
@@ -158,6 +176,14 @@ test('lexicon routes, modules, cursors, batch cards and unavailable enhancements
   await request('/v1/strong-lexicon/random?language=en&lexicalLanguage=greek', Lexicon.StrongLexiconSearchResponseDto);
   await request('/v1/strong-lexicon/morphologies?language=en&codes=N-NSM', Lexicon.StrongLexiconMorphologyResponseDto);
   await request('/v1/strong-lexicon/entities/chapters/John/1?language=en', Lexicon.StrongLexiconChapterEntitiesResponseDto);
+  // The People module the iPhone app downloads, read online: Matthew 1 names Jesus Christ, his page names his parents.
+  const { json: mat1 } = await request('/v1/strong-lexicon/entities/chapters/Mat/1?language=en', Lexicon.StrongLexiconChapterEntitiesResponseDto);
+  const jesus = mat1.entities.find((e: any) => e.uniqueName === 'jesus-mat-1-1');
+  assert.ok(jesus); assert.equal(jesus.name, 'Jesus Christ'); assert.ok(jesus.verses.includes(1));
+  const { json: page1 } = await request('/v1/strong-lexicon/entities/jesus-mat-1-1?language=en', Lexicon.StrongLexiconEntityResponseDto);
+  assert.equal(page1.entity.name, 'Jesus Christ'); assert.ok(page1.entity.relations.length);
+  const listed = await worker.fetch(new Request('https://cyberjudah.io/bs/v1/strong-lexicon/entities?language=en'), env as any, ctx as any);
+  const all = await listed.json() as any; assert.ok(all.entities.some((e: any) => e.category === 'place' && typeof e.latitude === 'number'));
   await request('/v1/strong-lexicon/entities/unknown?language=en', Problems.ResourceNotFoundProblem, { status: 404 });
 });
 
@@ -273,11 +299,36 @@ test('commentary sections agree with the upstream section builder, maintain rank
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
 });
 
-test('cross references, empty timelines and unsupported resources use the documented schemas', async () => {
+test('each Bishop commentary holds only his own entries and lists only his chapters', async () => {
+  const variant = structuredClone(originals.get('/api/concordance/john/1.json'));
+  const original = variant.commentary[0];
+  variant.commentary = ['Bishop Kani', 'Bishop Yawasap', 'Deacon Example'].map(teacher => ({ ...original, verses: '1', note: { ...original.note, teacher }, points: [`${teacher} taught this`] }));
+  variant.precepts = [];
+  data.set('/api/concordance/john/1.json', variant);
+  data.set('/api/concordance/teachers.json', { 'Bishop Kani': { john: [1] }, 'Bishop Yawasap': { john: [3, 1] } });
+  const comments = async (id: string) => JSON.parse((await request(`/v1/commentaries/${id}/en/chapters/43/1`, Supplementary.CommentaryChapterResponseDto)).json.serializedComments);
+  const kani = await comments('bishop-kani');
+  assert.equal(kani['1'].length, 1); assert.match(kani['1'][0], /Bishop Kani taught this/);
+  assert.deepEqual(await comments('bishop-nathanyel'), {});
+  assert.equal((await comments('cyberjudah'))['1'].length, 3);
+  const { json: coverage } = await request('/v1/commentaries/bishop-yawasap/en/coverage', Supplementary.CommentaryCoverageResponseDto);
+  assert.equal(coverage.resource.resourceId, 'bishop-yawasap');
+  assert.deepEqual(coverage.books, [43]); assert.deepEqual(coverage.chaptersByBook['43'], [1, 3]);
+  const selection = { book: 43, chapter: 1, resources: [{ resourceId: 'bishop-kani', language: 'en' }, { resourceId: 'bishop-yawasap', language: 'en' }] };
+  const { json: index } = await request('/v1/commentaries/reading-index', Commentary.CommentaryReadingIndexResponse, { body: selection });
+  assert.deepEqual(index.indexes.map((i: { resource: { resourceId: string } }) => i.resource.resourceId), ['bishop-kani', 'bishop-yawasap']);
+  const section = index.indexes[1].sections[0];
+  assert.match(section.id, /^bishop-yawasap-en-43-1-1-1/);
+  const { json: detail } = await request('/v1/commentaries/reading-section', Commentary.CommentaryReadingSectionResponse, { body: { book: 43, chapter: 1, resourceId: 'bishop-yawasap', language: 'en', revision: index.indexes[1].resource.revision, sectionId: section.id } });
+  assert.match(detail.section.content, /Bishop Yawasap taught this/); assert.doesNotMatch(detail.section.content, /Bishop Kani/);
+  await request('/v1/commentaries/bishop-unknown/en/coverage', Problems.ResourceNotFoundProblem, { status: 404 });
+});
+
+test('cross references, published timelines and unsupported resources use the documented schemas', async () => {
   const { json: refs } = await request('/v1/cross-references/fr/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
   assert.ok(refs.references.includes('1-1-1'));
   await request('/v1/cross-references/en/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
-  const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto); assert.deepEqual(timeline.events, []);
+  const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto); assert.equal(timeline.events.length, 517);
   await request('/v1/timelines/en/events/unknown', Problems.ResourceNotFoundProblem, { status: 404 });
   await request('/v1/interlinear-bibles/BHG/languages/en/coverage', Problems.ResourceNotFoundProblem, { status: 404 });
   await request('/v1/interlinear-bibles/BHG/languages/en/books/1/chapters/1', Problems.ResourceNotFoundProblem, { status: 404 });

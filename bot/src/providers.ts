@@ -19,10 +19,14 @@ import type { Env } from "./env";
  *   credits, and no Anthropic key is sent: the gateway uses a provider key only when the request
  *   carries none (docs: Unified Billing, credential precedence; Anthropic provider, "With Stored
  *   Keys (BYOK) / Unified Billing"). It needs the gateway and CF_AIG_TOKEN.
+ * - "anthropic": the owner's own Anthropic console credits, through the ANTHROPIC_API_KEY secret.
+ *   Until that secret is set, Claude stays on Unified Billing as above, so switching the setting
+ *   before the key is added never leaves paying readers without Claude.
  * - otherwise: the ANTHROPIC_API_KEY secret, billed by Anthropic.
  * ANTHROPIC_BASE_URL, for the end-to-end tests' stand-in, takes precedence over all of these.
+ * Only paying readers (and admins) reach Claude: free answers use Workers AI models only.
  */
-export const unifiedBilling = (env: Env) => env.CLAUDE_BILLING === "cloudflare" && !!env.AI_GATEWAY && !!env.CF_AIG_TOKEN && !env.ANTHROPIC_BASE_URL;
+export const unifiedBilling = (env: Env) => (env.CLAUDE_BILLING === "cloudflare" || (env.CLAUDE_BILLING === "anthropic" && !env.ANTHROPIC_API_KEY)) && !!env.AI_GATEWAY && !!env.CF_AIG_TOKEN && !env.ANTHROPIC_BASE_URL;
 
 /** Whether Ask can call Claude at all: with Anthropic's key, or paid through Cloudflare. Without either, Ask answers with Workers AI. */
 export const hasClaude = (env: Env) => !!env.ANTHROPIC_API_KEY || unifiedBilling(env);
@@ -65,5 +69,30 @@ export const viaGateway = (env: Env, { log = false }: { log?: boolean } = {}) =>
 export function claudeUnavailable(e: unknown): boolean {
   if (!(e instanceof Anthropic.APIError)) return false;
   const s = e.status;
+  // Anthropic answers an emptied console balance with a 400 ("credit balance is too low"): the backup answers then too.
+  if (s === 400 && /credit balance/i.test(e.message ?? "")) return true;
   return s === undefined || s === 401 || s === 402 || s === 403 || s === 408 || s === 409 || s === 429 || s >= 500;
+}
+
+/** Whether the failure means the money that pays for Claude has run out: the owner's console (400) or Cloudflare's credits (402). */
+export function claudeOutOfFunds(e: unknown): boolean {
+  if (!(e instanceof Anthropic.APIError)) return false;
+  return e.status === 402 || (e.status === 400 && /credit balance/i.test(e.message ?? ""));
+}
+
+/**
+ * While Claude's money is gone, paying readers get the backup model's answers and are not charged.
+ * The admins are told in Telegram so it can be topped up, at most once every six hours.
+ */
+export async function alertClaudeFunds(env: Env, e: unknown, now = Date.now()): Promise<void> {
+  if (!claudeOutOfFunds(e)) return;
+  try {
+    const key = "alert:claude_funds";
+    if (await env.SUBS.get(key)) return;
+    await env.SUBS.put(key, new Date(now).toISOString(), { expirationTtl: 6 * 3600 });
+    const where = unifiedBilling(env) ? "The Cloudflare credits that pay for Claude have" : "The Claude console balance has";
+    // Loaded here, not at the top, so this module stays importable without the Telegram client.
+    const { tellAdmins } = await import("./health");
+    await tellAdmins(env, `Ask CyberJudah: ${where} run out. Paying readers are getting the backup model's answers, and are not charged for them, until it is topped up.\n\n${new Date(now).toISOString()}`);
+  } catch (err) { console.error(JSON.stringify({ event: "claude_funds_alert_failed", message: String((err as Error)?.message ?? err).slice(0, 160) })); }
 }

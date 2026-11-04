@@ -1,0 +1,26 @@
+{
+  "about": "Ask CyberJudah's test set: real kinds of questions, run against staging before a change ships (scripts/eval-ask.mjs). Checks are mechanical and scripture-based only; 'approved' is left for the owner to fill with the answer he approves, and is then compared word for word in review. Never put a doctrine here that the classes did not teach.",
+  "questions": [
+    { "id": "named-verse", "q": "What does Deuteronomy 28:68 mean?", "mention": ["Egypt", "ships"], "cites": ["verse"], "approved": "" },
+    { "id": "named-verse-apocrypha", "q": "Explain 2 Esdras 13:40-45.", "mention": ["tribes"], "cites": ["verse"], "approved": "" },
+    { "id": "sabbath", "q": "Which day is the Sabbath and how do we keep it?", "mention": ["Sabbath"], "approved": "" },
+    { "id": "passover", "q": "Why do we keep the Passover?", "mention": ["Passover"], "approved": "" },
+    { "id": "feasts", "q": "What are the high holy days in Leviticus 23?", "mention": ["feast"], "approved": "" },
+    { "id": "multi-part", "q": "Who was Melchizedek, and why does Hebrews compare Christ to him?", "mention": ["Melchizedek", "Salem"], "parts": 2, "approved": "" },
+    { "id": "vague", "q": "the curses", "mention": ["Deuteronomy 28"], "approved": "" },
+    { "id": "person", "q": "Who was Naamah?", "mention": ["Naamah"], "approved": "" },
+    { "id": "word", "q": "What does the Hebrew word Elohim mean?", "mention": ["Elohim"], "approved": "" },
+    { "id": "law", "q": "What does the law say about eating swine?", "mention": ["Leviticus 11", "Deuteronomy 14"], "approved": "" },
+    { "id": "apocrypha-place", "q": "Where is the Apocrypha placed in this Bible and why is it included?", "mention": ["Apocrypha"], "approved": "" },
+    { "id": "history", "q": "When did the transatlantic slave trade begin according to the classes?", "mention": [], "approved": "" },
+    { "id": "gap", "q": "What did the classes teach about the population of Mars colonies?", "gap": true, "approved": "" },
+    { "id": "off-topic", "q": "Write me a python script to sort a list.", "gap": true, "approved": "" },
+    { "id": "greeting", "q": "Shalom!", "short": true, "approved": "" },
+    { "id": "thanks", "q": "thank you brother", "short": true, "approved": "" },
+    { "id": "follow-up", "history": [{ "role": "user", "content": "Who was Melchizedek?" }, { "role": "assistant", "content": "Melchizedek was king of Salem and priest of the most high God, who met Abram after the slaughter of the kings and blessed him." }], "q": "what did he bring out to Abram?", "mention": ["bread", "wine"], "approved": "" },
+    { "id": "correction", "history": [{ "role": "user", "content": "What is Deuteronomy 28:68 about?" }, { "role": "assistant", "content": "It is about the Israelites being taken to Babylon by camel." }], "q": "That's not right, read it again.", "mention": ["ships"], "approved": "" },
+    { "id": "say-more", "history": [{ "role": "user", "content": "Why do we keep the Passover?" }, { "role": "assistant", "content": "The Passover is a memorial of the deliverance from Egypt, kept for ever." }], "q": "say more", "mention": ["Passover"], "approved": "" },
+    { "id": "bishop", "q": "What did Bishop Nathanyel teach about the 12 tribes?", "mention": ["tribes"], "approved": "" },
+    { "id": "long-multi", "q": "I have three questions: what is a precept, how do the classes line up precepts, and can you give one example from Isaiah 28:10?", "mention": ["precept", "Isaiah 28:10"], "parts": 3, "approved": "" }
+  ]
+}

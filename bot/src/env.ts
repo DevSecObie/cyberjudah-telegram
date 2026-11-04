@@ -10,6 +10,7 @@ export type Env = {
   VEC: Vectorize;
   AUDIO: R2Bucket;
   DATA_ORIGIN: string;
+  BIBLE_STRONG_WEB?: string;
   SITE_URL: string;
   /** The Mini App's direct link from @BotFather (https://t.me/<bot>/<app>); empty until /newapp. */
   APP_URL: string;
@@ -23,6 +24,8 @@ export type Env = {
   FIREBASE_AUTH_LIMIT?: RateLimit;
   /** Verification of Firebase sessions, separate from infrequent link/token issuance. */
   FIREBASE_SESSION_LIMIT?: RateLimit;
+  /** Signed-in app requests per person per minute, counted after the sign-in is verified. */
+  FIREBASE_UID_LIMIT?: RateLimit;
   /** End-to-end tests only: a loopback Firestore emulator (127.0.0.1:…, app/firebase/firebase.json), read
    * and written by mydata.ts's account-sync export and deletion instead of real Firestore. Ignored unless
    * loopback. */
@@ -41,11 +44,19 @@ export type Env = {
   /** Ask's pay-as-you-go balance (shared/credits.mjs creditConfig documents each). */
   ASK_USD_PER_STAR?: string; ASK_MARGIN?: string; ASK_TOPUPS_USD?: string; ASK_UNIFIED_BILLING_FEE?: string; ASK_CONFIRM_ABOVE_USD?: string; ASK_MAX_REQUEST_USD?: string;
   ASK_EMBED_USD_PER_MTOK?: string; ASK_RERANK_USD_PER_MTOK?: string; ASK_VECTOR_USD_PER_MDIMS?: string;
+  /** Set to off to stop native Ask inference without affecting reading or saved chats. */
+  ASK_APP_ENABLED?: string;
+  /** Routing (ai.mjs routeOf), when the reader has not chosen a model: the lighter Claude model for light questions, the stronger free model for deep ones. */
+  CLAUDE_MODEL_LIGHT?: string; ASK_FREE_DEEP_MODEL?: string;
+  /** The app's Ask engine: "agent" (default, as cyberjudah.io/app answers) or "study" (the study cards). */
+  APP_ASK_ENGINE?: string;
   ASK_BILLING?: string; ASK_FREE_MODEL?: string; ASK_FREE_MODELS?: string;
   /** Free-answer budgets: research rounds (3), per-answer estimate ceiling (0.05), and a shared UTC-day allowance (0.11) reserved before non-admin free answers run. Other account AI usage is separate. */
   ASK_FREE_MAX_ROUNDS?: string; ASK_FREE_MAX_USD?: string; ASK_FREE_DAILY_USD_CAP?: string;
+  /** Claude for every signed-in app reader (ai.ts claudeForReaders): "on" turns it on; its own daily and per-answer dollar caps. */
+  ASK_CLAUDE_FOR_READERS?: string; ASK_CLAUDE_DAILY_USD_CAP?: string; ASK_CLAUDE_MAX_USD?: string; ASK_CLAUDE_TOTAL_USD_CAP?: string;
   /** Sybil backstop: Ask requests per IP per day (1000); per-request telemetry retention in days (180); daily D1 write-contention events before the health check pages (50). */
-  ASK_IP_DAILY_LIMIT?: string; CREDIT_USAGE_RETENTION_DAYS?: string; CREDITS_CONTENTION_ALERT?: string;
+  ASK_IP_DAILY_LIMIT?: string; ASK_DAILY_LIMIT?: string; CREDIT_USAGE_RETENTION_DAYS?: string; CREDITS_CONTENTION_ALERT?: string;
   /** Search AI answers per reader per day (20), counted under the pseudonymous ID. */
   SEARCH_AI_DAILY_LIMIT?: string;
   /** Reader IDs, comma-separated, that skip that per-reader count. Staging lists the release check's synthetic reader (1); production lists none. */
@@ -88,6 +99,10 @@ export type Env = {
   REMIND_LIMIT?: RateLimit;
   /** Public, read-only native library requests; 60 per IP per minute at each edge location. */
   READER_LIMIT?: RateLimit;
+  /** Worker secret, set by the owner only: the key the private MCP server at /mcp asks for (mcp.ts). Unset, /mcp answers nothing. */
+  MCP_KEY?: string;
+  /** Calls to /mcp a minute (mcp.ts). */
+  MCP_LIMIT?: RateLimit;
 };
 
 /** A daily-verse subscription, KV key sub:<userId>. hour is local, tz the offset in minutes. */

@@ -1,6 +1,8 @@
 name: stage
 
-# Ready pull requests against main get deployed to the staging worker; drafts run checks only.
+# Pull requests run the checks only. Staging is deployed only when someone runs this workflow by
+# hand (Actions → stage → Run workflow, on the branch to try), because the TestFlight beta reads
+# staging and a pull request must never change what testers see (owner's pick, 2026-11-03).
 # This exercises the bot, the app
 # and the hourly jobs are exercised against staging resources before anything reaches
 # production. Production (deploy.yml) still only runs on pushes to main.
@@ -26,7 +28,7 @@ permissions:
 # two at once collide in the search-index import ("Cannot start another import") and race to
 # decide which build staging shows. A queued run waits; none is cancelled.
 concurrency:
-  group: ${{ (inputs.verify_only || inputs.diagnose_login) && 'staging-verification' || 'staging' }}
+  group: ${{ (inputs.verify_only || inputs.diagnose_login) && 'staging-verification' || (github.event_name == 'pull_request' && github.event.pull_request.draft) && 'staging-draft-checks' || 'staging' }}
   cancel-in-progress: false
 
 jobs:
@@ -34,8 +36,8 @@ jobs:
     if: ${{ !inputs.verify_only && !inputs.diagnose_login }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -50,9 +52,8 @@ jobs:
           CYBERJUDAH_APP_BASE: /app/
 
   stage:
-    # CMS review branches require an owner workflow_dispatch to stage, even when ready.
-    # Dependabot's pull request runs get no repository secrets, so they cannot deploy to staging.
-    if: ${{ !inputs.verify_only && !inputs.diagnose_login && github.actor != 'dependabot[bot]' && github.event.pull_request.user.login != 'dependabot[bot]' && (github.event_name == 'workflow_dispatch' || (github.event.pull_request.draft == false && !startsWith(github.head_ref, 'cms/') && !startsWith(github.head_ref, 'codex/cms-'))) }}
+    # Only by hand: the TestFlight beta reads staging, so pull requests never deploy it.
+    if: ${{ github.event_name == 'workflow_dispatch' && !inputs.verify_only && !inputs.diagnose_login && github.actor != 'dependabot[bot]' }}
     needs: check
     runs-on: ubuntu-latest
     environment:
@@ -75,8 +76,8 @@ jobs:
             exit 1
           fi
           echo "All four staging secrets are set."
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -87,6 +88,43 @@ jobs:
           VITE_ACCOUNT_SYNC: "true"
           VITE_ACCOUNT_SYNC_SCOPE: staging
           CYBERJUDAH_APP_BASE: /app/
+      - name: Check out the Bible Strong app port
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 4a04c2e2d75ab29009718a8e62c1edc98ba6f35e
+          path: bible-strong-port
+          persist-credentials: false
+      - name: Export the actual Bible Strong app
+        working-directory: bible-strong-port
+        env:
+          EXPO_NO_TELEMETRY: '1'
+        run: |
+          corepack enable
+          yarn workspaces focus @bible-strong/expo
+          cp apps/expo/.env.cyberjudah.example apps/expo/.env.local
+          yarn workspace @bible-strong/expo typecheck
+          yarn workspace @bible-strong/expo exec expo export --platform web
+          rm -rf ../app/dist
+          cp -R apps/expo/dist ../app/dist
+      - name: Check out the native release files
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 82e732304ea41e32ea5767c86c3075c081764a80
+          path: native-release
+          persist-credentials: false
+          sparse-checkout: apps/expo/public
+      - name: Serve the native release's own files
+        # iPhone build 304 downloads its People module and plays videos from CyberJudah's own
+        # player page. Add those files beside the web export without replacing any of its own.
+        run: |
+          set -euo pipefail
+          src=native-release/apps/expo/public
+          cp -n "$src/offline/bible_entities.cyberjudah.sqlite.zip" app/dist/offline/
+          mkdir -p app/dist/embed
+          cp -n "$src/embed/youtube.html" app/dist/embed/
+          sha256sum app/dist/offline/bible_entities.cyberjudah.sqlite.zip app/dist/embed/youtube.html
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
@@ -111,6 +149,14 @@ jobs:
           env = env.replace("00000000000000000000000000000000", kv)
           open(p, "w").write(head + '"env": {' + env)
           EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('wrangler.jsonc')
+          s=p.read_text().replace('"/app/strong", "/app/strong/*"', '"/app", "/app/*"', 1)
+          head, env=s.split('"env": {',1)
+          env=env.replace('"vars": {','"vars": {"BIBLE_STRONG_WEB": "1", ',1)
+          p.write_text(head+'"env": {'+env)
+          PY
           set -o pipefail
           # Stage the built app for Workers Static Assets (see the script header).
           bash scripts/prepare-assets.sh
@@ -168,7 +214,7 @@ jobs:
           curl -sf "$URL/api/health" | head -c 400; echo
           # The app shell serves at the root (SPA fallback).
           curl -sf -o /dev/null -w "app: %{http_code}\n" "$URL/"
-          curl -sf "$URL/app/" | grep -q "/assets/"
+          curl -sfL "$URL/app/" | grep -q "_expo/static/js/web/"
       - name: Verify authenticated search and provider consent
         working-directory: bot
         env:
@@ -176,6 +222,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
           EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
           VERIFY_ACCOUNT_SYNC: "true"
+          BIBLE_STRONG_WEB: "1"
           # Staging's small free answer budget is shared by every run; a spent day is reported, not failed.
           ALLOW_FREE_PAUSED: "1"
         run: node scripts/verify-release.mjs
@@ -183,10 +230,11 @@ jobs:
   verify-current:
     if: github.event_name == 'workflow_dispatch' && (inputs.verify_only || inputs.diagnose_login)
     runs-on: ubuntu-latest
+    environment: staging
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
       - name: Resolve the staging worker address
@@ -214,6 +262,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
           EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
           VERIFY_ACCOUNT_SYNC: "true"
+          BIBLE_STRONG_WEB: "1"
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           DIAGNOSE_LOGIN: ${{ inputs.diagnose_login }}

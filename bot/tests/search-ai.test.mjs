@@ -7,8 +7,8 @@ import { financialDb } from "./helpers/financial-db.mjs";
 
 // ai.ts is bundled for Node first (as Workers bundles it).
 const out = new URL("./.build/search-ai.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/ai.ts"; export * from "./src/credits.ts"; export { searchAnswers } from "./src/search-answer.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
+await build({ stdin: { contents: 'export * from "./src/ai.ts"; export * from "./src/credits.ts"; export { searchAnswers } from "./src/search-answer.ts"; export { reserveFreeBudget } from "./src/free-budget.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+const { reserveFreeBudget, answerApp, answerAppAgent, appAskModels, answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
 
 /** A D1 close enough for the meter and spend tables, backed by real SQLite. */
 const d1 = () => {
@@ -58,7 +58,7 @@ test("with nothing in the library it says so, on the default free model, and rep
     console.log = original;
   }
   assert.equal(r.ok, true);
-  assert.match(r.answer, /not find enough reliable material/);
+  assert.match(r.answer, /^Not discussed in the classes…yet\./);
   assert.deepEqual(r.sources, []);
   assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
   // CYB-296: the response reports its own server-side latency in ms.
@@ -290,4 +290,181 @@ test("a reader listed in SEARCH_AI_QUOTA_EXEMPT skips the per-reader count; othe
   const other = routeFixture(t, env, 7);
   assert.equal((await other.request("priest of the most high", "Google")).status, 200);
   assert.equal((await other.request("bread and wine", "Google")).status, 429);
+});
+
+// The app's Ask (answerApp): any app sign-in, the free model only, no balance.
+const AGREED = ["Cloudflare (Workers AI)"];
+// The app offers only its approved free models (app-study-release.ts), so these run on the default one.
+const appEnv = () => ({ ...env(), ASK_FREE_MODEL: "@cf/google/gemma-4-26b-a4b-it", ASK_FREE_MODELS: "@cf/google/gemma-4-26b-a4b-it" });
+test("app Ask needs the reader's agreement to the free model's provider before anything runs", async () => {
+  const e = appEnv();
+  assert.deepEqual(await answerApp(e, "who is judah", "acct-a", [], []), { ok: false, reason: "consent" });
+  assert.equal(await freeSpendToday(e), 0);
+});
+
+test("app Ask answers on the free model, funded by the free allowance, with no wallet created", async () => {
+  const e = appEnv();
+  const r = await answerApp(e, "melchizedek", "acct-a", [{ role: "user", content: "who was the priest of salem" }], AGREED);
+  assert.equal(r.ok, true);
+  assert.equal(r.model, "@cf/google/gemma-4-26b-a4b-it");
+  assert.deepEqual(r.sources, []);
+  assert.ok((await freeSpendToday(e)) > 0);
+  const wallets = await e.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'credit%'").all();
+  assert.deepEqual(wallets.results, [], "no credit tables or wallet for an app reader");
+});
+
+test("app Ask keeps each account to the daily cap, apart from other accounts", async () => {
+  const e = appEnv();
+  for (let i = 0; i < 100; i++) assert.equal((await answerApp(e, "judah", "acct-b", [], AGREED)).ok, true);
+  assert.deepEqual(await answerApp(e, "judah", "acct-b", [], AGREED), { ok: false, reason: "limit" });
+  assert.equal((await answerApp(e, "judah", "acct-c", [], AGREED)).ok, true);
+});
+
+test("a too-short app question is refused before the cap is counted", async () => {
+  assert.deepEqual(await answerApp(appEnv(), " x ", "acct-d", [], AGREED), { ok: false, reason: "too-short" });
+});
+
+test("app Ask names the verse a question asks about in exact King James text, and returns follow-ups", async (t) => {
+  const sent = [];
+  const e = {
+    ...appEnv(), AI_GATEWAY: "default",
+    AI: { run: async (model, input) => {
+      if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] };
+      sent.push(input);
+      return { response: "The Lord would bring them into Egypt again with ships [1].\n\nFollow-ups: Which ships? | When did it happen? | Who were the enemies?", usage: { prompt_tokens: 900, completion_tokens: 60 } };
+    } },
+    VEC: { query: async () => ({ matches: [] }) },
+    DATA_ORIGIN: "https://data.test",
+  };
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async (url) => {
+    const path = new URL(url).pathname;
+    if (path === "/api/kjv/books.json") return Response.json([{ book: "Deuteronomy", slug: "deuteronomy", chapters: 34 }]);
+    if (path === "/api/kjv/deuteronomy/28.json") return Response.json({ book: "Deuteronomy", chapter: 28, verses: [{ verse: 68, text: "And the LORD shall bring thee into Egypt again with ships…" }] });
+    return new Response("", { status: 404 });
+  };
+  t.after(() => { globalThis.fetch = realFetch; globalThis.caches = realCaches; });
+  const r = await answerApp(e, "What does Deuteronomy 28:68 mean?", "acct-v", [], AGREED);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.sources[0].kind, "verse");
+  assert.equal(r.sources[0].title, "Deuteronomy 28:68 (KJV)");
+  assert.deepEqual(r.followups, ["Which ships?", "When did it happen?", "Who were the enemies?"]);
+  assert.match(JSON.stringify(sent[0].messages), /bring thee into Egypt again with ships/);
+});
+
+test('native Ask rejects paid model selection before touching provider, quota or wallet', async () => {
+  assert.deepEqual(await answerApp(env(), 'Who is Judah?', 'app-owner', [], AGREED, 55000, { model: 'anthropic/claude-opus-5' }), { ok: false, reason: 'model-unavailable' });
+});
+test('native Ask refuses oversized questions rather than silently cutting them', async () => {
+  assert.deepEqual(await answerApp(env(), 'x'.repeat(4001), 'app-owner', [], AGREED), { ok: false, reason: 'too-long' });
+});
+
+test('every free Workers AI model is offered in the app, not only a promoted few', async () => {
+  const offered = appAskModels({}).map((m) => m.id);
+  assert.ok(offered.includes('@cf/meta/llama-3.3-70b-instruct-fp8-fast') && offered.includes('@cf/google/gemma-4-26b-a4b-it') && offered.length > 10, offered.join(','));
+  assert.ok(offered.every((id) => id.startsWith('@cf/')));
+});
+
+test('the stronger free model is admitted to native Ask when configured', async () => {
+  const e = { ...env(), ASK_FREE_MODEL: '@cf/google/gemma-4-26b-a4b-it', ASK_FREE_MODELS: '@cf/google/gemma-4-26b-a4b-it,@cf/meta/llama-3.1-8b-instruct-fp8' };
+  const r = await answerApp(e, 'melchizedek', 'acct-g', [], AGREED);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, '@cf/google/gemma-4-26b-a4b-it');
+});
+
+test("passages are tagged with the teacher the published class notes name, and only those", async (t) => {
+  const { withTeachers } = await import(out);
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async (url) => new URL(url).pathname === "/api/notes/index.json"
+    ? Response.json([{ url: "/classes/2026/passover", videoId: "abc123def45", teacher: "Deacon Isaac" }, { url: "/classes/x", videoId: "zzz", teacher: "" }])
+    : new Response("", { status: 404 });
+  t.after(() => { globalThis.fetch = realFetch; globalThis.caches = realCaches; });
+  const tagged = await withTeachers({ DATA_ORIGIN: "https://data.test" }, [
+    { kind: "spoken", title: "A", url: "", video: "abc123def45", text: "x" },
+    { kind: "class", title: "B", url: "/classes/2026/passover?t=30", text: "y" },
+    { kind: "class", title: "C", url: "/classes/x", video: "zzz", text: "z" },
+  ]);
+  assert.deepEqual(tagged.map((p) => p.teacher), ["Deacon Isaac", "Deacon Isaac", undefined]);
+});
+
+test("a deep app question goes to the stronger free model when one is configured; a light one stays on the fast default", async () => {
+  const e = { ...env(), ASK_FREE_MODEL: '@cf/google/gemma-4-26b-a4b-it', ASK_FREE_DEEP_MODEL: '@cf/deepseek-ai/deepseek-v4-flash-0731', ASK_FREE_MODELS: '@cf/google/gemma-4-26b-a4b-it,@cf/deepseek-ai/deepseek-v4-flash-0731' };
+  assert.equal((await answerApp(e, 'Why do we keep the Passover?', 'acct-r', [], AGREED)).model, '@cf/deepseek-ai/deepseek-v4-flash-0731');
+  assert.equal((await answerApp(e, 'Who was Naamah?', 'acct-r', [], AGREED)).model, '@cf/google/gemma-4-26b-a4b-it');
+  assert.equal((await answerApp(e, 'Why do we keep the Passover?', 'acct-r', [], AGREED, 55000, { model: '@cf/google/gemma-4-26b-a4b-it' })).model, '@cf/google/gemma-4-26b-a4b-it', 'a chosen model is kept');
+});
+
+// The app's Ask on cyberjudah.io/app's engine (answerAppAgent).
+test("the app offers Claude only to an admin's linked account, every day", () => {
+  const e = { ...appEnv(), ADMIN_IDS: "42", ANTHROPIC_API_KEY: "k", CLAUDE_BILLING: "anthropic", CLAUDE_MODEL: "claude-sonnet-5" };
+  const thursday = Date.parse("2026-10-29T18:00:00Z"), saturday = Date.parse("2026-10-31T18:00:00Z");
+  assert.ok(appAskModels(e, 42, thursday).some((m) => m.format === "anthropic"));
+  assert.ok(appAskModels(e, 42, saturday).some((m) => m.format === "anthropic"), "the owner chose no holy-day pause");
+  assert.ok(!appAskModels(e, 7, thursday).some((m) => m.format === "anthropic"), "a reader gets the free models");
+  assert.ok(!appAskModels(e, undefined, thursday).some((m) => m.format === "anthropic"));
+  assert.ok(!appAskModels(appEnv()).some((m) => m.id.includes("llama-3.1-8b")), "llama-8b is no longer offered");
+});
+
+test("app Ask researches and answers like cyberjudah.io/app, on the free allowance", async () => {
+  const sent = [];
+  const e = {
+    ...appEnv(), AI_GATEWAY: "default",
+    AI: { run: async (model, input) => {
+      if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] };
+      sent.push({ model, input });
+      return { choices: [{ message: { role: "assistant", content: "Keep it for ever, as the classes teach.\n\nFollow-ups: Why for ever? | When is it kept?" }, finish_reason: "stop" }], usage: { prompt_tokens: 900, completion_tokens: 60 } };
+    } },
+    VEC: { query: async () => ({ matches: [] }) },
+  };
+  assert.deepEqual(await answerAppAgent(e, "Why do we keep the Passover?", "acct-p", [], []), { ok: false, reason: "consent" });
+  const events = [];
+  const r = await answerAppAgent(e, "Why do we keep the Passover?", "acct-p", [], AGREED, { emit: (x) => events.push(x) });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, "@cf/google/gemma-4-26b-a4b-it");
+  assert.match(r.answer, /Keep it for ever/);
+  assert.deepEqual(r.followups, ["Why for ever?", "When is it kept?"]);
+  assert.ok(sent.some((s) => s.model === "@cf/google/gemma-4-26b-a4b-it"));
+  assert.ok((await freeSpendToday(e)) > 0, "the free allowance pays for it");
+  assert.match(events.find((x) => x.status)?.status ?? "", /^Searching the classes and library/, "the first search is shown as a step even when the model never searches again");
+});
+
+// Claude for every signed-in reader (owner's choice 2026-10-31), off until switched on.
+const claudeEnv = (extra = {}) => ({ ...appEnv(), ANTHROPIC_API_KEY: "k", CLAUDE_BILLING: "anthropic", CLAUDE_MODEL: "claude-sonnet-5-5", CLAUDE_MODEL_LIGHT: "claude-haiku-5-5", ...extra });
+test("Claude for readers is off unless switched on with a daily cap above zero", () => {
+  assert.ok(!appAskModels(claudeEnv(), undefined, true).some((m) => m.format === "anthropic"), "off by default");
+  assert.ok(!appAskModels(claudeEnv({ ASK_CLAUDE_FOR_READERS: "on" }), undefined, true).some((m) => m.format === "anthropic"), "no cap, no Claude");
+  assert.ok(!appAskModels(claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5", ANTHROPIC_API_KEY: "", CLAUDE_BILLING: "anthropic" }), undefined, true).some((m) => m.format === "anthropic"), "no key, no Claude");
+  const on = claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5" });
+  assert.deepEqual(appAskModels(on, undefined, true).filter((m) => m.format === "anthropic").map((m) => m.native), ["claude-haiku-5-5", "claude-sonnet-5-5"], "Haiku first (the default), then Sonnet");
+  assert.ok(!appAskModels(on).some((m) => m.format === "anthropic"), "only the app's Ask asks for the readers' list");
+});
+
+test("Claude's readers' pool stops at its total across days, not only at each day's cap", async () => {
+  const e = appEnv();
+  const pool = { prefix: "claude:", capUsd: 2.5, totalUsd: 3 };
+  const day = 86400_000, t0 = Date.parse("2026-11-04T12:00:00Z");
+  assert.ok(await reserveFreeBudget(e, "d1-a", 2, t0, pool), "day one, within both caps");
+  assert.ok(await reserveFreeBudget(e, "d2-a", 0.9, t0 + day, pool), "day two, still within the total");
+  assert.equal(await reserveFreeBudget(e, "d2-b", 0.2, t0 + day, pool), null, "the total is spent: no more, though the day's cap has room");
+  assert.ok(await reserveFreeBudget(e, "free-a", 0.05, t0 + day), "the free models' allowance is untouched");
+});
+
+test("past Claude's own daily cap a reader is answered by the free model, on the free allowance", async () => {
+  const e = { ...claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "1" }), AI_GATEWAY: "default",
+    AI: { run: async (model) => model.includes("bge-m3") ? { data: [[0.1, 0.2]] } : { choices: [{ message: { role: "assistant", content: "Keep it for ever." }, finish_reason: "stop" }], usage: { prompt_tokens: 900, completion_tokens: 60 } } },
+    VEC: { query: async () => ({ matches: [] }) } };
+  assert.ok(await reserveFreeBudget(e, "spent-it", 1, Date.now(), { prefix: "claude:", capUsd: 1 }), "the whole Claude allowance is held");
+  assert.equal(await freeSpendToday(e), 0, "Claude's allowance is kept apart from the free one");
+  assert.deepEqual(await answerAppAgent(e, "Why do we keep the Passover?", "acct-c", [], ["Anthropic"]), { ok: false, reason: "consent" }, "no agreement to the free provider is assumed");
+  const r = await answerAppAgent(e, "Why do we keep the Passover?", "acct-c", [], [...AGREED, "Anthropic"]);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, "@cf/google/gemma-4-26b-a4b-it");
+  assert.ok((await freeSpendToday(e)) > 0);
+  // With no default free model named, the fallback is still a free model the app offers.
+  const bare = { ...e, ASK_FREE_MODEL: undefined };
+  const b = await answerAppAgent(bare, "Why do we keep the feast?", "acct-d", [], [...AGREED, "Anthropic"]);
+  assert.equal(b.ok, true, JSON.stringify(b));
+  assert.ok(appAskModels(bare, undefined, true).some((m) => m.id === b.model && m.format !== "anthropic"), b.model);
 });

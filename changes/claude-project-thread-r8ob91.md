@@ -1,0 +1,1 @@
+- The CyberJudah iPhone and Android app can use Ask without linking Telegram: `POST /api/app/ask` answers any verified app sign-in on the free model only, from the classes and the library, with the sources it cited. No credits, no purchases and no saved chats; 100 answers a day per account, inside the shared free-answer budget.

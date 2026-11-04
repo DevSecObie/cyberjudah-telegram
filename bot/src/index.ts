@@ -1,9 +1,11 @@
+import { askHealth } from "./ask-health";
 import { deviceAuth } from "./device-auth";
 import { IdentityError } from "./account-links";
 import { publicReader, readerContent } from "./reader";
 import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
 import { sweepFreeBudget } from "./free-budget";
+import { sweepAskEvents } from "./ask-events";
 import { CmsError, CONTENT_REPO } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
@@ -23,7 +25,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
@@ -50,7 +52,7 @@ import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
 import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
-import { pid, seal } from "./privacy.mjs";
+import { keyedHash, pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
 import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
@@ -58,14 +60,20 @@ import { MAX_BYTES } from "./photos.mjs";
 import { browserAuth, browserSession } from "./browser-auth";
 import { studyBackup } from "./study-backup";
 import { firebaseAuth, firebaseAccount } from "./firebase-auth";
+import { appAsk } from "./app-ask";
+import { appTeachings } from "./app-teachings";
+import { appChannel } from "./app-channel";
 import { cors } from "hono/cors";
 import { nave } from "./nave";
+import { publishedStudies, publishedStudyPage } from "./published-studies";
+import { mcp } from "./mcp";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
-// Bundled native readers have local webview origins. No cookie credentials are allowed
+// Bundled native readers have local webview origins, and the web app lives at web.cyberjudah.io.
+// No cookie credentials are allowed
 // across origins; private endpoints still require their existing signed authorization.
-app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type"], credentials: false }));
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
@@ -73,6 +81,11 @@ app.route("/api/auth/device", deviceAuth);
 app.route("/api/auth", browserAuth);
 app.route("/api/reader", publicReader);
 app.route("/api/nave", nave);
+// Studies a reader published from the app: they sign each change with Firebase themselves (published-studies.ts).
+app.route("/api/published-studies", publishedStudies);
+app.route("/app/published", publishedStudyPage);
+// The private MCP server for the owner's assistants: it checks its own key (mcp.ts).
+app.all("/mcp", (c) => mcp(c.req.raw, c.env, c.executionCtx));
 app.on(["GET", "HEAD"], "/api/audio/*", (c) => recordingAudio(c.req.raw, c.env));
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 
@@ -97,6 +110,12 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/verse-of-day" || c.req.path === "/api/health" || c.req.path.startsWith("/api/dictionary") || (c.req.method === "GET" && /^\/api\/frames\/[A-Za-z0-9_-]{11}$/.test(c.req.path))) return next();
   // The donation presets, bounds, link and pause state are public, like the resource catalog: a plain-browser visitor sees them too, even though only the Mini App can open a Stars invoice.
   if (c.req.method === "GET" && c.req.path === "/api/donations") return next();
+  // The app's free Ask checks its own Firebase sign-in: it needs no Telegram link (answerApp).
+  if (c.req.path === "/api/app/ask" || c.req.path.startsWith("/api/app/ask/")) return next();
+  // "Said in Class" in the app checks its own Firebase sign-in, like Ask (app-teachings.ts).
+  if (c.req.method === "GET" && c.req.path === "/api/app/teachings") return next();
+  // The channel's newest uploads and live stream are public YouTube listings, open to every app reader (app-channel.ts).
+  if (c.req.method === "GET" && (c.req.path === "/api/app/channel/recent" || c.req.path === "/api/app/channel/live")) return next();
   if (c.req.header("authorization")?.startsWith("Bearer ")) {
     // A linked Firebase login may read/spend its own Ask balance and manage its data.
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
@@ -256,6 +275,10 @@ app.post("/api/ask", async (c) => {
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
   return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
 });
+// Native Ask authenticates every route itself with Firebase; Telegram linking stays optional.
+app.route("/api/app/ask", appAsk);
+app.route("/api/app/teachings", appTeachings);
+app.route("/api/app/channel", appChannel);
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
 // person's chat with the bot. The link names the note and an expiry, signed with the bot token.
 const NOTE_PATH = /^\/(classes|captains|history|study|encyclopedia)\/[A-Za-z0-9_-][A-Za-z0-9._/-]{0,160}$/;
@@ -372,6 +395,12 @@ app.get("/api/admin/usage", async (c) => {
   const days = await Promise.all(Array.from({ length: 14 }, (_, i) => new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)).map(async (day) => ({ day, ...(await usageDayCredits(c.env, day)) })));
   const remindersByChannel = await reminderCounts(c.env).catch(() => null);
   return c.json({ ok: true, pricing: { usdPerStar: cfg.usdPerStar, margin: cfg.margin, topups: cfg.topups, unifiedFee: cfg.unifiedFee, confirmAboveMc: cfg.confirmAboveMc, maxRequestMc: cfg.maxRequestMc, research: cfg.research, missing: cfg.missing }, days, reminders: remindersByChannel });
+});
+// The admins' Ask health view: how each model's answers turned out, the latest problems, the budget (ask-health.ts).
+app.get("/api/admin/ask-health", async (c) => {
+  if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
+  const hours = Number(c.req.query("hours") ?? 24);
+  return c.json({ ok: true, ...(await askHealth(c.env, Number.isFinite(hours) ? hours : 24)) });
 });
 // An admin's refund: the Stars back through Telegram, and what that payment added and is unspent taken back.
 app.post("/api/admin/refund", async (c) => {
@@ -613,6 +642,14 @@ app.get("/card/:slug/:chapter/:file", async (c) => {
   return res;
 });
 
+// The Expo staging app uses upstream root routes. Preserve old menu/account links.
+app.get("/app", c => c.env.BIBLE_STRONG_WEB === "1" ? c.redirect("/home", 302) : c.env.ASSETS.fetch(c.req.raw));
+app.get("/app/*", async (c, next) => {
+  if (c.env.BIBLE_STRONG_WEB !== "1") return next();
+  const path = c.req.path === "/app/settings/account" ? "/profile" : "/home";
+  return c.redirect(path, 302);
+});
+
 // The Bible Strong fork once lived at /app/strong; it is gone, and its old links open the app.
 app.get("/app/strong", (c) => c.redirect("/app/", 301));
 app.get("/app/strong/*", (c) => c.redirect("/app/", 301));
@@ -636,6 +673,7 @@ export default {
     ctx.waitUntil(pruneBilling(env).catch((e) => console.error(JSON.stringify({ event: "prune_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepWebhookUpdates(env).catch((e) => console.error(JSON.stringify({ event: "webhook_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepFreeBudget(env).catch((e) => console.error(JSON.stringify({ event: "free_budget_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
+    ctx.waitUntil(sweepAskEvents(env).catch((e) => console.error(JSON.stringify({ event: "ask_events_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Yesterday's quota rows are swept here, never on the request path (ai.ts).
     ctx.waitUntil(sweepRateCounts(env).catch((e) => console.error(JSON.stringify({ event: "sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Records still filed under Telegram IDs move to pseudonymous IDs (docs/PRIVACY.md), a bounded amount each hour.

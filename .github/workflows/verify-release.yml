@@ -6,6 +6,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    environment: automation
     timeout-minutes: 15
     env:
       WORKER_URL: ${{ vars.WORKER_URL || 'https://cyberjudah.io' }}
@@ -13,8 +14,8 @@ jobs:
       ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
       EXPECTED_SEARCH_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8"
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           node-version: 22
       - run: node bot/scripts/verify-release.mjs

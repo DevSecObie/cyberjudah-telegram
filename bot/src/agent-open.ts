@@ -1,9 +1,13 @@
+import { readAIStream } from "./ai-stream.mjs";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Env } from "./env";
 import { checkInput } from "./assistant.mjs";
 import { unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import type { AgentEvent } from "./agent";
 import type { Spend } from "./spend";
+
+const DEEPSEEK_V4 = /^@cf\/deepseek-ai\/deepseek-v4/;
+const GEMMA_4 = /^@cf\/google\/gemma-4/;
 
 /**
  * Ask's research with any model other than Claude, through Cloudflare's AI binding and the AI
@@ -37,6 +41,10 @@ export async function researchOpen(
   emit: (e: AgentEvent) => void,
   maxRounds: number,
   spend?: Spend,
+  streamPlain = false,
+  plainInstruction = 'You have no tools here: answer from the passages given, and cite them by their numbers.',
+  /** think: false asks a reasoning model not to think first, for short mechanical steps such as a research plan. */
+  options: { think?: boolean } = {},
 ): Promise<Result> {
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
@@ -58,10 +66,15 @@ export async function researchOpen(
       const asked = Number((input as Record<string, unknown>)[key] ?? 8000);
       input = { ...(input as Record<string, unknown>), [key]: Math.max(256, Math.min(asked, model.maxOutput ?? asked, room)) };
     }
+    // An answer keeps each model's full reasoning; only a short mechanical step (a research plan)
+    // is asked not to think first, which saves its time without making the answer shallower.
+    if (options.think === false && DEEPSEEK_V4.test(model.id)) input = { ...(input as Record<string, unknown>), reasoning_effort: "none" };
+    else if (options.think === false && GEMMA_4.test(model.id)) input = { ...(input as Record<string, unknown>), chat_template_kwargs: { enable_thinking: false } };
     try {
       // Not logged: the request carries the reader's question (providers.ts viaGateway).
       const res = await ai.run(model.id, input, { gateway: { id: env.AI_GATEWAY, collectLog: false } });
       if (!res || typeof res !== "object") throw new Error("empty response");
+      if (streamPlain && typeof (res as ReadableStream).getReader === "function") return readAIStream(res as ReadableStream<Uint8Array>, text => emit({ delta: text }));
       return res as Record<string, unknown>;
     } catch (e) { throw unavailable(e); }
   };
@@ -80,10 +93,10 @@ export async function researchOpen(
   emit({ status: "Studying the question" });
 
   if (model.format === "plain") {
-    const res = await call({ messages: [{ role: "system", content: `${system}\n\nYou have no tools here: answer from the passages given, and cite them by their numbers.` }, ...messages], ...length });
+    const res = await call({ messages: [{ role: "system", content: `${system}\n\n${plainInstruction}` }, ...messages], ...length, ...(streamPlain ? { stream: true } : {}) });
     const { text, usage, cut } = chatText(res);
     units += unitsFor(usage, model); calls++; spend?.call(usage, model);
-    if (text) emit({ delta: text });
+    if (text && !streamPlain) emit({ delta: text });
     return { text, units, calls, cut, refused: false };
   }
 
@@ -140,8 +153,17 @@ export async function researchOpen(
     const { text, usage, cut, toolCalls } = chatText(res);
     units += unitsFor(usage, model); calls++; spend?.call(usage, model);
     if (!toolCalls.length || last) {
-      if (text) emit({ delta: text });
-      return { text, units, calls, cut, refused: false };
+      if (text || !hadToolMarkup(res)) {
+        if (text) emit({ delta: text });
+        return { text, units, calls, cut, refused: false };
+      }
+      // The model wrote only tool calls when it was told to answer: ask once more, with no tools
+      // offered, so the reader gets prose and never the call markup.
+      if (spend?.over(0.9)) return { text: "", units, calls, cut: true, refused: false };
+      const again = chatText(await call({ messages: [...convo, { role: "user", content: "Write the answer now from what you have read, in plain prose, citing the sources by their numbers. Do not call any tools." }], ...length }));
+      units += unitsFor(again.usage, model); calls++; spend?.call(again.usage, model);
+      if (again.text) emit({ delta: again.text });
+      return { text: again.text, units, calls, cut: again.cut, refused: false };
     }
     convo.push({ role: "assistant", content: text || "", tool_calls: toolCalls.map((c) => ({ id: c.id, type: "function", function: { name: c.name, arguments: c.arguments } })) });
     for (const c of toolCalls) convo.push({ role: "tool", tool_call_id: c.id, content: await tool(c.name, c.arguments) });
@@ -155,6 +177,54 @@ export async function researchOpen(
  * (`choices[0].message`) or Workers AI's own (`response`, `tool_calls`).
  */
 export function chatText(res: Record<string, unknown>): { text: string; toolCalls: ToolCall[]; usage: Record<string, unknown> | undefined; cut: boolean } {
+  const read = chatTextRaw(res);
+  if (!hasToolMarkup(read.text)) return read;
+  // Some models (DeepSeek V4 on Workers AI) can write their tool calls into the answer text as
+  // DSML markup instead of the tool_calls field. Run those calls as tools, and never show the markup.
+  const found = toolMarkupCalls(read.text);
+  return { ...read, text: stripToolMarkup(read.text), toolCalls: read.toolCalls.length ? read.toolCalls : found };
+}
+
+/** Whether a chat reply's text carried tool-call markup (see chatText). */
+function hadToolMarkup(res: Record<string, unknown>): boolean {
+  try { return hasToolMarkup(chatTextRaw(res).text); } catch { return false; }
+}
+
+// DeepSeek's DSML: <｜DSML｜tool_calls> <｜DSML｜invoke name="…"> <｜DSML｜parameter name="…" string="true">…</｜DSML｜parameter> …
+// The bars are U+FF5C (fullwidth) in the model's output; a plain "|" is accepted too.
+const BAR = "[\\uFF5C|]\\s*";
+const DSML = `<?\\s*${BAR}DSML\\s*${BAR}`;
+const DSML_CLOSE = `<?\\s*/\\s*${BAR}DSML\\s*${BAR}`;
+const MARKUP = new RegExp(`${DSML}(?:tool|function)_calls\\s*>[\\s\\S]*?(?:${DSML_CLOSE}(?:tool|function)_calls\\s*>|$)`, "g");
+const INVOKE = new RegExp(`${DSML}invoke\\s+name\\s*=\\s*"([^"]+)"\\s*>([\\s\\S]*?)(?=${DSML_CLOSE}invoke\\s*>|${DSML}invoke\\b|${DSML_CLOSE}(?:tool|function)_calls|$)`, "g");
+const PARAM = new RegExp(`${DSML}parameter\\s+name\\s*=\\s*"([^"]+)"(?:\\s+string\\s*=\\s*"(true|false)")?\\s*>([\\s\\S]*?)${DSML_CLOSE}parameter\\s*>`, "g");
+
+export function hasToolMarkup(text: string): boolean {
+  return new RegExp(`${DSML}(?:tool|function)_calls`).test(text);
+}
+
+/** The tool calls written as DSML markup in a model's text, as chat tool calls. */
+export function toolMarkupCalls(text: string): ToolCall[] {
+  const calls: ToolCall[] = [];
+  for (const block of text.match(MARKUP) ?? []) {
+    for (const [, name, body] of block.matchAll(INVOKE)) {
+      const args: Record<string, unknown> = {};
+      for (const [, key, isString, value] of body.matchAll(PARAM)) {
+        if (isString === "false") { try { args[key] = JSON.parse(value.trim()); continue; } catch { /* kept as text */ } }
+        args[key] = value.trim();
+      }
+      calls.push({ id: `dsml_${calls.length}`, name, arguments: JSON.stringify(args) });
+    }
+  }
+  return calls;
+}
+
+/** A model's text without any tool-call markup in it. */
+export function stripToolMarkup(text: string): string {
+  return text.replace(MARKUP, "").trim();
+}
+
+function chatTextRaw(res: Record<string, unknown>): { text: string; toolCalls: ToolCall[]; usage: Record<string, unknown> | undefined; cut: boolean } {
   const usage = res.usage as Record<string, unknown> | undefined;
   const choice = Array.isArray(res.choices) ? (res.choices[0] as Record<string, unknown> | undefined) : undefined;
   if (choice) {

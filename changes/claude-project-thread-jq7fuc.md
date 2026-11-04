@@ -1,0 +1,2 @@
+- The privacy policy now covers the CyberJudah app for iPhone and Android: its Google, Apple and email sign-in, the study data it syncs, the App Check device check and the Bible Strong reference service behind dictionary and Nave lookups.
+- A new page, Delete your account (/delete-account), explains how to delete an account in each app, how to ask for deletion without the app, and what is deleted and kept.

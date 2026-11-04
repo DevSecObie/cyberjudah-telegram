@@ -1,0 +1,1 @@
+- Timeline: Jesus is shown as "Jesus Christ" on his Timeline event, its picture caption and the name chip on the Mary case card. Scripture quotes are unchanged.

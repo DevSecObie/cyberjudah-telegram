@@ -117,3 +117,61 @@ test("the agreement card names where a provider is based only when that is known
   const unknown = new Set(["Unbiased"]);
   for (const p of new Set(MODELS.map((m) => m.provider))) assert.ok(PROVIDER_COUNTRY[p] || unknown.has(p), `decide where ${p} is based, or list it as unknown`);
 });
+
+test("an answer keeps each model's full reasoning: no reasoning setting is sent unless a step asks not to think", async () => {
+  const reply = () => ({ choices: [{ message: { role: "assistant", content: "Keep it for ever [1]." }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 10 } });
+  const deep = await research("@cf/deepseek-ai/deepseek-v4-flash-0731", [reply()]);
+  assert.equal(deep.sent[0].input.reasoning_effort, undefined);
+  assert.equal(deep.sent[0].input.chat_template_kwargs, undefined);
+});
+
+test("a step asked not to think: DeepSeek V4 reasons at none and Gemma 4 turns thinking off", async () => {
+  const reply = () => ({ choices: [{ message: { role: "assistant", content: "[]" }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 2 } });
+  for (const [id, check] of [["@cf/deepseek-ai/deepseek-v4-flash-0731", (i) => assert.equal(i.reasoning_effort, "none")], ["@cf/google/gemma-4-26b-a4b-it", (i) => assert.deepEqual(i.chat_template_kwargs, { enable_thinking: false })]]) {
+    const { env, sent } = binding([reply()]);
+    await researchOpen(env, modelOf(id), "S", [{ role: "user", content: "q" }], [], new Map(), async () => ({ content: "" }), () => {}, 1, undefined, false, "Plan.", { think: false });
+    check(sent[0].input);
+  }
+});
+
+// DeepSeek V4 on Workers AI can write its tool calls into the text as DSML markup (seen on the
+// Preview phone, 2026-11-02: "Who are the twelve tribes today?" showed the markup as the answer).
+const B = "｜";
+const DSML_REPLY = `<${B}DSML${B}tool_calls>\n<${B}DSML${B}invoke name="search_library">\n<${B}DSML${B}parameter name="query" string="true">12 tribes today</${B}DSML${B}parameter>\n</${B}DSML${B}invoke>\n</${B}DSML${B}tool_calls>`;
+
+test("DeepSeek's DSML tool calls in the text are run as tools, and the markup never reaches the reader", async () => {
+  const { r, ran, events, sent } = await research("@cf/deepseek-ai/deepseek-v4-flash-0731", [
+    { choices: [{ message: { role: "assistant", content: DSML_REPLY }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 40 } },
+    { choices: [{ message: { role: "assistant", content: "The tribes are named in the classes [1]." }, finish_reason: "stop" }], usage: { prompt_tokens: 200, completion_tokens: 20 } },
+  ]);
+  assert.deepEqual(ran, [["search_library", { query: "12 tribes today" }]]);
+  assert.equal(r.text, "The tribes are named in the classes [1].");
+  assert.ok(!events.some((e) => "delta" in e && /DSML/.test(e.delta)), "no markup is sent to the reader");
+  assert.equal(sent[1].input.messages.at(-2).content, "", "the markup is not kept as the assistant's words");
+});
+
+test("markup on the last round asks once more without tools, and the reader gets prose", async () => {
+  const { env, sent } = binding([
+    { choices: [{ message: { role: "assistant", content: `Let me look. ${DSML_REPLY}` }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 40 } },
+  ]);
+  const events = [];
+  const r1 = await researchOpen(env, modelOf("@cf/deepseek-ai/deepseek-v4-flash-0731"), "S", [{ role: "user", content: "q" }], TOOLS, SCHEMAS, async () => ({ content: "" }), (e) => events.push(e), 1);
+  assert.equal(r1.text, "Let me look.", "text around the markup is kept, the markup removed");
+  assert.equal(sent.length, 1);
+
+  const second = binding([
+    { choices: [{ message: { role: "assistant", content: DSML_REPLY }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 40 } },
+    { choices: [{ message: { role: "assistant", content: "An answer [1]." }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 10 } },
+  ]);
+  const r2 = await researchOpen(second.env, modelOf("@cf/deepseek-ai/deepseek-v4-flash-0731"), "S", [{ role: "user", content: "q" }], TOOLS, SCHEMAS, async () => ({ content: "" }), () => {}, 1);
+  assert.equal(r2.text, "An answer [1].");
+  assert.equal(second.sent.length, 2);
+  assert.equal(second.sent[1].input.tools, undefined, "the retry offers no tools");
+});
+
+test("DSML markup with plain bars, a missing '<' and a JSON parameter still parses", async () => {
+  const { toolMarkupCalls, stripToolMarkup } = await import("../src/agent-open.ts");
+  const text = `|DSML|tool_calls> |DSML|invoke name="read_scripture"> |DSML|parameter name="reference" string="true">Genesis 49:1-28</|DSML|parameter> |DSML|parameter name="limit" string="false">3</|DSML|parameter> </|DSML|invoke> </|DSML|tool_calls>`;
+  assert.deepEqual(toolMarkupCalls(text).map((c) => [c.name, JSON.parse(c.arguments)]), [["read_scripture", { reference: "Genesis 49:1-28", limit: 3 }]]);
+  assert.equal(stripToolMarkup(`Before. ${text}`), "Before.");
+});

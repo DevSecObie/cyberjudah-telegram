@@ -16,13 +16,16 @@ export type Verse = { verse: number; text: string; words?: [string, string[]][] 
 export type Chapter = { book: string; chapter: number; translation: string; verses: Verse[] };
 export type Note = { label: string; url: string; date: string; teacher: string };
 export type Moment = { verses: string; label: string; url: string; date: string; teacher?: string; video: string; t: number; ts: string };
-export type Precept = { verses: string; kind: string; ref: { label: string; url: string }; text: string; point: string; why?: string; note: Note; ts: string };
+export type Precept = { verses: string; kind: string; ref: { verses?: string; label: string; url: string }; text: string; point: string; why?: string; note: Note; ts: string };
 export type Comment = { verses: string; passage: string; points: string[]; note: Note; ts: string; video: string | null; t: number };
 export type Concordance = { cited_by: { label: string; url: string; verses: string }[]; precepts?: Precept[]; commentary?: Comment[]; moments?: Moment[] };
 export type TopicRow = { slug: string; label: string };
 export type Topic = TopicRow & { items: { title: string; url: string; date?: string; teacher?: string }[]; thread?: { url: string; label: string; verses: string; text: string; classes: { title: string; url: string; date: string; teacher: string; video: string | null; t: number; ts: string }[]; precepts: { label: string; url: string; why?: string }[] }[] };
 export const VERSION = 'KJV';
 export const COLLECTION = 'cyberjudah';
+/** One commentary per Bishop: the resource id and the teacher name its entries carry in the class data. */
+export const TEACHER_COLLECTIONS: Readonly<Record<string, string>> = { 'bishop-nathanyel': 'Bishop Nathanyel', 'bishop-yawasap': 'Bishop Yawasap', 'bishop-kani': 'Bishop Kani' };
+export const isCollection = (id: unknown): id is string => typeof id === 'string' && (id === COLLECTION || Object.hasOwn(TEACHER_COLLECTIONS, id));
 export const bibleResource = { kind: 'bible-text' as const, versionId: VERSION, revision: `cj-kjv-${metadata.textSha256}`, textRevision: metadata.textSha256, textSha256: metadata.textSha256 };
 export const strongResource = { kind: 'strong-bible-index' as const, versionId: VERSION, datasetId: 'CYBERJUDAH', revision: `cj-strong-${metadata.strongSha256}`, textRevision: metadata.textSha256, textSha256: metadata.textSha256, strongRevision: metadata.strongSha256 };
 export const emptyPresentation = () => ({ startTags: [], layout: [], notes: [] as { offset: number; order: number; kind: 'note'; markup: string }[], headings: [] });
@@ -30,6 +33,17 @@ export const html = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;'
 export const paragraphs = (s: string) => s.split(/\n\s*\n/).filter(Boolean).map(p => `<p>${html(p).replace(/\n/g, '<br>')}</p>`).join('');
 export const cmp = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 export const teacherRank = (s: string) => /\bbishop\b/i.test(s) ? 0 : /\bdeacon\b/i.test(s) ? 1 : 2;
+// OSIS book ids for books 1-81, as the app's CyberJudah reference profile reads them.
+export const OSIS = ['Gen', 'Exod', 'Lev', 'Num', 'Deut', 'Josh', 'Judg', 'Ruth', '1Sam', '2Sam', '1Kgs', '2Kgs', '1Chr', '2Chr', 'Ezra', 'Neh', 'Esth', 'Job', 'Ps', 'Prov', 'Eccl', 'Song', 'Isa', 'Jer', 'Lam', 'Ezek', 'Dan', 'Hos', 'Joel', 'Amos', 'Obad', 'Jonah', 'Mic', 'Nah', 'Hab', 'Zeph', 'Hag', 'Zech', 'Mal', 'Matt', 'Mark', 'Luke', 'John', 'Acts', 'Rom', '1Cor', '2Cor', 'Gal', 'Eph', 'Phil', 'Col', '1Thess', '2Thess', '1Tim', '2Tim', 'Titus', 'Phlm', 'Heb', 'Jas', '1Pet', '2Pet', '1John', '2John', '3John', 'Jude', 'Rev', '1Esd', '2Esd', 'Tob', 'Jdt', 'GkEsth', 'Wis', 'Sir', 'Bar', 'EpJer', 'SgThree', 'Sus', 'Bel', 'PrMan', '1Macc', '2Macc'];
+/** A passage as an in-app `bible://` link covering every verse it names; else the site link. */
+export function passageLink(ref: { verses?: string; label: string; url: string }) {
+  const m = /^\/bible\/([a-z0-9-]+)\/([1-9]\d*)(?:#v[1-9]\d*)?$/.exec(ref.url);
+  const index = m ? BOOKS.findIndex(b => b.slug === m[1]) : -1, verses = (ref.verses ?? '').replace(/\s+/g, '');
+  if (!m || index < 0 || !/^(?:[1-9]\d*(?:-[1-9]\d*)?(?:,[1-9]\d*(?:-[1-9]\d*)?)*)?$/.test(verses)) return siteLink(ref.url, ref.label);
+  const at = `${OSIS[index]}.${m[2]}`;
+  const osis = verses ? verses.split(',').map(part => { const [from, to] = part.split('-'); return to && Number(to) > Number(from) ? `${at}.${from}-${at}.${to}` : `${at}.${from}`; }).join(',') : at;
+  return `<a href="bible://${osis}">${html(ref.label)}</a>`;
+}
 export function siteLink(url: string, label: string) {
   // Only our own site-relative links can be promoted into HTML, never a supplied scheme.
   return /^\/(?!\/)[a-zA-Z0-9/?#=_%&.,:-]*$/.test(url) ? `<a href="https://cyberjudah.io${html(url)}">${html(label)}</a>` : html(label);
@@ -69,9 +83,10 @@ export function language(c: Ctx, code: string, query = false) {
   const lang = query ? c.req.query('language') : c.req.param('language');
   if (lang !== 'en') missing(code, 'CyberJudah provides this resource in English only');
 }
-export function collection(c: Ctx) {
+export function collection(c: Ctx): string {
   language(c, 'SUPPLEMENTARY_CONTENT_NOT_FOUND');
-  if (c.req.param('collection') !== COLLECTION) missing('SUPPLEMENTARY_CONTENT_NOT_FOUND');
+  const id = c.req.param('collection');
+  return isCollection(id) ? id : missing('SUPPLEMENTARY_CONTENT_NOT_FOUND');
 }
 export function limit(c: Ctx, max = 500, fallback = 60) { return integer(c.req.query('limit'), 1, max, fallback); }
 export const encodeCursor = (value: unknown) => encodeURIComponent(JSON.stringify(value));
@@ -85,16 +100,50 @@ export async function sha(value: unknown) {
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(value)));
   return [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
+/**
+ * Parsed data files kept in this server copy's memory for a few minutes, so a busy screen does not
+ * re-read and re-parse the same file (the Strong's list is 1.6 MB) on every request. Callers treat
+ * loaded data as read-only. The data set changes at most a few times a day; the edge cache below
+ * already holds a file for an hour.
+ */
+const MEMO_MS = 10 * 60_000, MEMO_MAX = 48;
+/** Kept files' source size, in characters; a Worker has 128 MB, and parsed JSON is several times
+ * its text. One file larger than MEMO_FILE_MAX is never kept. */
+const MEMO_TOTAL_MAX = 12_000_000, MEMO_FILE_MAX = 3_000_000;
+const memo = new Map<string, { at: number; size: number; data: unknown }>();
+let memoSize = 0;
+/** Tests only: forget the files kept in memory. */
+export function forgetLoaded() { memo.clear(); memoSize = 0; }
+function forget(url: string) {
+  const old = memo.get(url);
+  if (old) { memoSize -= old.size; memo.delete(url); }
+}
+function remember(url: string, data: unknown, size: number) {
+  forget(url);
+  if (size > MEMO_FILE_MAX) return;
+  memo.set(url, { at: Date.now(), size, data });
+  memoSize += size;
+  while (memo.size > MEMO_MAX || memoSize > MEMO_TOTAL_MAX) forget(memo.keys().next().value!);
+}
+/** Parses a response, keeping it in memory when it is small enough. */
+async function parse<T>(url: string, response: Response): Promise<T> {
+  const text = await response.text();
+  const data = JSON.parse(text) as T;
+  remember(url, data, text.length);
+  return data;
+}
 export async function load<T>(c: Ctx, path: string, optional = false): Promise<T> {
   const url = `${c.env.DATA_ORIGIN.replace(/\/$/, '')}${path}`;
+  const kept = memo.get(url);
+  if (kept && Date.now() - kept.at < MEMO_MS) return kept.data as T;
   const cache = typeof caches === 'undefined' ? undefined : caches.default;
   try {
     const hit = await cache?.match(url);
-    if (hit) return await hit.json() as T;
+    if (hit) return await parse<T>(url, hit);
     const response = await fetch(url, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(15000) });
     if (response.status === 404 && optional) return null as T;
     if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
-    const data = await response.json() as T;
+    const data = await parse<T>(url, response);
     if (cache) {
       const put = cache.put(url, new Response(JSON.stringify(data), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=3600' } }));
       try { c.executionCtx.waitUntil(put); } catch { await put; }

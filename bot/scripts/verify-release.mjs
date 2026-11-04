@@ -12,7 +12,7 @@ import { signInitData } from "../src/initdata.mjs";
  * (bot/src/ai.ts SEARCH_ANSWER_DEADLINE_MS) and meters it before and after, so the check waits
  * longer than that: a slow meter is not a missing answer.
  */
-export async function verifyRelease({ url, token, expectedModel, verifySync = false, fetcher = fetch, log = console.log, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000 }) {
+export async function verifyRelease({ url, token, expectedModel, verifySync = false, bibleStrongApp = false, fetcher = fetch, log = console.log, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000 }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
   const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
@@ -26,7 +26,7 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
   log("Search databases: healthy");
   // /app/ is the Mini App on both workers.dev and the production custom domain;
   // the custom domain's root belongs to the separate public website.
-  for (const path of ["/app/", "/app/read/genesis/1"]) {
+  for (const path of (bibleStrongApp ? ["/home", "/bible/kjv/genesis/1"] : ["/app/", "/app/read/genesis/1"])) {
     const shell = await get(path);
     requireStatus(shell, 200, "App shell");
     const html = await shell.text();
@@ -35,6 +35,21 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
     }
   }
   log("App and Bible reader: available");
+  if (bibleStrongApp) {
+    const catalog = await get("/bs/v1/dictionaries?language=en");
+    requireStatus(catalog, 200, "Bible Strong dictionaries");
+    const dictionaries = (await catalog.json()).dictionaries;
+    if (!Array.isArray(dictionaries) || !dictionaries.some(item => item.resource?.work === "easton-webster")) throw new Error("Bible Strong dictionaries: the original catalog is missing.");
+    const entry = await get("/bs/v1/dictionaries/easton-webster/en/entries/Aaron");
+    requireStatus(entry, 200, "Bible Strong dictionary entry");
+    if (!(await entry.json()).entry?.definition) throw new Error("Bible Strong dictionary entry: definition is missing.");
+    log("Bible Strong original dictionary catalog and entry: available");
+    const nave = await get("/bs/v1/naves/en/topics/faith");
+    requireStatus(nave, 200, "Bible Strong Nave");
+    const topic = await nave.json();
+    if (topic.resource?.kind !== "nave" || !topic.topic?.description || topic.topic?.normalizedName !== "faith" || topic.resource?.revision?.startsWith("cj-")) throw new Error("Bible Strong Nave: the original Faith topic is missing.");
+    log("Bible Strong original Nave topic: available");
+  }
   const query = "/api/search/answer?q=Melchizedek";
   requireStatus(await get(query), 401, "Unsigned search");
   // Same synthetic reader as the existing live browser suite; no real reader is impersonated.
@@ -97,7 +112,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   // Expose safe results as check annotations as well as logs, without launch data or answers.
   const annotation = (level, message) => process.env.GITHUB_ACTIONS
     ? `::${level}::${String(message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}` : message;
-  verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL, verifySync: process.env.VERIFY_ACCOUNT_SYNC === "true",
+  verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL, verifySync: process.env.VERIFY_ACCOUNT_SYNC === "true", bibleStrongApp: process.env.BIBLE_STRONG_WEB === "1",
     allowPaused: process.env.ALLOW_FREE_PAUSED === "1", log: message => console.log(annotation("notice", message)) })
     .catch(error => { console.error(annotation("error", error.message)); process.exitCode = 1; });
 }

@@ -1,0 +1,7 @@
+- Production now serves what the iPhone app's store build needs, as staging does for the beta:
+  - Said in Class (`/api/app/teachings`, signed-in app readers).
+  - The channel's newest uploads and live stream (`/api/app/channel/recent` and `/live`).
+  - The Strong's search fixes (H430, agape).
+  - The video player page at `/embed/youtube.html`, the only page allowed inside a frame. Approved 2026-10-30.
+  - The offline downloads at `/offline/`. Each file is checked against its catalog during the deploy.
+- The Bishops' commentaries are not included here. They follow the Bishops' commentary work once it is approved.

@@ -13,12 +13,22 @@ rm -rf .deploy
 mkdir -p .deploy/app
 cp -r app/dist/. .deploy/
 cp -r app/dist/. .deploy/app/
+# The People module's people, places and groups, read by the /bs feed (src/bs/entities.ts).
+# Optional: without the file the feed reports the module unavailable.
+if [ -f bot/data/entities/people.json ]; then
+  mkdir -p .deploy/bs-data/entities
+  cp bot/data/entities/people.json .deploy/bs-data/entities/people.json
+fi
 # Vite names every file under assets/ by its content hash, so a browser may keep one for a
 # year without asking again; a new build references new names. index.html, sw.js and the
 # public files keep their names across builds and keep the default caching.
 # Every page and file: no MIME sniffing, no full URL sent to other sites, and only this site and
 # Telegram's web clients (web.telegram.org frames the Mini App) may show it inside a frame.
 # Telegram's phone and desktop apps open it in their own web view, which frame-ancestors does not touch.
+# The one exception is the video player page (embed/youtube.html, served on staging for the
+# phone app, and /embed/youtube that it redirects to): the app's Bible reader shows it inside a
+# frame from the app's own page, which no frame-ancestors list can name, so that page alone drops
+# the frame rule (owner's call, 2026-10-30). It only plays a YouTube video by id.
 # A script policy is reported only, not enforced, until reports show it fits normal use: scripts
 # from this site, Telegram's Mini App SDK (telegram.org, in index.html), Google's API loader that
 # Firebase Auth fetches on phones and Safari (apis.google.com), and the inline scripts the app
@@ -38,6 +48,10 @@ cat > .deploy/_headers <<HEADERS
   Referrer-Policy: strict-origin-when-cross-origin
   Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org https://*.telegram.org
   Content-Security-Policy-Report-Only: script-src 'self' https://telegram.org https://apis.google.com$INLINE; object-src 'none'; base-uri 'self'
+/embed/youtube.html
+  ! Content-Security-Policy
+/embed/youtube
+  ! Content-Security-Policy
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 /app/assets/*

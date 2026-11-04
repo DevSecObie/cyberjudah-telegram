@@ -13,7 +13,7 @@ Production:
 - `data.cyberjudah.io`: Bible and library content
 - Telegram Bot API: bot commands, inline mode, sharing, payments, and delivery
 
-Staging (`.github/workflows/stage.yml`, every PR): worker
+Staging (`.github/workflows/stage.yml`, run by hand): worker
 `cyberjudah-telegram-staging` with its own D1 (`cyberjudah-telegram-staging`) and its own
 KV namespace (`SUBS-STAGING`). It shares the site's D1, the Vectorize index and the R2
 bucket read-only; the embed job never runs against staging. Staging's hourly cron runs the
@@ -50,7 +50,8 @@ Logs must not include bot tokens, webhook secrets, raw Telegram `initData`, note
 
 ## Deployment
 
-- Pull requests deploy to staging automatically (`stage.yml`): checks, staging worker
+- Pull requests run the checks only. Staging is deployed by hand (Actions → stage → Run workflow,
+  on the branch to try), because the TestFlight beta reads staging (`stage.yml`): staging worker
   deploy, webhook/commands/menu-button registration on the staging bot, search-index
   load, and a smoke test of `/api/health` and the app shell.
 - Pushes to `main` deploy to production (`deploy.yml`) after checks pass. The deploy job
@@ -114,8 +115,10 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
 No rebuilds. The `rollback` workflow (`Actions → rollback → Run workflow`) repoints the
 worker at an already-deployed version:
 
-1. Pick the environment (production or staging) and optionally a version id from
-   `wrangler deployments list`; empty means the deployment before the current one.
+1. Pick the environment (production or staging) and the version id to restore. Take it from
+   the bad deploy run's log line "Serving before this deploy: <id>". A bare rollback is refused:
+   every `wrangler secret put` after a deploy makes a version of the new code, so "one back"
+   would land on the release you are undoing. Run with the id empty to list recent versions.
 2. Approve the run if the environment has required reviewers.
 3. Verify: the health endpoint, the Telegram webhook, authenticated search, a daily
    subscription, and a deep link.
@@ -123,8 +126,14 @@ worker at an already-deployed version:
    migration recovery procedure.
 5. Record the incident and follow-up actions.
 
+A failed production deploy that already went live is put back automatically by `deploy.yml`
+(it records the version serving before it), and the custodian workflow then opens a revert pull
+request so the next merge does not ship the same change again.
+
 Drill this against staging before launch — a rollback you have never run is a rollback
-you do not have.
+you do not have. Staging is what the TestFlight beta reads, so drill at a quiet hour and tell
+testers first: note the current version id, roll back to the one before it, check `/api/health`,
+then roll forward to the noted id. Time each step and write the times here.
 
 ## Scaling notes
 
@@ -157,6 +166,7 @@ Reminders run every quarter hour (`sendReminders` in `bot/src/remind.ts`; cron `
 - **Delivery is at most once a day per channel:** the day is claimed on the record before a send, and given back only when the send failed in a way worth retrying (Telegram errors other than 403; push 5xx/429/network), which the next quarter-hour run retries within three hours of the reader's time.
 - **Push failures:** 404/410 drop that browser's subscription (when none is left, the reminder falls back to Telegram with a notice). 401/403 mean our VAPID keys are wrong: nothing is dropped and the admins get one Telegram message a day (`reminders_vapid_refused` in the logs) until it is fixed.
 - **Rate limits:** the `REMIND_LIMIT` Workers Rate Limiting binding (`wrangler.jsonc` "ratelimits", 30 requests per caller per 60 s; namespace 1001 production, 1002 staging) answers 429 with `Retry-After: 60`. New browser credentials are also capped at 100 per address per day (`remcreate:` keys).
+- **Signed-in app requests:** `FIREBASE_SESSION_LIMIT` allows 600 a minute per internet address (a backstop: a class on one Wi-Fi, or a carrier that shares addresses, shares it), then `FIREBASE_UID_LIMIT` allows 60 a minute per signed-in person once the sign-in is verified (`bot/src/app-identity.ts`). `READER_LIMIT` (reader pages) is 600 a minute per address.
 - **Telegram:** `/stop` turns reminders off; a reader who blocked the bot is switched off and restored when they `/start` it again or unblock it (`my_chat_member`, now in the webhook's `allowed_updates`, applied by `npm run setup` in the deploy).
 
 Push needs three Worker secrets, added by the owner only: `VAPID_PUBLIC_KEY` (base64url, 65-byte uncompressed P-256 point), `VAPID_PRIVATE_KEY` (base64url, its 32-byte private scalar) and `VAPID_SUBJECT` (`mailto:` or `https:` contact). Without them `/api/push/key` returns `null` and the app shows push as not set up; Telegram reminders are unaffected. To make the keys, run this on your own machine (Node 18+) and copy each line's value into a GitHub repository secret of that name (Settings → Secrets and variables → Actions); the deploy puts them on the Worker, and stops if only some are set:
@@ -188,7 +198,8 @@ Ask answers with Claude (`CLAUDE_MODEL`), paid for as `CLAUDE_BILLING` says (bel
 **Cloudflare AI Gateway** (`AI_GATEWAY` in `wrangler.jsonc`, `"default"` for production and staging):
 - **Workers AI:** calls (answers, embeddings, reranking, voices) pass `{ gateway: { id } }` and appear under AI Gateway → `default` in the Cloudflare dashboard, with logs and analytics. Cloudflare creates the `default` gateway on its first request. The AI binding authenticates it, so no token is needed.
 - **Claude:** calls go through the same gateway only when the **`CF_AIG_TOKEN`** Worker secret is set. That is an AI Gateway token with Run permission, made under the gateway's Settings → Create authentication token; it is sent as `cf-aig-authorization` because the default gateway is authenticated. Add it as the GitHub repository secret `CF_AIG_TOKEN` (Settings → Secrets and variables → Actions); the deploy puts it on the Worker. Without the token, Claude is called directly, as before. **The owner adds this secret.**
-- **Who pays for Claude** (`CLAUDE_BILLING` in `wrangler.jsonc`, `"cloudflare"` for production and staging):
+- **Who pays for Claude** (`CLAUDE_BILLING` in `wrangler.jsonc`, `"anthropic"` for production and staging since 2026-10-30):
+  - `"anthropic"`: the owner's own Anthropic console credits, through the `ANTHROPIC_API_KEY` Worker secret (the owner adds it: `wrangler secret put ANTHROPIC_API_KEY`, and `--env staging`). Until it is set, Claude stays on Unified Billing (below). With the key there is no Unified Billing fee, so readers' answers cost them a little less. When the console balance runs out, Ask answers with the backup. Only paying readers and admins reach Claude: free answers use Workers AI models.
   - `"cloudflare"`: **Unified Billing.** Claude is paid from the Cloudflare account's AI Gateway credits, and no Anthropic key is sent, because the gateway uses a provider key whenever the request carries one (Cloudflare docs: Unified Billing → Credential precedence). It needs `AI_GATEWAY` and the `CF_AIG_TOKEN` secret. Until the token is on the Worker, the `ANTHROPIC_API_KEY` secret is used if there is one.
   - **Credits:** load them under AI → AI Gateway → Credits Available → Manage → Top-up credits. Cloudflare adds a 5% fee on each purchase and passes Anthropic's per-token prices through. Auto top-up is set in the same place. When the credits run out, Ask answers with the backup until they are topped up.
   - **Check it:** `/health` shows `ask.billing` as `cloudflare`, `anthropic` or `none`.
@@ -208,7 +219,7 @@ Readers pick the model in Ask’s header. The dollar balance under the question 
 - **The list** is `shared/ask-models.json`, built by `node bot/scripts/ask-models.mjs <cloudflare-docs>/src/content <commit>` from Cloudflare's catalog (`catalog-models` for third-party models, `workers-ai-models` for Cloudflare-hosted ones). It holds every text model with a published price. Rebuild it to pick up new models or prices.
 - **Claude** models go through the Anthropic SDK (`agent.ts`). Every other model goes through the AI binding and the gateway (`agent-open.ts`): chat completions, the Responses API or the Messages format, with the same tools, or no tools for models without function calling.
 - **Pricing:** each answer is charged exactly what it cost, at the price of the model that wrote it, with Unified Billing's fee where it applies and the library searches at Cloudflare's rates (`shared/credits.mjs`, `bot/src/spend.ts`). No margin.
-- **The free model** (`ASK_FREE_MODEL`, Llama 3.1 8B) is never charged. It is open to everyone (within the 100-a-day quota), and is offered when a reader's balance is too low for the model chosen. Before a non-admin free Ask or search answer begins, D1 atomically reserves its estimated maximum cost against `ASK_FREE_DAILY_USD_CAP` ($0.11 by default). Completed spend plus in-flight reservations cannot admit more than that allowance. The reservation settles once against the UTC day it started; failed calls, missing usage and lost workers conservatively keep their reserved allowance. Storage failures block new free work. This covers these metered answers, excludes admin testing and other AI uses (including paid-request backups and speech), and is not a guarantee that the Cloudflare account stays inside its shared free allocation.
+- **The free model** (`ASK_FREE_MODEL`, Llama 3.1 8B) is never charged. It is open to everyone (within `ASK_DAILY_LIMIT`, 20 a day per person), and is offered when a reader's balance is too low for the model chosen. Before a non-admin free Ask or search answer begins, D1 atomically reserves its estimated maximum cost against `ASK_FREE_DAILY_USD_CAP` ($0.11 by default). Completed spend plus in-flight reservations cannot admit more than that allowance. The reservation settles once against the UTC day it started; failed calls, missing usage and lost workers conservatively keep their reserved allowance. Storage failures block new free work. This covers these metered answers, excludes admin testing and other AI uses (including paid-request backups and speech), and is not a guarantee that the Cloudflare account stays inside its shared free allocation.
 - **Top-ups** ($1, $5, $20 in Stars) pause from sunset before each Sabbath, feast day and New Moon to full dark at its end, in the reader's time zone (`shared/holy-days.mjs`). The feast days and New Moons are in `shared/holy-days.json`, refreshed from the IUIC calendar by the weekly `holy-days` workflow as a pull request to approve.
 - **Failures:** if any model fails or Cloudflare refuses it (out of credits, for example), the answer falls back to the backup as before.
 

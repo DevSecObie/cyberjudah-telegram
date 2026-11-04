@@ -60,7 +60,8 @@ browserAuth.get("/start", async c => {
   const state = random(), verifier = random(), nonce = random();
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
   const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  const sealed = await seal(c.env, "browser-login", { state, verifier, nonce, created: Date.now() });
+  const returnTo = c.env.BIBLE_STRONG_WEB === "1" ? "/profile?telegram=returned" : "/app/settings/account";
+  const sealed = await seal(c.env, "browser-login", { state, verifier, nonce, created: Date.now(), returnTo });
   setCookie(c, LOGIN, sealed, { ...cookieOptions, maxAge: 600 });
   const callback = `${new URL(c.req.url).origin}/api/auth/callback`;
   const params = new URLSearchParams({ client_id: c.env.TELEGRAM_LOGIN_CLIENT_ID!, redirect_uri: callback, response_type: "code", scope: "openid profile", state, nonce, code_challenge: challenge, code_challenge_method: "S256" });
@@ -73,7 +74,7 @@ browserAuth.get("/callback", async c => {
   if (!configured(c.env)) return c.redirect("/app/settings/account?login=unavailable");
   let failure = encoded ? "state" : "cookie";
   try {
-    const pending = await open(c.env, "browser-login", encoded ?? null) as { state: string; verifier: string; nonce: string; created: number } | null;
+    const pending = await open(c.env, "browser-login", encoded ?? null) as { state: string; verifier: string; nonce: string; created: number; returnTo?: string } | null;
     const code = c.req.query("code");
     if (!encoded?.startsWith("s1.") || !pending || !code || code.length > 4096 || c.req.query("state") !== pending.state || Date.now() - pending.created > 600_000 || pending.created > Date.now()) throw new Error("Invalid login state");
     failure = "exchange";
@@ -96,7 +97,7 @@ browserAuth.get("/callback", async c => {
     await c.env.DB.prepare("INSERT INTO browser_sessions(token_hash,owner,sealed,expires) VALUES(?,?,?,?)").bind(await keyedHash(c.env, "browser-session", token), owner, await seal(c.env, owner, { user, created }), created + 86400).run();
     setCookie(c, SESSION, token, { ...cookieOptions, maxAge: 86400 });
     loginEvent("completed");
-    return c.redirect("/app/settings/account");
+    return c.redirect(c.env.BIBLE_STRONG_WEB === "1" && pending.returnTo === "/profile?telegram=returned" ? pending.returnTo : "/app/settings/account");
   } catch (error) {
     // Only bounded stage/claim names leave the server, never codes, tokens or error messages.
     const claim = (error as { claim?: unknown })?.claim;

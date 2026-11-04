@@ -114,13 +114,16 @@ for (const preference of ["normal", "contrast"] as const) {
   });
 }
 
-test("bar: wide windows keep Bible Strong's bar along the bottom, and its buttons navigate", async ({ page }) => {
+test("bar: on a computer the bar is a sidebar down the left, and its buttons and links navigate", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await setup(page);
   await page.goto(`/search${LAUNCH}`);
   const bar = page.getByRole("navigation", { name: "Sections" });
   const box = (await bar.boundingBox())!;
-  expect(box.x).toBe(0); expect(box.width).toBe(1280); expect(box.y + box.height).toBe(900);
+  expect(box.x).toBe(0); expect(box.y).toBe(0); expect(box.height).toBe(900); expect(box.width).toBe(248);
+  await bar.getByRole("link", { name: "Classes", exact: true }).click();
+  await expect(page).toHaveURL(/\/classes/);
+  await expect(bar.getByRole("link", { name: "Classes", exact: true })).toHaveAttribute("aria-current", "page");
   await bar.getByRole("button", { name: "Bible", exact: true }).click();
   await expect(page).toHaveURL(/\/(bible|read)/);
   await expect(bar.getByRole("button", { name: "Bible", exact: true })).not.toHaveAttribute("aria-current");
@@ -292,14 +295,15 @@ for (const theme of ["default", "dark", "sepia"]) {
         await page.mouse.up();
         const label = (await toggle.locator("b").boundingBox())!, thumb = (await toggle.locator(".switch").boundingBox())!;
         expect(label.x + label.width).toBeLessThanOrEqual(thumb.x);
-        // Bible Strong's bar spans the bottom, its 48 px row above Telegram's bottom inset.
+        // Bible Strong's bar spans the bottom, its 48 px row above Telegram's bottom inset; on a
+        // computer it is a sidebar down the left, every button inside it.
         const dock = page.locator("nav.tabs");
         const bounds = (await dock.boundingBox())!;
-        expect(bounds.x).toBe(0); expect(bounds.width).toBe(width);
-        expect(bounds.y + bounds.height).toBe(height); expect(bounds.height).toBeGreaterThan(48);
+        if (width >= 1024) { expect(bounds.x).toBe(0); expect(bounds.y).toBe(0); expect(bounds.height).toBe(height); }
+        else { expect(bounds.x).toBe(0); expect(bounds.width).toBe(width); expect(bounds.y + bounds.height).toBe(height); expect(bounds.height).toBeGreaterThan(48); }
         for (const button of await dock.getByRole("button").all()) {
           const b = (await button.boundingBox())!;
-          expect(b.x).toBeGreaterThanOrEqual(0); expect(b.x + b.width).toBeLessThanOrEqual(width); expect(b.y).toBeGreaterThanOrEqual(bounds.y);
+          expect(b.x).toBeGreaterThanOrEqual(bounds.x); expect(b.x + b.width).toBeLessThanOrEqual(bounds.x + bounds.width); expect(b.y).toBeGreaterThanOrEqual(bounds.y);
         }
         // Settings › Theme at 200%: every mode icon and colour disc stays inside its card and on screen.
         await page.click('.row >> text="Theme"');
@@ -433,7 +437,7 @@ for (const preference of ["normal", "motion", "forced"] as const) {
 }
 
 for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "mauve", "night"]) {
-  test(`navigation: ${theme} keeps the same bar along the bottom at every width, every button reachable`, async ({ page }) => {
+  test(`navigation: ${theme} keeps the same bar along the bottom up to a computer, then a sidebar, every button reachable`, async ({ page }) => {
     await setup(page, theme);
     await page.setViewportSize({ width: 899, height: 844 });
     await page.goto(`/settings${LAUNCH}`);
@@ -442,9 +446,11 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
     await expect(nav).toBeVisible();
     const labels = await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => b.getAttribute("aria-label")));
     const badge = await nav.locator(".tab__count").innerText();
-    for (const width of [899, 900, 1280]) {
+    for (const width of [899, 900, 1023, 1024, 1280]) {
       await page.setViewportSize({ width, height: 800 });
-      await expect(nav).toHaveCSS("flex-direction", "row");
+      // From 1024 px the same buttons stand in a sidebar on the left, the page beside it.
+      const rail = width >= 1024;
+      await expect(nav).toHaveCSS("flex-direction", rail ? "column" : "row");
       expect(await nav.locator(".tab").evaluateAll(buttons => buttons.map(b => b.getAttribute("aria-label")))).toEqual(labels);
       await expect(nav.locator(".tab__count")).toHaveText(badge);
       for (const button of await nav.getByRole("button").all()) {
@@ -453,7 +459,8 @@ for (const theme of ["default", "sepia", "nature", "sunset", "dark", "black", "m
         expect(box.width).toBeGreaterThanOrEqual(44); expect(box.height).toBeGreaterThanOrEqual(44);
       }
       const bar = (await nav.boundingBox())!, content = (await page.locator(".route > .screen").boundingBox())!;
-      expect(bar.x).toBe(0); expect(bar.width).toBe(width); expect(bar.y + bar.height).toBe(800);
+      if (rail) { expect(bar.x).toBe(0); expect(bar.y).toBe(0); expect(bar.height).toBe(800); expect(content.x).toBeGreaterThanOrEqual(bar.width); }
+      else { expect(bar.x).toBe(0); expect(bar.width).toBe(width); expect(bar.y + bar.height).toBe(800); }
       expect(content.x).toBeGreaterThanOrEqual(0);
       expect(content.x + content.width).toBeLessThanOrEqual(width);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

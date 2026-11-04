@@ -1,0 +1,1 @@
+- Every answer in the app's Ask now records how it turned out (complete, a fallback when a source-checked answer couldn't be written, a format retry, nothing found, failed, limits), with the model, the time it took and how many sources it found, kept 14 days so problems are caught without readers having to report them. The question, the answer and who asked are never recorded.

@@ -30,7 +30,9 @@ async function search(c: Ctx, multi: boolean, semantic: boolean) {
   // Version coverage supplies our canon; never silently reinterpret another canon's numbering.
   if (canon && !['protestant-66', 'kjv-1611'].includes(canon)) return missing('BIBLE_UNSUPPORTED', 'This canon is not provided by CyberJudah');
   const selected = b ? bookById(b).id : undefined;
-  const books = BOOKS.filter(row => (!selected || row.id === selected) && (!section || (section === 'nt' ? row.id >= 40 && row.id <= 66 : section === 'apoc' ? row.id > 66 : row.id <= 39)) && (canon !== 'protestant-66' || row.id <= 66));
+  // Bible Strong's web port filters only Old/New Testament; the Mini App has its own Apocrypha filter.
+  const oldTestamentHasApocrypha = c.env.BIBLE_STRONG_WEB === '1';
+  const books = BOOKS.filter(row => (!selected || row.id === selected) && (!section || (section === 'nt' ? row.id >= 40 && row.id <= 66 : section === 'apoc' ? row.id > 66 : row.id <= 39 || (oldTestamentHasApocrypha && row.id > 66))) && (canon !== 'protestant-66' || row.id <= 66));
   let results: { version: string; book: number; chapter: number; verse: number; text: string; highlighted: string; match: { kind: 'lexical' } }[] = [], count = 0;
   if (!semantic && books.length) {
     const found = await runBibleSearch(c.env.DB, q, books.map(b => b.sourceName), take, offset, sort === 'book');

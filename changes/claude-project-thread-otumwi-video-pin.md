@@ -1,0 +1,1 @@
+- Staging serves the newer video player page from the app (commit 82e73230). The page now tells the floating class player where the video is, so a class picks up where it left off when you come back to it. Staging only; production is unchanged.
