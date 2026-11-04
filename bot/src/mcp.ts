@@ -5,7 +5,7 @@ import type { Env, Exec } from "./env";
 import { MORE_RUN } from "./ask-tools";
 import { books, chapter } from "./data";
 import { parseReference } from "./refs.mjs";
-import { searchTeachings, transcriptAround } from "./teachings";
+import { captionCorrections, searchTeachings, transcriptAround } from "./teachings";
 import { FEED_LABEL } from "./teachings.mjs";
 import { createAppResearch, RESEARCH_RESOURCES } from "./app-study-research";
 import { bs } from "./bs";
@@ -82,7 +82,7 @@ async function searchClasses(env: Env, query: string, feed: string, page: number
     const at = Math.max(0, Math.floor(h.start || 0));
     const when = `${Math.floor(at / 3600)}:${String(Math.floor((at % 3600) / 60)).padStart(2, "0")}:${String(at % 60).padStart(2, "0")}`;
     const kind = (FEED_LABEL as Record<string, string>)[h.feed] ?? h.feed;
-    return `${unmark(h.title)} (${kind}${h.date ? `, ${h.date}` : ""}) at ${when}\n“${unmark(h.excerpt)}”\nVideo: https://www.youtube.com/watch?v=${h.video}&t=${at}s${h.note ? `\nNotes: ${linkOn(env, h.note)}` : ""}`;
+    return `${unmark(h.title)} (${kind}, ${h.date || "date unknown"}) at ${when}\n“${unmark(h.excerpt)}”\nVideo: https://www.youtube.com/watch?v=${h.video}&t=${at}s\nNotes: ${h.note ? linkOn(env, h.note) : "none yet"}`;
   });
   return answer(`${out.join("\n\n")}${r.more ? `\n\nMore classes match: call again with page ${page + 1}.` : ""}`);
 }
@@ -130,7 +130,10 @@ async function readTranscript(env: Env, video: string, at: number, span: number,
   const w = await transcriptAround(env, video, at, ctx, span);
   if (!w.ok) return failure("No transcript for that video and moment.");
   const clock = (t: number) => `${Math.floor(t / 3600)}:${String(Math.floor((t % 3600) / 60)).padStart(2, "0")}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
-  return answer(`${w.title}${w.date ? ` (${w.date})` : ""}\nVideo: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s${w.url ? `\nNotes: ${linkOn(env, w.url)}` : ""}\n\n${w.chunks.map((c) => `[${clock(c.t)}] ${c.text}`).join("\n")}`);
+  // Clear caption errors (a book or feast word misheard), shown beside the captions, never in place of them.
+  const fixes = (await captionCorrections(env, video, ctx)).filter(([, t]) => t >= at - span && t <= at + span);
+  const fixed = fixes.length ? `\n\nCaption corrections (the captions above are as YouTube gave them):\n${fixes.map(([, t, was, now]) => `[${clock(t)}] “${was}” reads “${now}”`).join("\n")}` : "";
+  return answer(`${w.title} (${w.date || "date unknown"})\nVideo: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s\nNotes: ${w.url ? linkOn(env, w.url) : "none yet"}\n\n${w.chunks.map((c) => `[${clock(c.t)}] ${c.text}`).join("\n")}${fixed}`);
 }
 
 /** HTML as the text a reader sees: a real parser, so no markup survives into the answer. */
@@ -181,9 +184,9 @@ export function createCyberJudahServer(env: Env, ctx?: Exec): McpServer {
 
   tool("read_passage", "Read a passage", "The exact King James text (1611, with the Apocrypha) of a chapter, a verse or a range. Quote Scripture only from what this returns.",
     { reference }, ({ reference }) => readPassage(env, reference, ctx));
-  tool("verse_study", "What the classes taught on a verse", "Everything the app has on a verse or chapter: the classes and notes that read it (with the moment), the precepts placed on it, and its cross-references.",
+  tool("verse_study", "What the classes taught on a verse", "Everything the app has on a verse or chapter, in three parts. STUDY NOTE: the 4 Chapters a Day note's points on the verse, each with its source (the class, date, teacher and moment it was found in) or marked unsourced, and the precepts the note places on it. CLASSES: every recording found reading the verse aloud (Sabbath classes, 15 Min w/ Captains, Our Hidden History), every class note passage that holds it, every precept placed on it or citation of it as a precept, and notes that mention it; each hit gives why it matched, the words said there, a link to that second of the video, the teacher (or \"teacher unknown\"), the date (or \"date unknown\") and its notes link (or \"Notes: none yet\"). Readings of the verse come first, then Bishops, Deacons and Captains. CROSS-REFERENCES for a verse. The verse's own text comes from read_passage.",
     { reference }, ({ reference }) => lookup(env, ctx, "verse_study", { reference }));
-  tool("search_classes", "Search the classes", "Find where the classes said something: each match gives the class, its date, the words spoken and a link to that moment of the video. Feed narrows it to Sabbath classes, 15 Min with Captains or Our Hidden History.",
+  tool("search_classes", "Search the classes", "Find where the classes said something: each match gives the class, its date (or \"date unknown\"), the words spoken, a link to that moment of the video, and its notes link (or \"Notes: none yet\"). Feed narrows it to Sabbath classes, 15 Min with Captains or Our Hidden History.",
     {
       query: z.string().trim().min(2).max(200).describe("Words or a phrase spoken in class."),
       feed: z.enum(["classes", "captains", "history"]).optional().describe("Only one series."),
@@ -204,7 +207,7 @@ export function createCyberJudahServer(env: Env, ctx?: Exec): McpServer {
     { resource: z.enum(RESEARCH_RESOURCES), query: z.string().trim().min(2).max(120) }, ({ resource, query }) => searchLibrary(env, resource, query, ctx));
   tool("read_note", "Read a class or study note", "The whole note of a class, a study chapter or an episode, word for word: give its site path from an index or a link, like /classes/2026/<slug> or /study/genesis/2. Long notes come in parts: pass offset to read on.",
     { path: z.string().trim().regex(SITE_PATH).max(200), offset: z.number().int().min(0).optional() }, ({ path, offset }) => readNote(env, path, offset ?? 0, ctx));
-  tool("read_transcript", "Read what was said in a class", "The verbatim transcript of a class or episode around a moment: give the YouTube video id and the second (from search_classes or a note). Span is how many seconds either side, up to 600.",
+  tool("read_transcript", "Read what was said in a class", "The verbatim transcript (YouTube's captions) of a class or episode around a moment: give the YouTube video id and the second (from search_classes, verse_study or a note). Span is how many seconds either side, up to 600. Where the captions mishear a book or feast word (\"second edges\" for 2 Esdras, \"11 bread\" for unleavened bread), the correction is listed after the captions, which are left as given.",
     { video: z.string().regex(/^[A-Za-z0-9_-]{11}$/), at: z.number().min(0).max(86400), span: z.number().int().min(30).max(600).optional() }, ({ video, at, span }) => readTranscript(env, video, at, span ?? 180, ctx));
   tool("commentary", "The Bishops' commentary on a verse", "What CyberJudah's commentary holds for one verse: the class breakdowns on it, each with its teacher and the moment. Give a single verse, like \"Deuteronomy 28:68\".",
     { reference }, ({ reference }) => readCommentary(env, reference, ctx));

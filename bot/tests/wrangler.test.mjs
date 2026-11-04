@@ -53,8 +53,8 @@ test("Workers Logs keep console output but no invocation logs, whose URLs carry 
   assert.equal(config.env.staging.observability, undefined, "staging inherits the same setting");
 });
 
-test("only staging exempts the release check's synthetic reader from the search answer quota", () => {
-  assert.equal(config.vars.SEARCH_AI_QUOTA_EXEMPT, "");
+test("production and staging exempt only the release check's synthetic reader from the search answer quota", () => {
+  assert.equal(config.vars.SEARCH_AI_QUOTA_EXEMPT, "1");
   assert.equal(config.env.staging.vars.SEARCH_AI_QUOTA_EXEMPT, "1");
 });
 
