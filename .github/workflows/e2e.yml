@@ -12,9 +12,12 @@ on:
 permissions:
   contents: read
 
+# A newer push to a pull request replaces its older run. On main, and inside a deploy, runs queue
+# instead: cancelling them made an overlapping deploy fail before it reached the Approve step
+# (deploy #2437/#2438, 4 Nov). Bible Strong's production workflows do the same (cancel-in-progress: false).
 concurrency:
   group: e2e-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   browser-tests:
