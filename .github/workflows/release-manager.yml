@@ -1,0 +1,73 @@
+name: release-manager
+
+# Release manager for the iPhone and Android app (.github/release-manager/README.md).
+# Every day, and when run by hand: rewrites one "Release status" issue with the release
+# branch's store build settings, the next build number, checks, build workflows, runs waiting
+# for Approve, pull requests into the release branch and what changed since the last store
+# build. A comment and one Telegram message go out only when something new turns red.
+# On a pull request that changes it, the same report is printed only (nothing is written).
+# It never builds, submits, merges, approves or reads a secret's value into a log.
+
+on:
+  schedule:
+    - cron: "17 13 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/release-manager/**"
+      - ".github/custodian/custodian.py"
+      - ".github/workflows/release-manager.yml"
+
+permissions: {}
+
+concurrency:
+  group: release-manager-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'main' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/custodian
+            .github/release-manager
+          persist-credentials: false
+      - name: Print the release report (writes nothing)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 -m py_compile .github/release-manager/release_manager.py
+          python3 .github/release-manager/release_manager.py report dry=true
+
+  report:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: automation
+      deployment: false
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # The release manager's code always comes from the default branch.
+          ref: ${{ github.event.repository.default_branch }}
+          sparse-checkout: |
+            .github/custodian
+            .github/release-manager
+          persist-credentials: false
+      - name: Update the Release status issue
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ALERT_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ALERT_CHAT_IDS: ${{ secrets.CUSTODIAN_ALERT_CHAT_ID || secrets.ADMIN_IDS }}
+        run: python3 .github/release-manager/release_manager.py report
