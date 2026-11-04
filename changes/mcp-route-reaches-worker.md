@@ -1,0 +1,1 @@
+- MCP: `/mcp` now reaches the Worker in production. It was missing from `run_worker_first`, so the site's single-page assets answered it (GET showed the app, POST got 405). A test now checks the route is listed.
