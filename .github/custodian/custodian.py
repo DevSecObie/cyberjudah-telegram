@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -782,6 +783,14 @@ def cmd_waiting(cfg, args):
     """Tell the owner on Telegram, once per run, when a deploy is waiting for their Approve.
     It only reads: it never approves, rejects or cancels anything."""
     repos = [REPO] + [r for r in cfg.get("watch_repos", []) if r != REPO]
+    wait_for = str(args.get("wait_for") or "")
+    if wait_for.isdigit():
+        # Called from a deploy itself: give its gated job up to 3 minutes to reach the Approve gate.
+        for _ in range(18):
+            run = gh("GET", f"/repos/{REPO}/actions/runs/{wait_for}")
+            if run["status"] in ("waiting", "completed"):
+                break
+            time.sleep(10)
     now, failed = {}, []
     for repo in repos:
         try:
