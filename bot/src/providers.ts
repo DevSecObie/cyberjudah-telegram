@@ -42,13 +42,14 @@ export async function claude(env: Env): Promise<Anthropic> {
   // Paid through Cloudflare but the gateway cannot be reached: Claude cannot answer now, so the backup does.
   if (unified && !viaAig) throw new Anthropic.APIConnectionError({ message: "AI Gateway unavailable for Unified Billing" });
   return new Anthropic({
-    // No key at all under Unified Billing: the SDK sends no x-api-key when the header is explicitly omitted.
+    // No key at all under Unified Billing: the SDK sends no x-api-key when the header is explicitly
+    // omitted, and from SDK 1.x it only accepts a keyless client when Authorization is omitted too.
     apiKey: unified ? null : env.ANTHROPIC_API_KEY,
     ...(baseURL ? { baseURL } : {}),
     // The gateway logs the call (model, tokens, cost, status) but not its text: readers' questions
     // and Ask's answers are not kept in the logs (Cloudflare docs: AI Gateway logging,
     // cf-aig-collect-log-payload; docs/PRIVACY.md).
-    ...(viaAig ? { defaultHeaders: { "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`, "cf-aig-collect-log-payload": "false", ...(unified ? { "x-api-key": null } : {}) } } : {}),
+    ...(viaAig ? { defaultHeaders: { "cf-aig-authorization": `Bearer ${env.CF_AIG_TOKEN}`, "cf-aig-collect-log-payload": "false", ...(unified ? { "x-api-key": null, authorization: null } : {}) } } : {}),
   });
 }
 
