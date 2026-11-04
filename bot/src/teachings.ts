@@ -1,7 +1,7 @@
 import { classCorrections, applyClassCorrection } from "./class-corrections";
 import type { Env, Exec } from "./env";
 import { ftsExpr, parseQuery } from "./search";
-import { FEEDS, noteUrl, passageExcerpt } from "./teachings.mjs";
+import { CLOSE, FEEDS, OPEN, noteUrl, passageExcerpt } from "./teachings.mjs";
 import { chunkSegments } from "./transcripts.mjs";
 
 /**
@@ -38,6 +38,34 @@ export async function searchTeachings(env: Env, q: string, feed: string, page: n
     console.error(JSON.stringify({ event: "teachings_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 120) }));
     return { ok: false, reason: "unavailable" };
   }
+}
+
+/**
+ * The recorded classes for Ask, by their own words: the captions searched for the question's
+ * keywords (all of them, then any), each hit read as about two hundred words around where the
+ * words were said and timed to that exact caption, so a citation plays the class at the moment.
+ */
+export type CaptionPassage = { kind: "spoken"; title: string; url: string; sub: string; video: string; t: number; date?: string; text: string };
+const FEED_KIND: Record<string, string> = { classes: "class", captains: "captains", history: "history" };
+export async function captionPassages(env: Env, keywords: string, limit = 10): Promise<CaptionPassage[]> {
+  const parsed = parseQuery(keywords.slice(0, 200));
+  if (!parsed.terms.length && !parsed.phrases.length) return [];
+  const sql = `SELECT title, highlight(teaching_passages,1,char(57344),char(57345)) AS matchedText, feed, date, video, start, note, cues FROM teaching_passages WHERE teaching_passages MATCH ?1 ORDER BY bm25(teaching_passages,4,1) LIMIT ?2`;
+  const passes = [ftsExpr(parsed, "AND")];
+  if (parsed.terms.length + parsed.phrases.length > 1) passes.push(ftsExpr(parsed, "OR"));
+  let rows: Omit<Row, "matchedTitle">[] = [];
+  for (const expr of passes) {
+    rows = (await env.TEACH.prepare(sql).bind(expr, limit).all<Omit<Row, "matchedTitle">>()).results;
+    if (rows.length) break;
+  }
+  if (!rows.length) return [];
+  const corrections = await classCorrections(env);
+  return rows.map((r) => {
+    const { excerpt, start } = passageExcerpt(r.matchedText, r.cues, r.start, 200, 60);
+    const fixed = applyClassCorrection({ video: r.video, title: r.title, date: r.date ?? "" }, corrections);
+    const text = excerpt.split(OPEN).join("").split(CLOSE).join("").replace(/^… |\s…$/g, "").trim();
+    return { kind: "spoken" as const, title: fixed.title, url: noteUrl(r.note), sub: FEED_KIND[r.feed] ?? r.feed, video: r.video, t: Math.round(start), date: fixed.date || undefined, text };
+  }).filter((p) => p.text.split(/\s+/).length >= 20);
 }
 
 export type TaughtRow = { first: number; last: number | null; video: string; start: number; timing: string; title: string; feed: string; date: string; note: string; heard: string };

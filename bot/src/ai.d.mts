@@ -17,6 +17,9 @@ export function retrievalText(question: string, history?: Turn[]): string;
 export function referencesIn(question: string): string[];
 export function citations(answer: string, count: number): number[];
 export function dedupeMatches<T extends Match>(matches: T[]): T[];
+export function keywordsOf(text: string): string;
+export function fuseRanked<T>(lists: T[][], keyOf: (item: T) => string, k?: number): T[];
+export function passageKey(p: { kind: string; url: string; sub?: string; video?: string; t?: number }): string;
 
 export const RESEARCH: string;
 export const APP: string;

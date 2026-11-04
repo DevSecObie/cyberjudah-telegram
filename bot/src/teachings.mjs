@@ -10,7 +10,7 @@ export const FEEDS = ["classes", "captains", "history"];
 export const FEED_LABEL = { classes: "Sabbath class", captains: "15 Min w/ Captains", history: "Our Hidden History" };
 
 /** The excerpt around the first match, the same match choosing the second to open the video at. */
-export function passageExcerpt(marked, cuesJson, passageStart) {
+export function passageExcerpt(marked, cuesJson, passageStart, span = 48, lead = 12) {
   let text = "", cursor = 0;
   const spans = [];
   for (const match of marked.matchAll(/([^]*)/g)) {
@@ -24,9 +24,9 @@ export function passageExcerpt(marked, cuesJson, passageStart) {
   const words = [...text.matchAll(/\S+/g)];
   const firstMatch = spans[0]?.[0];
   const matchWord = firstMatch === undefined ? 0 : Math.max(0, words.findIndex((w) => w.index + w[0].length > firstMatch));
-  const fromWord = Math.max(0, matchWord - 12);
+  const fromWord = Math.max(0, matchWord - lead);
   const from = words[fromWord]?.index ?? 0;
-  const toWord = Math.min(words.length, fromWord + 48);
+  const toWord = Math.min(words.length, fromWord + span);
   const to = Math.max(toWord < words.length ? words[toWord].index : text.length, spans[0]?.[1] ?? 0);
   let excerpt = from > 0 ? "… " : "";
   let position = from;

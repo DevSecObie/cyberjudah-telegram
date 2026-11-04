@@ -1,0 +1,63 @@
+name: ask-lab
+
+# Ask's lab: a pull request's version of Ask against the version it would replace, on the same
+# questions (bot/evals/ask-questions.json), measured and kept as an artifact (ask-lab.json).
+# Runs only when a pull request carries the "ask-lab" label, since every run spends a little
+# Workers AI. Nothing is deployed and nothing is written: the lab reads Workers AI, the
+# teachings index and the D1 databases through Cloudflare's API (bot/scripts/ask-lab.mjs).
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+    paths:
+      - bot/src/**
+      - shared/**
+      - bot/scripts/ask-lab.mjs
+      - bot/evals/ask-questions.json
+      - .github/workflows/ask-lab.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ask-lab-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lab:
+    # Only this repository's own branches, and only when asked for.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository && contains(github.event.pull_request.labels.*.name, 'ask-lab') }}
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: .lab-base
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund --ignore-scripts
+      - name: Bundle both versions of Ask
+        run: |
+          ln -s "$PWD/node_modules" .lab-base/node_modules
+          [ -d bot/node_modules ] && ln -s "$PWD/bot/node_modules" .lab-base/bot/node_modules || true
+          node bot/scripts/ask-lab.mjs build .lab-base "$RUNNER_TEMP/base.mjs"
+          node bot/scripts/ask-lab.mjs build . "$RUNNER_TEMP/head.mjs"
+      - name: Run the questions through both
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node bot/scripts/ask-lab.mjs run --base "$RUNNER_TEMP/base.mjs" --head "$RUNNER_TEMP/head.mjs" --answers --out ask-lab.json
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: ask-lab
+          path: ask-lab.json
+          retention-days: 30

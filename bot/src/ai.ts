@@ -5,8 +5,9 @@ import { guardVerses } from "./verse-guard.mjs";
 import { approvedFor, approvedSources } from "./approved-answers";
 import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
+import { captionPassages } from "./teachings";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, fuseRanked, keywordsOf, passageKey, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
@@ -43,23 +44,27 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
 };
 
 /**
- * The passages for a question: the twenty closest in meaning from the index and the best
- * keyword matches from the library search, together, reranked by whether they answer it.
+ * The passages for a question, found three ways at once: the closest in meaning from the index,
+ * the library's pages by keyword, and the recorded classes by the words actually said. The three
+ * lists are fused by rank (a passage two of them agree on rises), and the best forty are read
+ * against the question by the reranker, which keeps those that answer it.
  */
 export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend): Promise<(Passage & { score: number })[]> {
-  const [vectorRes, keywordRes] = await Promise.all([
-    // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
-    // so a question is still answered (and Claude can still research) rather than failing whole.
+  const keywords = keywordsOf(text) || text;
+  const [vectorRes, keywordRes, spokenRes] = await Promise.all([
+    // Each search fails on its own: if Workers AI or Vectorize is down the keyword searches still
+    // answer, so a question is answered (and Claude can still research) rather than failing whole.
     embed(env, [text]).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] }))
       .catch((e: Error) => { console.error(JSON.stringify({ event: "retrieve_vector_failed", message: e.message?.slice(0, 120) })); return { matches: [] as VectorizeMatches["matches"] }; }),
-    runSearch(env.DB, text, undefined, 3, true).catch(() => null),
+    runSearch(env.DB, keywords, undefined, 3, true).catch(() => null),
+    captionPassages(env, keywords, 10).catch((e: Error) => { console.error(JSON.stringify({ event: "retrieve_captions_failed", message: e.message?.slice(0, 120) })); return []; }),
   ]);
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
   const said = vectorRes.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
   const close = dedupeMatches(said).map(passageOf);
   const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).map((h) => ({ kind: h.kind, title: h.title, url: h.url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 })) : [];
-  const seen = new Set(close.map((p) => `${p.kind}|${p.url}|${p.sub ?? ""}`));
-  const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
+  const spoken: (Passage & { score: number })[] = spokenRes.map((p) => ({ ...p, score: 0.5 }));
+  const all = fuseRanked([close, spoken, keyed], passageKey).slice(0, 40);
   // What this search cost: the question embedded, one vector query, and what the reranker read.
   spend?.search({ query: text, contexts: all.length > 1 ? all.map((p) => `${p.title}\n${p.text}`.slice(0, 2000)) : [] });
   return withTeachers(env, await rerank(env, text, all, topK));

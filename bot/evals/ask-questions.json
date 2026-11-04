@@ -21,6 +21,10 @@
     { "id": "correction", "history": [{ "role": "user", "content": "What is Deuteronomy 28:68 about?" }, { "role": "assistant", "content": "It is about the Israelites being taken to Babylon by camel." }], "q": "That's not right, read it again.", "mention": ["ships"], "approved": "" },
     { "id": "say-more", "history": [{ "role": "user", "content": "Why do we keep the Passover?" }, { "role": "assistant", "content": "The Passover is a memorial of the deliverance from Egypt, kept for ever." }], "q": "say more", "mention": ["Passover"], "approved": "" },
     { "id": "bishop", "q": "What did Bishop Nathanyel teach about the 12 tribes?", "mention": ["tribes"], "approved": "" },
-    { "id": "long-multi", "q": "I have three questions: what is a precept, how do the classes line up precepts, and can you give one example from Isaiah 28:10?", "mention": ["precept", "Isaiah 28:10"], "parts": 3, "approved": "" }
+    { "id": "long-multi", "q": "I have three questions: what is a precept, how do the classes line up precepts, and can you give one example from Isaiah 28:10?", "mention": ["precept", "Isaiah 28:10"], "parts": 3, "approved": "" },
+    { "id": "twelve-tribes-today", "q": "Who are the twelve tribes today?", "mention": ["tribe"], "approved": "" },
+    { "id": "casual-why", "q": "why do we wear fringes", "mention": ["fringe"], "approved": "" },
+    { "id": "teacher-asked", "q": "What has Bishop Nathanyel taught about the Day of Atonement?", "mention": ["Atonement"], "approved": "" },
+    { "id": "casual-holiday", "q": "is christmas in the bible", "mention": ["Christmas"], "approved": "" }
   ]
 }

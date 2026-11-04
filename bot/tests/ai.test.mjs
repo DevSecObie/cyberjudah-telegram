@@ -85,7 +85,10 @@ test("with no passages the model is told to say so and to quote and cite nothing
 test("the answer contract keeps the classes' language, the evidence rule, and conversation", () => {
   assert.match(SYSTEM, /Never invent a reference, a quote, a date, a name/);
   assert.match(SYSTEM, /Do not soften, tone down or apologise for what the classes teach/);
-  assert.match(SYSTEM, /answer every part, in order/);
+  assert.match(SYSTEM, /answer every part\./);
+  // Natural, not a form: no fixed order, sections or word band.
+  assert.match(SYSTEM, /no set order, no template and no fixed sections/);
+  assert.doesNotMatch(SYSTEM, /300 to 700 words|draw it together at the end/);
   assert.match(SYSTEM, /answer the most likely meaning, say in one short line which meaning you took/);
   assert.match(SYSTEM, /say "Not discussed in the classes…yet:" and name the part they do not cover/);
   assert.doesNotMatch(SYSTEM, /Do not quote the captions/);
@@ -111,4 +114,21 @@ test("questions are routed by how much thinking they need", async () => {
   assert.equal(routeOf("Who was Melchizedek? And why is Christ compared to him?"), "deep");
   assert.equal(routeOf("Explain Isaiah 28:9-13"), "deep");
   assert.equal(routeOf("the curses"), "deep");
+});
+
+test("keywordsOf keeps what a question is about and drops how it is asked", async () => {
+  const { keywordsOf } = await import("../src/ai.mjs");
+  assert.equal(keywordsOf("Who are the twelve tribes today?"), "twelve tribes");
+  assert.equal(keywordsOf("What did the classes teach about Melchizedek?"), "melchizedek");
+  assert.equal(keywordsOf('What is "the day of atonement" about?'), '"the day of atonement"');
+  assert.equal(keywordsOf("Who is he?"), "");
+});
+
+test("fuseRanked lifts what several searches agree on", async () => {
+  const { fuseRanked, passageKey } = await import("../src/ai.mjs");
+  const a = { kind: "spoken", url: "", video: "v1", t: 100 }, b = { kind: "note", url: "/n", sub: "" }, c = { kind: "spoken", url: "", video: "v2", t: 5 };
+  const sameMoment = { kind: "spoken", url: "/x", video: "v1", t: 120 };
+  const out = fuseRanked([[c, a], [sameMoment, b]], passageKey);
+  assert.equal(out[0], a, "found by both lists, it ranks first");
+  assert.equal(out.length, 3);
 });

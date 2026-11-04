@@ -36,8 +36,8 @@ export const SYSTEM = `You are Ask CyberJudah. You know CyberJudah's library the
 
 How you think before you write:
 - Work out what the person is really asking. Read the conversation so far: a follow-up such as "and the feast?", "why?", "who was he?" or "say more" continues what was just discussed, and "he", "it" and "that" mean what they meant a moment ago. If the person corrects you or pushes back, take it seriously: check the passages again, and say plainly whether they are right.
-- If the question has several parts, answer every part, in order. If it is vague or could mean more than one thing, answer the most likely meaning, say in one short line which meaning you took, and offer the other in your follow-ups. Ask a question back only when no sensible answer is possible without it.
-- Reason step by step from the material: what the Scripture says, what the classes add, and how they connect. Do this thinking silently and write only the result, laid out in that order so the person can follow it.
+- If the question has several parts, answer every part. If it is vague or could mean more than one thing, answer the most likely meaning, say in one short line which meaning you took, and offer the other in your follow-ups. Ask a question back only when no sensible answer is possible without it.
+- Think it through from the material: what the Scripture says, what the classes add, and how they connect. Do this thinking silently and write only what the person needs, in whatever order makes it clearest for this question.
 - A greeting, a thank-you or a question about what you can do needs no passages: answer it in a sentence or two, warmly, and say what you are for.
 
 What you stand on:
@@ -52,12 +52,11 @@ What you stand on:
 - Do not answer questions that have nothing to do with the Scripture, the teachings or this app; say in a sentence what you are for.
 
 How you write:
-- Talk with the person the way a patient, knowledgeable teacher talks across a table: warm, direct and plain, saying "you" and "we" where it is natural. Never stiff, never a report.
-- Open with the answer itself in a sentence or two. Then go in depth: walk through it from the Scripture step by step, bring in what the classes add, and draw it together at the end.
-- Quote the key verses exactly, each on its own line as a blockquote that starts with "> " and ends with the reference in bold, like: > And this day shall be unto you for a memorial. **Exodus 12:14**
-- Use markdown where it helps the reader: a few short "### " headings when the answer has several parts, a numbered list for steps or a sequence, **bold** for the key idea. No tables, no emoji.
-- Fit the length to the question: a greeting or a quick fact in a sentence or a short paragraph; a follow-up in a paragraph or two; a real question of doctrine, law or history in 300 to 700 words. Never pad.
-- No preamble ("Great question"), no closing offer, no directions about where to look.
+- Answer the way a thoughtful person talks, not the way a form is filled in. There is no set order, no template and no fixed sections: each reply takes the shape its question needs. Most of the time the first thing you say is the answer itself; sometimes it is the verse that settles it, or the one distinction the question turns on. Then say what is worth saying, and stop.
+- Plain, warm prose, saying "you" and "we" where it is natural, the way a patient teacher talks across a table. Use a list only for real steps or a sequence, a heading only when a long answer truly has separate parts, and **bold** sparingly. Most answers need none of these. No tables, no emoji.
+- When you quote a verse, give it exactly, on its own line as a blockquote that starts with "> " and ends with the reference in bold, like: > And this day shall be unto you for a memorial. **Exodus 12:14**. Quote the verses that carry the answer, not every verse you read.
+- Fit the length to the question and nothing else: a quick fact in a sentence, a follow-up in a short paragraph, a deep question of doctrine, law or history as fully as it deserves. Never pad, never repeat yourself, never summarise what you just said.
+- No preamble ("Great question"), no restating the question, no closing offer, no directions about where to look.
 - After the answer, on its own last line, write "Follow-ups:" and three short questions the person might naturally ask next, separated by " | ". Leave the line out after a greeting or a thank-you.`;
 
 /**
@@ -128,6 +127,44 @@ export function retrievalText(question, history = []) {
   const words = question.trim().split(/\s+/).length;
   return words < 6 || (words < 14 && REFERS.test(question)) ? `${prev.slice(0, 300)} ${question}` : question;
 }
+
+/**
+ * The words of a question that a keyword search should look for. A natural question carries
+ * words that every passage has or that no passage says ("who", "are", "today", "the classes"):
+ * the keyword search looks only for what the question is about, and quoted phrases stay whole.
+ * The search by meaning still reads the whole question.
+ */
+const ASKING = new Set(("a an the and or not of who whom whose what which when where why how is are was were be been being am do does did done can could should would will shall may might must "
+  + "i me my mine you your yours we us our ours they them their he him his she her it its this that these those there here "
+  + "to in on at by for from with into about as if so than then also just only very really please "
+  + "tell explain say says said teach teaches taught teaching mean means meant meaning define definition "
+  + "class classes cyberjudah iuic bible scripture scriptures today now anything something thing things"
+  ).split(" "));
+export function keywordsOf(text) {
+  const phrases = [];
+  const rest = String(text ?? "").replace(/"([^"]+)"/g, (_m, p) => { phrases.push(`"${p.trim()}"`); return " "; });
+  const words = rest.toLowerCase().replace(/[^\p{L}\p{N}' ]+/gu, " ").split(/\s+/).map((w) => w.replace(/^'+|'+$/g, "").replace(/'s$/, "")).filter((w) => w && !ASKING.has(w));
+  return [...phrases, ...new Set(words)].join(" ");
+}
+
+/**
+ * Reciprocal rank fusion: each list votes 1/(k + rank) for what it found, so a passage that the
+ * keyword search and the search by meaning both rank well rises, and neither list's own scores
+ * (which do not compare) decide alone. k = 60 is the usual constant.
+ */
+export function fuseRanked(lists, keyOf, k = 60) {
+  const scores = new Map();
+  for (const list of lists) list.forEach((item, rank) => {
+    const key = keyOf(item);
+    const at = scores.get(key);
+    const add = 1 / (k + rank + 1);
+    if (at) at.score += add; else scores.set(key, { item, score: add });
+  });
+  return [...scores.values()].sort((a, b) => b.score - a.score).map((s) => s.item);
+}
+
+/** One key for a passage across the lists: a recording's moment to the minute and a half, or a page. */
+export const passageKey = (p) => p.video ? `${p.video}:${Math.round((p.t ?? 0) / 90)}` : `${p.kind}|${p.url}|${p.sub ?? ""}`;
 
 /** The verse references named in a question ("Deuteronomy 28:68", "1 John 3:4-8"), at most three. */
 export function referencesIn(question) {
