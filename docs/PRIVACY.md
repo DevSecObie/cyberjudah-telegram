@@ -169,6 +169,27 @@ A linked Telegram account's own records (Ask balance, chats) go with `deleteData
 - **The Bible Strong reference service** (`api.bible-strong.app`): the path and query of a
   dictionary or Nave lookup, from CyberJudah's server, with no reader identity.
 
+## The app's update server
+
+The phone app takes content updates from CyberJudah's own update server, `updates.cyberjudah.io`
+(the `DevSecObie/open-ota` Worker, data in its D1 database and Analytics Engine). Each launch
+check sends the headers `expo-updates` adds; the server records, per install:
+
+| Record | Where | Holds | Kept | Deleted by |
+|---|---|---|---|---|
+| Device | D1 `devices` (`store.ts` `recordCheck`) | `eas-client-id` (a random ID made at install, no identity), platform, runtime version, channel, current, embedded and served update IDs, country and city from Cloudflare's `request.cf` (not the IP address), first and last seen | A year after the last check (`gc.ts` `forgetDevicesAfterDays`) | The nightly sweep |
+| Recent checks | D1 `device_checks` | The same fields per check, the last few per device | With the device | The nightly sweep |
+| Update failures | D1 `device_update_failures` | Failed update IDs and the `expo-fatal-error` text (up to 1,024 characters) | With the device | The nightly sweep |
+| Check and download events | Analytics Engine | Client ID, platform, runtime, channel, update IDs, outcome, country, city, bytes served | About three months (Cloudflare's Analytics Engine retention) | Expires on its own |
+
+The Privacy screen's section "The CyberJudah App for iPhone and Android" says this to readers.
+
+## Not affiliated
+
+The Privacy screen's "About CyberJudah" section and the More screen's footer state: "CyberJudah
+is an independent study project. It is not affiliated with, endorsed by, or speaking for Israel
+United in Christ (IUIC)." It is not used in the App Store or Google Play listing text.
+
 ## Children
 
 CyberJudah is not directed to children under 13 (16 in the EEA). The Privacy screen says so.

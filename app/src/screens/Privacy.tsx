@@ -15,7 +15,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-10-28";
+export const PRIVACY_UPDATED = "2026-11-04";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -82,6 +82,7 @@ export function Privacy() {
         <p>If you sign in with Google, Apple or an email address, Google Firebase keeps your sign-in: your email address, the name your sign-in provider shares, and an account ID. Your highlights, notes, bookmarks, tags, links and personal studies, with their earlier versions, are then kept in Google Firebase under that account ID so they follow you between your devices. Only you can read them. They are kept until you delete them or your account.</p>
         <p>Before some downloads, the app asks Apple or Google to confirm it is a genuine copy of CyberJudah (Firebase App Check). This check does not identify you.</p>
         <p>When you open a dictionary or Nave topic, CyberJudah's server fetches it from the Bible Strong reference service. Only what you looked up is sent: the entry, verse or search words. Your name, account and sign-in are not.</p>
+        <p>When the app opens, it asks CyberJudah's update server (updates.cyberjudah.io) whether a newer version of its content is ready. Each check sends a random ID the app made when it was installed (not your name, account or phone number), whether it is an iPhone or Android phone, the app's version and update channel, and which update it is running. From the network address of the check, Cloudflare tells the server your rough location, the country and city, and the server keeps that, not the address. If an update fails to start, the error the app reports is kept too. This is used only to deliver updates and see that they arrived. A phone's record is removed a year after it last checks; the log of single checks is kept for about three months.</p>
         <p>The app has no advertising, no analytics, no crash reporting and nothing to buy.</p>
         <p>To delete your account and the study data synced to it, choose Delete account in the app's More screen or your profile. If you linked Telegram, your Ask balance and chats are deleted with Delete my data in Telegram. Without the app, see <a href="/delete-account" onClick={(e) => { e.preventDefault(); navigate("/delete-account"); }}>Delete your account</a>.</p>
       </Section>
@@ -118,6 +119,10 @@ export function Privacy() {
           <li><b>The Bible Strong reference service</b> supplies dictionary and Nave entries to CyberJudah's server, which sends it only what you looked up.</li>
         </ul>
         <p>CyberJudah does not sell your data or use it for advertising.</p>
+      </Section>
+
+      <Section title="About CyberJudah">
+        <p>CyberJudah is an independent study project. It is not affiliated with, endorsed by, or speaking for Israel United in Christ (IUIC).</p>
       </Section>
 
       <Section title="Children">
