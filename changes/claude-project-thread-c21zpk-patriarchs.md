@@ -1,0 +1,1 @@
+- Timeline: The Patriarchs now has its own picture, Abram's caravan going into Canaan (Genesis 12:5), so the card is no longer blank.
