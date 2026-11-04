@@ -5,4 +5,4 @@
 - Study answers read the KJV verses that the retrieved classes and notes cite (the three most cited), so the answer can quote the Scripture the teachers used; read verses always stay among the 12 sources.
 - The app's Ask now answers on cyberjudah.io/app's engine (`answerAppAgent`): the model researches in rounds with the same tools (classes, KJV with the Apocrypha, people, dictionaries), streams its steps and writes a cited answer with follow-ups. `APP_ASK_ENGINE=study` switches back to the study cards.
 - An admin's linked app account is offered Claude (the everyday model first), paid from the owner's console and charged to no reader every day (the owner chose no holy-day pause). If Claude cannot answer, the free model does.
-- llama-3.1-8b is no longer offered in the app (it could not write the app's answers); Obie chose this 2026-10-30.
+- llama-3.1-8b is no longer offered in the app (it could not write the app's answers); removed 2026-10-30.

@@ -28,7 +28,7 @@ on:
       task:
         description: "What to run"
         type: choice
-        options: [health, branches, ota]
+        options: [health, branches, ota, waiting]
         default: health
       backlog:
         description: "branches: include every merged branch, not only the last 14 days"
@@ -179,7 +179,7 @@ jobs:
     # device id, and holds no update-server secret.
     if: >-
       (github.event_name == 'schedule' && github.event.schedule == '*/15 * * * *') ||
-      (github.event_name == 'workflow_dispatch' && inputs.task == 'ota')
+      (github.event_name == 'workflow_dispatch' && (inputs.task == 'ota' || inputs.task == 'waiting'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Secrets for unattended jobs live in the "automation" environment (main only, no reviewer).
@@ -189,14 +189,26 @@ jobs:
     permissions:
       contents: read
       issues: write
+      # Reads which runs wait at an Approve gate (this repo and the public watched repos).
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           sparse-checkout: .github/custodian
           persist-credentials: false
       - name: Check what the update server serves
+        if: ${{ github.event_name == 'schedule' || inputs.task == 'ota' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           ALERT_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           ALERT_CHAT_IDS: ${{ secrets.CUSTODIAN_ALERT_CHAT_ID || secrets.ADMIN_IDS }}
         run: python3 .github/custodian/custodian.py ota
+      - name: Tell the owner about deploys waiting for Approve
+        # One Telegram message per run that newly waits at an Approve gate (production, play-store,
+        # store, ...) in this repo or a watched repo. It only reads: it never approves or rejects.
+        if: ${{ !cancelled() && (github.event_name == 'schedule' || inputs.task == 'waiting') }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ALERT_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ALERT_CHAT_IDS: ${{ secrets.CUSTODIAN_ALERT_CHAT_ID || secrets.ADMIN_IDS }}
+        run: python3 .github/custodian/custodian.py waiting

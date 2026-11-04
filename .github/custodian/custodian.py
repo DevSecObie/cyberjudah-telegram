@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -479,8 +480,16 @@ def cmd_health(cfg, args):
 
     status = "🟢 All clear" if not problems else "🔴 Needs attention: " + "; ".join(problems)
     body = f"## {status}\n\n" + "\n".join(lines)
-    issue = upsert_issue(cfg, body, problems)
-    send_alerts(cfg, issue, problems, others)
+    try:
+        issue = upsert_issue(cfg, body, problems)
+    except ApiError as e:
+        if e.status != 410:
+            raise
+        # Issues are turned off in this repository: the report lives only in the run's summary.
+        issue = None
+        body += "\n\n_Issues are turned off in this repository, so this report is kept only in the run summary._"
+    if issue:
+        send_alerts(cfg, issue, problems, others)
     summary(body)
     return 0
 
@@ -544,7 +553,8 @@ def other_repos(cfg):
         try:
             items = gh("GET", f"/repos/{repo}/issues?state=open&labels={urllib.parse.quote(cfg.get('label', 'custodian'))}&per_page=20")
         except ApiError as e:
-            lines.append(f"- {repo}: could not read ({e.status})")
+            lines.append(f"- {repo}: issues are turned off there; see its custodian run summary" if e.status == 410
+                         else f"- {repo}: could not read ({e.status})")
             continue
         issue = next((i for i in items if i["title"] == title and "pull_request" not in i), None)
         if not issue:
@@ -641,7 +651,7 @@ def upsert_issue(cfg, body, problems):
         except Exception:
             old = []
     full = body + f"\n\n{MARK}{json.dumps(problems)}-->"
-    for keep in (ALERT_MARK, OTA_MARK):
+    for keep in (ALERT_MARK, OTA_MARK, WAIT_MARK):
         kept = (issue.get("body") or "").split(keep, 1) if issue else [""]
         if len(kept) == 2:
             full += f"\n{keep}" + kept[1].split("-->", 1)[0] + "-->"
@@ -750,6 +760,88 @@ def cmd_ota(cfg, args):
     return 0
 
 
+# ---------------------------------------------------------------- approval watch
+
+WAIT_MARK = "<!-- custodian-waiting:"
+
+
+def waiting_runs(repo):
+    """Runs in `repo` paused at an environment's Approve gate, newest first."""
+    runs = gh("GET", f"/repos/{repo}/actions/runs?status=waiting&per_page=30").get("workflow_runs", [])
+    return sorted(runs, key=lambda r: r["created_at"], reverse=True)
+
+
+def gate_names(repo, run_id):
+    try:
+        pend = gh("GET", f"/repos/{repo}/actions/runs/{run_id}/pending_deployments") or []
+        return sorted({p["environment"]["name"] for p in pend if p.get("environment")})
+    except ApiError:
+        return []
+
+
+def cmd_waiting(cfg, args):
+    """Tell the owner on Telegram, once per run, when a deploy is waiting for their Approve.
+    It only reads: it never approves, rejects or cancels anything."""
+    repos = [REPO] + [r for r in cfg.get("watch_repos", []) if r != REPO]
+    wait_for = str(args.get("wait_for") or "")
+    if wait_for.isdigit():
+        # Called from a deploy itself: give its gated job up to 3 minutes to reach the Approve gate.
+        for _ in range(18):
+            run = gh("GET", f"/repos/{REPO}/actions/runs/{wait_for}")
+            if run["status"] in ("waiting", "completed"):
+                break
+            time.sleep(10)
+    now, failed = {}, []
+    for repo in repos:
+        try:
+            now[repo] = waiting_runs(repo)
+        except ApiError as e:
+            failed.append(repo)
+            print(f"{repo}: could not read waiting runs ({e.status})")
+    issue = find_issue(cfg)
+    if not issue:
+        print("No Deployment health issue yet; the next health run creates it.")
+        return 0
+    body = gh("GET", f"/repos/{REPO}/issues/{issue['number']}").get("body") or ""
+    before = read_marker(body, WAIT_MARK) or []
+    current = [f"{repo}:{r['id']}" for repo, runs in now.items() for r in runs]
+    blocks = []
+    for repo, runs in now.items():
+        newest = {}
+        for r in runs:  # newest first
+            group = (r["workflow_id"], r.get("head_branch"))
+            newer = newest.setdefault(group, r)
+            if f"{repo}:{r['id']}" in before:
+                continue
+            title = ((r.get("head_commit") or {}).get("message") or "").splitlines()[:1]
+            # Commit text goes into a chat message: keep it short and plain.
+            title = re.sub(r"\s+", " ", title[0])[:90] if title else ""
+            gates = gate_names(repo, r["id"])
+            line = (f"• {repo.split('/')[1]}: {r['name']} #{r['run_number']}"
+                    + (f" (needs Approve for {', '.join(gates)})" if gates else "")
+                    + f"\n  {r['head_sha'][:7]} {title}".rstrip()
+                    + f"\n  {r['html_url']}")
+            if newer is not r:
+                line += (f"\n  Superseded by #{newer['run_number']}, which carries this change too, "
+                         "so this one can be rejected.")
+            blocks.append(line)
+    for b in blocks:
+        print(b)
+    if blocks:
+        text = ("CyberJudah: " + ("a deploy is" if len(blocks) == 1 else f"{len(blocks)} deploys are")
+                + " waiting for your Approve.\n\n" + "\n\n".join(blocks[:10]))
+        if not (os.environ.get("ALERT_BOT_TOKEN") and telegram(text)):
+            return 0  # try again on the next run
+    # Remember what was sent. Runs no longer waiting drop out; a repo that could not be read keeps its ids.
+    keep = current + [k for k in before if k.split(":", 1)[0] in failed]
+    if sorted(keep) != sorted(before):
+        head, _, tail = body.partition(WAIT_MARK)
+        tail = tail.split("-->", 1)[1] if "-->" in tail else ""
+        body = head.rstrip() + f"\n{WAIT_MARK}{json.dumps(keep)}-->" + tail
+        gh("PATCH", f"/repos/{REPO}/issues/{issue['number']}", {"body": body})
+    return 0
+
+
 # ---------------------------------------------------------------- revert
 
 def cmd_revert(cfg, args):
@@ -825,11 +917,15 @@ def cmd_revert(cfg, args):
 
 def comment_somewhere(cfg, pr, text):
     target = pr["number"] if pr else None
-    if target is None:
-        issue = find_issue(cfg)
-        target = issue["number"] if issue else None
-    if target:
-        gh("POST", f"/repos/{REPO}/issues/{target}/comments", {"body": text})
+    try:
+        if target is None:
+            issue = find_issue(cfg)
+            target = issue["number"] if issue else None
+        if target:
+            gh("POST", f"/repos/{REPO}/issues/{target}/comments", {"body": text})
+    except ApiError as e:
+        if e.status != 410:
+            raise
     summary(text)
 
 
@@ -844,7 +940,7 @@ def main():
     for a in sys.argv[2:]:
         k, _, v = a.partition("=")
         args[k.lstrip("-")] = {"true": True, "false": False}.get(v, v)
-    fn = {"health": cmd_health, "branches": cmd_branches, "revert": cmd_revert, "ota": cmd_ota}.get(cmd)
+    fn = {"health": cmd_health, "branches": cmd_branches, "revert": cmd_revert, "ota": cmd_ota, "waiting": cmd_waiting}.get(cmd)
     if not fn:
         sys.exit(f"Unknown task {cmd!r}")
     sys.exit(fn(cfg, args))

@@ -1,11 +1,11 @@
 /**
- * The Timeline ordered by the captivities (Obie, 2026-10-26: "the timeline should be ordered by
- * captives, with the main prophets or biblical figures of that time period"). The captivities,
- * their years and their people are from the assembly's booklet Obie sent, "Captivity packets"
+ * The Timeline ordered by the captivities, with the main prophets or biblical figures of each
+ * captivity (2026-10-26). The captivities,
+ * their years and their people are from the assembly's booklet "Captivity packets"
  * (written and compiled by Nathanyel Ben Israel, Israel United in Christ; "all dates are at best
  * approximates"): Assyria p. 2, Babylon p. 9, Persia p. 14, Greece p. 20, Rome p. 32, America p. 45.
  * The American Captivity starts in 1492, when the booklet dates the conquest of the northern
- * kingdom ("whatever history states", Obie).
+ * kingdom, whatever history states.
  *
  * This only regroups the periods already on the timeline (app/src/data/timeline.json, which the
  * builders keep writing as before): a period that runs across captivities is cut at their years
