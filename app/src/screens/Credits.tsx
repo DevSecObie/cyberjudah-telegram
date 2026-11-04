@@ -5,6 +5,12 @@ import { Screen, Section } from "@/ui/ui";
 import { useBackButton } from "@/tg/hooks";
 import { openLink } from "@/tg/sdk";
 
+const SOFTWARE = [
+  { label: "Bible Strong source code", href: "https://github.com/smontlouis/bible-strong" },
+  { label: "CyberJudah source code", href: "https://github.com/DevSecObie/cyberjudah-telegram" },
+  { label: "GNU General Public License, version 3", href: "https://www.gnu.org/licenses/gpl-3.0.html" },
+];
+
 export function Credits() {
   useBackButton();
   const catalog = useQuery({ queryKey: ["recording-credits"], queryFn: () => recordingJson<{ chapters: RecordingCredit[] }>("/api/recordings/catalog"), staleTime: 300_000 });
@@ -14,5 +20,6 @@ export function Credits() {
     {catalog.isError ? <p role="status" className="hint">Credits are unavailable. Please try again when connected.</p> : null}
     {credits.map((r) => <p key={`${r.readerId}:${r.source}`}><b>{r.reader}</b><br /><a href={r.source} onClick={(e) => { e.preventDefault(); openLink(r.source); }}>Recording source</a> · <a href={r.license} onClick={(e) => { e.preventDefault(); openLink(r.license); }}>Public-domain dedication</a></p>)}
     {!catalog.isPending && !catalog.isError && !credits.length ? <p className="hint">No human recordings have been published yet.</p> : null}
-  </Section><Section title="Ambient Music and Nature"><p className="hint">Original CC0 recordings, looped and level adjusted for reading.</p>{AMBIENT_TRACKS.map((t) => <p key={t.id}><b>{t.name}</b><br />{t.original} — {t.artist}<br /><a href={t.source} onClick={(e) => { e.preventDefault(); openLink(t.source); }}>Recording source</a> · <a href={t.licenseUrl} onClick={(e) => { e.preventDefault(); openLink(t.licenseUrl); }}>{t.license}</a><br /><small>{t.changes}</small></p>)}</Section></Screen>;
+  </Section><Section title="Ambient Music and Nature"><p className="hint">Original CC0 recordings, looped and level adjusted for reading.</p>{AMBIENT_TRACKS.map((t) => <p key={t.id}><b>{t.name}</b><br />{t.original} — {t.artist}<br /><a href={t.source} onClick={(e) => { e.preventDefault(); openLink(t.source); }}>Recording source</a> · <a href={t.licenseUrl} onClick={(e) => { e.preventDefault(); openLink(t.licenseUrl); }}>{t.license}</a><br /><small>{t.changes}</small></p>)}</Section>
+    <Section title="Software"><p className="hint">The Bible reader, tabs and study tools are adapted from Bible Strong. Both are free software under the GNU General Public License, version 3: you may copy, change and share them under its terms, with no warranty.</p>{SOFTWARE.map((l) => <p key={l.href}><a href={l.href} onClick={(e) => { e.preventDefault(); openLink(l.href); }}>{l.label}</a></p>)}</Section></Screen>;
 }
