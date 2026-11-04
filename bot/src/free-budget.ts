@@ -3,7 +3,7 @@ import type { Env } from "./env";
 export type FreeReservation = { request: string; day: string };
 /** A separate daily allowance kept in the same tables under a prefixed day ("claude:2026-10-31"),
  * so Claude answers for readers (ASK_CLAUDE_DAILY_USD_CAP) never spend the free models' allowance. */
-export type BudgetPool = { prefix: string; capUsd: number };
+export type BudgetPool = { prefix: string; capUsd: number; totalUsd?: number };
 const dayOf = (now: number) => new Date(now).toISOString().slice(0, 10);
 const micro = (usd: number) => Math.ceil(usd * 1e6 - 1e-6);
 const cap = (env: Env) => {
@@ -41,11 +41,19 @@ export async function reserveFreeBudget(env: Env, request: string, usd: number, 
   if (!Number.isFinite(usd) || usd <= 0) throw new Error("Invalid free answer reservation");
   if (pool && (!Number.isFinite(pool.capUsd) || pool.capUsd < 0 || !/^[a-z]+:$/.test(pool.prefix))) throw new Error("Invalid answer budget pool");
   await tables(env);
+  if (pool?.totalUsd !== undefined && (!Number.isFinite(pool.totalUsd) || pool.totalUsd < 0)) throw new Error("Invalid answer budget total");
   const day = `${pool?.prefix ?? ""}${dayOf(now)}`, amount = micro(usd);
+  // A pool with a total (a prepaid amount, such as Claude's for readers) also stops when everything
+  // it has ever spent, plus what is held now, would pass that total. Spent days are kept for ever
+  // in free_spend_daily; holds still open are counted whatever their day.
+  const total = pool?.totalUsd !== undefined ? micro(pool.totalUsd) : -1;
+  const like = `${pool?.prefix ?? ""}%`;
   const result = await env.DB.prepare(`INSERT OR IGNORE INTO free_spend_holds (request_id, day, reserved_micro, state)
     SELECT ?, ?, ?, 'held' WHERE COALESCE((SELECT usd_micro FROM free_spend_daily WHERE day = ?), 0)
-    + COALESCE((SELECT SUM(reserved_micro) FROM free_spend_holds WHERE day = ? AND state = 'held'), 0) + ? <= ?`)
-    .bind(request, day, amount, day, day, amount, pool ? micro(pool.capUsd) : cap(env)).run();
+    + COALESCE((SELECT SUM(reserved_micro) FROM free_spend_holds WHERE day = ? AND state = 'held'), 0) + ? <= ?
+    AND (? < 0 OR COALESCE((SELECT SUM(usd_micro) FROM free_spend_daily WHERE day LIKE ?), 0)
+      + COALESCE((SELECT SUM(reserved_micro) FROM free_spend_holds WHERE day LIKE ? AND state = 'held'), 0) + ? <= ?)`)
+    .bind(request, day, amount, day, day, amount, pool ? micro(pool.capUsd) : cap(env), total, like, like, amount, total).run();
   return Number(result.meta.changes) ? { request, day } : null;
 }
 

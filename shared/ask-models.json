@@ -243,6 +243,36 @@
    "maxOutput": 128000
   },
   {
+   "id": "anthropic/claude-haiku-5.5",
+   "name": "Claude Haiku 5.5",
+   "provider": "Anthropic",
+   "what": "Claude Haiku 5.5 is a fast, cost-efficient model for high-volume, latency-sensitive tasks such as classification, extraction, routing, and subagent work.",
+   "format": "anthropic",
+   "native": "claude-haiku-5-5",
+   "thinking": true,
+   "effort": true,
+   "input": 0.1,
+   "output": 0.5,
+   "cacheRead": 0.01,
+   "cacheWrite": 0.125,
+   "maxOutput": 128000
+  },
+  {
+   "id": "anthropic/claude-sonnet-5.5",
+   "name": "Claude Sonnet 5.5",
+   "provider": "Anthropic",
+   "what": "Claude Sonnet 5.5 offers the best combination of speed and intelligence, with adaptive thinking for coding, tool use, reasoning, and long-horizon work.",
+   "format": "anthropic",
+   "native": "claude-sonnet-5-5",
+   "thinking": true,
+   "effort": true,
+   "input": 2,
+   "output": 10,
+   "cacheRead": 0.1,
+   "cacheWrite": 2.5,
+   "maxOutput": 128000
+  },
+  {
    "id": "deepseek/deepseek-v4-pro",
    "name": "DeepSeek V4 Pro",
    "provider": "DeepSeek",
@@ -1140,6 +1170,30 @@
    "output": 1,
    "cacheRead": 0.66,
    "cacheWrite": 0.66,
+   "maxOutput": null
+  },
+  {
+   "id": "@cf/deepseek-ai/deepseek-v4.1-flash-1017",
+   "name": "deepseek-v4.1-flash-1017",
+   "provider": "Cloudflare (Workers AI)",
+   "what": "We introduce DeepSeek-V4.1-Flash, a multimodal Mixture-of-Experts (MoE) model with 552B backbone parameters and support for contexts of up to one million tokens.",
+   "format": "chat",
+   "input": 0.3,
+   "output": 1.2,
+   "cacheRead": 0.006,
+   "cacheWrite": 0.3,
+   "maxOutput": null
+  },
+  {
+   "id": "@cf/daily-co/phonellm-mini-alpha-2",
+   "name": "phonellm-mini-alpha-2",
+   "provider": "Cloudflare (Workers AI)",
+   "what": "PhoneLLM is an open model tuned for voice agents.",
+   "format": "chat",
+   "input": 0.06,
+   "output": 0.24,
+   "cacheRead": 0.06,
+   "cacheWrite": 0.06,
    "maxOutput": null
   }
  ]

@@ -113,7 +113,11 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
 }
 
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; ms: number } | { ok: false; reason: string };
-const ASK_LIMIT = 100;
+/** Ask answers a day per person (ASK_DAILY_LIMIT; a hundred when unset). */
+export function askLimit(env: Env): number {
+  const n = Number(env.ASK_DAILY_LIMIT);
+  return Number.isInteger(n) && n > 0 ? n : 100;
+}
 
 /** A verse's reading voice: fifty new generations a day per person; the cache is free. */
 const TTS_LIMIT = 50;
@@ -154,9 +158,9 @@ export async function sweepRateCounts(env: Env, now = Date.now()): Promise<numbe
   return Number((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0);
 }
 
-/** A hundred answers a day per person. */
+/** ASK_DAILY_LIMIT answers a day per person. */
 async function allowed(env: Env, userId: number): Promise<boolean> {
-  return takeQuota(env, "ask", userId, ASK_LIMIT);
+  return takeQuota(env, "ask", userId, askLimit(env));
 }
 
 /**
@@ -390,11 +394,13 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
  */
 const usdSetting = (value: string | undefined, fallback: number) => { const n = Number(value ?? fallback); return Number.isFinite(n) && n > 0 ? n : 0; };
 const readerClaudeCap = (env: Env) => usdSetting(env.ASK_CLAUDE_DAILY_USD_CAP, 0);
+/** Everything Claude may spend for readers, over all days (the prepaid amount); unset means no total. */
+const readerClaudeTotal = (env: Env) => { const n = Number(env.ASK_CLAUDE_TOTAL_USD_CAP); return env.ASK_CLAUDE_TOTAL_USD_CAP && Number.isFinite(n) && n >= 0 ? n : undefined; };
 const readerClaudeMaxUsd = (env: Env) => Math.min(usdSetting(env.ASK_CLAUDE_MAX_USD, 0.2), readerClaudeCap(env));
 export const claudeForReaders = (env: Env) => env.ASK_CLAUDE_FOR_READERS === "on" && hasClaude(env) && readerClaudeCap(env) > 0;
 function readerClaudes(env: Env): AskModel[] {
   // The lighter model first: it is the default answer; the everyday model takes the deep questions.
-  const ids = [env.CLAUDE_MODEL_LIGHT || "claude-haiku-4-5", env.CLAUDE_MODEL || CLAUDE_DEFAULT].map((id) => modelOf(id).id);
+  const ids = [env.CLAUDE_MODEL_LIGHT || "claude-haiku-5-5", env.CLAUDE_MODEL || CLAUDE_DEFAULT].map((id) => modelOf(id).id);
   return [...new Set(ids)].map((id) => MODELS.find((m) => m.id === id && m.format === "anthropic")).filter((m): m is AskModel => !!m);
 }
 
@@ -404,7 +410,8 @@ function readerClaudes(env: Env): AskModel[] {
  */
 export function appAskModels(env: Env, adminId?: number, readers = false): AskModel[] {
   const allowed = freeModels(env);
-  const free = MODELS.filter(m => allowed.has(m.id) && APP_STUDY_RELEASE.approvedModels.some(id => id === m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
+  // Every free (Workers AI) text model is offered; ASK_FREE_MODELS can narrow the list.
+  const free = MODELS.filter(m => allowed.has(m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
   const claudeOk = !!adminId && isAdmin(env, adminId) && hasClaude(env);
   if (!claudeOk) return readers === true && claudeForReaders(env) ? [...readerClaudes(env), ...free] : free;
   // The everyday model first (the app's default), then the lighter one and the admin's own.
@@ -433,7 +440,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const key = await cacheKey(question, history, model.id, mode, APP_STUDY_RELEASE.version);
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
-  if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+  if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
   const cfg = creditsConfig(env);
   const budget = Math.min(estimateMc(model, cfg, { rounds: options.study ? 2 : 1 }).maxMc * MC_USD, freeMaxUsd(env));
   let reservation: FreeReservation | null;
@@ -488,10 +495,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   } else if (model.format === "anthropic") {
     // A signed-in reader on Claude (claudeForReaders): the reader's daily limit, then the answer's
     // most is reserved against Claude's own daily cap. Past the cap the free model answers.
-    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
     const budget = readerClaudeMaxUsd(env);
     let reservation: FreeReservation | null = null;
-    try { reservation = budget > 0 ? await reserveFreeBudget(env, crypto.randomUUID(), budget, Date.now(), { prefix: "claude:", capUsd: readerClaudeCap(env) }) : null; }
+    try { reservation = budget > 0 ? await reserveFreeBudget(env, crypto.randomUUID(), budget, Date.now(), { prefix: "claude:", capUsd: readerClaudeCap(env), totalUsd: readerClaudeTotal(env) }) : null; }
     catch { return { ok: false, reason: "unavailable" }; }
     if (!reservation) {
       // The free model answers this same question: its quota is already counted, and only with the
@@ -500,7 +507,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     }
     meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: creditsConfig(env).research }), model, free: true, admin: false, reservation, maxRounds: 4 };
   } else {
-    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, ASK_LIMIT))) return { ok: false, reason: "limit" };
+    if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
     const cfg = creditsConfig(env);
     const rounds = freeMaxRounds(env);
     const budget = Math.min(estimateMc(model, cfg, { rounds }).maxMc * MC_USD, freeMaxUsd(env));
@@ -611,7 +618,7 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
 }
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
-const CLAUDE_DEFAULT = "claude-sonnet-5";
+const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 /**
  * The model an answer uses when the reader has not chosen one: an admin's (CLAUDE_MODEL_ADMIN,
  * Claude Opus 5.5 when unset) or every other reader's (CLAUDE_MODEL, Claude Sonnet when unset).
