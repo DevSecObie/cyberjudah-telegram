@@ -1,0 +1,1 @@
+- Repo text states each rule or source itself, without naming who asked for it: timeline notes, code comments and changelogs reworded. The Twelve Caesars' source line in the Timeline now reads "(chart received 2026-10-26)".
