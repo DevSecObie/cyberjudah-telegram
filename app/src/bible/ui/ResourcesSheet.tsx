@@ -114,7 +114,7 @@ export function ResourcesSheet({ open, onClose, tab, setTab, slug, chapter, vers
           <div className="bs-greek">
             <p className="bs-resources__sub">The Greek of this verse</p>
             <p className="bs-greek__text" lang="grc">{greek}</p>
-            <p className="bs-greek__src">Swete's Septuagint (1909), verse {verse} as Swete numbers it; the King James Apocrypha were translated from this Greek. Strong's numbers cover the 66 books only.</p>
+            <p className="bs-greek__src">Swete's Septuagint (1909), digital text by Eliran Wong (GNU GPL v3), verse {verse} as Swete numbers it; the King James Apocrypha were translated from this Greek. Strong's numbers cover the 66 books only.</p>
           </div>
         ) : <p className="bs-loading">Strong's numbers cover the 66 books; this verse has none.</p>) : null) : null}
         {tab === "precepts" ? (taught.isError || topicHits.isError ? <Failed onRetry={() => { void taught.refetch(); void topicHits.refetch(); }} /> : taught.isPending ? <p className="bs-loading">Loading...</p> : !precepts.length && !topics.length ? <p className="bs-loading">No class has lined a precept up with this verse yet.</p> : <>

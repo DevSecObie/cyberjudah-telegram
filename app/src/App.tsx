@@ -104,6 +104,7 @@ const routes = (
     <Route path="/" element={<Home />} />
     <Route path="/settings/admin/*" element={nativeReader ? <NativeReaderNotice /> : <AdminGate />} />
     <Route path="/settings/credits" element={<Credits />} />
+    <Route path="/credits" element={<Credits />} />
     <Route path="/settings/reminders" element={nativeReader ? <NativeReaderNotice /> : <Reminders />} />
     <Route path="/settings/donate" element={nativeReader ? <NativeReaderNotice /> : <Donate />} />
     <Route path="/privacy" element={<Privacy />} />
