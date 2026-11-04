@@ -12,6 +12,7 @@ import { bs } from "./bs";
 import { BOOKS, COLLECTION } from "./bs/core";
 import { dataJson } from "./data";
 import { htmlToText } from "./html-text";
+import { accessTokenValid, challenge } from "./mcp-oauth";
 
 /**
  * CyberJudah for AI assistants: an MCP server at /mcp, laid out after Bible Strong's
@@ -24,7 +25,8 @@ import { htmlToText } from "./html-text";
  * - The text comes from the app's data, never from the model: a tool takes a reference, a
  *   name or a subject and answers with the app's own words and a link.
  * - For now it is private: it answers only a request carrying the owner's key (MCP_KEY, a
- *   Worker secret the owner sets). Without that secret it answers nothing at all.
+ *   Worker secret the owner sets), or a token from the owner's sign-in (mcp-oauth.ts). Without
+ *   that secret it answers nothing at all.
  */
 
 export const INSTRUCTIONS =
@@ -224,11 +226,13 @@ async function keyMatches(given: string, expected: string): Promise<boolean> {
 const plain = (body: string, status: number, headers: Record<string, string> = {}) =>
   new Response(body, { status, headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store", ...headers } });
 
-/** The /mcp route: off without MCP_KEY, then the key, a rate limit, and the stateless handler. */
+/** The /mcp route: off without MCP_KEY, then the key or a signed-in token, a rate limit, and the stateless handler. */
 export async function mcp(request: Request, env: Env, ctx?: Exec): Promise<Response> {
   if (!env.MCP_KEY) return plain("Not found", 404);
   const given = /^Bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1]?.trim() ?? "";
-  if (!given || !(await keyMatches(given, env.MCP_KEY))) return plain("Unauthorized", 401, { "www-authenticate": 'Bearer realm="cyberjudah-mcp"' });
+  const origin = new URL(request.url).origin;
+  const allowed = !!given && ((await keyMatches(given, env.MCP_KEY)) || (await accessTokenValid(env, given, origin)));
+  if (!allowed) return plain("Unauthorized", 401, { "www-authenticate": challenge(origin) });
   if (env.MCP_LIMIT) {
     const { success } = await env.MCP_LIMIT.limit({ key: "owner" });
     if (!success) return plain("Too many requests. Try again in a minute.", 429, { "retry-after": "60" });

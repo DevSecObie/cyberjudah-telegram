@@ -1,0 +1,1 @@
+- MCP: claude.ai, the Claude phone app and Claude Desktop can now connect to CyberJudah's private MCP server. They open a sign-in page where only the owner's MCP key works; nothing is stored, and changing the key signs every assistant out.

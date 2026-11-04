@@ -70,6 +70,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
+import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
@@ -89,6 +90,9 @@ app.route("/api/published-studies", publishedStudies);
 app.route("/app/published", publishedStudyPage);
 // The private MCP server for the owner's assistants: it checks its own key (mcp.ts).
 app.all("/mcp", (c) => mcp(c.req.raw, c.env, c.executionCtx));
+// The owner's sign-in for hosts that cannot send the key, such as claude.ai (mcp-oauth.ts).
+app.all("/mcp/oauth/*", (c) => mcpOAuth(c.req.raw, c.env));
+app.on(["GET", "OPTIONS"], ["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp", "/.well-known/oauth-authorization-server"], (c) => mcpOAuthMetadata(c.req.raw, c.env));
 app.on(["GET", "HEAD"], "/api/audio/*", (c) => recordingAudio(c.req.raw, c.env));
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 
