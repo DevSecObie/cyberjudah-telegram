@@ -39,7 +39,7 @@ test('case studies retain sources and CyberJudah Apocrypha numbering', () => {
   assert.match(publication.events.find(e => e.slug === 'saul')!.article, /Who's Who in the Bible/);
 });
 
-test('all 434 Final Captivity accounts retain documented history, sources and disagreements', () => {
+test('all 434 Final Captivity accounts retain documented history and sources, and show no source disagreements', () => {
   assert.equal(Object.keys(final).length, 434);
   for (const [slug, source] of Object.entries(final)) {
     const event = publication.events.find(e => e.slug === slug)!;
@@ -47,8 +47,8 @@ test('all 434 Final Captivity accounts retain documented history, sources and di
     assert.equal(event.description, source.summary);
     for (const paragraph of source.account ?? []) assert.ok(event.article.includes(paragraph), slug);
     for (const ref of source.sources ?? []) assert.ok(event.article.includes(ref.url), slug);
-    if ('uncertainty' in source && source.uncertainty) assert.ok(event.article.includes(source.uncertainty), slug);
-    if ('disagreements' in source) for (const disagreement of source.disagreements ?? []) for (const view of disagreement.views) assert.ok(event.article.includes(view), slug);
+    if ('uncertainty' in source && source.uncertainty) assert.ok(event.article.includes(source.uncertainty.replace(/\s*\(see disagreements\)/gi, '')), slug);
+    assert.ok(!event.article.includes('Where sources disagree'), slug);
     assert.equal(event.dates, source.date.text);
   }
 });
