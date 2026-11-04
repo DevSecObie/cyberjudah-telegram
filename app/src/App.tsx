@@ -67,6 +67,9 @@ const Notes = lazy(() => import("@/screens/Notes").then((m) => ({ default: m.Not
 const Sabbath = lazy(() => import("@/screens/Sabbath").then((m) => ({ default: m.Sabbath })));
 const Books = lazy(() => import("@/screens/Books").then((m) => ({ default: m.Books })));
 const BookScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookScreen })));
+const ClassBooksScreen = lazy(() => import("@/screens/ClassBooks").then((m) => ({ default: m.ClassBooksScreen })));
+const ClassBookScreen = lazy(() => import("@/screens/ClassBooks").then((m) => ({ default: m.ClassBookScreen })));
+const ClassBookReaderScreen = lazy(() => import("@/screens/ClassBooks").then((m) => ({ default: m.ClassBookReaderScreen })));
 const BookChapterScreen = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookChapterScreen })));
 const BookPageLink = lazy(() => import("@/screens/Books").then((m) => ({ default: m.BookPageLink })));
 const BookPdfScreen = lazy(() => import("@/screens/BookPdf").then((m) => ({ default: m.BookPdfScreen })));
@@ -143,6 +146,9 @@ const routes = (
     <Route path="/tags/:id" element={<TagScreen />} />
     <Route path="/books" element={<Books />} />
     <Route path="/books/:slug" element={<BookScreen />} />
+    <Route path="/class-books" element={<ClassBooksScreen />} />
+    <Route path="/class-books/:key" element={<ClassBookScreen />} />
+    <Route path="/class-books/:key/read" element={<ClassBookReaderScreen />} />
     <Route path="/books/:slug/pdf" element={<BookPdfScreen />} />
     <Route path="/books/:slug/p/:page" element={<BookPageLink />} />
     <Route path="/books/:slug/:k" element={<BookChapterScreen />} />

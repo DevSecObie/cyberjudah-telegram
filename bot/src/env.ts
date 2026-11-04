@@ -9,6 +9,10 @@ export type Env = {
   AI: Ai;
   VEC: Vectorize;
   AUDIO: R2Bucket;
+  /** Our own copies of the public-domain library PDFs (library/<item>.pdf); archive.org when unset or missing. */
+  LIBRARY?: R2Bucket;
+  /** Or a plain HTTPS file host holding the same library/<item>.pdf files. */
+  LIBRARY_ORIGIN?: string;
   DATA_ORIGIN: string;
   BIBLE_STRONG_WEB?: string;
   SITE_URL: string;

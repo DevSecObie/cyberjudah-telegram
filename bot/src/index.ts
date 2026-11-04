@@ -18,6 +18,7 @@ import type { Env, Exec, Sub } from "./env";
 import { launchMaxAge, sameHex, validateInitData, type InitData } from "./initdata.mjs";
 import { pdfLinkOk, pdfSig } from "./pdf-link";
 import { libraryPdf } from "./library-pdf";
+import { libraryMirror } from "./library-mirror";
 import { createBot, deletedSummary, todaysVerse } from "./bot";
 import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
@@ -305,8 +306,8 @@ app.post("/api/notes/pdf", async (c) => {
   return c.json({ ok: true, url, file: pdfName(note) });
 });
 app.post("/api/library/pdf", c => libraryPdf(c.req.raw, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx),
-  (stream, file, caption) => new Api(c.env.BOT_TOKEN).sendDocument(c.get("tma").user!.id, new InputFile(stream, file), { caption })));
-app.get("/api/library/pdf/:slug/:item", c => libraryPdf(c.req.raw, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx)));
+  (stream, file, caption) => new Api(c.env.BOT_TOKEN).sendDocument(c.get("tma").user!.id, new InputFile(stream, file), { caption }), fetch, libraryMirror(c.env)));
+app.get("/api/library/pdf/:slug/:item", c => libraryPdf(c.req.raw, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx), undefined, fetch, libraryMirror(c.env)));
 // A backup of everything the reader kept (Bible Strong's Backup screen): the app sends its
 // CloudStorage keys, the bot sends them back as a JSON file in the reader's chat. Nothing is
 // stored on the server; the file goes straight to Telegram.
