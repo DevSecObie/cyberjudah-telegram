@@ -15,7 +15,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-10-28";
+export const PRIVACY_UPDATED = "2026-11-04";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -118,6 +118,10 @@ export function Privacy() {
           <li><b>The Bible Strong reference service</b> supplies dictionary and Nave entries to CyberJudah's server, which sends it only what you looked up.</li>
         </ul>
         <p>CyberJudah does not sell your data or use it for advertising.</p>
+      </Section>
+
+      <Section title="About CyberJudah">
+        <p>CyberJudah is an independent study project. It is not affiliated with, endorsed by, or speaking for Israel United in Christ (IUIC).</p>
       </Section>
 
       <Section title="Children">
