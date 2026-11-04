@@ -9,6 +9,7 @@ import { dataJson } from "./data";
 import { all as easton, lookup as eastonLookup } from "./dictionary";
 import timeline from "../../app/src/data/timeline.json";
 import finalCaptivity from "../../app/src/data/final-captivity.json";
+import bsTimeline from "../data/bs-timeline.json";
 
 /**
  * The rest of the app, for Ask: the dictionaries (Easton's and Strong's), a person's whole entry,
@@ -126,11 +127,11 @@ const person: Tool = async (env, input, ctx, emit, line) => {
   emit({ status: `Looking up ${name}` });
   let id = /^[a-z0-9-]+-\w+-\d+-\d+$|^[a-z0-9-]+$/.test(name) && name.includes("-") ? name : "";
   if (!id) {
-    const idx = await dataJson<{ id: string; name: string; names?: string[]; verses?: number }[]>(env, "/api/people/index.json", ctx).catch(() => null);
+    const idx = await dataJson<{ id: string; name: string; names?: string[]; verses?: number; description?: string }[]>(env, "/api/people/index.json", ctx).catch(() => null);
     const n = norm(name);
     const best = (idx ?? []).filter((p) => norm(p.name) === n || (p.names ?? []).some((x) => norm(x) === n)).sort((a, b) => (b.verses ?? 0) - (a.verses ?? 0));
     if (best.length > 1) {
-      return { content: `More than one person is named ${name}:\n${best.slice(0, 8).map((p) => line(p.name, `${p.verses ?? 0} verses.`, `/person/${encodeURIComponent(p.id)}`) + ` (id ${p.id})`).join("\n")}\nCall person again with the id of the one meant, or describe each.` };
+      return { content: `More than one person is named ${name}:\n${best.slice(0, 8).map((p) => line(p.name, `${p.description ? `${p.description}. ` : ""}${p.verses ?? 0} verses.`, `/person/${encodeURIComponent(p.id)}`) + ` (id ${p.id})`).join("\n")}\nCall person again with the id of the one meant, or describe each.` };
     }
     id = best[0]?.id ?? "";
   }
@@ -229,6 +230,8 @@ type FcDetail = { title: string; summary: string; date?: { text: string }; place
 
 const TL: (TlEvent & { section: string })[] = (timeline as { sections: { title: string; events: TlEvent[] }[] }).sections.flatMap((s) => s.events.map((e) => ({ ...e, section: s.title })));
 const FC = finalCaptivity as Record<string, FcDetail>;
+/** The Timeline screen's own description of an event (the app's published timeline). */
+const BS_TL = new Map((bsTimeline as { events: { slug: string; description?: string }[] }).events.filter((e) => e.description).map((e) => [e.slug, e.description as string]));
 
 const timelineTool: Tool = async (env, input, _ctx, emit, line) => {
   const query = str(input.query, 80);
@@ -250,7 +253,9 @@ const timelineTool: Tool = async (env, input, _ctx, emit, line) => {
       const teach = (d.teaching ?? []).filter((t) => t.quote).slice(0, 2).map((t) => `“${t.quote}” (${t.teacher ? `${t.teacher}, ` : ""}${t.source.title}${t.source.ts ? ` at ${t.source.ts}` : ""}, ${t.source.url})`).join(" ");
       out.push(line(`Timeline (${e.section}): ${d.title}`, `${d.date?.text ?? yearSpan(e.start, e.end)}${d.place ? `, ${d.place}` : ""}. ${d.tribes?.length ? `Tribes: ${d.tribes.join(", ")}. ` : ""}${d.summary} ${(d.account ?? []).join(" ").slice(0, 900)}${teach ? ` From the classes: ${teach}` : ""}${d.sources?.length ? ` Sources: ${d.sources.slice(0, 3).map((s) => s.title).join("; ")}.` : ""}${d.image ? ` Picture: ${d.image.src} (${d.image.caption})` : pic ? ` Picture: ${pic}` : ""}`, `/timeline/event/${e.slug}`));
     } else {
-      out.push(line(`Timeline (${e.section}): ${e.title}`, `${yearSpan(e.start, e.end)}.${e.cases?.length ? ` Case studies: ${e.cases.map((c) => `${c.name} (/cases/${c.slug})`).join(", ")}.` : ""}${pic ? ` Picture: ${pic}` : ""}`, `/timeline/event/${e.slug}`));
+      // No written account yet: the Timeline's own description, else the People entry of the person it pictures.
+      const about = BS_TL.get(e.slug) ?? (e.portrait ? (await dataJson<{ description?: string }>(env, `/api/people/${e.portrait}.json`, _ctx).catch(() => null))?.description : undefined);
+      out.push(line(`Timeline (${e.section}): ${e.title}`, `${yearSpan(e.start, e.end)}.${about ? ` ${about.slice(0, 900).replace(/\.?$/, ".")}` : ""}${e.cases?.length ? ` Case studies: ${e.cases.map((c) => `${c.name} (/cases/${c.slug})`).join(", ")}.` : ""}${pic ? ` Picture: ${pic}` : ""}`, `/timeline/event/${e.slug}`));
     }
   }
   return { content: out.join("\n") };

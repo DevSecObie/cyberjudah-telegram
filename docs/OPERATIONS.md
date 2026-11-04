@@ -13,7 +13,7 @@ Production:
 - `data.cyberjudah.io`: Bible and library content
 - Telegram Bot API: bot commands, inline mode, sharing, payments, and delivery
 
-Staging (`.github/workflows/stage.yml`, every PR): worker
+Staging (`.github/workflows/stage.yml`, run by hand): worker
 `cyberjudah-telegram-staging` with its own D1 (`cyberjudah-telegram-staging`) and its own
 KV namespace (`SUBS-STAGING`). It shares the site's D1, the Vectorize index and the R2
 bucket read-only; the embed job never runs against staging. Staging's hourly cron runs the
@@ -50,7 +50,8 @@ Logs must not include bot tokens, webhook secrets, raw Telegram `initData`, note
 
 ## Deployment
 
-- Pull requests deploy to staging automatically (`stage.yml`): checks, staging worker
+- Pull requests run the checks only. Staging is deployed by hand (Actions → stage → Run workflow,
+  on the branch to try), because the TestFlight beta reads staging (`stage.yml`): staging worker
   deploy, webhook/commands/menu-button registration on the staging bot, search-index
   load, and a smoke test of `/api/health` and the app shell.
 - Pushes to `main` deploy to production (`deploy.yml`) after checks pass. The deploy job
@@ -114,8 +115,10 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
 No rebuilds. The `rollback` workflow (`Actions → rollback → Run workflow`) repoints the
 worker at an already-deployed version:
 
-1. Pick the environment (production or staging) and optionally a version id from
-   `wrangler deployments list`; empty means the deployment before the current one.
+1. Pick the environment (production or staging) and the version id to restore. Take it from
+   the bad deploy run's log line "Serving before this deploy: <id>". A bare rollback is refused:
+   every `wrangler secret put` after a deploy makes a version of the new code, so "one back"
+   would land on the release you are undoing. Run with the id empty to list recent versions.
 2. Approve the run if the environment has required reviewers.
 3. Verify: the health endpoint, the Telegram webhook, authenticated search, a daily
    subscription, and a deep link.
@@ -123,8 +126,14 @@ worker at an already-deployed version:
    migration recovery procedure.
 5. Record the incident and follow-up actions.
 
+A failed production deploy that already went live is put back automatically by `deploy.yml`
+(it records the version serving before it), and the custodian workflow then opens a revert pull
+request so the next merge does not ship the same change again.
+
 Drill this against staging before launch — a rollback you have never run is a rollback
-you do not have.
+you do not have. Staging is what the TestFlight beta reads, so drill at a quiet hour and tell
+testers first: note the current version id, roll back to the one before it, check `/api/health`,
+then roll forward to the noted id. Time each step and write the times here.
 
 ## Scaling notes
 

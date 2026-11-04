@@ -12,9 +12,11 @@ test('the composer cannot receive more citations than the renderer admits', () =
   const sources = Array.from({ length: 24 }, (_, i) => ({ n: i+1, kind: 'spoken', evidence: 'teaching', title: `Teaching ${i+1}`, text: 'Recorded words.', url: `/classes/${i+1}` }));
   const selected = selectAppStudyEvidence(sources, 8);
   assert.equal(selected.length, 12);
-  assert.deepEqual(selected.map(s => s.n), Array.from({ length: 12 }, (_, i) => i+9));
+  // The targeted research is kept, numbered afresh 1..12 for the composer.
+  assert.deepEqual(selected.map(s => s.title), Array.from({ length: 12 }, (_, i) => `Teaching ${i+9}`));
+  assert.deepEqual(selected.map(s => s.n), Array.from({ length: 12 }, (_, i) => i+1));
   assert.notEqual(selected[0], sources[8]);
-  const program = `root = StudyAnswer([Teaching("Recorded explanation.", [9]), Sources([${selected.map(s => s.n)}])])`;
+  const program = `root = StudyAnswer([Teaching("Recorded explanation.", [1]), Sources([${selected.map(s => s.n)}])])`;
   assert.ok(validateStudyProgram(program, selected)?.teachingFound);
 });
 test('broad retrieval fills unused space without renumbering targeted evidence', () => {
@@ -71,5 +73,18 @@ test('a valid first answer never incurs a retry', async () => {
 test('the scriptures the classes cite are read, the most cited first, and always kept among the sources', () => {
   assert.deepEqual(citedScriptures('Exodus 12:14 says for ever. Lev. 23:5-6 the passover. Again Exodus 12:14, and 1 Corinthians 5:7.'), ['Exodus 12:14', 'Lev 23:5-6', '1 Corinthians 5:7']);
   const sources = Array.from({ length: 20 }, (_, i) => ({ n: i+1, kind: i === 19 ? 'verse' : 'spoken', evidence: i === 19 ? 'scripture' : 'teaching', title: `S ${i+1}`, text: 'x', url: `/s/${i+1}` }));
-  assert.ok(selectAppStudyEvidence(sources, 4).some(s => s.n === 20), 'the verse read last is not dropped by the 12-source limit');
+  assert.ok(selectAppStudyEvidence(sources, 4).some(s => s.title === 'S 20'), 'the verse read last is not dropped by the 12-source limit');
+});
+test('sources follow the classes order, one per class: Bishops, Deacons, Captains, Zakai last', () => {
+  const s = (n, sub, url, extra = {}) => ({ n, kind: 'class', evidence: 'teaching', title: `T${n}`, text: `text ${n}`, url, sub, ...extra });
+  const picked = selectAppStudyEvidence([
+    s(1, 'Zakai · class notes', '/classes/z'), s(2, 'Captain Kemuel · class notes', '/classes/c'), s(3, 'Deacon Isaac · class notes', '/classes/d'),
+    { n: 4, kind: 'people', evidence: 'reference', title: 'Joseph', text: 'ref', url: '/person/joseph-gen-30-24' },
+    s(5, 'Bishop Nathanyel · class breakdown', '/classes/b', { video: 'abcdefghijk', t: 90 }), s(6, 'Bishop Nathanyel · class notes', '/classes/b#notes'),
+    { n: 7, kind: 'verse', evidence: 'scripture', title: 'Genesis 37:3', text: 'Now Israel loved Joseph', url: '/bible/genesis/37#v3' },
+  ], 0);
+  assert.deepEqual(picked.map(x => x.title), ['T5', 'T3', 'T2', 'T1', 'Genesis 37:3', 'Joseph']);
+  assert.deepEqual(picked.map(x => x.n), [1, 2, 3, 4, 5, 6]);
+  assert.match(picked[0].text, /text 5\n\ntext 6/);
+  assert.equal(picked[0].t, 90);
 });
