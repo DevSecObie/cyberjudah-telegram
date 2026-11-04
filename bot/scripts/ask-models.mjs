@@ -16,7 +16,7 @@ if (!dir) { console.error("usage: ask-models.mjs <catalog-models dir> [commit]")
 
 const PROVIDERS = { anthropic: "Anthropic", openai: "OpenAI", google: "Google", xai: "xAI", deepseek: "DeepSeek", alibaba: "Alibaba (Qwen)", minimax: "MiniMax", moonshotai: "Moonshot AI", thinkingmachines: "Thinking Machines", unbiased: "Unbiased" };
 // Claude models that take adaptive thinking, and those that take an effort level (Claude API docs, models overview).
-const ADAPTIVE = new Set(["claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8", "claude-opus-5", "claude-sonnet-4-6", "claude-sonnet-5"]);
+const ADAPTIVE = new Set(["claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8", "claude-opus-5", "claude-sonnet-4-6", "claude-sonnet-5", "claude-sonnet-5-5", "claude-haiku-5-5"]);
 const EFFORT = new Set([...ADAPTIVE, "claude-opus-5-5", "claude-fable-5", "claude-fable-5-1"]);
 
 /** The first price whose name matches, ignoring the long-context tiers (answers here are short). */
@@ -34,7 +34,8 @@ for (const f of fs.readdirSync(catalog).filter((x) => x.endsWith(".json")).sort(
   const formats = d.request_formats ?? [];
   const provider = d.provider_id ?? d.model_id.split("/")[0];
   const format = provider === "anthropic" ? "anthropic" : formats.includes("chat-completions") ? "chat" : formats.includes("responses") ? "responses" : formats.includes("anthropic-messages") ? "messages" : null;
-  if (!format || (d.tags ?? []).includes("Classification")) continue;
+  // A classifier is left out, but not a conversation model that is also good at classifying (Claude Haiku 5.5).
+  if (!format || ((d.tags ?? []).includes("Classification") && !(d.tags ?? []).includes("LLM"))) continue;
   const input = price(d.pricing, /^(input|short-context input)/i), output = price(d.pricing, /^(output|short-context output)/i);
   if (input == null || output == null) continue;
   const native = provider === "anthropic" ? d.model_id.slice("anthropic/".length).replace(/\./g, "-") : undefined;
