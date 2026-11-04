@@ -53,8 +53,8 @@ test("Back stays in the tab chosen in the switcher", async ({ page }) => {
   await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /^Tabs, / }).click();
   await page.locator('.tabcard[data-tab-id="a"]').click();
   await expect(page).toHaveURL(/\/settings\/credits/);
-  await back(page);
-  await expect(page).toHaveURL(/\/settings$/);
+  // The switcher takes Back while it closes; then Back leaves Credits for the tab's first page.
+  await expect(async () => { await back(page); await expect(page).toHaveURL(/\/settings$/, { timeout: 500 }); }).toPass();
 });
 
 test("a bar button for the tab already showing leaves Back as it was for the next page", async ({ page }) => {

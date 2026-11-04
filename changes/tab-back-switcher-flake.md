@@ -1,0 +1,1 @@
+- Test fix: the tab switcher's Back check presses Back until the switcher has closed, as the bar-button test already does, so the release browser checks stop failing on it at random.
