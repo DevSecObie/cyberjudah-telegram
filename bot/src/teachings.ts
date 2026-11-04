@@ -86,33 +86,6 @@ export async function loadTranscript(env: Env, video: string, ctx?: Exec): Promi
   return { error: "not-found" };
 }
 
-/** One caption correction: [segment index, second, the caption's words, the corrected words, rule]. */
-export type CaptionCorrection = [number, number, string, string, string];
-
-/**
- * The clear transcription errors found in a recording's captions ("second edges" for 2 Esdras),
- * from data/transcripts/corrections.json (scripts/transcripts/corrections.py), cached a day.
- * The captions themselves are never changed; these are shown beside them.
- */
-export async function captionCorrections(env: Env, video: string, ctx?: Exec): Promise<CaptionCorrection[]> {
-  const repo = env.TRANSCRIPTS_REPO ?? "DevSecObie/cyberjudah";
-  const url = `https://raw.githubusercontent.com/${repo}/main/data/transcripts/corrections.json`;
-  try {
-    const cache = caches.default;
-    let res = await cache.match(url);
-    if (!res) {
-      const live = await fetch(url);
-      if (!live.ok) return [];
-      res = new Response(live.body, live);
-      res.headers.set("cache-control", "public, max-age=86400");
-      const put = cache.put(url, res.clone());
-      if (ctx) ctx.waitUntil(put); else await put;
-    }
-    const all = await res.json<Record<string, CaptionCorrection[]>>();
-    return all[video] ?? [];
-  } catch { return []; }
-}
-
 /** The captions around a moment, from the recording's transcript file in the repository (cached a day). */
 export async function transcriptAround(env: Env, video: string, t: number, ctx?: Exec, span = 120): Promise<TranscriptWindow> {
   const got = await loadTranscript(env, video, ctx);

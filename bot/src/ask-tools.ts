@@ -6,8 +6,6 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { Env, Exec } from "./env";
 import type { Passage } from "./ai.mjs";
 import { dataJson } from "./data";
-import { captionAt, formatVerseStudy, snippetWanted, type Concordance, type Xref } from "./verse-study";
-import { loadTranscript } from "./teachings";
 import { all as easton, lookup as eastonLookup } from "./dictionary";
 import timeline from "../../app/src/data/timeline.json";
 import finalCaptivity from "../../app/src/data/final-captivity.json";
@@ -32,7 +30,7 @@ export const MORE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: "verse_study",
-    description: "Everything the app has on a verse or chapter: the study note's points with their sources, every class found reading it aloud (with why it matched, the words said, the moment, the teacher and whether it has notes), the precepts placed on it, and its cross-references. Give a reference like \"Isaiah 61:1\" or \"Deuteronomy 28\". Call it when a question is about what a particular scripture means or how it was taught.",
+    description: "Everything the app has on a verse or chapter: the classes and notes that read it (with the moment), the precepts placed on it, and its cross-references. Give a reference like \"Isaiah 61:1\" or \"Deuteronomy 28\". Call it when a question is about what a particular scripture means or how it was taught.",
     input_schema: { type: "object", properties: { reference: { type: "string", description: "Book and chapter, with an optional verse." } }, required: ["reference"] },
   },
   {
@@ -150,8 +148,9 @@ const person: Tool = async (env, input, ctx, emit, line) => {
   return { content: line(p.name, text, `/person/${encodeURIComponent(p.id)}`) };
 };
 
+type CitedBy = { kind: string; label: string; url: string; verses: string; t?: number; video?: string };
 
-const verseStudy: Tool = async (env, input, ctx, emit) => {
+const verseStudy: Tool = async (env, input, ctx, emit, line) => {
   const reference = str(input.reference, 60);
   const m = /^(.+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?$/.exec(reference);
   if (!m) return { content: `"${reference}" is not a reference. Use the book and chapter, like "Isaiah 61:1".`, error: true };
@@ -161,20 +160,32 @@ const verseStudy: Tool = async (env, input, ctx, emit) => {
   const ch = +m[2], v = m[3] ? +m[3] : null, to = m[4] ? +m[4] : v;
   emit({ status: `Studying ${b.book} ${ch}${v ? `:${v}` : ""}` });
   const [conc, xref] = await Promise.all([
-    dataJson<Concordance>(env, `/api/concordance/${b.slug}/${ch}.json`, ctx).catch(() => null),
-    dataJson<Xref>(env, `/api/xref/${b.slug}/${ch}.json`, ctx).catch(() => null),
+    dataJson<{ cited_by: CitedBy[] }>(env, `/api/concordance/${b.slug}/${ch}.json`, ctx).catch(() => null),
+    dataJson<Record<string, unknown>>(env, `/api/xref/${b.slug}/${ch}.json`, ctx).catch(() => null),
   ]);
-  if (!conc && !xref) return { content: `${b.book} ${ch} could not be read just now. Try again in a moment.`, error: true };
-  // The words said at each of the first readings shown, from the class's own transcript.
-  const snippets: Record<string, string> = {};
-  if (v != null) await Promise.all(snippetWanted(conc, v, to ?? v).map(async ({ video, t }) => {
-    const got = await loadTranscript(env, video, ctx).catch(() => null);
-    if (got && !("error" in got)) { const s = captionAt(got.file.segments ?? [], t); if (s) snippets[`${video}@${t}`] = s; }
-  }));
-  const names = Object.fromEntries((books ?? []).map((x) => [x.slug, x.book]));
-  // Whole addresses, so an assistant outside the app can open them; Ask's reader resolves them the same.
-  const site = (path: string) => (path.startsWith("/") && env.SITE_URL ? `${env.SITE_URL}${path}` : path);
-  return { content: formatVerseStudy(conc, xref, { book: b.book, slug: b.slug, chapter: ch, from: v, to }, names, site, snippets) };
+  const covers = (vs: string) => {
+    if (v == null || !vs) return true;
+    const [a, z] = vs.split("-").map(Number);
+    return (z ?? a) >= v && a <= (to ?? v);
+  };
+  const cited = (conc?.cited_by ?? []).filter((c) => covers(c.verses));
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  for (const c of cited) {
+    const k = `${c.kind}|${c.url}`;
+    if (seen.has(k)) continue; seen.add(k);
+    lines.push(line(`${c.kind === "note" ? "Study note" : c.kind === "class" ? "Class" : c.kind[0].toUpperCase() + c.kind.slice(1)}: ${c.label}`, c.verses ? `Verses ${c.verses}.` : "", c.url));
+    if (lines.length >= 14) break;
+  }
+  const refsOf = (o: unknown): string[] => {
+    if (!o || typeof o !== "object") return [];
+    const at = v != null ? (o as Record<string, unknown>)[String(v)] : null;
+    const list = Array.isArray(at) ? at : [];
+    return list.map((r) => (typeof r === "string" ? r : (r as { label?: string; ref?: string }).label ?? (r as { ref?: string }).ref ?? "")).filter(Boolean).slice(0, 12);
+  };
+  const xr = refsOf((xref as { verses?: unknown })?.verses ?? xref);
+  if (xr.length) lines.push(`Cross-references: ${xr.join("; ")}.`);
+  return { content: lines.length ? lines.join("\n") : `The app has no classes, notes or precepts placed on ${b.book} ${ch}${v ? `:${v}` : ""} yet.` };
 };
 
 type LawIndex = { n: number; title: string; url: string; sections: { id: string; title: string; laws: number; url: string }[] }[];
