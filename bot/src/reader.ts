@@ -5,6 +5,7 @@ import { loadTranscript, searchTeachings, taughtIn, transcriptAround } from "./t
 import { findVisuals } from "./visuals.mjs";
 import { liveNow, recentVideos } from "./live";
 import { libraryPdf } from "./library-pdf";
+import { libraryMirror } from "./library-mirror";
 import { dataJson } from "./data";
 
 /** Only public library content. This router contains no account, AI, billing or mutation routes. */
@@ -99,7 +100,7 @@ publicReader.get("/library/pdf", async c => {
   if ([...query.keys()].some(key => !["slug", "item", "printed"].includes(key))) return c.json({ ok: false, reason: "bad-query" }, 400);
   const body = { slug: query.get("slug"), item: query.get("item"), ...(query.has("printed") ? { printed: Number(query.get("printed")) } : {}) };
   const request = new Request(c.req.url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-  return libraryPdf(request, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx));
+  return libraryPdf(request, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx), undefined, fetch, libraryMirror(c.env));
 });
 // Never fall through to a private route in the parent application.
 publicReader.all("*", c => c.json({ ok: false, reason: "not-found" }, 404));

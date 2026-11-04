@@ -1,5 +1,6 @@
 import { publicDomain } from "../../shared/library-pdf";
 import { pdfLinkOk, pdfSig } from "./pdf-link";
+import { mirrorKey, type Mirror } from "./library-mirror";
 
 export const TELEGRAM_PDF_LIMIT = 50 * 1024 * 1024;
 const TOO_LARGE = "This PDF is over Telegram’s 50 MB limit. Use Download the PDF instead.";
@@ -31,12 +32,17 @@ async function archive(url: string, init: RequestInit, fetcher: typeof fetch): P
   throw unavailable();
 }
 
-async function resolve(read: ReadJson, slug: unknown, item: unknown, fetcher: typeof fetch) {
+/** The book and volume from our own library data: no network, so our copy can be served even when archive.org is down. */
+async function allowed(read: ReadJson, slug: unknown, item: unknown) {
   if (typeof slug !== "string" || typeof item !== "string" || !ID.test(slug) || !ID.test(item)) throw new PdfError(400, "Not a library book.");
   const index = await read<{ slug: string }[]>("/api/library/index.json");
   if (!index?.some(b => b.slug === slug)) throw unavailable();
   const book = await read<Book>(`/api/library/${slug}/book.json`);
   if (!book || !publicDomain(book.license) || !book.items?.some(i => i.id === item)) throw unavailable();
+  return book;
+}
+
+async function fromArchive(book: Book, item: string, fetcher: typeof fetch) {
   const meta = await archive(`https://archive.org/metadata/${item}`, {}, fetcher);
   if (!meta.ok) throw unavailable();
   const info = await meta.json() as { is_dark?: boolean; metadata?: { "access-restricted-item"?: string }; files?: ArchiveFile[] };
@@ -45,22 +51,43 @@ async function resolve(read: ReadJson, slug: unknown, item: unknown, fetcher: ty
   const pdfs = files.filter(f => /\.pdf$/i.test(f.name) && /^(Text PDF|Image Container PDF|PDF)$/i.test(f.format ?? ""));
   const pdf = pdfs.find(f => f.name === `${item}.pdf`) ?? pdfs.find(f => f.format === "Text PDF") ?? pdfs[0];
   if (!pdf) throw unavailable();
-  return { book, item, pdf, files, url: `https://archive.org/download/${item}/${encodeURIComponent(pdf.name)}` };
+  return { book, item, size: Number(pdf.size) || null, url: `https://archive.org/download/${item}/${encodeURIComponent(pdf.name)}` };
 }
 
-/** The viewer streams from the same allow-list as chat delivery; no PDF is stored here. */
-export async function libraryPdf(request: Request, token: string, read: ReadJson, send?: Send, fetcher: typeof fetch = fetch): Promise<Response> {
+type Doc = { book: Book; item: string; size: number | null; mirrored: boolean; url?: string };
+
+/** Our own copy first (library/<item>.pdf), archive.org when we have none. */
+async function resolve(read: ReadJson, slug: unknown, item: unknown, fetcher: typeof fetch, mirror?: Mirror): Promise<Doc> {
+  const book = await allowed(read, slug, item);
+  const id = item as string;
+  const size = mirror ? await mirror.head(mirrorKey(id)).catch(() => null) : null;
+  if (size !== null) return { book, item: id, size, mirrored: true };
+  return { ...(await fromArchive(book, id, fetcher)), mirrored: false };
+}
+
+/** The PDF body, from our copy or from archive.org. */
+async function open(doc: Doc, range: string | null, fetcher: typeof fetch, mirror?: Mirror): Promise<Response> {
+  if (doc.mirrored && mirror) {
+    const res = await mirror.get(mirrorKey(doc.item), range ?? undefined).catch(() => null);
+    if (res) return res;
+  }
+  const url = doc.url ?? (await fromArchive(doc.book, doc.item, fetcher)).url;
+  return archive(url, { headers: range ? { range } : {} }, fetcher);
+}
+
+/** The viewer streams from the same allow-list as chat delivery: our own copy when we hold one, archive.org otherwise. */
+export async function libraryPdf(request: Request, token: string, read: ReadJson, send?: Send, fetcher: typeof fetch = fetch, mirror?: Mirror): Promise<Response> {
   try {
     const url = new URL(request.url);
     if (request.method === "GET") {
       const m = /^\/api\/library\/pdf\/([A-Za-z0-9_-]+)\/([A-Za-z0-9_-]+)$/.exec(url.pathname);
       const exp = Number(url.searchParams.get("exp"));
       if (!m || !(await pdfLinkOk(token, url.pathname, exp, url.searchParams.get("sig") ?? ""))) return new Response("This link has expired. Ask for the PDF again from the app.", { status: 403 });
-      const doc = await resolve(read, m[1], m[2], fetcher);
       const range = request.headers.get("range");
       if (range && !/^bytes=\d*-\d*$/.test(range)) throw new PdfError(416, "Not a PDF page range.");
-      const upstream = await archive(doc.url, { headers: range ? { range } : {} }, fetcher);
-      if (upstream.status === 416) return new Response(null, { status: 416, headers: { "content-range": upstream.headers.get("content-range") ?? `bytes */${doc.pdf.size}` } });
+      const doc = await resolve(read, m[1], m[2], fetcher, mirror);
+      const upstream = await open(doc, range, fetcher, mirror);
+      if (upstream.status === 416) return new Response(null, { status: 416, headers: { "content-range": upstream.headers.get("content-range") ?? `bytes */${doc.size ?? "*"}` } });
       if (!upstream.ok || !upstream.body || !/^application\/pdf\b/i.test(upstream.headers.get("content-type") ?? "")) { await upstream.body?.cancel(); throw unavailable(); }
       const headers = new Headers({ "content-type": "application/pdf", "content-disposition": `${url.searchParams.has("download") ? "attachment" : "inline"}; filename="${doc.item}.pdf"`, "cache-control": "private, no-store", "x-content-type-options": "nosniff", "access-control-expose-headers": "Accept-Ranges, Content-Length, Content-Range" });
       for (const key of ["content-length", "content-range", "accept-ranges", "etag", "last-modified"]) { const value = upstream.headers.get(key); if (value) headers.set(key, value); }
@@ -70,10 +97,10 @@ export async function libraryPdf(request: Request, token: string, read: ReadJson
     if (!body || typeof body !== "object" || Object.keys(body).some(k => !["slug", "item", "send", "printed"].includes(k))) throw new PdfError(400, "Not a library PDF request.");
     if (body.send !== undefined && typeof body.send !== "boolean") throw new PdfError(400, "Not a library PDF request.");
     if (body.printed !== undefined && (!Number.isSafeInteger(body.printed) || body.printed < 1)) throw new PdfError(400, "Not a library PDF page.");
-    const doc = await resolve(read, body.slug, body.item, fetcher);
+    const doc = await resolve(read, body.slug, body.item, fetcher, mirror);
     if (body.send) {
-      if (Number(doc.pdf.size) > TELEGRAM_PDF_LIMIT) throw tooLarge();
-      const res = await archive(doc.url, {}, fetcher);
+      if ((doc.size ?? 0) > TELEGRAM_PDF_LIMIT) throw tooLarge();
+      const res = await open(doc, null, fetcher, mirror);
       if (!res.ok || !res.body || !/^application\/pdf\b/i.test(res.headers.get("content-type") ?? "")) { await res.body?.cancel(); throw unavailable(); }
       if (Number(res.headers.get("content-length")) > TELEGRAM_PDF_LIMIT) { await res.body.cancel(); throw tooLarge(); }
       const reader = res.body.getReader();
@@ -116,7 +143,7 @@ export async function libraryPdf(request: Request, token: string, read: ReadJson
     const path = `/api/library/pdf/${body.slug}/${doc.item}`;
     const exp = Math.floor(Date.now() / 1000) + 900;
     const signed = `${url.origin}${path}?exp=${exp}&sig=${await pdfSig(token, path, exp)}`;
-    return Response.json({ ok: true, url: signed, file: `${doc.item}.pdf`, size: Number(doc.pdf.size) || null, page });
+    return Response.json({ ok: true, url: signed, file: `${doc.item}.pdf`, size: doc.size, page });
   } catch (error) {
     if (error instanceof PdfError) return Response.json({ ok: false, error: error.message, reason: error.reason }, { status: error.status });
     return Response.json({ ok: false, error: "The PDF could not be loaded just now. Try again in a moment." }, { status: 502 });

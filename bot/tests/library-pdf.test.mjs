@@ -195,3 +195,90 @@ test("printed pages use Library's access-page index, not missing or incorrect Ar
   assert.equal((await fixture().call(post({ ...valid, printed: 999 }))).status, 404);
   assert.equal((await fixture({ chapter: { item: "different-item", pages: [{ page: 7, img: 14 }] } }).call(post({ ...valid, printed: 7 }))).status, 404);
 });
+
+// Our own copy (library/<item>.pdf) comes first; archive.org is only the fallback.
+const mirrorOut = new URL("./.build/library-mirror.mjs", import.meta.url).pathname;
+await build({ entryPoints: [new URL("../src/library-mirror.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", packages: "external", outfile: mirrorOut, logLevel: "error" });
+const { r2Mirror, originMirror, byteRange, mirrorKey } = await import(mirrorOut);
+
+function fakeBucket(files) {
+  const calls = [];
+  return { calls, bucket: {
+    async head(key) { calls.push(["head", key]); return key in files ? { size: files[key].length } : null; },
+    async get(key, opts = {}) {
+      calls.push(["get", key, opts.range]);
+      if (!(key in files)) return null;
+      const bytes = new TextEncoder().encode(files[key]);
+      const part = opts.range ? bytes.slice(opts.range.offset, opts.range.offset + opts.range.length) : bytes;
+      return { body: new Response(part).body, httpEtag: '"e1"', size: bytes.length };
+    },
+  } };
+}
+const ownPdf = "%PDF-1.7 our own copy";
+
+test("byte ranges are parsed against the file size, and impossible ones are refused", () => {
+  assert.deepEqual(byteRange("bytes=0-4", 10), { offset: 0, length: 5 });
+  assert.deepEqual(byteRange("bytes=5-", 10), { offset: 5, length: 5 });
+  assert.deepEqual(byteRange("bytes=-3", 10), { offset: 7, length: 3 });
+  assert.deepEqual(byteRange("bytes=8-99", 10), { offset: 8, length: 2 });
+  for (const bad of ["bytes=10-", "bytes=5-2", "bytes=-", "bytes=-0", "items=0-1"]) assert.equal(byteRange(bad, 10), null, bad);
+});
+
+test("a book we hold is served from our copy without asking archive.org anything", async () => {
+  const { bucket, calls } = fakeBucket({ [mirrorKey(item)]: ownPdf });
+  const f = fixture();
+  const call = request => libraryPdf(request, token, async p => f.reads.push(p) && (p.endsWith("index.json") ? [{ slug: "josephus" }] : book), undefined, async (url, init) => { f.fetched.push({ url, init }); throw new Error("archive.org must not be called"); }, r2Mirror(bucket));
+  const link = await (await call(post(valid))).json();
+  assert.equal(link.size, ownPdf.length);
+  const whole = await call(new Request(link.url));
+  assert.equal(whole.status, 200);
+  assert.equal(await whole.text(), ownPdf);
+  const part = await call(new Request(link.url, { headers: { range: "bytes=0-4" } }));
+  assert.equal(part.status, 206);
+  assert.equal(part.headers.get("content-range"), `bytes 0-4/${ownPdf.length}`);
+  assert.equal(await part.text(), "%PDF-");
+  const beyond = await call(new Request(link.url, { headers: { range: "bytes=999-" } }));
+  assert.equal(beyond.status, 416);
+  assert.deepEqual(f.fetched, []);
+  assert.ok(calls.every(([, key]) => key === `library/${item}.pdf`));
+});
+
+test("a book we do not hold yet still opens from archive.org", async () => {
+  const { bucket } = fakeBucket({});
+  const f = fixture();
+  const call = request => libraryPdf(request, token, async p => p.endsWith("index.json") ? [{ slug: "josephus" }] : book, undefined, async (url, init) => { f.fetched.push({ url }); return url.includes("/metadata/") ? Response.json({ files: [pdfFile] }) : new Response("%PDF-archive", { headers: { "content-type": "application/pdf" } }); }, r2Mirror(bucket));
+  const link = await (await call(post(valid))).json();
+  assert.equal(await (await call(new Request(link.url))).text(), "%PDF-archive");
+  assert.ok(f.fetched.some(v => v.url === `https://archive.org/download/${item}/different-name.pdf`));
+});
+
+test("chat delivery from our copy keeps the 50 MB limit", async () => {
+  const bucket = { head: async () => ({ size: TELEGRAM_PDF_LIMIT + 1 }), get: async () => ({ body: new Response("x").body }) };
+  const sent = [];
+  const res = await libraryPdf(post({ ...valid, send: true }), token, async p => p.endsWith("index.json") ? [{ slug: "josephus" }] : book, async (_s, file) => sent.push(file), async () => { throw new Error("no archive"); }, r2Mirror(bucket));
+  assert.equal(res.status, 413);
+  assert.deepEqual(sent, []);
+});
+
+test("a non-public-domain book is never served from our copy either", async () => {
+  const { bucket, calls } = fakeBucket({ [mirrorKey(item)]: ownPdf });
+  const res = await libraryPdf(post(valid), token, async p => p.endsWith("index.json") ? [{ slug: "josephus" }] : { ...book, license: "Copyright" }, undefined, fetch, r2Mirror(bucket));
+  assert.equal(res.status, 404);
+  assert.deepEqual(calls, []);
+});
+
+test("a file-host copy is read from its one HTTPS origin, never following redirects", async () => {
+  const seen = [];
+  const host = originMirror("https://books.example.test/files", async (url, init) => {
+    seen.push({ url, init });
+    if (init.method === "HEAD") return new Response(null, { headers: { "content-type": "application/pdf", "content-length": "21" } });
+    return new Response(ownPdf, { headers: { "content-type": "application/pdf" } });
+  });
+  assert.equal(await host.head(mirrorKey(item)), 21);
+  assert.equal(await (await host.get(mirrorKey(item))).text(), ownPdf);
+  assert.ok(seen.every(v => v.url === `https://books.example.test/files/library/${item}.pdf` && v.init.redirect === "manual"));
+  assert.throws(() => originMirror("http://books.example.test"));
+  const moved = originMirror("https://books.example.test", async () => new Response(null, { status: 302, headers: { location: "https://evil.test/a.pdf" } }));
+  assert.equal(await moved.get(mirrorKey(item)), null);
+  assert.equal(await moved.head(mirrorKey(item)), null);
+});
