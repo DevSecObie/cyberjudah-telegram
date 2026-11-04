@@ -125,6 +125,27 @@ jobs:
           mkdir -p app/dist/embed
           cp -n "$src/embed/youtube.html" app/dist/embed/
           sha256sum app/dist/offline/bible_entities.cyberjudah.sqlite.zip app/dist/embed/youtube.html
+      - name: Check out the offline study files
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 25c25b8cca19aa90e3ee48c9d605b59e333af139
+          path: offline-study
+          persist-credentials: false
+          sparse-checkout: apps/expo/public/offline
+      - name: Serve the offline study files
+        # The app's offline catalog lists the English and Hebrew lexicons and the Hebrew & Greek
+        # Bible with its English index at these paths. Add them beside the web export without
+        # replacing any of its own files.
+        run: |
+          set -euo pipefail
+          src=offline-study/apps/expo/public/offline
+          mkdir -p app/dist/offline/databases
+          cp -n "$src/BHG.json.zip" app/dist/offline/
+          for f in strong_lexicon.simple-en.sqlite.zip strong_lexicon.resources.sqlite.zip bible-bhg-interlinear-en.sqlite.zip; do
+            cp -n "$src/databases/$f" app/dist/offline/databases/
+          done
+          sha256sum app/dist/offline/BHG.json.zip app/dist/offline/databases/strong_lexicon.simple-en.sqlite.zip app/dist/offline/databases/strong_lexicon.resources.sqlite.zip app/dist/offline/databases/bible-bhg-interlinear-en.sqlite.zip
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
