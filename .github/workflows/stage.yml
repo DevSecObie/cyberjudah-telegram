@@ -179,10 +179,13 @@ jobs:
           BOT_TOKEN: ${{ secrets.STAGING_BOT_TOKEN }}
           WEBHOOK_SECRET: ${{ secrets.STAGING_WEBHOOK_SECRET }}
           WORKER_URL: ${{ steps.deploy.outputs.url }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           printf '%s' "$BOT_TOKEN" | npx wrangler secret put BOT_TOKEN --env staging
           printf '%s' "$WEBHOOK_SECRET" | npx wrangler secret put WEBHOOK_SECRET --env staging
           printf '%s' "$WORKER_URL" | npx wrangler secret put WORKER_URL --env staging
+          # Claude answers staging's readers only when the staging environment has the key (as deploy.yml does for production).
+          if [ -n "$ANTHROPIC_API_KEY" ]; then printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY --env staging; else echo "No ANTHROPIC_API_KEY in the staging environment: readers get the free models."; fi
           node scripts/setup.mjs
       - name: Configure staging browser sign-in
         working-directory: bot
