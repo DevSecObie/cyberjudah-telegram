@@ -164,7 +164,7 @@ test('the authorize page refuses an unregistered callback or a missing PKCE', as
     const { challenge } = pkce();
     const base = { client_id: client.client_id, redirect_uri: CALLBACK, response_type: 'code', code_challenge: challenge, code_challenge_method: 'S256' };
     assert.equal((await mf.dispatchFetch(`${HOST}/mcp/oauth/authorize?${form(base)}`)).status, 200);
-    for (const bad of [{ redirect_uri: 'https://claude.com/api/mcp/auth_callback' }, { code_challenge_method: 'plain' }, { client_id: 'forged.token' }, { resource: 'https://other.test/mcp' }]) {
+    for (const bad of [{ redirect_uri: 'https://claude.com/api/mcp/auth_callback' }, { code_challenge_method: 'plain' }, { client_id: 'forged.token' }, { client_id: b64url(Buffer.from(JSON.stringify({ r: ['https://evil.example/cb'], n: 'Claude' }))), redirect_uri: 'https://evil.example/cb' }, { resource: 'https://other.test/mcp' }]) {
       const r = await mf.dispatchFetch(`${HOST}/mcp/oauth/authorize?${form({ ...base, ...bad })}`, { redirect: 'manual' });
       assert.equal(r.status, 400, JSON.stringify(bad));
     }

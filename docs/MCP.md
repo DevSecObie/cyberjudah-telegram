@@ -37,7 +37,8 @@ Phase A (now): **private**. The route answers `404` until the owner sets the Wor
 `MCP_KEY`, then only a request with `Authorization: Bearer <MCP_KEY>`. The key is compared in
 constant time. Calls are limited to 60 a minute (`MCP_LIMIT`).
 
-The owner sets the key himself, never in chat or code:
+The owner sets the key himself, never in chat or code. Make it long and random
+(`openssl rand -hex 32`, or a password manager's generator) and keep it in a password manager:
 
 ```bash
 cd bot
@@ -67,8 +68,9 @@ flow, kept to what one owner needs:
   is refused.
 - `/mcp/oauth/token` trades the code (2 minutes, PKCE S256 required) for an access token
   (1 hour, only for this host's `/mcp`) and a refresh token (30 days, only for that client).
-- Nothing is stored: every client id, code and token is signed with a key derived from
-  `MCP_KEY`. **Changing `MCP_KEY` signs every assistant out at once.** Codes and refresh tokens
+- Nothing is stored: every code and token is signed with a key derived from `MCP_KEY`, and
+  only handed out after the key is typed, so nobody can test guesses offline. A client id is
+  the client's own registration, unsigned; its callbacks are checked again at every use. **Changing `MCP_KEY` signs every assistant out at once.** Codes and refresh tokens
   are not single-use (there is no store to remember them); the PKCE verifier, the short code
   life and the key rotation are what protect them.
 

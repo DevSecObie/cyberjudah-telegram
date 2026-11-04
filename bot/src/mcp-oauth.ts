@@ -7,8 +7,11 @@ import type { Env } from "./env";
  * small as one owner needs:
  *
  * - The only person who can sign in is the owner: the sign-in page asks for MCP_KEY itself.
- * - Nothing is stored. Every client id, code and token is a payload signed with a key derived
- *   from MCP_KEY (HMAC-SHA256), so rotating MCP_KEY signs every assistant out at once.
+ * - Nothing is stored. Every code and token is a payload signed with a key derived from MCP_KEY
+ *   (HMAC-SHA256), so rotating MCP_KEY signs every assistant out at once. Only the owner, after
+ *   typing the key, ever receives something signed, so nobody else can test guesses offline.
+ *   A client id is the client's own registration, unsigned: its callbacks are checked again
+ *   at every use.
  * - Codes live 2 minutes and need the PKCE verifier; access tokens live 1 hour and only work
  *   on this host's /mcp; refresh tokens live 30 days and only for the client they were given to.
  * - Only Claude's own callback addresses and loopback addresses (Claude Code, RFC 8252) can
@@ -29,7 +32,7 @@ export function allowedRedirect(uri: string): boolean {
     && !url.username && !url.password && !url.hash;
 }
 
-type Payload = { typ: "client" | "code" | "access" | "refresh"; exp?: number; [field: string]: unknown };
+type Payload = { typ: "code" | "access" | "refresh"; exp?: number; [field: string]: unknown };
 
 const encoder = new TextEncoder();
 const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -107,7 +110,21 @@ export function authorizationServer(origin: string): Response {
   });
 }
 
-/** Dynamic client registration (RFC 7591): the client id carries its own callbacks, signed. */
+type Client = { r: string[]; n: string };
+/** A client id read back: its callbacks must still all be allowed, or it is no client. */
+function parseClient(clientId: string): Client | null {
+  if (!clientId || clientId.length > 2048 || !/^[A-Za-z0-9_-]+$/.test(clientId)) return null;
+  try {
+    const client = JSON.parse(new TextDecoder().decode(unb64url(clientId))) as Partial<Client>;
+    const uris = client.r;
+    if (!Array.isArray(uris) || !uris.length || uris.length > 5 || !uris.every((u) => typeof u === "string" && allowedRedirect(u))) return null;
+    return { r: uris, n: typeof client.n === "string" ? client.n.slice(0, 60) : "" };
+  } catch {
+    return null;
+  }
+}
+
+/** Dynamic client registration (RFC 7591): the client id carries its own callbacks. */
 async function register(request: Request, env: Env): Promise<Response> {
   let body: { redirect_uris?: unknown; client_name?: unknown };
   try { body = await request.json(); } catch { return oauthError("invalid_client_metadata", "The body must be JSON."); }
@@ -117,7 +134,7 @@ async function register(request: Request, env: Env): Promise<Response> {
   if (refused) return oauthError("invalid_redirect_uri", "Only Claude's callback or a loopback address can receive a code.");
   const name = typeof body.client_name === "string" ? body.client_name.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 60) : "";
   // A random id makes every registration its own client, even with the same callbacks.
-  const clientId = await seal(env, { typ: "client", r: uris, n: name, id: crypto.randomUUID() });
+  const clientId = b64url(encoder.encode(JSON.stringify({ r: uris, n: name, id: crypto.randomUUID() })));
   return json({ client_id: clientId, client_id_issued_at: now(), redirect_uris: uris, client_name: name || undefined, token_endpoint_auth_method: "none", grant_types: ["authorization_code", "refresh_token"], response_types: ["code"] }, 201);
 }
 
@@ -126,10 +143,10 @@ type AuthorizeRequest = { clientId: string; clientName: string; redirectUri: str
 /** The authorize parameters checked; a message instead when they cannot be trusted to redirect. */
 async function readAuthorize(env: Env, params: URLSearchParams, origin: string): Promise<AuthorizeRequest | string> {
   const clientId = params.get("client_id") ?? "";
-  const client = await unseal(env, clientId, "client");
+  const client = parseClient(clientId);
   if (!client) return "This assistant is not registered here. Remove the connector and add it again.";
   const redirectUri = params.get("redirect_uri") ?? "";
-  if (!(client.r as string[]).includes(redirectUri) || !allowedRedirect(redirectUri)) return "This sign-in link has an address that was not registered.";
+  if (!client.r.includes(redirectUri) || !allowedRedirect(redirectUri)) return "This sign-in link has an address that was not registered.";
   if (params.get("response_type") !== "code") return "Only the code flow is supported.";
   const codeChallenge = params.get("code_challenge") ?? "";
   if (params.get("code_challenge_method") !== "S256" || !/^[A-Za-z0-9_-]{43}$/.test(codeChallenge)) return "This sign-in needs PKCE (S256).";
@@ -137,7 +154,7 @@ async function readAuthorize(env: Env, params: URLSearchParams, origin: string):
   if (resource !== resourceOf(origin)) return "This sign-in is for another server.";
   const state = params.get("state") ?? "";
   if (state.length > 512) return "The sign-in link is too long.";
-  return { clientId, clientName: (client.n as string) || "An assistant", redirectUri, challenge: codeChallenge, state, resource };
+  return { clientId, clientName: client.n || "An assistant", redirectUri, challenge: codeChallenge, state, resource };
 }
 
 const escape = (text: string) => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -209,7 +226,7 @@ async function tokens(env: Env, tag: string, aud: string): Promise<Response> {
 async function token(request: Request, env: Env, origin: string): Promise<Response> {
   const form = new URLSearchParams(await request.text());
   const clientId = form.get("client_id") ?? "";
-  if (!(await unseal(env, clientId, "client"))) return oauthError("invalid_client", "Unknown client.", 401);
+  if (!parseClient(clientId)) return oauthError("invalid_client", "Unknown client.", 401);
   const tag = await clientTag(clientId);
   const resource = form.get("resource");
   if (resource && resource !== resourceOf(origin)) return oauthError("invalid_target", "This token endpoint only issues tokens for this server.");
