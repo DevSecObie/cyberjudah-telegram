@@ -59,17 +59,19 @@ test("Unified Billing: Claude is paid through Cloudflare, with no Anthropic key 
   // Even when an Anthropic key is still on the Worker, it is not sent.
   const withKey = await sentHeaders({ ...env, ANTHROPIC_API_KEY: "k" });
   assert.equal(withKey.headers.get("x-api-key"), null);
+  assert.equal(withKey.headers.get("authorization"), null);
   // Without the token (or the gateway) it cannot be paid through Cloudflare: the key is used if there is one.
   assert.equal(unifiedBilling({ ...env, CF_AIG_TOKEN: undefined }), false);
   assert.equal(hasClaude({ ...env, CF_AIG_TOKEN: undefined }), false);
   assert.equal(hasClaude({ ...env, CF_AIG_TOKEN: undefined, ANTHROPIC_API_KEY: "k" }), true);
   const keyed = await sentHeaders({ ...env, CF_AIG_TOKEN: undefined, ANTHROPIC_API_KEY: "k" });
-  assert.equal(keyed.headers.get("x-api-key"), "k");
+  // SDK 1.x sends the API key as a Bearer token.
+  assert.equal(keyed.headers.get("authorization"), "Bearer k");
   assert.equal(unifiedBilling({ ...env, AI_GATEWAY: undefined }), false);
   // Billed by Anthropic unless Cloudflare is chosen.
   assert.equal(unifiedBilling({ ...env, CLAUDE_BILLING: undefined }), false);
   const anthropic = await sentHeaders({ ...env, CLAUDE_BILLING: "anthropic", ANTHROPIC_API_KEY: "k" });
-  assert.equal(anthropic.headers.get("x-api-key"), "k");
+  assert.equal(anthropic.headers.get("authorization"), "Bearer k");
   assert.equal(anthropic.headers.get("cf-aig-authorization"), "Bearer t", "still through the gateway, for its logs");
   // The tests' stand-in is never Unified Billing.
   assert.equal(unifiedBilling({ ...env, ANTHROPIC_BASE_URL: "http://127.0.0.1:8791/anthropic" }), false);
