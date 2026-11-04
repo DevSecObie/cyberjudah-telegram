@@ -1,1 +1,1 @@
-- CI: browser checks on main and inside a deploy now queue instead of cancelling each other, so two overlapping deploys no longer fail each other before the Approve step. Pull requests still replace their older run.
+- CI: a browser test that fails once is retried once (reported as flaky), and the privacy migration test no longer fails when random ciphertext happens to contain the digits it looked for. Deploys stopped three times on 3 November on one-off test failures before reaching the Approve step.
