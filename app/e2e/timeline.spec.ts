@@ -194,7 +194,8 @@ test("pictures: each period's, a colour where a picture waits on direction, and 
   await page.goto("/timeline");
   const pics = page.locator(".tl-item__pic");
   await expect(pics.nth(0)).toHaveAttribute("src", /timeline\/periods\/1\.webp$/);
-  await expect(pics.nth(2)).toHaveClass(/tl-pic--none/); // The Patriarchs: waiting on direction
+  await expect(pics.nth(2)).toHaveAttribute("src", /timeline\/periods\/3\.webp$/); // The Patriarchs
+  await expect(pics.last()).toHaveClass(/tl-pic--none/); // Unto This Day: waiting on direction
   await expect.poll(() => pics.nth(0).evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth)).toBe(640);
   await page.goto("/timeline/5");
   await expect(page.locator('a[data-slug="solomon"] .tl-major__pic img')).toHaveAttribute("src", /solomon-2sa-5-14-128\.webp$/);
