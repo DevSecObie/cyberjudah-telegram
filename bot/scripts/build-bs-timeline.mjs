@@ -16,7 +16,7 @@ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest(
 const sections = byCaptivity(source.sections);
 const all = flatten(sections);
 const image = path => `https://cyberjudah.io/api/img/${path}`;
-const periodPictures = new Set(['1', '2', '3', '4', '5', '6', '7', '8', '8-assyrian', '8-babylonian', '8-persian', '8-greek', '9', '10', '10-roman', '11', '12', 'fc-into-the-ships', 'fc-house-of-bondage', 'fc-jim-crow', 'fc-civil-rights-awakening']);
+const periodPictures = new Set(['1', '2', '4', '5', '6', '7', '8', '8-assyrian', '8-babylonian', '8-persian', '8-greek', '9', '10', '10-roman', '11', '12', 'fc-into-the-ships', 'fc-house-of-bondage', 'fc-jim-crow', 'fc-civil-rights-awakening']);
 // Who made each period picture taken from Wikimedia Commons, shown under the period's text.
 const periodPictureCredits = {
   'fc-into-the-ships': 'Picture: the slave deck of the bark Wildfire, Key West, 1860. Public domain, Wikimedia Commons.',
