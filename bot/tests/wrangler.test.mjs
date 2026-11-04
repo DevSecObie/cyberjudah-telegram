@@ -57,3 +57,23 @@ test("only staging exempts the release check's synthetic reader from the search 
   assert.equal(config.vars.SEARCH_AI_QUOTA_EXEMPT, "");
   assert.equal(config.env.staging.vars.SEARCH_AI_QUOTA_EXEMPT, "1");
 });
+
+test("signed-in requests are limited per person; per-address limits leave room for a class on one Wi-Fi", () => {
+  for (const env of [config, config.env.staging]) {
+    const limit = name => env.ratelimits.find(r => r.name === name)?.simple.limit;
+    assert.equal(limit("FIREBASE_UID_LIMIT"), 60);
+    assert.ok(limit("FIREBASE_SESSION_LIMIT") >= 600);
+    assert.ok(limit("READER_LIMIT") >= 600);
+  }
+  const ids = [...config.ratelimits, ...config.env.staging.ratelimits].map(r => r.namespace_id);
+  assert.equal(new Set(ids).size, ids.length, "every limiter has its own namespace");
+});
+
+test("free Ask answers have room for several answers at once; Claude answers only in production, under a total cap", () => {
+  for (const vars of [config.vars, config.env.staging.vars]) {
+    assert.ok(Number(vars.ASK_FREE_DAILY_USD_CAP) >= 10 * Number(vars.ASK_FREE_MAX_USD), "the daily cap holds at least ten answers' reservations");
+  }
+  for (const vars of [config.vars, config.env.staging.vars]) assert.equal(vars.ASK_DAILY_LIMIT, "20");
+  assert.equal(config.env.staging.vars.ASK_CLAUDE_FOR_READERS, "off");
+  assert.ok(Number(config.vars.ASK_CLAUDE_TOTAL_USD_CAP) > 0, "production's Claude answers have a total cap");
+});

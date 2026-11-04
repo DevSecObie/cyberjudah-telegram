@@ -43,7 +43,10 @@ test("privacy: every record still under a Telegram ID moves to the pseudonymous 
   const keys = [...env.SUBS.m.keys()];
   for (const id of ["333", "444", "555"]) assert.ok(!keys.some((k) => k.includes(id)), `no key under ${id}`);
   const subKey = `sub:${await pid(env, 333)}`;
-  assert.ok(!(await env.SUBS.get(subKey)).includes("333"), "the subscription is sealed at rest");
+  // A sealed value is "s1.<iv>.<ciphertext>" in base64url, which can contain any digits by chance,
+  // so check its form and that no plain JSON field is left, not the absence of "333".
+  const sealedSub = await env.SUBS.get(subKey);
+  assert.ok(sealedSub.startsWith("s1.") && !sealedSub.includes('"chatId"'), "the subscription is sealed at rest");
   assert.equal((await open(env, subKey, await env.SUBS.get(subKey))).chatId, 333, "the chat the bot sends to is kept, inside the sealed record");
   assert.ok(!env.SUBS.m.get(`chat:${await pid(env, 444)}:abc12345`).v.includes("Passover"), "moved conversations are sealed");
   const req = await env.SUBS.getWithMetadata("notereq:AAAAAAAAAAA");

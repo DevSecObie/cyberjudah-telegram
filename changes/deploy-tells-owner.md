@@ -1,0 +1,1 @@
+- Each production deploy now tells the owner on Telegram, as soon as its checks pass, that it is waiting for Approve. GitHub's 15-minute schedule runs hours late in this repository, so the ping no longer depends on it.

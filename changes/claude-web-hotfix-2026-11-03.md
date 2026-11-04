@@ -1,0 +1,1 @@
+- Web app hotfix: web.cyberjudah.io now builds from app commit bdd4968 (Bishops' commentary layout, class notes people/places/topics, clay figures by genealogy, Jesus Christ naming, plan notes fit their pane).

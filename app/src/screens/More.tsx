@@ -102,7 +102,7 @@ export function MoreBody() {
         { icon: "link", label: "The notes on GitHub", color: C.slate, onClick: () => openLink("https://github.com/DevSecObie/cyberjudah") },
       ]} />
       <nav className="more__legal" aria-label="Legal"><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></nav>
-      <p className="more__foot">The Bible text is the public-domain King James Version (1769) with the Apocrypha.{app ? ` · Telegram ${app.version} · ${app.platform}` : ""}</p>
+      <p className="more__foot">CyberJudah is an independent study project. It is not affiliated with, endorsed by, or speaking for Israel United in Christ (IUIC). The Bible text is the public-domain King James Version (1769) with the Apocrypha.{app ? ` · Telegram ${app.version} · ${app.platform}` : ""}</p>
     </div>
   );
 }
