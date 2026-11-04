@@ -1,0 +1,1 @@
+- The Privacy screen gains an "About CyberJudah" section, and the More screen's footer a line: "CyberJudah is an independent study project. It is not affiliated with, endorsed by, or speaking for Israel United in Christ (IUIC)."

@@ -29,7 +29,7 @@ async function browserOnly(page: Page) {
       : r.fulfill({ status: 404, body: "" }));
   await page.addInitScript(() => {
     localStorage.setItem("cj:ai-consent", '["Anthropic"]');
-    localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-sonnet-5": 2_000_000, "anthropic/claude-opus-5": 2_000_000 }));
+    localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-sonnet-5.5": 2_000_000, "anthropic/claude-opus-5.5": 2_000_000 }));
   });
 }
 test("browser sign-in enables Ask with cookie auth and keeps chats isolated after logout/account changes", async ({ page, request, baseURL }) => {

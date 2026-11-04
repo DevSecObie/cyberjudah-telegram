@@ -360,10 +360,10 @@ test('native Ask refuses oversized questions rather than silently cutting them',
   assert.deepEqual(await answerApp(env(), 'x'.repeat(4001), 'app-owner', [], AGREED), { ok: false, reason: 'too-long' });
 });
 
-test('native model promotion requires the versioned serving registry, not only an environment variable', async () => {
-  const result = await answerApp({ ASK_FREE_MODELS: '@cf/meta/llama-3.3-70b-instruct-fp8-fast' }, 'Who was Abraham?', 'account', [], ['Cloudflare (Workers AI)'], 5000, { model: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', study: true });
-  assert.equal(result.ok, false);
-  assert.equal(result.reason, 'model-unavailable');
+test('every free Workers AI model is offered in the app, not only a promoted few', async () => {
+  const offered = appAskModels({}).map((m) => m.id);
+  assert.ok(offered.includes('@cf/meta/llama-3.3-70b-instruct-fp8-fast') && offered.includes('@cf/google/gemma-4-26b-a4b-it') && offered.length > 10, offered.join(','));
+  assert.ok(offered.every((id) => id.startsWith('@cf/')));
 });
 
 test('the stronger free model is admitted to native Ask when configured', async () => {
@@ -427,17 +427,28 @@ test("app Ask researches and answers like cyberjudah.io/app, on the free allowan
   assert.deepEqual(r.followups, ["Why for ever?", "When is it kept?"]);
   assert.ok(sent.some((s) => s.model === "@cf/google/gemma-4-26b-a4b-it"));
   assert.ok((await freeSpendToday(e)) > 0, "the free allowance pays for it");
+  assert.match(events.find((x) => x.status)?.status ?? "", /^Searching the classes and library/, "the first search is shown as a step even when the model never searches again");
 });
 
 // Claude for every signed-in reader (owner's choice 2026-10-31), off until switched on.
-const claudeEnv = (extra = {}) => ({ ...appEnv(), ANTHROPIC_API_KEY: "k", CLAUDE_BILLING: "anthropic", CLAUDE_MODEL: "claude-sonnet-5", CLAUDE_MODEL_LIGHT: "claude-haiku-4-5", ...extra });
+const claudeEnv = (extra = {}) => ({ ...appEnv(), ANTHROPIC_API_KEY: "k", CLAUDE_BILLING: "anthropic", CLAUDE_MODEL: "claude-sonnet-5-5", CLAUDE_MODEL_LIGHT: "claude-haiku-5-5", ...extra });
 test("Claude for readers is off unless switched on with a daily cap above zero", () => {
   assert.ok(!appAskModels(claudeEnv(), undefined, true).some((m) => m.format === "anthropic"), "off by default");
   assert.ok(!appAskModels(claudeEnv({ ASK_CLAUDE_FOR_READERS: "on" }), undefined, true).some((m) => m.format === "anthropic"), "no cap, no Claude");
   assert.ok(!appAskModels(claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5", ANTHROPIC_API_KEY: "", CLAUDE_BILLING: "anthropic" }), undefined, true).some((m) => m.format === "anthropic"), "no key, no Claude");
   const on = claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5" });
-  assert.deepEqual(appAskModels(on, undefined, true).filter((m) => m.format === "anthropic").map((m) => m.native), ["claude-haiku-4-5", "claude-sonnet-5"], "Haiku first (the default), then Sonnet");
+  assert.deepEqual(appAskModels(on, undefined, true).filter((m) => m.format === "anthropic").map((m) => m.native), ["claude-haiku-5-5", "claude-sonnet-5-5"], "Haiku first (the default), then Sonnet");
   assert.ok(!appAskModels(on).some((m) => m.format === "anthropic"), "only the app's Ask asks for the readers' list");
+});
+
+test("Claude's readers' pool stops at its total across days, not only at each day's cap", async () => {
+  const e = appEnv();
+  const pool = { prefix: "claude:", capUsd: 2.5, totalUsd: 3 };
+  const day = 86400_000, t0 = Date.parse("2026-11-04T12:00:00Z");
+  assert.ok(await reserveFreeBudget(e, "d1-a", 2, t0, pool), "day one, within both caps");
+  assert.ok(await reserveFreeBudget(e, "d2-a", 0.9, t0 + day, pool), "day two, still within the total");
+  assert.equal(await reserveFreeBudget(e, "d2-b", 0.2, t0 + day, pool), null, "the total is spent: no more, though the day's cap has room");
+  assert.ok(await reserveFreeBudget(e, "free-a", 0.05, t0 + day), "the free models' allowance is untouched");
 });
 
 test("past Claude's own daily cap a reader is answered by the free model, on the free allowance", async () => {

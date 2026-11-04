@@ -1,0 +1,1 @@
+- Ask: when DeepSeek V4 writes its tool calls into the answer as DSML markup instead of the tool_calls field, the calls are run as tools and the markup is removed. If a model writes only tool calls on the last round, Ask asks once more with no tools offered, so the reader always gets prose.

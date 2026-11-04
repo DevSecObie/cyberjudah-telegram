@@ -1,5 +1,5 @@
 import { bodyLimit } from "hono/body-limit";
-import { keyedHash } from "./privacy.mjs";
+import { limitPerson, limitSession } from "./app-identity";
 import { IdentityError, linkAccounts, linkedFirebase, linkedTelegram, verifyFirebaseIdentity } from "./account-links";
 import { Hono } from "hono";
 import { importPKCS8, SignJWT } from "jose";
@@ -92,10 +92,9 @@ firebaseAuth.post("/link", async c => {
 export async function firebaseAccount(request: Request, env: Env, recent = false) {
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return null;
-  if (!env.FIREBASE_SESSION_LIMIT || !env.PRIVACY_KEY) throw new IdentityError(503, "firebase_sign_in_unavailable");
-  const key = await keyedHash(env, "firebase-session-ip", request.headers.get("cf-connecting-ip") ?? "unknown");
-  if (!(await env.FIREBASE_SESSION_LIMIT.limit({ key })).success) throw new IdentityError(429, "sign_in_rate_limited");
+  await limitSession(request, env);
   const identity = await verifyFirebaseIdentity(header.slice(7), recent);
+  await limitPerson(env, identity.uid);
   const id = await linkedTelegram(env, identity.uid);
   return { identity, user: id ? { id, first_name: identity.name } : null };
 }
