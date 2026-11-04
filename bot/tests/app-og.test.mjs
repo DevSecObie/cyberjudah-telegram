@@ -24,6 +24,8 @@ test('reads Open Graph tags, with the page title and description as fallbacks', 
   assert.deepEqual(parseOpenGraph('<meta property="og:title" content="Tom &amp; Jerry"><meta property="og:image" content="/pic.jpg"><meta property="og:site_name" content="Site"><meta name="description" content="Desc">', 'https://example.com/page'),
     { title: 'Tom & Jerry', description: 'Desc', image: 'https://example.com/pic.jpg', siteName: 'Site' });
   assert.deepEqual(parseOpenGraph('<title> Plain </title><meta property="og:image" content="javascript:alert(1)">', 'https://example.com/'), { title: 'Plain' });
+  for (const image of ['http://192.168.1.1/x.jpg', 'https://localhost/x.jpg', 'http://example.com/x.jpg'])
+    assert.equal(parseOpenGraph(`<meta property="og:image" content="${image}">`, 'https://example.com/').image, undefined, image);
 });
 
 test('every redirect is checked, and non-HTML is refused', async () => {

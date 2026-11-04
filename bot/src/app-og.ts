@@ -69,7 +69,8 @@ export function parseOpenGraph(html: string, pageUrl: string): OgData {
   if (rawImage) {
     try {
       const resolved = new URL(rawImage, pageUrl);
-      if (resolved.protocol === "https:" || resolved.protocol === "http:") image = resolved.href.slice(0, 2048);
+      // The reader's phone loads the picture, so it must be a public https address too.
+      if (resolved.protocol === "https:" && isPublicTarget(resolved) && resolved.href.length <= 2048) image = resolved.href;
     } catch { /* no picture */ }
   }
   const data: OgData = {
@@ -150,7 +151,11 @@ appOg.get("/", async (c) => {
   const key = new Request(`${new URL(c.req.url).origin}/__app-og?${new URLSearchParams({ u: href })}`);
   const edge = typeof caches === "undefined" ? undefined : caches.default;
   const cached = await edge?.match(key);
-  if (cached) return new Response(cached.body, cached);
+  if (cached) {
+    const hit = new Response(cached.body, cached);
+    hit.headers.set("cache-control", "private, max-age=3600");
+    return hit;
+  }
   let page: { url: string; html: string } | null = null;
   try { page = await fetchPage(href); } catch { page = null; }
   if (!page) return c.json({ error: "no_preview" }, 404);
