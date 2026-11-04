@@ -14,7 +14,7 @@ Google is not enabled. Removing `SEARCH_AI_MODEL` uses `ASK_FREE_MODEL` with the
 
 Cloudflare provides 10,000 free neurons per UTC day, shared by the account. Its Workers Paid
 plan bills usage above that allowance. The app's existing dollar-equivalent admission budget
-(`ASK_FREE_DAILY_USD_CAP`, $0.11 per Worker per day) limits Search and free Ask together; it is
+(`ASK_FREE_DAILY_USD_CAP`, $0.08 on production and $0.03 on staging, together inside the account's free allowance) limits Search and free Ask together; it is
 not an account-wide Cloudflare billing limit. Other Workers, embeddings, staging and Ask admin
 requests may also consume the account's allowance. Keep account usage within the provider's
 free allowance; this application counter alone cannot promise a zero provider bill.
@@ -72,5 +72,5 @@ does not automatically roll the Worker back. Review the run before calling the r
 
 The app sends the conversation so far (`history`), so a follow-up such as "why?" or "who was he?" is searched together with the question before it (`retrievalText` in `bot/src/ai.mjs`). Verses the question names ("Deuteronomy 28:68") are read from the King James text and given to the model first, so it can quote them exactly. The response carries `followups`: up to three next questions the reader might ask. A greeting or a thank-you is answered briefly even when the library has nothing for it; a real question with no passages is told so, with no model call.
 
-Limits: 100 answers a day per account, counted under a keyed hash of the Firebase UID (`ask_app:` in `rate_counts`); the per-IP Ask limit (`ASK_IP_DAILY_LIMIT`); the per-IP Bearer rate limit (`FIREBASE_SESSION_LIMIT`); and the shared daily free-answer budget, which every answer reserves before any model work. The reader must agree to the free model's provider first: without it the server answers 428 `consent` with the provider's name, and nothing is sent to the provider.
+Limits: `ASK_DAILY_LIMIT` answers a day per account (20), counted under a keyed hash of the Firebase UID (`ask_app:` in `rate_counts`); the per-IP Ask limit (`ASK_IP_DAILY_LIMIT`); the per-IP Bearer rate limit (`FIREBASE_SESSION_LIMIT`); and the shared daily free-answer budget, which every answer reserves before any model work. The reader must agree to the free model's provider first: without it the server answers 428 `consent` with the provider's name, and nothing is sent to the provider.
 
