@@ -179,3 +179,11 @@ test('Ask research reads the commentary, the whole class notes and the places', 
     assert.match(place.content[0].text, /Link: https:\/\/cyberjudah\.test\/bible\/genesis\/45#v10$/m);
   } finally { await mf.dispose(); }
 });
+
+test('the deployed Worker sees /mcp before the site assets do', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const config = await readFile(new URL('../wrangler.jsonc', import.meta.url), 'utf8');
+  const list = /"run_worker_first":\s*(\[[^\]]*\])/.exec(config)?.[1];
+  assert.ok(list, 'run_worker_first is set');
+  assert.ok(JSON.parse(list).includes('/mcp'), '/mcp is in run_worker_first, or the single-page-app assets answer it');
+});
