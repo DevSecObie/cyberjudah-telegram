@@ -87,7 +87,7 @@ test("native keyword search does not call AI even when a query is submitted", as
   await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Settings", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: /Support CyberJudah/ })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Credits Narrators, recordings and licences" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Credits Narrators, recordings, software and licences" })).toBeVisible();
   expect(ai).toEqual([]);
 });
 

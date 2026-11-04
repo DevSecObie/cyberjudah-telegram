@@ -73,6 +73,7 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const tabId = sessionKey.slice(0, sessionKey.indexOf(":"));
   const { book: slugParam, chapter: chapterParam } = useParams();
   const [params, setParams] = useSearchParams();
+  const { hash } = useLocation();
   const navigate = useNavigate();
   const [last, setLast, lastLoaded] = useLast();
   const slug = slugParam ?? last?.slug ?? "genesis";
@@ -134,7 +135,9 @@ function BibleReader({ sessionKey }: { sessionKey: string }) {
   const [contextMode, setContextMode] = useState(initial.contextMode);
   const [fullscreen, setFullscreen] = useState(readerFullscreen);
   useEffect(() => { saveReaderFullscreen(fullscreen); }, [fullscreen]);
-  const at = Number(params.get("at")) || undefined;
+  // cyberjudah.io's chapter links name a verse as #v16; the website sends them here unchanged.
+  // A focused passage (?v=) keeps its own target, so the anchor only counts without one.
+  const at = Number(params.get("at")) || (focus ? undefined : Number(/^#v(\d+)$/.exec(hash)?.[1])) || undefined;
   const [verseToScroll, setVerseToScroll] = useState<number | undefined>(focus?.[0] ?? at);
   const [navRequest, setNavRequest] = useState(0);
   // Picking another verse in the same chapter replaces `at` in place: scroll to it again. Verse 1
