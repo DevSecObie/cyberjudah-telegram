@@ -23,7 +23,7 @@ function mockFetch() {
   const calls = [];
   globalThis.fetch = async (url, init) => {
     calls.push({ url: String(url), init });
-    if (String(url).includes("oauth2")) return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }));
+    if (new URL(String(url)).hostname === "oauth2.googleapis.com") return new Response(JSON.stringify({ access_token: "t", expires_in: 3600 }));
     return new Response("{}", { status: 200 });
   };
   return calls;
@@ -44,7 +44,7 @@ test("first run remembers, a later upload is sent once to the topic", async () =
   env.recent = feed([["BBBBBBBBBBB", "New class title"], ["AAAAAAAAAAA", "Old"]]);
   const run = await sendClassAlerts(env, now);
   assert.equal(run.sent, 1);
-  const send = calls.find((c) => c.url.includes("fcm.googleapis.com"));
+  const send = calls.find((c) => new URL(c.url).hostname === "fcm.googleapis.com");
   assert.match(send.url, /projects\/cyberjudah-app\/messages:send$/);
   const body = JSON.parse(send.init.body);
   assert.equal(body.message.topic, "new-classes");
