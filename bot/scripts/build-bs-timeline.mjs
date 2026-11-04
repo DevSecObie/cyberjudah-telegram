@@ -24,6 +24,7 @@ const periodPictureCredits = {
   'fc-jim-crow': 'Picture: "The Original Jim Crow" sheet music cover, New York, 1832. Public domain.',
   'fc-civil-rights-awakening': 'Picture: the March on Washington, 1963, by Warren K. Leffler. Public domain, Wikimedia Commons.',
   '10-roman': 'Picture: the spoils of the Temple carried to Rome, Arch of Titus, AD 81. Photo by José Luiz, cropped, CC BY-SA 3.0 (creativecommons.org/licenses/by-sa/3.0), Wikimedia Commons.',
+  '11': 'Picture: Saint Maurice, by Matthias Grünewald, c. 1520–24 (detail). Photo by Yelkrokoyade, CC BY-SA 4.0, Wikimedia Commons.',
   '12': 'Picture: title page of the King James Bible, first edition, 1611. Public domain, Wikimedia Commons.',
 };
 const portrait = event => event.portrait ? image(`people/${event.portrait}-256.webp`) : event.leader ? image(`timeline/leaders/${event.leader}-256.webp`) : undefined;

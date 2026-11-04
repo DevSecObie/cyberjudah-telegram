@@ -1,0 +1,1 @@
+- Timeline: the Middle Ages card now shows Saint Maurice, a Black commander, painted by Matthias Grünewald, with its picture credit.
