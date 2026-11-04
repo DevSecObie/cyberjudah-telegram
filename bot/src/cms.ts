@@ -89,6 +89,6 @@ cms.route('/classes', cmsClasses);
 
 cms.route('/precepts', cmsPrecepts);
 // People are rebuilt from the KJV hand lists (cyberjudah data/people-kjv/sources), with verses and
-// an evidence label on every link, so the People editor is off (Obie, 2026-10-28).
+// an evidence label on every link, so the People editor is off (since 2026-10-28).
 cms.all('/people/*', c => c.json({ error: 'People are rebuilt from the King James text; the People editor is off.' }, 410));
 cms.all('/people', c => c.json({ error: 'People are rebuilt from the King James text; the People editor is off.' }, 410));
