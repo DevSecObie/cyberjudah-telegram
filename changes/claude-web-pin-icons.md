@@ -1,0 +1,1 @@
+- web.cyberjudah.io moves to the current app release plus the home-screen fix: Add to Home Screen now shows the name CyberJudah and the lion icon instead of Bible Strong's. It also carries the merged class-notes look and the classes no longer credited to CyberJudah.
