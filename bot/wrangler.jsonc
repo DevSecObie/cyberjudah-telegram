@@ -149,11 +149,13 @@
     // events in a day page the admins from the hourly health check.
     // SEARCH_AI_MODEL is a library-only answer; SEARCH_AI_FREE_ONLY rejects third-party billing.
     // Remove the model setting to use ASK_FREE_MODEL. See docs/SEARCH_AI.md for quota limits.
+    // SEARCH_AI_QUOTA_EXEMPT lists the release check's synthetic reader (1), as staging does, so
+    // repeated production deploys on one day do not spend its allowance and roll the release back.
     // ASK_FREE_MODEL names the default free model: it costs less per token than the earlier default
     // (ask-models.json) and reasons and follows instructions far better; the earlier one stays free.
     "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
     "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_CLAUDE_FOR_READERS": "on", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.20", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
-    "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+    "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
     // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
     // DONATION_URL (the owner's own HTTPS giving link) is not set here: it is not secret, but no
