@@ -25,8 +25,8 @@ usage or provider failure retains the full reservation; unavailable storage bloc
 
 ### Claude for signed-in app readers
 
-Every signed-in app reader can ask Claude, paid from the owner's prepaid Anthropic console
-credit: Claude Haiku 5.5 (`CLAUDE_MODEL_LIGHT`) answers by default and Claude Sonnet 5.5
+Every signed-in app reader can ask Claude, paid from prepaid Anthropic Console
+credit on production (staging stays on the free models): Claude Haiku 5.5 (`CLAUDE_MODEL_LIGHT`) answers by default and Claude Sonnet 5.5
 (`CLAUDE_MODEL`) answers deep questions. It runs only while `ASK_CLAUDE_FOR_READERS` is `"on"`,
 the `ANTHROPIC_API_KEY` secret is set and `ASK_CLAUDE_DAILY_USD_CAP` is above zero. Each answer
 reserves `ASK_CLAUDE_MAX_USD` ($0.20) before any model call, against two limits kept apart from
