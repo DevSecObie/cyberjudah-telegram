@@ -45,7 +45,7 @@ async function setup(page: Page) {
   // Paid models are paid from the reader's balance (credits.spec.ts tests that): each reader here
   // gets $5 from the admins once, as the app first loads their account, and has accepted the
   // default paid model's limit once, so these tests exercise Ask beyond its spending prompt.
-  await page.addInitScript(() => { try { if (!localStorage.getItem("cj:ai-limits")) localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-opus-5": 2_000_000, "anthropic/claude-sonnet-5": 2_000_000 })); } catch { /* none */ } });
+  await page.addInitScript(() => { try { if (!localStorage.getItem("cj:ai-limits")) localStorage.setItem("cj:ai-limits", JSON.stringify({ "anthropic/claude-opus-5.5": 2_000_000, "anthropic/claude-sonnet-5.5": 2_000_000 })); } catch { /* none */ } });
   await page.route("**/api/ask/account*", async (r) => {
     const data = (r.request().headers().authorization ?? "").replace(/^tma /, "");
     const id = Number(JSON.parse(new URLSearchParams(data).get("user") ?? "{}").id);
@@ -290,12 +290,12 @@ test("privacy: Delete my data removes the reader's saved chats and balance, and 
 test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every other reader on Claude Sonnet", async ({ page, request }) => {
   const acct = async (n: number) => (await (await request.get("/api/ask/account", { headers: { authorization: `tma ${initData(n)}` } })).json()) as { model: string };
   expect((await acct(100000002 - RUN)).model).toBe("anthropic/claude-opus-5.5");
-  expect((await acct(51)).model).toBe("anthropic/claude-sonnet-5");
+  expect((await acct(51)).model).toBe("anthropic/claude-sonnet-5.5");
   await setup(page);
   await page.goto(`/ask${launch(51)}`);
   const heading = page.locator(".chat2__heading");
-  await expect(heading).toHaveAccessibleName(/^Ask CyberJudah.*Sonnet 5.*Change the model$/);
-  await expect(heading).toContainText("Sonnet 5");
+  await expect(heading).toHaveAccessibleName(/^Ask CyberJudah.*Sonnet 5\.5.*Change the model$/);
+  await expect(heading).toContainText("Sonnet 5.5");
   await heading.click();
   await expect(page.getByRole("radiogroup", { name: "Model" })).toBeVisible();
   await page.keyboard.press("Escape");
