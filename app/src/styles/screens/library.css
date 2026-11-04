@@ -258,3 +258,14 @@
 .noteitem__title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 400 17px/1.3 var(--font-read); }
 .noteitem__desc { font: 400 17px/23px var(--font-read); }
 .noteitem__chips { padding: 0 20px 20px; }
+
+/* Class books: what the classes said, under the class's title; archive.org's reader fills the screen. */
+#root .class-book__said { display: block; margin-top: 4px; color: var(--text-2); font-size: 14px; line-height: 1.4; }
+#root .class-book-reader__frame { display: block; width: 100%; height: calc(100dvh - 140px); min-height: 420px; border: 0; border-radius: 12px; background: var(--fill-1); }
+#root .class-book__moments { display: grid; gap: 20px; }
+#root .class-book__moment .player { position: static; margin: 0; padding-top: 0; background: transparent; box-shadow: none; z-index: auto; }
+#root .class-book__moment .player__box { border-radius: 12px; overflow: hidden; }
+#root .class-book__title { display: grid; gap: 2px; margin-top: 8px; color: var(--text-1); text-decoration: none; }
+#root .class-book__title b { font-size: 15px; font-weight: 600; line-height: 1.3; }
+#root .class-book__title small { color: var(--text-2); font-size: 13px; }
+#root .class-book__moment .watch .player__frame { inset: 0; left: 0; bottom: 0; padding: 0; min-height: 0; border-radius: 0; background-color: transparent; }
