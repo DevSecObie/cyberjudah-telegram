@@ -25,25 +25,18 @@ usage or provider failure retains the full reservation; unavailable storage bloc
 
 ### Claude for signed-in app readers
 
-Every signed-in app reader can ask Claude, paid from prepaid Anthropic Console
-credit on production (staging stays on the free models): Claude Haiku 5.5 (`CLAUDE_MODEL_LIGHT`) answers by default and Claude Sonnet 5.5
-(`CLAUDE_MODEL`) answers deep questions. It runs only while `ASK_CLAUDE_FOR_READERS` is `"on"`,
-the `ANTHROPIC_API_KEY` secret is set and `ASK_CLAUDE_DAILY_USD_CAP` is above zero. Each answer
-reserves `ASK_CLAUDE_MAX_USD` ($0.20) before any model call, against two limits kept apart from
-the free models' allowance under the `claude:` day prefix:
-
-- `ASK_CLAUDE_DAILY_USD_CAP` ($2.50): what Claude may spend for readers in one UTC day, so the
-  credit lasts about four weeks instead of going in a day;
-- `ASK_CLAUDE_TOTAL_USD_CAP` ($70.00): everything it may ever spend for readers, over all days.
-
-The prepaid console balance (with auto-reload off) is the hard stop: when it is used up the API
-refuses and the free model answers. The reader's daily limit and the IP limit still apply. Past
-either cap, or when Claude cannot answer, the free model answers. When the allowance is exhausted,
+Signed-in app readers can ask Claude: `CLAUDE_MODEL_LIGHT` answers by default and `CLAUDE_MODEL`
+answers deep questions. It runs only while `ASK_CLAUDE_FOR_READERS` is `"on"`, the
+`ANTHROPIC_API_KEY` secret is set and `ASK_CLAUDE_DAILY_USD_CAP` is above zero. Each answer
+reserves `ASK_CLAUDE_MAX_USD` before any model call, against `ASK_CLAUDE_DAILY_USD_CAP` (per UTC
+day) and `ASK_CLAUDE_TOTAL_USD_CAP` (over all days), kept apart from the free models' allowance
+under the `claude:` day prefix. The reader's daily limit and the IP limit still apply. Past either
+cap, or when Claude cannot answer, the free model answers. When the allowance is exhausted,
 ordinary search results remain available without an AI answer.
 
 Every free Workers AI text model is offered in the app's model picker; `ASK_FREE_MODELS` can
 narrow the list. Each free answer is held to `ASK_FREE_MAX_USD` and all of them together to
-`ASK_FREE_DAILY_USD_CAP`, whichever model the reader picks.
+`ASK_FREE_DAILY_USD_CAP`.
 
 Production and staging run `bot/scripts/verify-release.mjs` after deployment. It verifies the
 configured hosted model returns an answer with library citations, under the normal reader
