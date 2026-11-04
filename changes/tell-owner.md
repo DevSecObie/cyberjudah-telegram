@@ -1,0 +1,1 @@
+- Claude threads can now send the owner a question or a heads-up as a Telegram message from the CyberJudah bot (the tell-owner workflow), instead of waiting in the app.
