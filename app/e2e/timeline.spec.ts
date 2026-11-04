@@ -223,7 +223,7 @@ test("search keeps its words: in the address, and on coming back from an event",
   await expect(page.getByRole("status")).toContainText("No results for “zzzz”");
 });
 
-test("The Final Captivity: a period's events by category, and an event's history, teaching, sources and where they differ", async ({ page }) => {
+test("The Final Captivity: a period's events by category, and an event's history, teaching and sources, with no source disagreements", async ({ page }) => {
   const index = SECTIONS.findIndex((s) => s.id === "fc-house-of-bondage");
   // In The American Captivity, after the periods before it.
   expect(index).toBeGreaterThanOrEqual(SECTIONS.filter((s) => !String(s.id).startsWith("fc-")).length);
@@ -235,8 +235,8 @@ test("The Final Captivity: a period's events by category, and an event's history
   const cite = page.locator(".fc-cite").first();
   await expect(cite).toHaveAttribute("href", /^https:\/\/(youtu\.be\/[\w-]{11}\?t=\d+|israelunite\.org\/)/);
   await expect(page.locator(".fc-teach .fc-para")).toHaveCount(0);
-  // Both accounts of her child are shown.
-  await expect(page.locator(".fc-differ").first()).toContainText("baby");
+  // The classes are the authority: no source disagreements are shown.
+  await expect(page.locator(".fc-differ")).toHaveCount(0);
   await expect(page.locator(".fc-sources li").first()).toBeVisible();
   await expect(page.locator(".fc-reviewed")).toContainText("Sources reviewed through");
   await shot(page, "fc-1-event");
