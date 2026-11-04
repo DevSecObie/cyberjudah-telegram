@@ -1,3 +1,4 @@
+import { sendClassAlerts } from "./class-alerts";
 import { askHealth } from "./ask-health";
 import { deviceAuth } from "./device-auth";
 import { IdentityError } from "./account-links";
@@ -669,6 +670,8 @@ export default {
     ctx.waitUntil(sendReminders(env, new Date(event.scheduledTime)).catch((e) => console.error(JSON.stringify({ event: "reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
     // The opt-in reminder to top up before a Sabbath, feast day or New Moon, at midday where each reader is (topup-remind.ts).
     ctx.waitUntil(sendTopupReminders(env, event.scheduledTime).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "topup_reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // New class alerts for the phone app, every quarter hour so a live class is announced soon after it starts (class-alerts.ts).
+    ctx.waitUntil(sendClassAlerts(env).then((r) => { if (r.sent || r.failed || r.seeded) console.log(JSON.stringify({ event: "class_alerts", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "class_alerts_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Everything else runs on the hour only.
     if (event.cron !== "0 * * * *") return;
     ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));

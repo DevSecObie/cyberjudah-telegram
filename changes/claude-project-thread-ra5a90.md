@@ -1,0 +1,1 @@
+- The phone app can alert readers when a new class is posted or goes live. Every quarter hour the server checks the classroom channel and sends one Firebase Cloud Messaging message per new class to a topic the app joins when a reader turns on "New class alerts". The server never receives or stores a phone's token. Alerts are off on a Worker without the Firebase service account.
