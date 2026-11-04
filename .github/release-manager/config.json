@@ -1,7 +1,4 @@
 {
-  "issue_title": "Release status",
-  "label": "release-manager",
-  "owner_mention": "@DevSecObie",
   "app_repo": "DevSecObie/cyberjudah-app",
   "release_branch": "codex/bible-strong-mobile-release",
   "app_dir": "apps/expo",
@@ -16,7 +13,13 @@
     "EXPO_PUBLIC_ASK_PURCHASES_ENABLED": "false",
     "EXPO_PUBLIC_PLAYGROUND": "false"
   },
-  "store_env_forbidden": ["staging", "workers.dev", "localhost", "127.0.0.1", "ngrok"],
+  "store_env_forbidden": [
+    "staging",
+    "workers.dev",
+    "localhost",
+    "127.0.0.1",
+    "ngrok"
+  ],
   "store_builds": [
     {
       "version": "28.3.0",
@@ -30,10 +33,27 @@
     "web": "the staging web export runs out of memory on the release branch"
   },
   "watch_workflows": [
-    { "name": "iPhone build on merge", "file": "cyberjudah-ios-signed.yml", "branch": "codex/bible-strong-mobile-release" },
-    { "name": "Android and web staging builds", "file": "cyberjudah-staging-builds.yml", "branch": "codex/bible-strong-mobile-release" },
-    { "name": "iPhone store build (GitHub)", "file": "cyberjudah-ios-store.yml" },
-    { "name": "Android store build (GitHub)", "file": "cyberjudah-android-store.yml" },
-    { "name": "App update publish", "file": "cyberjudah-update.yml" }
+    {
+      "name": "iPhone build on merge",
+      "file": "cyberjudah-ios-signed.yml",
+      "branch": "codex/bible-strong-mobile-release"
+    },
+    {
+      "name": "Android and web staging builds",
+      "file": "cyberjudah-staging-builds.yml",
+      "branch": "codex/bible-strong-mobile-release"
+    },
+    {
+      "name": "iPhone store build (GitHub)",
+      "file": "cyberjudah-ios-store.yml"
+    },
+    {
+      "name": "Android store build (GitHub)",
+      "file": "cyberjudah-android-store.yml"
+    },
+    {
+      "name": "App update publish",
+      "file": "cyberjudah-update.yml"
+    }
   ]
 }

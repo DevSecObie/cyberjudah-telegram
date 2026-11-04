@@ -9,7 +9,7 @@ needed. Settings are in `config.json`.
 
 | When | What |
 |---|---|
-| Every day at 13:17 UTC, and when run by hand | Rewrites one open issue, **Release status**, about the app's release branch (`release_branch` in `config.json`). It comments (and mentions the owner) and sends one Telegram message only when something **new** turns red, and once when all is clear again. |
+| Every day at 13:17 UTC, and when run by hand | Writes the report about the app's release branch (`release_branch` in `config.json`) to the run summary. While anything is red, the bot sends the owner one Telegram message with the problems and the run link. It writes nothing to GitHub: no issue, comment or commit. |
 | A pull request changes the release manager | Prints the same report in the run summary. Nothing is written. |
 
 The report covers:
@@ -38,6 +38,6 @@ the next-build-number check and "In the next release" start from it.
 ## What it never does
 
 - Start a build, submit to a store, publish an app update, merge, approve or reject anything.
-- Change a setting, a branch or a file in the app repository.
+- Open or edit an issue, comment, branch or file in any repository.
 - Read a secret's value into a log. The report job runs in the `automation` environment and uses
   only the bot token and chat id it sends alerts with.

@@ -1,11 +1,12 @@
 name: release-manager
 
 # Release manager for the iPhone and Android app (.github/release-manager/README.md).
-# Every day, and when run by hand: rewrites one "Release status" issue with the release
+# Every day, and when run by hand: writes a report to the run summary on the release
 # branch's store build settings, the next build number, checks, build workflows, runs waiting
 # for Approve, pull requests into the release branch and what changed since the last store
-# build. A comment and one Telegram message go out only when something new turns red.
-# On a pull request that changes it, the same report is printed only (nothing is written).
+# build. While something is red, the bot also sends the owner one Telegram message.
+# It writes nothing to GitHub (no issues, comments or commits).
+# On a pull request that changes it, the same report is printed only.
 # It never builds, submits, merges, approves or reads a secret's value into a log.
 
 on:
@@ -55,7 +56,6 @@ jobs:
     permissions:
       contents: read
       actions: read
-      issues: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -65,7 +65,7 @@ jobs:
             .github/custodian
             .github/release-manager
           persist-credentials: false
-      - name: Update the Release status issue
+      - name: Write the release report
         env:
           GITHUB_TOKEN: ${{ github.token }}
           ALERT_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}

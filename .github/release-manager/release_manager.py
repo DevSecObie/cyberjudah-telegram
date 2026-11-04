@@ -17,9 +17,9 @@ What it checks on the release branch (the branch store builds are made from):
   * What changed on the release branch since the last store build.
 
 Tasks
-  report            Print the report. With dry=true (pull requests) it only prints.
-                    Otherwise it rewrites one open issue, "Release status", comments when
-                    something new turns red, and sends one Telegram message per new problem.
+  report            Write the report to the run summary. While something is red, also send the
+                    owner one Telegram message. With dry=true (pull requests) it only prints.
+                    It writes nothing to GitHub.
 
 It never builds, submits, merges, approves, changes a setting or reads a secret's value into a log.
 """
@@ -296,7 +296,7 @@ def build_report(cfg):
     head = C.gh("GET", f"/repos/{repo}/commits/{q(branch)}")
     sha = head["sha"]
     problems, lines = [], []
-    lines.append(f"_Updated {C.NOW:%Y-%m-%d %H:%M} UTC by the release-manager workflow. Release branch "
+    lines.append(f"_{C.NOW:%Y-%m-%d %H:%M} UTC. Release branch "
                  f"[`{branch}`]({C.SERVER}/{repo}/tree/{branch}) at "
                  f"[`{sha[:7]}`]({C.SERVER}/{repo}/commit/{sha})._\n")
 
@@ -336,38 +336,24 @@ def build_report(cfg):
     return f"## {status}\n\n" + "\n".join(lines), problems
 
 
-def alert(issue, problems):
-    """One Telegram message per new problem, and one when all is clear again. Never prints a token."""
-    if not os.environ.get("ALERT_BOT_TOKEN") or not issue:
+def alert(problems):
+    """While something is red, one Telegram message per run (daily). Nothing is sent when all is green.
+    Never prints a token."""
+    if not problems or not os.environ.get("ALERT_BOT_TOKEN"):
         return
-    body = C.gh("GET", f"/repos/{C.REPO}/issues/{issue['number']}").get("body") or ""
-    before = C.read_marker(body, C.ALERT_MARK)
-    new = [p for p in problems if p not in (before or [])]
-    cleared = bool(before) and not problems
-    if new or cleared:
-        text = ("CyberJudah release watch: something new needs you.\n\n" + "\n".join("• " + p for p in new[:15])
-                if new else "CyberJudah release watch: all clear again.")
-        if not C.telegram(text + f"\n\n{issue.get('html_url', '')}"):
-            return  # try again on the next run
-    elif sorted(before or []) == sorted(problems):
-        return  # nothing to send and nothing to remember
-    head, _, tail = body.partition(C.ALERT_MARK)
-    tail = tail.split("-->", 1)[1] if "-->" in tail else ""
-    body = head.rstrip() + f"\n{C.ALERT_MARK}{json.dumps(problems)}-->" + tail
-    C.gh("PATCH", f"/repos/{C.REPO}/issues/{issue['number']}", {"body": body})
+    run = ""
+    if os.environ.get("GITHUB_RUN_ID"):
+        run = f"\n\n{C.SERVER}/{C.REPO}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+    C.telegram("CyberJudah release watch: the app's release branch needs attention.\n\n"
+               + "\n".join("• " + p for p in problems[:15]) + run)
 
 
 def cmd_report(cfg, args):
     body, problems = build_report(cfg)
-    if args.get("dry") is True:
-        C.summary(body)
-        print(f"\n{len(problems)} problem(s).")
-        return 0
-    issue_cfg = {"label": cfg["label"], "health_issue_title": cfg["issue_title"],
-                 "owner_mention": cfg.get("owner_mention")}
-    issue = C.upsert_issue(issue_cfg, body, problems)
-    alert(issue, problems)
     C.summary(body)
+    print(f"\n{len(problems)} problem(s).")
+    if args.get("dry") is not True:
+        alert(problems)
     return 0
 
 
