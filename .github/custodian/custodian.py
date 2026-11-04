@@ -931,6 +931,31 @@ def comment_somewhere(cfg, pr, text):
 
 # ---------------------------------------------------------------- main
 
+def cmd_tell(cfg, args):
+    """Send the owner one message from a Claude thread (tell-owner.yml). The text comes only from
+    the TELL_* variables, never from the command line, and goes out as plain text (no Markdown or
+    HTML), so nothing in it can format, link-preview or run."""
+    def clean(name, limit):
+        text = os.environ.get(name, "")
+        # Keep newlines and tabs; drop other control characters and invisible direction marks.
+        text = "".join(c for c in text if c in "\n\t" or (ord(c) >= 32 and ord(c) != 127 and not 0x200B <= ord(c) <= 0x200F and not 0x202A <= ord(c) <= 0x202E and not 0x2066 <= ord(c) <= 0x2069))
+        return text.strip()[:limit]
+    message = clean("TELL_MESSAGE", 3500)
+    sender = clean("TELL_FROM", 80) or "A Claude thread"
+    link = clean("TELL_LINK", 300)
+    if not message:
+        sys.exit("TELL_MESSAGE is empty.")
+    if link and not re.match(r"^https://[A-Za-z0-9.-]+(/[^\s]*)?$", link):
+        sys.exit("TELL_LINK must be one https:// address.")
+    text = f"From {sender}:\n\n{message}" + (f"\n\n{link}" if link else "")
+    if not os.environ.get("ALERT_BOT_TOKEN"):
+        sys.exit("The bot token is not available to this run.")
+    if not telegram(text):
+        sys.exit("Telegram did not take the message.")
+    summary(f"Sent the owner a message from {sender} ({len(message)} characters).")
+    return 0
+
+
 def main():
     if not REPO or not TOKEN:
         sys.exit("GITHUB_REPOSITORY and GITHUB_TOKEN are required.")
@@ -940,7 +965,7 @@ def main():
     for a in sys.argv[2:]:
         k, _, v = a.partition("=")
         args[k.lstrip("-")] = {"true": True, "false": False}.get(v, v)
-    fn = {"health": cmd_health, "branches": cmd_branches, "revert": cmd_revert, "ota": cmd_ota, "waiting": cmd_waiting}.get(cmd)
+    fn = {"health": cmd_health, "branches": cmd_branches, "revert": cmd_revert, "ota": cmd_ota, "waiting": cmd_waiting, "tell": cmd_tell}.get(cmd)
     if not fn:
         sys.exit(f"Unknown task {cmd!r}")
     sys.exit(fn(cfg, args))
