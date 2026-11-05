@@ -1,6 +1,7 @@
 import { decodeJwt } from "jose";
 import type { Env } from "./env";
 import { open, pid, seal } from "./privacy.mjs";
+import { accountDeletionBlocked, accountDeletionSchema } from "./account-deletion-state";
 
 export const FIREBASE_PROJECT = "cyberjudah-app";
 // Firebase client API keys identify a project; they are not an administrator credential.
@@ -72,12 +73,15 @@ export async function linkAccounts(env: Env, id: number, firebaseUid: string): P
   if (!Number.isSafeInteger(id) || id <= 0 || !validFirebaseUid(firebaseUid) || (/^tg_/.test(firebaseUid) && firebaseUid !== `tg_${id}`)) throw new IdentityError(409, "account_link_conflict");
   await schema(env);
   const owner = await pid(env, id), sealed = await seal(env, owner, { id });
+  await accountDeletionSchema(env);
+  const legacy = telegramFirebaseUid(id);
   // The reserved Telegram-only bridge may acquire an existing provider UID. No user-created
   // Firebase account is replaced; old tokens cease resolving when this reserved alias changes.
-  await env.DB.prepare("UPDATE OR IGNORE account_links SET firebase_uid=? WHERE telegram_owner=? AND firebase_uid=?")
-    .bind(firebaseUid, owner, `tg_${id}`).run();
-  await env.DB.prepare("INSERT OR IGNORE INTO account_links (firebase_uid,telegram_owner,sealed,created_at) VALUES (?,?,?,?)")
-    .bind(firebaseUid, owner, sealed, Date.now()).run();
+  await env.DB.prepare("UPDATE OR IGNORE account_links SET firebase_uid=? WHERE telegram_owner=? AND firebase_uid=? AND NOT EXISTS (SELECT 1 FROM account_deletion_blocks WHERE firebase_uid IN (account_links.firebase_uid,?,?))")
+    .bind(firebaseUid, owner, legacy, firebaseUid, legacy).run();
+  await env.DB.prepare("INSERT OR IGNORE INTO account_links (firebase_uid,telegram_owner,sealed,created_at) SELECT ?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM account_deletion_blocks WHERE firebase_uid IN (?,?))")
+    .bind(firebaseUid, owner, sealed, Date.now(), firebaseUid, legacy).run();
+  if (await accountDeletionBlocked(env, firebaseUid) || await accountDeletionBlocked(env, legacy)) throw new IdentityError(409, "account_deletion_in_progress");
   if (await linkedTelegram(env, firebaseUid) !== id || await linkedFirebase(env, id) !== firebaseUid) throw new IdentityError(409, "account_link_conflict");
 }
 export async function removeAccountLink(env: Env, id: number) {

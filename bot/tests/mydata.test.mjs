@@ -2,7 +2,7 @@ import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { DatabaseSync } from "node:sqlite";
-import { pid, seal } from "../src/privacy.mjs";
+import { pid, seal, keyedHash } from "../src/privacy.mjs";
 
 // mydata.ts reaches the chat, reminder and billing stores, which import one another without
 // file extensions (as Workers bundles them), so it is bundled for Node first.
@@ -10,9 +10,10 @@ const out = new URL("./.build/mydata.mjs", import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/mydata.ts"; export { linkAccounts, linkedFirebase } from "./src/account-links.ts"; export { saveExchange } from "./src/chats.ts"; export { saveReminder, tgRid } from "./src/remind.ts"; export { requestNotes } from "./src/requests.ts"; export { adjust } from "./src/credits.ts"; export { setTopupReminder } from "./src/topup-remind.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
 // No real Firestore service is contacted by these multi-store unit tests.
 const originalFetch = globalThis.fetch;
-globalThis.fetch = async (url) => {
+globalThis.fetch = async (url, init = {}) => {
   const u = new URL(url);
   assert.equal(u.hostname, "127.0.0.1");
+  if (u.pathname.endsWith(":commit")) return Response.json({ writeResults: JSON.parse(init.body).writes.map(() => ({})) });
   if (u.pathname.endsWith(":runQuery")) return Response.json([]);
   if (u.pathname.endsWith(":listCollectionIds")) return Response.json({ collectionIds: [] });
   if (u.search) return Response.json({ documents: [] });
@@ -34,14 +35,16 @@ const kv = () => {
 };
 /** D1 that accepts every statement and holds no allowance rows (the allowance is covered in billing tests). */
 const sql = [];
+const deletionBlocks = new Set();
 const d1 = {
-  prepare: (q) => ({ query: q, args: [], bind(...a) { this.args = a; return this; }, first: async () => null,
-    async run() { sql.push([q, this.args]); return { meta: { changes: 0 } }; }, all: async () => ({ results: [] }) }),
+  prepare: (q) => ({ query: q, args: [], bind(...a) { this.args = a; return this; }, async first() { return q.startsWith("SELECT 1 AS blocked") && deletionBlocks.has(this.args[0]) ? { blocked: 1 } : null; },
+    async run() { if (q.startsWith("INSERT OR IGNORE INTO account_deletion_blocks")) deletionBlocks.add(this.args[0]); sql.push([q, this.args]); return { meta: { changes: 0 } }; }, all: async () => ({ results: [] }) }),
   batch: async (s) => Promise.all(s.map(statement => statement.run())),
 };
 const reminder = { on: true, hour: 7, minute: 0, tz: "UTC", channels: { telegram: true }, chatId: 77, pushes: [], pending: [], from: "2026-10-01" };
 
 async function reader() {
+  deletionBlocks.clear();
   const env = { ACCOUNT_DATA_DELETION_READY: "true", FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089", SUBS: kv(), DB: d1, PRIVACY_KEY: "test-key", BOT_TOKEN: "1:x" };
   await saveExchange(env, 77, "abc12345", "Why keep the Passover?", { content: "A memorial." });
   await saveReminder(env, await tgRid(env, 77), reminder);
@@ -84,8 +87,9 @@ test("Download and Delete my data reach the Firestore marks account sync writes 
   const highlightName = "projects/demo-cyberjudah/databases/(default)/documents/users/tg_77/highlights/mark1";
   let highlightDeleted = false;
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (url) => {
+  globalThis.fetch = async (url, init = {}) => {
     const u = new URL(url);
+    if (u.pathname.endsWith(":commit")) return Response.json({ writeResults: JSON.parse(init.body).writes.map(() => ({})) });
     if (u.pathname.endsWith(":batchWrite")) { highlightDeleted = true; return new Response(JSON.stringify({ writeResults: [{}], status: [{}] }), { status: 200 }); }
     if (u.pathname.endsWith(":runQuery")) return new Response(JSON.stringify([{ readTime: "2026-10-28T00:00:00Z" }]), { status: 200 });
     const marker = "/documents/";
@@ -262,11 +266,29 @@ test("Delete my data: incomplete Firestore cleanup retains the verified link for
   const { api, env } = await storedReader(t, "firestore-link-retry");
   await api.linkAccounts(env, 77, "verified-login");
   const fetchBefore = globalThis.fetch;
-  globalThis.fetch = async () => new Response("", { status: 503 });
+  globalThis.fetch = async (url, init) => String(url).endsWith(":commit") ? Response.json({ writeResults: JSON.parse(init.body).writes.map(() => ({})) }) : new Response("", { status: 503 });
   try {
     await assert.rejects(api.deleteData(env, 77), /Firestore read failed/);
     assert.equal(await api.linkedFirebase(env, 77), "verified-login");
   } finally { globalThis.fetch = fetchBefore; }
   await api.deleteData(env, 77);
+  assert.equal(await api.linkedFirebase(env, 77), null);
+});
+
+test("Telegram/browser data deletion removes canonical and legacy publications, retaining barriers and link on failure", async t => {
+  const { api, env, db, fail } = await storedReader(t, "all-channel-publications");
+  await api.linkAccounts(env, 77, "verified-login");
+  db.exec("CREATE TABLE published_studies (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL, author TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL)");
+  for (const uid of ["tg_77", "verified-login", "someone-else"]) {
+    db.prepare("INSERT INTO published_studies VALUES (?,?,'title','author','body','now')").run(uid, await keyedHash(env, "published-study", uid));
+  }
+  fail(/^DELETE FROM published_studies/);
+  await assert.rejects(api.deleteData(env, 77), /storage unavailable/);
+  assert.equal(await api.linkedFirebase(env, 77), "verified-login");
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM published_studies").get().n, 3);
+  fail();
+  await api.deleteData(env, 77);
+  assert.deepEqual(db.prepare("SELECT id FROM published_studies").all().map(row => row.id), ["someone-else"]);
+  assert.deepEqual(db.prepare("SELECT firebase_uid FROM account_deletion_blocks ORDER BY firebase_uid").all().map(row => row.firebase_uid), ["tg_77", "verified-login"]);
   assert.equal(await api.linkedFirebase(env, 77), null);
 });

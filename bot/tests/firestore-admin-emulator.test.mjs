@@ -8,7 +8,7 @@ const host = process.env.FIRESTORE_EMULATOR_HOST;
 if (host && !/^(127\.0\.0\.1|localhost):\d+$/.test(host)) throw new Error('A loopback emulator is required');
 const out = new URL('./.build/firestore-admin-emulator.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/firestore-admin.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
-const { deleteFirebaseAccountSyncMarks, inventoryOrphanedStudyParents, deleteOwnedStudy } = await import(out);
+const { deleteFirebaseAccountSyncMarks, inventoryOrphanedStudyParents, deleteOwnedStudy, freezeAccountSyncWrites } = await import(out);
 
 test('actual Firestore traverses missing parents, preserves failed study parents, and retries without touching other owners', { skip: !host }, async () => {
   const uid = `deletion-test-${randomUUID()}`;
@@ -153,5 +153,32 @@ test('ordinary deletion atomically retains ownership, rejects changed parents, a
       globalThis.fetch = originalFetch;
       for (const p of paths) await request(p, { method: 'DELETE' });
     }
+  }
+});
+
+test('the actual barrier commit survives cleanup and a quarantined replacement parent prevents all erasure', { skip: !host }, async () => {
+  const uid = `barrier-${randomUUID()}`, root = 'projects/demo-cyberjudah/databases/(default)/documents';
+  const base = `http://${host}/v1/${root}`;
+  const headers = { authorization: 'Bearer owner', 'content-type': 'application/json' };
+  const env = { FIRESTORE_EMULATOR_HOST: host, DB: { prepare: () => ({ bind() { return this; }, run: async () => ({}), first: async () => null }) } };
+  const scopes = process.env.FIRESTORE_RULES_TEST_SCOPE === 'production' ? ['studies'] : ['studies','staging_studies'];
+  const paths = [`users/${uid}/notes/own`, `account_deletion_blocks/${uid}`];
+  const call = (path, init = {}) => fetch(`${base}/${path}`, { headers, ...init });
+  const seed = (path, fields) => call(path, { method: 'PATCH', body: JSON.stringify({ fields }) });
+  try {
+    await seed(paths[0], { text: { stringValue: 'own data waits for validation' } });
+    for (const collection of scopes) {
+      const study = `${collection}/${uid}`, ledger = `study_deletion_owners/${collection}:${uid}`;
+      paths.push(study, study + '/revisions/older', ledger);
+      await seed(study, { user: { mapValue: { fields: { id: { stringValue: uid } } } } });
+      await seed(study + '/revisions/older', { text: { stringValue: 'different historical owner' } });
+      await seed(ledger, { state: { stringValue: 'ownership-unresolved' } });
+    }
+    await freezeAccountSyncWrites(env, [uid]);
+    assert.equal((await call(`account_deletion_blocks/${uid}`)).status, 200);
+    await assert.rejects(deleteFirebaseAccountSyncMarks(env, uid), /study_ownership_unresolved/);
+    for (const path of paths) assert.equal((await call(path)).status, 200, 'neither quarantine, history nor unrelated own data may disappear');
+  } finally {
+    for (const path of paths) await call(path, { method: 'DELETE' });
   }
 });

@@ -4,6 +4,7 @@ import { Marked } from "marked";
 import { IdentityError, verifyFirebaseIdentity } from "./account-links";
 import type { Env } from "./env";
 import { keyedHash } from "./privacy.mjs";
+import { accountDeletionSchema, accountDeletionBlocked } from "./account-deletion-state";
 
 /**
  * A study the app's reader chose to publish. The app sends its own study as Markdown with
@@ -17,12 +18,26 @@ type Row = { id: string; owner: string; title: string; author: string; body: str
 
 async function schema(env: Env) {
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS published_studies (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL, author TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL)").run();
+  await accountDeletionSchema(env);
 }
 
 async function ownerOf(c: { req: { header(name: string): string | undefined }; env: Env }) {
   const token = (c.req.header("authorization") ?? "").match(/^Bearer\s+(.+)$/i)?.[1] ?? "";
   const identity = await verifyFirebaseIdentity(token);
-  return keyedHash(c.env, "published-study", identity.uid) as Promise<string>;
+  return { owner: await keyedHash(c.env, "published-study", identity.uid) as string, uid: identity.uid };
+}
+
+/** Called only with server-derived identities after the durable D1 barriers are acknowledged.
+ * Publication inserts consult that barrier in the same SQL statement, closing the auth/write race. */
+export async function deletePublishedStudiesForIdentities(env: Env, identities: readonly string[]): Promise<void> {
+  if (!env.PRIVACY_KEY) throw new Error("Publication cleanup is unavailable.");
+  await schema(env);
+  const statements = await Promise.all([...new Set(identities)].map(async uid => {
+    if (!await accountDeletionBlocked(env, uid)) throw new Error("Publication barrier is missing.");
+    return env.DB.prepare("DELETE FROM published_studies WHERE owner=?").bind(await keyedHash(env, "published-study", uid));
+  }));
+  const result = await env.DB.batch(statements);
+  if (result.length !== statements.length) throw new Error("Publication cleanup failed.");
 }
 
 const clean = (value: unknown, max: number) => typeof value === "string" ? value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, max) : "";
@@ -36,7 +51,7 @@ publishedStudies.use("*", async (c, next) => { c.header("cache-control", "no-sto
 publishedStudies.delete("/", async c => {
   if (!c.env.PRIVACY_KEY) return c.json({ error: "publishing_unavailable" }, 503);
   let owner: string;
-  try { owner = await ownerOf(c); }
+  try { ({ owner } = await ownerOf(c)); }
   catch (error) { return error instanceof IdentityError ? c.json({ error: error.reason }, error.status as 401) : c.json({ error: "sign_in_unavailable" }, 503); }
   await schema(c.env);
   const result = await c.env.DB.prepare("DELETE FROM published_studies WHERE owner=?").bind(owner).run();
@@ -55,8 +70,8 @@ publishedStudies.put("/:id", async c => {
   const id = c.req.param("id");
   if (!ID.test(id)) return c.json({ error: "invalid_id" }, 400);
   if (!c.env.PRIVACY_KEY) return c.json({ error: "publishing_unavailable" }, 503);
-  let owner: string;
-  try { owner = await ownerOf(c); }
+  let owner: string, uid: string;
+  try { ({ owner, uid } = await ownerOf(c)); }
   catch (error) { return error instanceof IdentityError ? c.json({ error: error.reason }, error.status as 401) : c.json({ error: "sign_in_unavailable" }, 503); }
   const payload = await c.req.json().catch(() => null) as { title?: unknown; author?: unknown; body?: unknown } | null;
   const title = clean(payload?.title, 200), author = clean(payload?.author, 120), body = typeof payload?.body === "string" ? payload.body : "";
@@ -65,9 +80,10 @@ publishedStudies.put("/:id", async c => {
   const updated = new Date().toISOString();
   // Insert, or update only a row this same reader owns: another reader's study is never replaced.
   const result = await c.env.DB.prepare(
-    "INSERT INTO published_studies(id,owner,title,author,body,updated) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,author=excluded.author,body=excluded.body,updated=excluded.updated WHERE published_studies.owner=excluded.owner",
-  ).bind(id, owner, title, author, body, updated).run();
-  if (!result.meta.changes) return c.json({ error: "not_your_study" }, 403);
+    "INSERT INTO published_studies(id,owner,title,author,body,updated) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM account_deletion_blocks WHERE firebase_uid=?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,author=excluded.author,body=excluded.body,updated=excluded.updated WHERE published_studies.owner=excluded.owner",
+  ).bind(id, owner, title, author, body, updated, uid).run();
+  if (!result.meta.changes) return await accountDeletionBlocked(c.env, uid)
+    ? c.json({ error: "account_deletion_in_progress" }, 409) : c.json({ error: "not_your_study" }, 403);
   return c.json({ published: true, updated, path: `/app/published/${id}` });
 });
 
@@ -76,7 +92,7 @@ publishedStudies.delete("/:id", async c => {
   if (!ID.test(id)) return c.json({ error: "invalid_id" }, 400);
   if (!c.env.PRIVACY_KEY) return c.json({ error: "publishing_unavailable" }, 503);
   let owner: string;
-  try { owner = await ownerOf(c); }
+  try { ({ owner } = await ownerOf(c)); }
   catch (error) { return error instanceof IdentityError ? c.json({ error: error.reason }, error.status as 401) : c.json({ error: "sign_in_unavailable" }, 503); }
   await schema(c.env);
   const row = await c.env.DB.prepare("SELECT owner FROM published_studies WHERE id=?").bind(id).first<{ owner: string }>();
@@ -114,7 +130,7 @@ const page = (status: number, title: string, inner: string) => new Response(
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(title)}</title><style>${STYLE}</style></head><body><main>${inner}<footer>Written in the CyberJudah app.</footer></main></body></html>`,
   { status, headers: {
     "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex", "x-content-type-options": "nosniff",
-    "referrer-policy": "no-referrer", "cache-control": status === 200 ? "public, max-age=60" : "no-store",
+    "referrer-policy": "no-referrer", "cache-control": "no-store",
     "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
   } },
 );

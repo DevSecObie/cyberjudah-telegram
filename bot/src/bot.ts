@@ -339,5 +339,5 @@ export function deletedSummary(d: Deleted): string {
     d.topupReminder ? "your top-up reminder" : "",
     d.accountSyncRecords ? `${d.accountSyncRecords} synced reading ${d.accountSyncRecords === 1 ? "mark" : "marks"}` : "",
   ].filter(Boolean);
-  return `Done. Deleted: ${parts.join(", ")}, any cloud study backup, and your browser sign-ins. Payment records keep only Telegram's charge reference, not who paid.`;
+  return `Done. Deleted: ${parts.join(", ")}, any cloud study backup, your published studies, and your browser sign-ins. Payment records keep only Telegram's charge reference, not who paid.`;
 }

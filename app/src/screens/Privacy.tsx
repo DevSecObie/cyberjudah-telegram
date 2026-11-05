@@ -69,7 +69,7 @@ export function Privacy() {
             <Row icon="close" title="Withdraw AI agreement" sub={agreed.length ? `You agreed to: ${agreed.join(", ")}. Ask and Search will ask again before sending a question to an external AI provider.` : "You have not agreed to any AI provider."} onClick={agreed.length ? () => { withdraw(); setAgreed([]); haptic("select"); setStatus("Done. Ask and Search will ask before sending your next question to an external AI provider."); } : undefined} />
           </List>
         ) : <p className="hint">Open CyberJudah in Telegram to download or delete what is kept about you. In the bot you can also send /mydata or /deletemydata. A reminder set up in this browser is removed in Settings → Reading reminders.</p>}
-        <p>Deletion is complete only when confirmed. If removal cannot be verified, some records may remain; contact <a href={`mailto:${PRIVACY_CONTACT}`}>{PRIVACY_CONTACT}</a> for help completing it.</p>
+        <p>Deletion is complete only when confirmed. A minimal account identifier is retained to block old devices from restoring erased study data; this record contains no study text. If removal cannot be verified, some records may remain; contact <a href={`mailto:${PRIVACY_CONTACT}`}>{PRIVACY_CONTACT}</a> for help completing it.</p>
         {status ? <p className="hint" role="status">{status}</p> : null}
       </Section>
 

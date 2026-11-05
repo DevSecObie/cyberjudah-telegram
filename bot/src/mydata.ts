@@ -11,6 +11,7 @@ import { open, pid, seal } from "./privacy.mjs";
 import type { NoteRequest } from "./requests";
 import { deleteAccountSyncMarks, exportAccountSyncMarks } from "./firestore-admin";
 import { assertAccountDeletionReady } from "./account-deletion-readiness";
+import { beginTelegramErasure } from "./account-erasure";
 
 /**
  * A reader's rights over what CyberJudah keeps about them (docs/PRIVACY.md; Telegram's Standard
@@ -77,6 +78,7 @@ export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   // Preserve links and sessions before touching any store while complete erasure is unverified.
   assertAccountDeletionReady(env);
+  await beginTelegramErasure(env, uid);
   const me = await pid(env, uid);
   await deleteStudyBackup(env, uid);
   const savedChats = await deleteAllChats(env, uid);

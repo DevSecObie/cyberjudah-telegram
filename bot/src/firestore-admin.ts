@@ -156,6 +156,26 @@ const ACCOUNT_ROOTS = ["users", "staging_users", "users-status", "staging_users-
 const STUDY_ROOTS = ["studies", "staging_studies"] as const;
 const STUDY_OWNERS = "study_deletion_owners";
 const MAX_DEPTH = 8;
+
+/** Commit and acknowledge every UID barrier before enumerating data. Rules deny client writes
+ * while these server-only records exist, including old sessions and offline queue replay.
+ * The markers are deliberately outside the erased roots and contain no study content. */
+export async function freezeAccountSyncWrites(env: Env, identities: readonly string[]): Promise<void> {
+  if (!syncConfigured(env) || !identities.length || !identities.every(validFirebaseUid)) throw new Error("Account deletion is unavailable.");
+  const { documentsUrl } = databasePath(env);
+  const nameRoot = documentsUrl.slice(documentsUrl.indexOf("projects/"));
+  const writes = [...new Set(identities)].map(uid => ({ update: {
+    name: `${nameRoot}/account_deletion_blocks/${uid}`,
+    fields: { version: { integerValue: "1" } },
+  } }));
+  const response = await fetch(`${documentsUrl}:commit`, {
+    method: "POST", headers: { authorization: `Bearer ${await accessToken(env)}`, "content-type": "application/json" },
+    body: JSON.stringify({ writes }),
+  });
+  if (!response.ok) throw new Error("Account deletion barrier failed.");
+  const result = await response.json() as { writeResults?: unknown[] };
+  if (!Array.isArray(result.writeResults) || result.writeResults.length !== writes.length) throw new Error("Account deletion barrier failed.");
+}
 const validStudyId = (id: string) => id.length > 0 && new TextEncoder().encode(id).length < 1400 && id !== "." && id !== ".." && !/[\u0000-\u001f/]/.test(id);
 
 export class StudyDeletionError extends Error {
