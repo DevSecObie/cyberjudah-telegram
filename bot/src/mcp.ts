@@ -13,7 +13,6 @@ import { BOOKS, COLLECTION } from "./bs/core";
 import { dataJson } from "./data";
 import { htmlToText } from "./html-text";
 import { accessTokenValid, challenge } from "./mcp-oauth";
-import { uploadDate, uploadDates } from "./upload-date";
 
 /**
  * CyberJudah for AI assistants: an MCP server at /mcp, laid out after Bible Strong's
@@ -79,13 +78,11 @@ async function searchClasses(env: Env, query: string, feed: string, page: number
   if (!r.ok) return failure("The class search is not answering just now. Try again in a moment.");
   if (!r.hits.length) return answer(`No class matches “${query}”. Try other words, or a scripture with verse_study.`);
   const unmark = (s: string) => s.replace(/[]/g, "");
-  const uploads = await uploadDates(env, r.hits.filter((h) => !h.date).map((h) => h.video));
-  const dated = (d: string, video: string) => d || (uploads[video] ? `${uploads[video]}, YouTube upload date` : "date unknown");
   const out = r.hits.map((h) => {
     const at = Math.max(0, Math.floor(h.start || 0));
     const when = `${Math.floor(at / 3600)}:${String(Math.floor((at % 3600) / 60)).padStart(2, "0")}:${String(at % 60).padStart(2, "0")}`;
     const kind = (FEED_LABEL as Record<string, string>)[h.feed] ?? h.feed;
-    return `${unmark(h.title)} (${kind}, ${dated(h.date, h.video)}) at ${when}\n“${unmark(h.excerpt)}”\nVideo: https://www.youtube.com/watch?v=${h.video}&t=${at}s\nNotes: ${h.note ? linkOn(env, h.note) : "none yet"}`;
+    return `${unmark(h.title)} (${kind}, ${h.date || "date unknown"}) at ${when}\n“${unmark(h.excerpt)}”\nVideo: https://www.youtube.com/watch?v=${h.video}&t=${at}s\nNotes: ${h.note ? linkOn(env, h.note) : "none yet"}`;
   });
   return answer(`${out.join("\n\n")}${r.more ? `\n\nMore classes match: call again with page ${page + 1}.` : ""}`);
 }
@@ -136,8 +133,7 @@ async function readTranscript(env: Env, video: string, at: number, span: number,
   // Clear caption errors (a book or feast word misheard), shown beside the captions, never in place of them.
   const fixes = (await captionCorrections(env, video, ctx)).filter(([, t]) => t >= at - span && t <= at + span);
   const fixed = fixes.length ? `\n\nCaption corrections (the captions above are as YouTube gave them):\n${fixes.map(([, t, was, now]) => `[${clock(t)}] “${was}” reads “${now}”`).join("\n")}` : "";
-  const uploaded = w.date ? "" : await uploadDate(env, video);
-  return answer(`${w.title} (${w.date || (uploaded ? `${uploaded}, YouTube upload date` : "date unknown")})\nVideo: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s\nNotes: ${w.url ? linkOn(env, w.url) : "none yet"}\n\n${w.chunks.map((c) => `[${clock(c.t)}] ${c.text}`).join("\n")}${fixed}`);
+  return answer(`${w.title} (${w.date || "date unknown"})\nVideo: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s\nNotes: ${w.url ? linkOn(env, w.url) : "none yet"}\n\n${w.chunks.map((c) => `[${clock(c.t)}] ${c.text}`).join("\n")}${fixed}`);
 }
 
 /** HTML as the text a reader sees: a real parser, so no markup survives into the answer. */
@@ -188,9 +184,9 @@ export function createCyberJudahServer(env: Env, ctx?: Exec): McpServer {
 
   tool("read_passage", "Read a passage", "The exact King James text (1611, with the Apocrypha) of a chapter, a verse or a range. Quote Scripture only from what this returns.",
     { reference }, ({ reference }) => readPassage(env, reference, ctx));
-  tool("verse_study", "What the classes taught on a verse", "Everything the app has on a verse or chapter, in three parts. STUDY NOTE: the 4 Chapters a Day note's points on the verse, each with its source (the class, date, teacher and moment it was found in) or marked unsourced, and the precepts the note places on it. CLASSES: every recording found reading the verse aloud (Sabbath classes, 15 Min w/ Captains, Our Hidden History), every class note passage that holds it, every precept placed on it or citation of it as a precept, and notes that mention it; each hit gives why it matched, the words said there, a link to that second of the video, the teacher (or \"teacher unknown\"), the date (or, when the class's own date is not known, the YouTube upload date, said to be that, else \"date unknown\") and its notes link (or \"Notes: none yet\"). Readings of the verse come first, then Bishops, Deacons and Captains. CROSS-REFERENCES for a verse. The verse's own text comes from read_passage.",
+  tool("verse_study", "What the classes taught on a verse", "Everything the app has on a verse or chapter, in three parts. STUDY NOTE: the 4 Chapters a Day note's points on the verse, each with its source (the class, date, teacher and moment it was found in) or marked unsourced, and the precepts the note places on it. CLASSES: every recording found reading the verse aloud (Sabbath classes, 15 Min w/ Captains, Our Hidden History), every class note passage that holds it, every precept placed on it or citation of it as a precept, and notes that mention it; each hit gives why it matched, the words said there, a link to that second of the video, the teacher (or \"teacher unknown\"), the date (or \"date unknown\") and its notes link (or \"Notes: none yet\"). Readings of the verse come first, then Bishops, Deacons and Captains. CROSS-REFERENCES for a verse. The verse's own text comes from read_passage.",
     { reference }, ({ reference }) => lookup(env, ctx, "verse_study", { reference }));
-  tool("search_classes", "Search the classes", "Find where the classes said something: each match gives the class, its date (or the YouTube upload date, said to be that, or \"date unknown\"), the words spoken, a link to that moment of the video, and its notes link (or \"Notes: none yet\"). Feed narrows it to Sabbath classes, 15 Min with Captains or Our Hidden History.",
+  tool("search_classes", "Search the classes", "Find where the classes said something: each match gives the class, its date (or \"date unknown\"), the words spoken, a link to that moment of the video, and its notes link (or \"Notes: none yet\"). Feed narrows it to Sabbath classes, 15 Min with Captains or Our Hidden History.",
     {
       query: z.string().trim().min(2).max(200).describe("Words or a phrase spoken in class."),
       feed: z.enum(["classes", "captains", "history"]).optional().describe("Only one series."),
