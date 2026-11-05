@@ -239,22 +239,31 @@ export async function deleteAccountSyncMarks(env: Env, uid: number): Promise<num
   const { documentsUrl } = databasePath(env);
   const token = await accessToken(env);
   const base = documentsUrl.slice(0, -"/documents".length);
-  // batchWrite applies each delete independently (no transaction across documents), which is what a
-  // deletion of many unrelated marks needs; the REST API bounds a single call at 500 writes.
-  for (let i = 0; i < names.length; i += 300) {
-    const chunk = names.slice(i, i + 300);
-    const response = await fetch(`${base}/documents:batchWrite`, {
-      method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ writes: chunk.map((name) => ({ delete: name })) }),
-    });
-    if (!response.ok) throw new Error("Firestore deletion failed.");
-    // batchWrite can return HTTP 200 with failures for individual writes. Protobuf JSON
-    // may omit code for OK (0), but there must be one status object for every delete.
-    const result = await response.json() as { status?: { code?: number }[] } | null;
-    if (!Array.isArray(result?.status) || result.status.length !== chunk.length ||
-      result.status.some(status => !status || typeof status !== "object" || Array.isArray(status) ||
-        (status.code !== undefined && status.code !== 0))) {
-      throw new Error("Firestore deletion failed.");
+  // batchWrite is independent and unordered. Acknowledge every deeper level first,
+  // keeping a study discoverable by its owner while any descendant deletion is unconfirmed.
+  const levels = new Map<number, string[]>();
+  for (const name of names) {
+    const depth = name.split("/").length;
+    const level = levels.get(depth) ?? [];
+    level.push(name);
+    levels.set(depth, level);
+  }
+  for (const [, level] of [...levels].sort(([a], [b]) => b - a)) {
+    for (let i = 0; i < level.length; i += 300) {
+      const chunk = level.slice(i, i + 300);
+      const response = await fetch(`${base}/documents:batchWrite`, {
+        method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ writes: chunk.map((name) => ({ delete: name })) }),
+      });
+      if (!response.ok) throw new Error("Firestore deletion failed.");
+      // batchWrite can return HTTP 200 with failures for individual writes. Protobuf JSON
+      // may omit code for OK (0), but there must be one status object for every delete.
+      const result = await response.json() as { status?: { code?: number }[] } | null;
+      if (!Array.isArray(result?.status) || result.status.length !== chunk.length ||
+        result.status.some(status => !status || typeof status !== "object" || Array.isArray(status) ||
+          (status.code !== undefined && status.code !== 0))) {
+        throw new Error("Firestore deletion failed.");
+      }
     }
   }
   return names.length;
