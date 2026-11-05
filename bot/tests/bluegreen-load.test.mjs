@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { bluegreenLoad, rollback, statements, toNext, batches } from "../scripts/bluegreen-load.mjs";
+import { bluegreenLoad, rollback, statements, toNext, batches, TEACHINGS } from "../scripts/bluegreen-load.mjs";
 import { d1Query } from "../scripts/d1-query.mjs";
 
 // The build's search.sql, in its shape (engine/build.mjs in DevSecObie/cyberjudah).
@@ -37,12 +37,39 @@ function sqlite() {
 test("statements are rewritten to the spare tables only", () => {
   const list = statements(searchSql(["god is love"]));
   assert.equal(list.length, 6);
-  const next = list.map(toNext);
+  const next = list.map((s) => toNext(s));
   ["DROP TABLE IF EXISTS search_docs_next;", "CREATE VIRTUAL TABLE search_docs_next USING", "INSERT INTO search_docs_next(",
    "DROP TABLE IF EXISTS search_meta_next;", "CREATE TABLE search_meta_next(", "INSERT INTO search_meta_next VALUES"]
     .forEach((prefix, i) => assert.ok(next[i].startsWith(prefix), next[i].slice(0, 60)));
   assert.ok(!next.some((s) => s.includes("-- loaded")), "the loader's comment is not a statement");
   assert.throws(() => toNext("DELETE FROM teaching_passages;"), /unexpected statement/);
+});
+
+// The teachings index's file, in its shape (scripts/corpus/index.py in DevSecObie/cyberjudah).
+const teachingsSql = (texts) => [
+  "DROP TABLE IF EXISTS teaching_passages;",
+  "CREATE VIRTUAL TABLE teaching_passages USING fts5(title, text, feed UNINDEXED, date UNINDEXED, video UNINDEXED, start UNINDEXED, note UNINDEXED, cues UNINDEXED);",
+  "DROP TABLE IF EXISTS teaching_refs;",
+  "CREATE TABLE teaching_refs(slug TEXT NOT NULL, chapter INTEGER NOT NULL, first INTEGER NOT NULL, last INTEGER, video TEXT NOT NULL, start REAL NOT NULL, timing TEXT NOT NULL, title TEXT, feed TEXT, date TEXT, note TEXT, heard TEXT);",
+  ...texts.flatMap((t, i) => [
+    `INSERT INTO teaching_passages VALUES('Class ${i}','${t}','sabbath','2025-01-01','vid${i}',${i},NULL,'[]');`,
+    `INSERT INTO teaching_refs VALUES('genesis',1,1,2,'vid${i}',${i},'read','Class ${i}','sabbath','2025-01-01',NULL,'');`,
+  ]),
+  "CREATE INDEX teaching_refs_chapter ON teaching_refs(slug, chapter);",
+].join("\n");
+
+test("the teachings index loads blue-green too, its index renamed per load", async () => {
+  const { db, run } = sqlite();
+  const opts = { ...TEACHINGS, maxBytes: 300 };
+  await bluegreenLoad(teachingsSql(["god said", "more"]), run, opts);
+  await bluegreenLoad(teachingsSql(["god again", "x", "y"]), run, opts);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_passages").get().n, 3);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_refs").get().n, 3);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_refs_prev").get().n, 2);
+  const indexes = db.prepare("SELECT tbl_name FROM sqlite_master WHERE type = 'index' AND name LIKE 'teaching_refs_chapter%'").all().map((r) => r.tbl_name).sort();
+  assert.deepEqual(indexes, ["teaching_refs", "teaching_refs_prev"]);
+  await assert.rejects(bluegreenLoad(teachingsSql(["nothing matches"]), run, opts), /0 hits/);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_passages").get().n, 3);
 });
 
 test("batches stay under the size, one oversized statement goes alone", () => {
