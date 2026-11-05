@@ -78,7 +78,7 @@ function decodeFields(fields: Record<string, FirestoreValue>): Record<string, un
 
 /** Every document directly in one collection (not a recursive descendant), paginated. 404 (the reader has
  * never written to this collection) is an empty collection, not a failure. */
-async function listCollection(env: Env, path: string, showMissing = false): Promise<(SyncDocument & { missing?: boolean })[]> {
+async function listCollection(env: Env, path: string, showMissing = false, fieldPaths: readonly string[] = []): Promise<(SyncDocument & { missing?: boolean })[]> {
   const { documentsUrl } = databasePath(env);
   const token = await accessToken(env);
   const documents: (SyncDocument & { missing?: boolean })[] = [];
@@ -88,6 +88,7 @@ async function listCollection(env: Env, path: string, showMissing = false): Prom
     if (pageToken) params.set("pageToken", pageToken);
     // A "missing" document has no fields of its own but still holds subcollections.
     if (showMissing) params.set("showMissing", "true");
+    for (const field of fieldPaths) params.append("mask.fieldPaths", field);
     const response = await fetch(`${documentsUrl}/${path}?${params}`, { headers: { authorization: `Bearer ${token}` } });
     if (response.status === 404) break;
     if (!response.ok) throw new Error("Firestore read failed.");
@@ -154,6 +155,20 @@ export async function firebaseUserExists(env: Env, firebaseUid: string): Promise
 const ACCOUNT_ROOTS = ["users", "staging_users", "users-status", "staging_users-status"] as const;
 const STUDY_ROOTS = ["studies", "staging_studies"] as const;
 const MAX_DEPTH = 8;
+
+/** Read-only reconciliation input, deliberately not exposed as a public route. Projection avoids
+ * reading study content. A missing top-level parent proves surviving descendants, not their owner.
+ * Never use this inventory alone as deletion authorization or a readiness-gate override. */
+export async function inventoryOrphanedStudyParents(env: Env): Promise<{ version: 1; orphanParents: string[]; ownershipResolved: false }> {
+  if (!syncConfigured(env)) throw new Error("Account inventory is unavailable.");
+  const orphanParents: string[] = [];
+  for (const root of STUDY_ROOTS) {
+    for (const document of await listCollection(env, root, true, ["user.id"])) {
+      if (document.missing) orphanParents.push(document.name);
+    }
+  }
+  return { version: 1, orphanParents, ownershipResolved: false };
+}
 
 async function documentExists(env: Env, path: string): Promise<string | null> {
   const { documentsUrl } = databasePath(env);

@@ -8,7 +8,7 @@ const host = process.env.FIRESTORE_EMULATOR_HOST;
 if (host && !/^(127\.0\.0\.1|localhost):\d+$/.test(host)) throw new Error('A loopback emulator is required');
 const out = new URL('./.build/firestore-admin-emulator.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/firestore-admin.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
-const { deleteFirebaseAccountSyncMarks } = await import(out);
+const { deleteFirebaseAccountSyncMarks, inventoryOrphanedStudyParents } = await import(out);
 
 test('actual Firestore traverses missing parents, preserves failed study parents, and retries without touching other owners', { skip: !host }, async () => {
   const uid = `deletion-test-${randomUUID()}`;
@@ -39,6 +39,8 @@ test('actual Firestore traverses missing parents, preserves failed study parents
     const listing = await (await request(`/users/${uid}/notes?showMissing=true`)).json();
     assert.equal(listing.documents[0].name, `${root}/users/${uid}/notes/missing`);
     assert.equal(listing.documents[0].createTime, undefined);
+    const inventory = await inventoryOrphanedStudyParents(env);
+    assert.deepEqual(inventory, { version: 1, orphanParents: [`${root}/studies/unknown-${uid}`], ownershipResolved: false });
 
     // Return a realistic mixed-success batch: forward successful deletes to the actual emulator,
     // retain one revision, and report its transient failure without letting the parent disappear.
