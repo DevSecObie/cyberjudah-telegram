@@ -11,6 +11,9 @@ export type Env = {
   AUDIO: R2Bucket;
   DATA_ORIGIN: string;
   BIBLE_STRONG_WEB?: string;
+  /** Select the private Resource API for dictionary and Nave publications after import. */
+  REFERENCE_HOSTING?: 'self-hosted';
+  REFERENCE_PUBLICATIONS?: Fetcher;
   SITE_URL: string;
   /** The Mini App's direct link from @BotFather (https://t.me/<bot>/<app>); empty until /newapp. */
   APP_URL: string;

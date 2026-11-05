@@ -1,0 +1,1 @@
+- Added support for serving the original dictionary and Nave editions from CyberJudah’s private resource service.

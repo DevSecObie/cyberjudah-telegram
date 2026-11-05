@@ -113,3 +113,39 @@ test("the Easton's entries withheld for church doctrine stay hidden in Bible Str
     Response.json({ entry: { id: 1, word: 'Aaron', definition: '<p>Aaron</p>' } }));
   assert.equal((await open.json()).entry.word, 'Aaron');
 });
+
+test('self-hosted editions use only the bound service for dictionaries and Nave, even without the web profile', async () => {
+  const globalFetch = globalThis.fetch;
+  let externalReads = 0;
+  globalThis.fetch = async () => { externalReads++; throw new Error('unexpected external read'); };
+  try {
+    for (const family of ['dictionaries', 'naves/en']) {
+      let reads = 0;
+      const path = '/v1/' + family + '/verses/';
+      const service = { fetch: async (url: string, init: RequestInit) => {
+        reads++;
+        assert.equal(url, 'https://reference.internal' + path + '72-2-1?language=en');
+        assert.deepEqual(init.headers, { accept: 'application/json' });
+        assert.equal(init.redirect, 'manual');
+        return Response.json({ verseKey: '72-2-1', resource: { revision: 'owned-edition' } });
+      } };
+      const request = new Request('https://staging.example/bs' + path + '80-2-1?language=en', {
+        headers: { authorization: 'Bearer private', cookie: 'private=session' },
+      });
+      const res = await worker.fetch(request, { REFERENCE_HOSTING: 'self-hosted', REFERENCE_PUBLICATIONS: service } as any);
+      assert.equal(res.status, 200);
+      assert.equal(res.headers.get('x-cyberjudah-reference-hosting'), 'self-hosted');
+      assert.deepEqual(await res.json(), { verseKey: '80-2-1', resource: { revision: 'owned-edition' } });
+      assert.equal(reads, 1);
+    }
+    for (const service of [undefined, { fetch: async () => new Response(null, { status: 503 }) }]) {
+      const req = new Request('https://staging.example/bs/v1/naves/en/random');
+      const res = await worker.fetch(req, { REFERENCE_HOSTING: 'self-hosted', BIBLE_STRONG_WEB: '1', REFERENCE_PUBLICATIONS: service } as any);
+      assert.equal(res.status, 503);
+      assert.equal((await res.json() as { code: string }).code, 'NAVE_PUBLICATION_INACTIVE');
+    }
+    assert.equal(externalReads, 0);
+  } finally {
+    globalThis.fetch = globalFetch;
+  }
+});
