@@ -367,3 +367,26 @@ test("recursive deletion reaches revisions below missing UID roots and parents, 
     assert.ok(requests.filter(path => path === "staging_users/tg_7/notes/gone/revisions").length > 1, "document pagination is followed");
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test("orphan inventory is read-only, paginated and projects away study content without guessing ownership", async () => {
+  const { inventoryOrphanedStudyParents } = await load("orphan-inventory");
+  const root = "projects/demo-cyberjudah/databases/(default)/documents";
+  const missing = { name: `${root}/studies/missing` };
+  const stagingMissing = { name: `${root}/staging_studies/missing` };
+  const { fetchFn, calls, batches } = firestoreFetch({ byPath: {
+    studies: [{ documents: [doc(`${root}/studies/owned`, { title: "private content" })], next: true }, { documents: [missing] }],
+    staging_studies: [{ documents: [stagingMissing] }],
+  } });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = fetchFn;
+  try {
+    await assert.rejects(inventoryOrphanedStudyParents({}), /unavailable/);
+    assert.equal(calls.length, 0);
+    assert.deepEqual(await inventoryOrphanedStudyParents({ FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }), {
+      version: 1, orphanParents: [missing.name, stagingMissing.name], ownershipResolved: false,
+    });
+    assert.equal(batches.length, 0);
+    assert.equal(calls.length, 3);
+    assert.ok(calls.every(call => call.url.searchParams.get("showMissing") === "true" && call.url.searchParams.get("mask.fieldPaths") === "user.id"));
+  } finally { globalThis.fetch = originalFetch; }
+});
