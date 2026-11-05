@@ -1,14 +1,15 @@
 import type { Env } from "./env";
-import { validFirebaseUid } from "./account-links";
+import { unlinkDeletingFirebaseAccount, validFirebaseUid } from "./account-links";
 import { blockAccountIdentities } from "./account-deletion-state";
 import { deletePublishedStudiesForIdentities } from "./published-studies";
 
 export type PublicationStore = "production" | "staging";
-export type PublicationReceipt = { version: 1; store: PublicationStore; phase: "blocked" | "deleted"; identities: string[] };
+export type PublicationReceipt = { version: 1; store: PublicationStore; phase: "blocked" | "deleted" | "native-unlinked"; identities: string[] };
 export type PublicationErasurePeer = {
-  describe(): Promise<{ version: 1; store: PublicationStore }>;
+  describe(): Promise<{ version: 1; store: PublicationStore; nativeUnlink?: 1 }>;
   block(identities: string[]): Promise<PublicationReceipt>;
   erase(identities: string[]): Promise<PublicationReceipt>;
+  unlinkNative(uid: string): Promise<PublicationReceipt>;
 };
 
 export function publicationStore(env: Env): PublicationStore {
@@ -22,13 +23,30 @@ export function publicationIdentities(identities: readonly string[]): string[] {
 
 /** Resolve the exact two-store contract before barriers or deletion. A missing, unavailable,
  * incompatible or self-bound peer cannot silently narrow an erasure to one database. */
-export async function publicationErasurePeer(env: Env): Promise<PublicationErasurePeer> {
+export async function publicationErasurePeer(env: Env, nativeUnlink = false): Promise<PublicationErasurePeer> {
   const local = publicationStore(env), peer = env.PUBLICATION_ERASURE_PEER;
   if (!peer) throw new Error("Publication peer is unavailable.");
   const info = await peer.describe();
   const expected = local === "production" ? "staging" : "production";
   if (info?.version !== 1 || info.store !== expected) throw new Error("Publication peer contract mismatch.");
+  if (nativeUnlink && info.nativeUnlink !== 1) throw new Error("Native unlink peer is unavailable.");
   return peer;
+}
+
+/** Establish durable intent in both stores before severing either link. Repeating this after
+ * any partial failure is safe: neither step depends on remembering the Telegram identity. */
+export async function unlinkNativeAcrossStores(env: Env, peer: PublicationErasurePeer, uid: string): Promise<void> {
+  if (!validFirebaseUid(uid) || uid.startsWith("tg_")) throw new Error("Native account required.");
+  await blockAccountIdentities(env, [uid]);
+  assertReceipt(env, await peer.block([uid]), "blocked", [uid]);
+  await unlinkDeletingFirebaseAccount(env, uid);
+  assertReceipt(env, await peer.unlinkNative(uid), "native-unlinked", [uid]);
+}
+
+export async function unlinkLocalNativeAccount(env: Env, uid: string): Promise<PublicationReceipt> {
+  const store = publicationStore(env);
+  await unlinkDeletingFirebaseAccount(env, uid);
+  return { version: 1, store, phase: "native-unlinked", identities: [uid] };
 }
 
 function assertReceipt(env: Env, receipt: PublicationReceipt, phase: PublicationReceipt["phase"], identities: string[]) {

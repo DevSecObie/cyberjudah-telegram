@@ -6,13 +6,22 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 const { outputFiles } = await build({ stdin: { contents: `
   import { Hono } from 'hono';
   import { PublicationErasure } from './src/publication-erasure-rpc';
-  import { erasePublicationsAcrossStores, publicationErasurePeer } from './src/publication-erasure';
+  import { erasePublicationsAcrossStores, publicationErasurePeer, unlinkNativeAcrossStores } from './src/publication-erasure';
+  import { linkAccounts, linkedFirebase } from './src/account-links';
   import { publishedStudies, publishedStudyPage } from './src/published-studies';
   export class TestPublicationErasure extends PublicationErasure {
     async block(ids) {
       const badAck = await this.env.DB.prepare('SELECT 1 FROM test_failure WHERE mode=2').first();
       if (badAck) return { version: 1, store: 'staging', phase: 'blocked', identities: ['bob'] };
       return super.block(ids);
+    }
+    async unlinkNative(uid) {
+      const fail = await this.env.DB.prepare('SELECT mode FROM test_failure WHERE mode IN (3,4,5)').first();
+      if (fail?.mode === 3) throw new Error('synthetic unlink outage');
+      const receipt = await super.unlinkNative(uid);
+      if (fail?.mode === 4) throw new Error('synthetic lost unlink acknowledgment');
+      if (fail?.mode === 5) return { ...receipt, identities: ['bob'] };
+      return receipt;
     }
     async erase(ids) {
       const fail = await this.env.DB.prepare('SELECT 1 FROM test_failure WHERE mode=1').first();
@@ -23,6 +32,19 @@ const { outputFiles } = await build({ stdin: { contents: `
   const app = new Hono();
   app.route('/api/published-studies', publishedStudies);
   app.route('/app/published', publishedStudyPage);
+  app.post('/fixture/link/:uid', async c => {
+    try { await linkAccounts(c.env, 77, c.req.param('uid')); return c.text('linked'); }
+    catch { return c.text('conflict', 409); }
+  });
+  app.get('/fixture/link', async c => c.json({ uid: await linkedFirebase(c.env, 77) }));
+  app.post('/fixture/native', async c => {
+    try {
+      const peer = await publicationErasurePeer(c.env, true);
+      await unlinkNativeAcrossStores(c.env, peer, 'alice');
+      await erasePublicationsAcrossStores(c.env, peer, ['alice']);
+      return c.text('complete');
+    } catch { return c.text('incomplete', 503); }
+  });
   app.post('/fixture/erase', async c => {
     try { await erasePublicationsAcrossStores(c.env, await publicationErasurePeer(c.env), ['alice']); return c.text('complete'); }
     catch { return c.text('incomplete', 503); }
@@ -113,5 +135,33 @@ test('an acknowledgment for a different identity cannot authorize cleanup', asyn
   assert.equal((await f.main.fetch('https://fixture/fixture/erase', { method: 'POST' })).status, 503);
   for (const worker of [f.main, f.peer]) for (const uid of ['alice', 'bob']) {
     assert.equal((await worker.fetch('https://fixture/app/published/' + uid + '-study')).status, 200);
+  }
+});
+
+for (const mode of [0, 3, 4, 5]) test(`native unlink preserves Telegram publications and newer links across retry (failure ${mode})`, async t => {
+  const f = await fixture(t);
+  for (const worker of [f.main, f.peer]) {
+    assert.equal((await worker.fetch('https://fixture/fixture/link/alice', { method: 'POST' })).status, 200);
+    assert.equal((await f.publish(worker, 'tg_77', 'telegram-study')).status, 200);
+  }
+  if (mode) await f.peerDB.prepare('INSERT INTO test_failure VALUES (?)').bind(mode).run();
+  const erase = () => f.main.fetch('https://fixture/fixture/native', { method: 'POST' });
+  assert.equal((await erase()).status, mode ? 503 : 200);
+  for (const worker of [f.main, f.peer]) {
+    assert.equal((await worker.fetch('https://fixture/app/published/telegram-study')).status, 200);
+    assert.equal((await f.publish(worker, 'tg_77', 'telegram-still-active')).status, 200);
+    assert.equal((await worker.fetch('https://fixture/fixture/link/alice', { method: 'POST' })).status, 409);
+    if (mode) assert.equal((await worker.fetch('https://fixture/app/published/alice-study')).status, 200, 'no cleanup before both unlink receipts');
+  }
+  // The primary link was removed even if the peer failed. A new app link is independent.
+  assert.equal((await f.main.fetch('https://fixture/fixture/link/new-owner', { method: 'POST' })).status, 200);
+  await f.peerDB.prepare('DELETE FROM test_failure').run();
+  assert.equal((await erase()).status, 200);
+  assert.equal((await erase()).status, 200);
+  assert.equal((await (await f.main.fetch('https://fixture/fixture/link')).json()).uid, 'new-owner');
+  assert.equal((await (await f.peer.fetch('https://fixture/fixture/link')).json()).uid, null);
+  for (const db of [f.mainDB, f.peerDB]) {
+    assert.equal(await db.prepare("SELECT 1 FROM account_deletion_blocks WHERE firebase_uid='tg_77'").first(), null);
+    assert.equal(await db.prepare("SELECT 1 FROM account_links WHERE firebase_uid='alice'").first(), null);
   }
 });

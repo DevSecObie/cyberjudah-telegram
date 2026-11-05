@@ -22,7 +22,8 @@ const { outputFiles } = await build({ stdin: {
     export default { fetch(request, env, ctx) {
       env.PUBLICATION_STORE_ID = "production";
       env.PUBLICATION_ERASURE_PEER = {
-        describe: async () => ({ version: 1, store: "staging" }),
+        describe: async () => ({ version: 1, store: "staging", nativeUnlink: env.TEST_OLD_PEER ? undefined : 1 }),
+        unlinkNative: async uid => ({ version: 1, store: "staging", phase: "native-unlinked", identities: [uid] }),
         block: async identities => ({ version: 1, store: "staging", phase: "blocked", identities }),
         erase: async identities => ({ version: 1, store: "staging", phase: "deleted", identities }),
       };
@@ -122,7 +123,7 @@ test('an unlinked Firebase account deletes its missing-parent histories; the ack
     const response = await remove(mf);
     assert.equal(response.status, 200, await response.clone().text());
     assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.deepEqual(await response.json(), { version: 2, uid: 'reader-one', firestoreDeleted: true, publicationsDeleted: true, writesBlocked: true, removed: 5 });
+    assert.deepEqual(await response.json(), { version: 3, telegramUnlinked: true, uid: 'reader-one', firestoreDeleted: true, publicationsDeleted: true, writesBlocked: true, removed: 5 });
     assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/') && !path.startsWith('study_deletion_owners/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1', 'users/tg_7/notes/missing/revisions/r1']);
     assert.equal(store.get('study_deletion_owners/studies:owned').state.stringValue, 'erased');
     assert.equal(store.get('study_deletion_owners/studies:owned').user, undefined);
@@ -132,7 +133,7 @@ test('an unlinked Firebase account deletes its missing-parent histories; the ack
   } finally { await mf.dispose(); }
 });
 
-test('a linked legacy identity comes only from the server link and its evidence remains available for retry', async () => {
+test('native deletion unlinks Telegram, preserves its roots and retries without the old link', async () => {
   const { mf, store, state } = fixture();
   try {
     assert.equal((await mf.dispatchFetch('https://cyberjudah.test/fixture/link', { method: 'POST' })).status, 200);
@@ -145,8 +146,12 @@ test('a linked legacy identity comes only from the server link and its evidence 
     assert.ok(state.batches.every(batch => !batch.includes('studies/owned')));
     state.failRevision = false;
     assert.equal((await remove(mf)).status, 200);
-    assert.equal(store.has('users/tg_7/notes/missing/revisions/r1'), false);
-    assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/') && !path.startsWith('study_deletion_owners/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1']);
+    assert.equal(store.has('users/tg_7/notes/missing/revisions/r1'), true);
+    assert.equal(store.has('account_deletion_blocks/tg_7'), false);
+    const db = await mf.getD1Database('DB');
+    assert.equal(await db.prepare("SELECT 1 FROM account_links WHERE firebase_uid='reader-one'").first(), null);
+    assert.equal(await db.prepare("SELECT 1 FROM account_deletion_blocks WHERE firebase_uid='tg_7'").first(), null);
+    assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/') && !path.startsWith('study_deletion_owners/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1', 'users/tg_7/notes/missing/revisions/r1']);
   } finally { await mf.dispose(); }
 });
 
@@ -180,6 +185,7 @@ test('reconciliation gate, unavailable Firestore and rate limits fail closed wit
     [{ NATIVE_ACCOUNT_DELETION_READY: '', TELEGRAM_ACCOUNT_DELETION_READY: 'true', ACCOUNT_DATA_DELETION_READY: 'true' }, 503],
     [{ FIRESTORE_EMULATOR_HOST: '' }, 503],
     [{ TEST_RATE_LIMIT: 'blocked' }, 429],
+    [{ TEST_OLD_PEER: 'true' }, 503],
   ]) {
     const { mf, state, store } = fixture(bindings);
     try {
@@ -236,5 +242,15 @@ test('native erasure cleans publications after an earlier client unpublish and b
     const ordinaryDelete = await mf.dispatchFetch('https://cyberjudah.test/api/native-studies/production/owned', { method: 'DELETE', headers: { authorization: `Bearer ${token()}` } });
     assert.equal(ordinaryDelete.status, 409, 'new privileged study deletions stop after the account barrier');
     assert.deepEqual([...store.entries()], remaining);
+  } finally { await mf.dispose(); }
+});
+
+ test('Telegram reserved identities cannot invoke native account deletion', async () => {
+  const { mf, state, store } = fixture();
+  try {
+    const result = await remove(mf, token('tg_7'));
+    assert.equal(result.status, 409);
+    assert.equal(state.firestoreCalls, 0);
+    assert.ok(store.has('users/tg_7/notes/missing/revisions/r1'));
   } finally { await mf.dispose(); }
 });

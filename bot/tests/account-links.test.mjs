@@ -6,7 +6,7 @@ import { generateKeyPair, exportPKCS8, jwtVerify } from 'jose';
 import { signInitData } from '../src/initdata.mjs';
 
 const out = new URL('./.build/account-links.mjs', import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/account-links.ts"; export * from "./src/firebase-auth.ts"; export * from "./src/device-auth.ts"; export * from "./src/credits.ts"; export { startMeter } from "./src/ai.ts"; export * from "./src/chats.ts"; export { default as worker } from "./src/index.ts";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
+await build({ stdin: { contents: 'export * from "./src/account-links.ts"; export * from "./src/account-deletion-state.ts"; export * from "./src/firebase-auth.ts"; export * from "./src/device-auth.ts"; export * from "./src/credits.ts"; export { startMeter } from "./src/ai.ts"; export * from "./src/chats.ts"; export { default as worker } from "./src/index.ts";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
 const m = await import(out);
 const now = () => Math.floor(Date.now() / 1000);
 const token = (uid = 'firebase-alice', more = {}) => [Buffer.from('{"alg":"RS256"}').toString('base64url'), Buffer.from(JSON.stringify({ sub: uid, aud: 'cyberjudah-app', iss: 'https://securetoken.google.com/cyberjudah-app', iat: now(), exp: now()+3600, auth_time: now(), firebase: { sign_in_provider: 'google.com' }, ...more })).toString('base64url'), 'fixture-signature-verified-only-by-google-stand-in'].join('.');
@@ -171,4 +171,41 @@ test('a link to a deleted Firebase login is removed instead of signing that logi
     assert.equal(await uidOf(await mint()), 'tg_77');
     assert.equal(lookups.length, count, "Telegram's own identity needs no lookup");
   } finally { globalThis.fetch = original; }
+});
+
+test('native unlink preserves real Telegram wallet, ledger and sealed chats; old bearer access stops', async () => {
+  const { env, db } = fixture();
+  const owner = await m.ownerOfUser(env, 77);
+  await m.adjust(env, owner, 1_000_000, 'test-grant', 'Synthetic test only');
+  await m.saveExchange(env, 77, 'chat123456', 'Question one', { content: 'Answer one' });
+  await m.linkAccounts(env, 77, 'firebase-alice');
+  const names = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT IN ('account_links','account_deletion_blocks') ORDER BY name").all().map(r => r.name);
+  const snapshot = () => names.map(name => [name, db.prepare('SELECT * FROM "' + name + '"').all()]);
+  const before = snapshot();
+  await assert.rejects(m.unlinkDeletingFirebaseAccount(env, 'firebase-alice'), /barrier required/);
+  await m.blockAccountIdentities(env, ['firebase-alice']);
+  await withGoogle(async () => {
+    await assert.rejects(m.firebaseAccount(new Request('https://test/api/chats', { headers: { authorization: `Bearer ${token()}` } }), env), { reason: 'account_deletion_in_progress' });
+  });
+  await Promise.all([m.unlinkDeletingFirebaseAccount(env, 'firebase-alice'), m.unlinkDeletingFirebaseAccount(env, 'firebase-alice')]);
+  assert.equal(await m.linkedTelegram(env, 'firebase-alice'), null);
+  assert.equal(await m.linkedFirebase(env, 77), null);
+  assert.equal(await m.accountDeletionBlocked(env, 'tg_77'), false);
+  assert.deepEqual(snapshot(), before);
+  const chats = await m.worker.fetch(new Request('https://test/api/chats', { headers: { authorization: `tma ${await launch()}` } }), env, { waitUntil() {} });
+  assert.equal(chats.status, 200);
+  assert.equal((await chats.json()).chats[0].id, 'chat123456');
+  const keys = await generateKeyPair('RS256', { extractable: true });
+  env.FIREBASE_SERVICE_ACCOUNT = JSON.stringify({ type:'service_account', project_id:'cyberjudah-app', client_email:'bridge@cyberjudah-app.iam.gserviceaccount.com', private_key: await exportPKCS8(keys.privateKey) });
+  const mint = await m.firebaseAuth.request('https://test/token', { method: 'POST', headers: { authorization: `tma ${await launch()}` } }, env);
+  assert.equal(mint.status, 200);
+  assert.equal((await mint.json()).uid, 'tg_77');
+  await m.linkAccounts(env, 77, 'tg_77');
+  const results = await Promise.allSettled([m.linkAccounts(env, 77, 'firebase-alice'), m.linkAccounts(env, 77, 'new-owner')]);
+  assert.equal(results[0].status, 'rejected');
+  assert.equal(results[1].status, 'fulfilled');
+  await m.unlinkDeletingFirebaseAccount(env, 'firebase-alice');
+  await m.removeAccountLink(env, 77, 'firebase-alice');
+  assert.equal(await m.linkedFirebase(env, 77), 'new-owner', 'stale auth lookup and retry cannot unlink a newer account');
+  assert.deepEqual(snapshot(), before);
 });

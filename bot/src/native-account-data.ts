@@ -29,7 +29,7 @@ nativeAccountData.delete("/", async c => {
     assertNativeAccountDeletionReady(c.env);
     await beginFirebaseErasure(c.env, identity.uid);
     const removed = await deleteFirebaseAccountSyncMarks(c.env, identity.uid);
-    return c.json({ version: 2, uid: identity.uid, firestoreDeleted: true, publicationsDeleted: true, writesBlocked: true, removed });
+    return c.json({ version: 3, telegramUnlinked: true, uid: identity.uid, firestoreDeleted: true, publicationsDeleted: true, writesBlocked: true, removed });
   } catch (error) {
     if (error instanceof AccountDeletionNotReadyError) return c.json({ error: "account_deletion_not_ready" }, 503);
     if (error instanceof IdentityError) return c.json({ error: error.reason }, error.status);
