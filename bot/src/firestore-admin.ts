@@ -14,7 +14,14 @@ const HAS_REVISIONS_SUBCOLLECTION = new Set<string>(["notes", "studies"]);
 
 type FirestoreValue = Record<string, unknown>;
 type RawDocument = { name: string; fields?: Record<string, FirestoreValue>; createTime?: string; updateTime?: string };
-export type SyncDocument = { name: string; id: string; fields: Record<string, unknown> };
+export type SyncDocument = { name: string; id: string; fields: Record<string, unknown>; updateTime?: string };
+type DeletionDocuments = Map<string, { name: string; updateTime: string }>;
+type StudyFence = { document: RawDocument; parent: RawDocument | null };
+
+function remember(documents: DeletionDocuments, document: { name: string; updateTime?: string }): void {
+  if (!document.updateTime || (documents.has(document.name) && documents.get(document.name)!.updateTime !== document.updateTime)) throw new Error("Firestore deletion snapshot changed.");
+  documents.set(document.name, { name: document.name, updateTime: document.updateTime });
+}
 
 /** Only honored for the loopback host the end-to-end tests start (app/firebase/firebase.json), the same
  * pattern as TELEGRAM_API_ROOT and PUSH_TEST_ORIGIN: never set in a deployed environment. */
@@ -93,7 +100,7 @@ async function listCollection(env: Env, path: string, showMissing = false, field
     if (response.status === 404) break;
     if (!response.ok) throw new Error("Firestore read failed.");
     const body = await response.json() as { documents?: RawDocument[]; nextPageToken?: string };
-    for (const doc of body.documents ?? []) documents.push({ name: doc.name, id: doc.name.split("/").pop()!, fields: decodeFields(doc.fields ?? {}), ...(showMissing && !doc.createTime ? { missing: true } : {}) });
+    for (const doc of body.documents ?? []) documents.push({ name: doc.name, id: doc.name.split("/").pop()!, fields: decodeFields(doc.fields ?? {}), updateTime: doc.updateTime, ...(showMissing && !doc.createTime ? { missing: true } : {}) });
     pageToken = body.nextPageToken;
   } while (pageToken);
   return documents;
@@ -188,12 +195,12 @@ const urlPath = (path: string) => path.split("/").map(encodeURIComponent).join("
 
 function ledgerStudy(document: RawDocument, uid: string): { root: string; id: string } {
   const fields = decodeFields(document.fields ?? {});
-  if (studyOwner(document) !== uid || fields.version !== 1 || !STUDY_ROOTS.includes(fields.studyRoot as typeof STUDY_ROOTS[number]) || typeof fields.studyId !== "string" || !validStudyId(fields.studyId) || documentPath(document.name) !== `${STUDY_OWNERS}/${fields.studyRoot}:${fields.studyId}`)
+  if (studyOwner(document) !== uid || (fields.state !== undefined && fields.state !== "deleting") || fields.version !== 1 || !STUDY_ROOTS.includes(fields.studyRoot as typeof STUDY_ROOTS[number]) || typeof fields.studyId !== "string" || !validStudyId(fields.studyId) || documentPath(document.name) !== `${STUDY_OWNERS}/${fields.studyRoot}:${fields.studyId}`)
     throw new StudyDeletionError(409, "study_ownership_unresolved");
   return { root: fields.studyRoot as string, id: fields.studyId };
 }
 
-/** Keeps ownership in a server-only ledger atomically with removing the parent. It deliberately
+/** Fences ownership in a server-only ledger before removing descendants or the parent. It deliberately
  * survives ordinary deletion so late histories and retries remain attributable. No client writes
  * to this collection may be allowed by deployed rules. */
 export async function deleteOwnedStudy(env: Env, uid: string, scope: string, id: string): Promise<void> {
@@ -206,37 +213,77 @@ export async function deleteOwnedStudy(env: Env, uid: string, scope: string, id:
   if (parent && studyOwner(parent) !== uid) throw new StudyDeletionError(403, "study_not_owned");
   if (ledger) ledgerStudy(ledger, uid);
   if (!parent && !ledger) {
-    const unknown = new Set<string>();
+    const unknown: DeletionDocuments = new Map();
     await descendants(env, urlPath(path), unknown, ["revisions"]);
     if (unknown.size) throw new StudyDeletionError(409, "study_ownership_unresolved");
     return; // Already absent, and no data exists to remove. Never invent ownership.
   }
-  const children = new Set<string>();
+  const fence = await acquireStudyFence(env, uid, root, id, parent, ledger);
+  await eraseFencedStudy(env, path, fence);
+}
+
+/** Every eraser claims the same server-only document using compare-and-swap. Claiming advances
+ * its version, fencing older requests. Parent and fence acquisition are one atomic commit. */
+async function acquireStudyFence(env: Env, uid: string, root: string, id: string, parent: RawDocument | null, ledger: RawDocument | null): Promise<StudyFence> {
+  if (parent && studyOwner(parent) !== uid) throw new StudyDeletionError(403, "study_not_owned");
+  if (ledger) ledgerStudy(ledger, uid);
+  if (!parent && !ledger) throw new StudyDeletionError(409, "study_ownership_unresolved");
+  if ((parent && !parent.updateTime) || (ledger && !ledger.updateTime)) throw new Error("Firestore deletion snapshot changed.");
+  const { documentsUrl } = databasePath(env);
+  const nameRoot = documentsUrl.slice(documentsUrl.indexOf("projects/"));
+  const document: RawDocument = { name: `${nameRoot}/${STUDY_OWNERS}/${root}:${id}`, fields: {
+    generation: { stringValue: crypto.randomUUID() }, state: { stringValue: "deleting" },
+    version: { integerValue: "1" }, user: { mapValue: { fields: { id: { stringValue: uid } } } },
+    studyRoot: { stringValue: root }, studyId: { stringValue: id },
+  } };
+  const writes = [
+    { update: document, currentDocument: ledger ? { updateTime: ledger.updateTime } : { exists: false } },
+    // Update only the existing owner field to itself. This preserves all content and fences a
+    // concurrent replacement/edit without removing the parent before its descendants succeed.
+    ...(parent ? [{ update: { name: parent.name, fields: { user: { mapValue: { fields: { id: { stringValue: uid } } } } } }, updateMask: { fieldPaths: ["user.id"] }, currentDocument: { updateTime: parent.updateTime } }] : []),
+  ];
+  const results = await commitDeletionWrites(env, writes);
+  document.updateTime = results[0].updateTime;
+  return { document, parent: parent ? { ...parent, updateTime: results[1].updateTime } : null };
+}
+
+async function commitDeletionWrites(env: Env, writes: unknown[]): Promise<{ updateTime: string }[]> {
+  const { documentsUrl } = databasePath(env);
+  const response = await fetch(`${documentsUrl}:commit`, {
+    method: "POST", headers: { authorization: `Bearer ${await accessToken(env)}`, "content-type": "application/json" },
+    body: JSON.stringify({ writes }),
+  });
+  if (!response.ok) throw new Error("Firestore deletion failed.");
+  const result = await response.json() as { writeResults?: { updateTime?: string }[] };
+  if (!Array.isArray(result.writeResults) || result.writeResults.length !== writes.length || !result.writeResults[0]?.updateTime) throw new Error("Firestore deletion failed.");
+  return result.writeResults as { updateTime: string }[];
+}
+
+async function eraseFencedStudy(env: Env, path: string, fence: StudyFence): Promise<number> {
+  let count = 0;
+  const children: DeletionDocuments = new Map();
   await descendants(env, urlPath(path), children, ["revisions"]);
-  await deleteDocumentNames(env, [...children]);
-  if (parent) {
-    if (!parent.updateTime) throw new StudyDeletionError(503, "study_deletion_incomplete");
-    const { documentsUrl } = databasePath(env);
-    const nameRoot = parent.name.slice(0, parent.name.indexOf("/documents/") + "/documents/".length);
-    const writes = [
-      ...(!ledger ? [{ update: { name: `${nameRoot}${ledgerPath}`, fields: {
-        version: { integerValue: "1" }, user: { mapValue: { fields: { id: { stringValue: uid } } } },
-        studyRoot: { stringValue: root }, studyId: { stringValue: id },
-      } }, currentDocument: { exists: false } }] : []),
-      { delete: parent.name, currentDocument: { updateTime: parent.updateTime } },
-    ];
-    const response = await fetch(`${documentsUrl}:commit`, {
-      method: "POST", headers: { authorization: `Bearer ${await accessToken(env)}`, "content-type": "application/json" },
-      body: JSON.stringify({ writes }),
-    });
-    if (!response.ok) throw new StudyDeletionError(503, "study_deletion_incomplete");
-    const result = await response.json() as { writeResults?: unknown[] };
-    if (!Array.isArray(result.writeResults) || result.writeResults.length !== writes.length) throw new StudyDeletionError(503, "study_deletion_incomplete");
+  count += await deleteDocumentNames(env, children, fence);
+  if (fence.parent) {
+    const parent: DeletionDocuments = new Map(); remember(parent, fence.parent);
+    count += await deleteDocumentNames(env, parent, fence);
+    fence.parent = null;
   }
-  // Catch a revision committed after the first inventory. If this fails, the ledger supports retry.
-  const remaining = new Set<string>();
+  // A privileged late writer still has an attributable path until this pass succeeds.
+  const remaining: DeletionDocuments = new Map();
   await descendants(env, urlPath(path), remaining, ["revisions"]);
-  await deleteDocumentNames(env, [...remaining]);
+  count += await deleteDocumentNames(env, remaining, fence);
+  return count;
+}
+
+async function finishStudyErasure(env: Env, fence: StudyFence): Promise<void> {
+  // Reserve the ID permanently without retaining the deleted account's UID. Removing this
+  // record would permit ID reuse while an older erasure still holds a stale deletion plan.
+  const { version, studyRoot, studyId } = fence.document.fields!;
+  const fields = { version, studyRoot, studyId };
+  const results = await commitDeletionWrites(env, [{ update: { name: fence.document.name, fields: { ...fields, state: { stringValue: "erased" } } }, currentDocument: { updateTime: fence.document.updateTime } }]);
+  fence.document.updateTime = results[0].updateTime;
+
 }
 
 /** Read-only reconciliation input, deliberately not exposed as a public route. Projection avoids
@@ -251,10 +298,6 @@ export async function inventoryOrphanedStudyParents(env: Env, inventoryToken?: (
     }
   }
   return { version: 1, orphanParents, ownershipResolved: false };
-}
-
-async function documentExists(env: Env, path: string): Promise<string | null> {
-  return (await readDocument(env, path))?.name ?? null;
 }
 
 async function readDocument(env: Env, path: string): Promise<RawDocument | null> {
@@ -286,13 +329,13 @@ async function listCollectionIds(env: Env, path: string): Promise<string[]> {
 }
 
 /** Every document below one document (not the document itself), deepest first. */
-async function descendants(env: Env, path: string, names: Set<string>, known: readonly string[] = [], depth = 0): Promise<void> {
+async function descendants(env: Env, path: string, names: DeletionDocuments, known: readonly string[] = [], depth = 0): Promise<void> {
   if (depth > MAX_DEPTH) throw new Error("Firestore deletion failed.");
   for (const collection of new Set([...known, ...await listCollectionIds(env, path)])) {
     for (const doc of await listCollection(env, `${path}/${encodeURIComponent(collection)}`, true)) {
       const child = `${path}/${encodeURIComponent(collection)}/${encodeURIComponent(doc.id)}`;
       await descendants(env, child, names, HAS_REVISIONS_SUBCOLLECTION.has(collection) && depth === 0 ? ["revisions"] : [], depth + 1);
-      if (!doc.missing) names.add(doc.name);
+      if (!doc.missing) remember(names, doc);
     }
   }
 }
@@ -316,7 +359,7 @@ async function ownedStudies(env: Env, root: string, firebaseUid: string): Promis
  * intermediate documents, and top-level studies whose existing parent identifies this login as owner.
  * A top-level study whose parent was already removed cannot be attributed by this owner query; its
  * orphan history requires trusted ownership evidence before cleanup. This is not proof of complete
- * historical account erasure. Returns how many documents were removed. A no-op (0) when this
+ * historical account erasure. Counts removed content documents and UID-bearing ledgers anonymized. A no-op (0) when this
  * Worker has no Firestore access configured. Throws, like every other store in mydata.ts, when a step
  * fails, so the caller reports an incomplete deletion rather than acknowledging one.
  */
@@ -337,44 +380,52 @@ export async function deleteFirebaseAccountSyncMarks(env: Env, firebaseUid: stri
 
 async function deleteIdentityDocuments(env: Env, identities: string[]): Promise<number> {
   if (!identities.every(validFirebaseUid)) throw new Error("Invalid account identity.");
-  const found = new Set<string>();
-  const ledgers = new Set<string>();
+  const found: DeletionDocuments = new Map();
+  const studies = new Map<string, { uid: string; root: string; id: string; parent: RawDocument | null; ledger: RawDocument | null }>();
+  const inspectStudy = async (uid: string, root: string, id: string) => {
+    const path = `${root}/${id}`;
+    if (!validStudyId(id) || studies.has(path)) return;
+    const parent = await readDocument(env, urlPath(path));
+    const ledger = await readDocument(env, urlPath(`${STUDY_OWNERS}/${root}:${id}`));
+    if (parent && studyOwner(parent) !== uid) throw new Error("Study ownership changed during deletion.");
+    if (ledger) ledgerStudy(ledger, uid);
+    if (!parent && !ledger) throw new Error("Study ownership changed during deletion.");
+    studies.set(path, { uid, root, id, parent, ledger });
+  };
   for (const firebaseUid of new Set(identities)) {
     const id = encodeURIComponent(firebaseUid);
     for (const root of ACCOUNT_ROOTS) {
       await descendants(env, `${root}/${id}`, found, root === "users" ? SYNC_COLLECTIONS : []);
-      const own = await documentExists(env, `${root}/${id}`);
-      if (own) found.add(own);
+      const own = await readDocument(env, `${root}/${id}`);
+      if (own) remember(found, own);
     }
     for (const root of STUDY_ROOTS) for (const name of await ownedStudies(env, root, firebaseUid)) {
       const path = documentPath(name), studyId = path.slice(root.length + 1);
       if (!validStudyId(studyId) || path !== `${root}/${studyId}`) throw new Error("Invalid study path.");
-      // A replacement parent does not own quarantined history. Check every matching live
-      // study's server record before any account data is deleted, just as ordinary deletion does.
-      const ledger = await readDocument(env, urlPath(`${STUDY_OWNERS}/${root}:${studyId}`));
-      if (ledger) ledgerStudy(ledger, firebaseUid);
-      await descendants(env, urlPath(path), found, ["revisions"]);
-      found.add(name);
+      await inspectStudy(firebaseUid, root, studyId);
     }
     for (const name of await ownedStudies(env, STUDY_OWNERS, firebaseUid)) {
       const ledger = await readDocument(env, urlPath(documentPath(name)));
       if (!ledger) throw new Error("Study ownership changed during deletion.");
       const study = ledgerStudy(ledger, firebaseUid);
-      const path = urlPath(`${study.root}/${study.id}`);
-      const parent = await readDocument(env, path);
-      if (parent && studyOwner(parent) !== firebaseUid) throw new Error("Study ownership changed during deletion.");
-      await descendants(env, path, found, ["revisions"]);
-      if (parent) found.add(parent.name);
-      ledgers.add(name);
+      await inspectStudy(firebaseUid, study.root, study.id);
     }
   }
-  await deleteDocumentNames(env, [...found]);
-  // Ownership evidence is the last store removed, only after all data writes succeed.
-  await deleteDocumentNames(env, [...ledgers]);
-  return found.size + ledgers.size;
+  // Validate all ownership/quarantine records before the first content delete. Acquire every
+  // fence before proceeding; a newer erasure invalidates any older holder atomically.
+  const fenced: { path: string; fence: StudyFence }[] = [];
+  for (const [path, study] of studies) fenced.push({ path, fence: await acquireStudyFence(env, study.uid, study.root, study.id, study.parent, study.ledger) });
+  let count = await deleteDocumentNames(env, found);
+  for (const { path, fence } of fenced) {
+    count += await eraseFencedStudy(env, path, fence);
+    await finishStudyErasure(env, fence);
+    count++; // The UID-bearing ledger was replaced with an owner-free ID reservation.
+  }
+  return count;
 }
 
-async function deleteDocumentNames(env: Env, names: string[]): Promise<number> {
+async function deleteDocumentNames(env: Env, documents: DeletionDocuments, fence?: StudyFence): Promise<number> {
+  const names = [...documents.keys()];
   if (!names.length) return 0;
   const { documentsUrl } = databasePath(env);
   const token = await accessToken(env);
@@ -391,9 +442,20 @@ async function deleteDocumentNames(env: Env, names: string[]): Promise<number> {
   for (const [, level] of [...levels].sort(([a], [b]) => b - a)) {
     for (let i = 0; i < level.length; i += 300) {
       const chunk = level.slice(i, i + 300);
+      const writes = chunk.map(name => ({ delete: name, currentDocument: { updateTime: documents.get(name)!.updateTime } }));
+      if (fence) {
+        const fields = { ...fence.document.fields, generation: { stringValue: crypto.randomUUID() } };
+        const results = await commitDeletionWrites(env, [
+          { update: { name: fence.document.name, fields }, currentDocument: { updateTime: fence.document.updateTime } },
+          ...writes,
+        ]);
+        fence.document.updateTime = results[0].updateTime;
+        fence.document.fields = fields;
+        continue;
+      }
       const response = await fetch(`${base}/documents:batchWrite`, {
         method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-        body: JSON.stringify({ writes: chunk.map((name) => ({ delete: name })) }),
+        body: JSON.stringify({ writes }),
       });
       if (!response.ok) throw new Error("Firestore deletion failed.");
       // batchWrite can return HTTP 200 with failures for individual writes. Protobuf JSON

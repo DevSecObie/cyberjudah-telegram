@@ -95,8 +95,9 @@ test("Download and Delete my data reach the Firestore marks account sync writes 
     const marker = "/documents/";
     const path = u.pathname.slice(u.pathname.indexOf(marker) + marker.length);
     if (path === "users/tg_77/highlights" && !highlightDeleted) {
-      return new Response(JSON.stringify({ documents: [{ name: highlightName, createTime: "2026-10-28T00:00:00Z", fields: { entry: { stringValue: "1" }, value: { stringValue: "color2" } } }] }), { status: 200 });
+      return new Response(JSON.stringify({ documents: [{ name: highlightName, createTime: "2026-10-28T00:00:00Z", updateTime: "2026-10-28T00:00:00Z", fields: { entry: { stringValue: "1" }, value: { stringValue: "color2" } } }] }), { status: 200 });
     }
+    if (path.split("/").length % 2 === 0 && !path.endsWith(":listCollectionIds")) return new Response("", { status: 404 });
     return new Response(JSON.stringify({ documents: [] }), { status: 200 });
   };
   try {
