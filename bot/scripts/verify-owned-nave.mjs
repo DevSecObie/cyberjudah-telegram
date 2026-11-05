@@ -19,8 +19,14 @@ for (const [language, revision, faith] of [
   const verse = await get(language + '/verses/58-11-1/topics');
   assert.equal(verse.verseKey, '58-11-1');
   assert.ok(verse.verseTopics.some(item => item.name === faith));
-  const page = await get(language + '/topics?limit=3');
+  const page = await get(language + '/topics?initial=a&limit=3');
   assert.equal(page.topics.length, 3);
+  assert.ok(page.nextCursor);
+  const next = await get(language + '/topics?initial=a&limit=3&cursor=' + encodeURIComponent(page.nextCursor));
+  assert.equal(next.topics.length, 3);
+  assert.equal(new Set([...page.topics, ...next.topics].map(item => item.normalizedName)).size, 6);
+  const search = await get(language + '/topics?search=' + (language === 'fr' ? 'foi' : 'faith') + '&limit=20');
+  assert.ok(search.topics.some(item => item.normalizedName === 'faith'));
   const random = await get(language + '/random');
   assert.equal(random.resource.revision, revision);
   await get(language + '/topics/no-such-nave-verification-topic', 404);
