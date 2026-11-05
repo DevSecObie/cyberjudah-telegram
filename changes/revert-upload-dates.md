@@ -1,0 +1,1 @@
+- Removed the YouTube upload-date lookup added in #531: it read YouTube's watch pages, which is not an approved source for dates, and it found none in production.
