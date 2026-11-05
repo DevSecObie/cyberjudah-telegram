@@ -69,6 +69,7 @@ import { appChannel } from "./app-channel";
 import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
+import { nativeAccountData } from "./native-account-data";
 import { mcp } from "./mcp";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
@@ -87,6 +88,8 @@ app.route("/api/reader", publicReader);
 app.route("/api/nave", nave);
 // Studies a reader published from the app: they sign each change with Firebase themselves (published-studies.ts).
 app.route("/api/published-studies", publishedStudies);
+// Verified, recent Firebase identity; no Telegram link is required.
+app.route("/api/native-account-data", nativeAccountData);
 app.route("/app/published", publishedStudyPage);
 // The private MCP server for the owner's assistants: it checks its own key (mcp.ts).
 app.all("/mcp", (c) => mcp(c.req.raw, c.env, c.executionCtx));
