@@ -1,4 +1,4 @@
-import { linkedFirebase, telegramFirebaseUid } from "./account-links";
+import { linkedFirebase, linkedTelegram, telegramFirebaseUid, validFirebaseUid } from "./account-links";
 import { importPKCS8, SignJWT } from "jose";
 import type { Env } from "./env";
 
@@ -221,9 +221,22 @@ async function ownedStudies(env: Env, root: string, firebaseUid: string): Promis
 export async function deleteAccountSyncMarks(env: Env, uid: number): Promise<number> {
   if (!syncConfigured(env)) return 0;
   const canonical = await linkedFirebase(env, uid) ?? telegramFirebaseUid(uid);
-  const identities = [...new Set([canonical, telegramFirebaseUid(uid)])];
+  return deleteIdentityDocuments(env, [canonical, telegramFirebaseUid(uid)]);
+}
+
+/** Call only after verifying a recent Firebase identity. Unlike the optional Telegram sync cleanup,
+ * native account deletion must fail closed when Firestore is unavailable. A legacy identity comes
+ * exclusively from the server's authenticated account-link record, never from request parameters. */
+export async function deleteFirebaseAccountSyncMarks(env: Env, firebaseUid: string): Promise<number> {
+  if (!validFirebaseUid(firebaseUid) || !syncConfigured(env)) throw new Error("Account deletion is unavailable.");
+  const telegramId = await linkedTelegram(env, firebaseUid);
+  return deleteIdentityDocuments(env, [firebaseUid, ...(telegramId === null ? [] : [telegramFirebaseUid(telegramId)])]);
+}
+
+async function deleteIdentityDocuments(env: Env, identities: string[]): Promise<number> {
+  if (!identities.every(validFirebaseUid)) throw new Error("Invalid account identity.");
   const found = new Set<string>();
-  for (const firebaseUid of identities) {
+  for (const firebaseUid of new Set(identities)) {
     const id = encodeURIComponent(firebaseUid);
     for (const root of ACCOUNT_ROOTS) {
       await descendants(env, `${root}/${id}`, found, root === "users" ? SYNC_COLLECTIONS : []);

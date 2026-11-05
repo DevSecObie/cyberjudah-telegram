@@ -25,6 +25,9 @@ export type Env = {
   BOT_TOKEN: string;
   /** Server-only signing credential for the existing Telegram account. */
   FIREBASE_SERVICE_ACCOUNT?: string;
+  /** Enable only after historical orphan ownership is reconciled and deletion acceptance passes.
+   * Unset/false keeps native deletion pending and preserves its Firebase login. */
+  NATIVE_ACCOUNT_DELETION_READY?: string;
   /** The FCM topic new class alerts go to (class-alerts.ts); alerts are off when unset. */
   CLASS_ALERTS_TOPIC?: string;
   FIREBASE_AUTH_LIMIT?: RateLimit;
