@@ -79,6 +79,8 @@ one reader's documents from another's.
 | Word annotations | Firestore `users/tg_<id>/wordAnnotations` | Per-word marks made while reading | Until replaced or Delete my data | Delete my data |
 | A linked login's study data | Firestore `users/<uid>`, `staging_users/<uid>`, `users-status/<uid>`, `staging_users-status/<uid>` with every subcollection, and the studies in `studies`/`staging_studies` whose `user.id` is that login | What the Bible Strong app syncs for a login linked to this Telegram account: profile, highlights, notes, Strong and Nave bookmarks, tabs, studies and their revisions | Until replaced or Delete my data | Delete my data, for the login linked when it runs (`firestore-admin.ts` `deleteAccountSyncMarks`) |
 
+Recursive deletion reaches missing parents beneath known UID roots. Already-missing top-level study parents require trusted ownership reconciliation; owner queries cannot discover them. The native endpoint remains gated until reconciliation and deletion acceptance are complete. See [the native deletion contract](NATIVE-ACCOUNT-DELETION.md).
+
 Signed out of account sync, or before it is turned on, highlights, notes, bookmarks, tags,
 history, the plan and settings stay only on the device and in Telegram's CloudStorage for the
 Mini App, and nothing else about people is stored on the server. So is the Sabbath screen's
