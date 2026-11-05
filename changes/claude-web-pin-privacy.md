@@ -1,0 +1,1 @@
+- web.cyberjudah.io: the web app now includes the Privacy Policy (/privacy), Terms of Use (/terms) and Support (/support) pages.
