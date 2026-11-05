@@ -1,3 +1,4 @@
+import { accountDeletionSchema } from "./account-deletion-state";
 import { firebaseAccount } from "./firebase-auth";
 import { IdentityError } from "./account-links";
 import { Hono } from "hono";
@@ -91,10 +92,12 @@ browserAuth.get("/callback", async c => {
     const user = telegramProfile(payload), token = random(), owner = await pid(c.env, user.id), created = Math.floor(Date.now() / 1000);
     failure = "storage";
     await schema(c.env);
+    await accountDeletionSchema(c.env);
     const previous = getCookie(c, SESSION);
     if (previous) await c.env.DB.prepare("DELETE FROM browser_sessions WHERE token_hash=?").bind(await keyedHash(c.env, "browser-session", previous)).run();
     await c.env.DB.prepare("DELETE FROM browser_sessions WHERE expires<=?").bind(created).run();
-    await c.env.DB.prepare("INSERT INTO browser_sessions(token_hash,owner,sealed,expires) VALUES(?,?,?,?)").bind(await keyedHash(c.env, "browser-session", token), owner, await seal(c.env, owner, { user, created }), created + 86400).run();
+    const inserted = await c.env.DB.prepare("INSERT INTO browser_sessions(token_hash,owner,sealed,expires) SELECT ?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM account_deletion_blocks WHERE firebase_uid=?)").bind(await keyedHash(c.env, "browser-session", token), owner, await seal(c.env, owner, { user, created }), created + 86400, `tg_${user.id}`).run();
+    if (!inserted.meta.changes) { failure = "deletion"; throw new Error("Account deletion is in progress."); }
     setCookie(c, SESSION, token, { ...cookieOptions, maxAge: 86400 });
     loginEvent("completed");
     return c.redirect(c.env.BIBLE_STRONG_WEB === "1" && pending.returnTo === "/profile?telegram=returned" ? pending.returnTo : "/app/settings/account");

@@ -6,8 +6,8 @@ import { generateKeyPair, exportJWK, SignJWT } from "jose";
 import { open } from "../src/privacy.mjs";
 
 const out = new URL("./.build/browser-auth.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/browser-auth.ts"; export * from "./src/study-backup.ts"; export * from "./src/firebase-auth.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { firebaseAuth, browserAuth, browserSession, revokeBrowserSessions, telegramProfile, studyBackup, readStudyBackup, deleteStudyBackup } = await import(out);
+await build({ stdin: { contents: 'export * from "./src/browser-auth.ts"; export * from "./src/study-backup.ts"; export * from "./src/firebase-auth.ts"; export { setTopupReminder, getTopupReminder } from "./src/topup-remind.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+const { firebaseAuth, browserAuth, browserSession, revokeBrowserSessions, telegramProfile, studyBackup, readStudyBackup, deleteStudyBackup, setTopupReminder, getTopupReminder } = await import(out);
 function env() {
   const db = new DatabaseSync(":memory:");
   const prepare = (sql, values = []) => ({ bind: (...a) => prepare(sql, a), first: async () => db.prepare(sql).get(...values) ?? null, run: async () => ({ meta: { changes: db.prepare(sql).run(...values).changes } }) });
@@ -79,6 +79,10 @@ test("OIDC state, PKCE, signed claims, nonce, cookies, CSRF and revocation prote
     await revokeBrowserSessions(e, 77);
     assert.equal((await bridge(origin)).status, 401, "revoked browser sessions cannot restore Firebase");
     assert.equal(await browserSession(new Request(`${origin}/api/me`, { headers: { cookie: sessionCookie } }), e), null);
+    await e.DB.prepare("INSERT INTO account_deletion_blocks(firebase_uid) VALUES (?)").bind("tg_77").run();
+    const blocked = await browserAuth.request(`${origin}/callback?code=test&state=${pending.state}`, { headers: { cookie: loginCookie } }, e);
+    assert.match(blocked.headers.get("location"), /login=failed/);
+    assert.ok(!blocked.headers.getSetCookie().some(c => c.startsWith("__Host-cj-session=")), "deletion prevents an in-flight login from recreating a session");
   } finally { globalThis.fetch = oldFetch; }
 });
 test("study backup revisions prevent lost updates, are private per account, and can be deleted", async () => {
@@ -93,7 +97,12 @@ test("study backup revisions prevent lost updates, are private per account, and 
   assert.equal((await put(1, "Conflict" )).status, 409);
   assert.equal((await readStudyBackup(e, 77)).archive.studies[0].title, "Updated");
   assert.equal((await readStudyBackup(e, 78)).archive, null);
+  await e.DB.prepare("CREATE TABLE IF NOT EXISTS account_deletion_blocks (firebase_uid TEXT PRIMARY KEY)").run();
+  await e.DB.prepare("INSERT INTO account_deletion_blocks(firebase_uid) VALUES (?)").bind("tg_77").run();
+  assert.equal((await put(2, "Late update" )).status, 409);
+  assert.equal((await readStudyBackup(e, 77)).archive.studies[0].title, "Updated");
   await deleteStudyBackup(e, 77);
+  assert.equal((await put(0, "Late recreation" )).status, 409);
   assert.equal((await put(2, "Deleted elsewhere" )).status, 409);
   assert.equal((await readStudyBackup(e, 77)).archive, null);
 });
@@ -106,4 +115,17 @@ test('the Expo staging return destination is server-selected and sealed in OIDC 
     const pending = await open(e, 'browser-login', decodeURIComponent(loginCookie.split('=').slice(1).join('=')));
     assert.equal(pending.returnTo, expo ? '/profile?telegram=returned' : '/app/settings/account');
   }
+});
+
+test("top-up reminder writes cannot recreate or update a blocked account's personal data", async () => {
+  const e = env();
+  await e.DB.prepare("CREATE TABLE IF NOT EXISTS account_deletion_blocks (firebase_uid TEXT PRIMARY KEY)").run();
+  assert.deepEqual(await setTopupReminder(e, 77, true, "America/Chicago"), { on: true, tz: "America/Chicago" });
+  await e.DB.prepare("INSERT INTO account_deletion_blocks(firebase_uid) VALUES (?)").bind("tg_77").run();
+  await assert.rejects(setTopupReminder(e, 77, true, "America/New_York"), /deletion/);
+  assert.deepEqual(await getTopupReminder(e, 77), { on: true, tz: "America/Chicago" });
+  assert.deepEqual(await setTopupReminder(e, 77, false, "America/Chicago"), { on: false, tz: null });
+  await assert.rejects(setTopupReminder(e, 77, true, "America/Chicago"), /deletion/);
+  assert.deepEqual(await getTopupReminder(e, 77), { on: false, tz: null });
+  assert.deepEqual(await setTopupReminder(e, 78, true, "America/Chicago"), { on: true, tz: "America/Chicago" });
 });

@@ -1,3 +1,4 @@
+import { accountDeletionSchema } from "./account-deletion-state";
 import { GrammyError } from "grammy";
 import type { Env } from "./env";
 import { openButton } from "./bot";
@@ -19,8 +20,8 @@ import { telegramApi } from "./telegram-api";
  * every quarter hour (index.ts scheduled), so midday is reached in every time zone.
  */
 const TABLE = "CREATE TABLE IF NOT EXISTS topup_reminders (user_id TEXT PRIMARY KEY, chat TEXT NOT NULL, tz TEXT NOT NULL, last_day TEXT NOT NULL DEFAULT '')";
-let ready = false;
-async function ensure(env: Env) { if (!ready) { await env.DB.prepare(TABLE).run(); ready = true; } }
+const ready = new WeakSet<D1Database>();
+async function ensure(env: Env) { if (!ready.has(env.DB)) { await env.DB.prepare(TABLE).run(); await accountDeletionSchema(env); ready.add(env.DB); } }
 const sealKey = (owner: string) => `topup:${owner}`;
 
 export async function getTopupReminder(env: Env, uid: number): Promise<{ on: boolean; tz: string | null }> {
@@ -35,8 +36,9 @@ export async function setTopupReminder(env: Env, uid: number, on: boolean, tz: u
   const owner = await ownerOfUser(env, uid);
   if (!on) { await env.DB.prepare("DELETE FROM topup_reminders WHERE user_id = ?").bind(owner).run(); return { on: false, tz: null }; }
   const zone = zoneOf(tz);
-  await env.DB.prepare("INSERT INTO topup_reminders (user_id, chat, tz) VALUES (?, ?, ?) ON CONFLICT (user_id) DO UPDATE SET chat = excluded.chat, tz = excluded.tz")
-    .bind(owner, await seal(env, sealKey(owner), uid), zone).run();
+  const inserted = await env.DB.prepare("INSERT INTO topup_reminders (user_id, chat, tz) SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM account_deletion_blocks WHERE firebase_uid=?) ON CONFLICT (user_id) DO UPDATE SET chat = excluded.chat, tz = excluded.tz")
+    .bind(owner, await seal(env, sealKey(owner), uid), zone, `tg_${uid}`).run();
+  if (!inserted.meta.changes) throw new Error("Account deletion is in progress.");
   return { on: true, tz: zone };
 }
 
