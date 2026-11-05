@@ -327,8 +327,13 @@ async function deleteIdentityDocuments(env: Env, identities: string[]): Promise<
       if (own) found.add(own);
     }
     for (const root of STUDY_ROOTS) for (const name of await ownedStudies(env, root, firebaseUid)) {
-      const path = name.slice(name.indexOf("/documents/") + "/documents/".length);
-      await descendants(env, path, found, ["revisions"]);
+      const path = documentPath(name), studyId = path.slice(root.length + 1);
+      if (!validStudyId(studyId) || path !== `${root}/${studyId}`) throw new Error("Invalid study path.");
+      // A replacement parent does not own quarantined history. Check every matching live
+      // study's server record before any account data is deleted, just as ordinary deletion does.
+      const ledger = await readDocument(env, urlPath(`${STUDY_OWNERS}/${root}:${studyId}`));
+      if (ledger) ledgerStudy(ledger, firebaseUid);
+      await descendants(env, urlPath(path), found, ["revisions"]);
       found.add(name);
     }
     for (const name of await ownedStudies(env, STUDY_OWNERS, firebaseUid)) {

@@ -292,6 +292,7 @@ test("a failed revision delete preserves the owning study for an owner-query ret
     if (path.endsWith(":listCollectionIds")) return Response.json({ collectionIds: [] });
     const name = `${root}/${path}`;
     if (store.has(name)) return Response.json(document(name));
+    if (path.split("/").length % 2 === 0) return new Response("", { status: 404 });
     const docs = [...store.keys()].filter(key => key.startsWith(`${name}/`) && !key.slice(name.length + 1).includes('/'));
     return Response.json({ documents: docs.map(document) });
   };
@@ -411,4 +412,30 @@ test("read-only inventory can use an existing short-lived identity without copyi
     });
     assert.equal(reads, 2);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+for (const ledgerFields of [
+  { state: { stringValue: "ownership-unresolved" } },
+  { version: { integerValue: "1" }, user: { mapValue: { fields: { id: { stringValue: "original-owner" } } } }, studyRoot: { stringValue: "studies" }, studyId: { stringValue: "reclaimed" } },
+]) test("account cleanup refuses a recreated parent with unresolved or conflicting historical ownership before deleting anything", async () => {
+  const { deleteFirebaseAccountSyncMarks } = await load("reclaimed-" + JSON.stringify(ledgerFields));
+  const root = "projects/demo-cyberjudah/databases/(default)/documents";
+  const oldFetch = globalThis.fetch;
+  const batches = [];
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url), path = decodeURIComponent(u.pathname.split("/documents/")[1] ?? "");
+    if (u.pathname.endsWith(":batchWrite")) { batches.push(JSON.parse(init.body)); return Response.json({ status: [{}] }); }
+    if (u.pathname.endsWith(":runQuery")) {
+      const q = JSON.parse(init.body).structuredQuery;
+      return Response.json(q.from[0].collectionId === "studies" ? [{ document: { name: root + "/studies/reclaimed", fields: { user: { mapValue: { fields: { id: { stringValue: "new-owner" } } } } } } }] : []);
+    }
+    if (path === "study_deletion_owners/studies:reclaimed") return Response.json({ name: root + "/" + path, fields: ledgerFields });
+    if (path === "users/new-owner/notes") return Response.json({ documents: [{ name: root + "/users/new-owner/notes/own-note", createTime: "2026-11-05T00:00:00Z" }] });
+    if (path.endsWith(":listCollectionIds")) return Response.json({ collectionIds: [] });
+    return new Response("", { status: 404 });
+  };
+  try {
+    await assert.rejects(deleteFirebaseAccountSyncMarks({ ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, "new-owner"), /study_ownership_unresolved/);
+    assert.equal(batches.length, 0, "even unrelated own notes wait until every historical ownership check passes");
+  } finally { globalThis.fetch = oldFetch; }
 });
