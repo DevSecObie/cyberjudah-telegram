@@ -1,0 +1,136 @@
+/**
+ * Blue-green load of a full-replace SQL file (the search index, the teachings index) into a live
+ * D1 database.
+ *
+ * The old loads ran the file as a D1 import: the import locks the entire database for a minute or
+ * more ("Currently processing a long-running import"), and the SQL drops the live tables first,
+ * so readers had no search while it ran and a load that failed part-way left a broken index. Now:
+ *
+ *   1. every statement is rewritten to build <table>_next beside the live tables, and sent as
+ *      ordinary queries in small batches, so readers keep the live tables and the database is
+ *      never locked;
+ *   2. the spare copy is checked (each table holds the rows the file wrote, and a word search on
+ *      the first table finds rows);
+ *   3. one transaction renames live -> <table>_prev and next -> live, so readers switch in one step;
+ *   4. the previous copy stays as <table>_prev for an instant rollback (`rollback()`), and is
+ *      dropped at the start of the next load.
+ *
+ * `run(sql)` executes SQL (one or more statements, run as one transaction) and resolves to an
+ * array with one `{ results: [...] }` per statement, like D1's REST /query. The loaders pass the
+ * REST API (d1-query.mjs); the tests pass node:sqlite.
+ *
+ * Shared by DevSecObie/cyberjudah-telegram (bot/scripts/) and DevSecObie/cyberjudah
+ * (.github/scripts/): keep the two copies the same.
+ */
+
+/** The search index (engine/build.mjs): search_meta records the row count. */
+export const SEARCH = { tables: ["search_docs", "search_meta"], probe: "god" };
+/** The teachings index (scripts/corpus/index.py): one row per INSERT. */
+export const TEACHINGS = { tables: ["teaching_passages", "teaching_refs"], probe: "god" };
+
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const startRe = (tables) => new RegExp(`^(DROP TABLE IF EXISTS |CREATE (?:VIRTUAL )?TABLE |INSERT INTO |CREATE (?:UNIQUE )?INDEX (\\w+) ON )(${tables.map(esc).join("|")})\\b`);
+
+/** Splits a load file into statements (each starts a line with DROP, CREATE or INSERT). */
+export function statements(sql, tables = SEARCH.tables) {
+  const START = startRe(tables);
+  const out = [];
+  let cur = "";
+  for (const line of String(sql).split("\n")) {
+    if (line.startsWith("-- ")) continue;
+    if (START.test(line) && cur.trim()) { out.push(cur.trim()); cur = ""; }
+    cur += (cur ? "\n" : "") + line;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out;
+}
+
+/**
+ * The same statement, writing the spare copy (<table>_next) instead of the live table. An index
+ * gets a name of its own for this load (index names are shared by the whole database, and the
+ * live table's index keeps the old one).
+ */
+export function toNext(statement, tables = SEARCH.tables, tag = "") {
+  const m = startRe(tables).exec(statement);
+  if (!m) throw new Error(`unexpected statement in the load file: ${statement.slice(0, 80)}`);
+  let head = m[1];
+  if (m[2]) head = head.replace(` ${m[2]} ON `, ` ${m[2]}_${tag || "next"} ON `);
+  return head + m[3] + "_next" + statement.slice(m[0].length);
+}
+
+/** Groups statements into batches of at most `maxBytes` (one statement may be over it alone). */
+export function batches(list, maxBytes) {
+  const out = [];
+  let cur = [], size = 0;
+  for (const s of list) {
+    if (cur.length && size + s.length > maxBytes) { out.push(cur); cur = []; size = 0; }
+    cur.push(s); size += s.length + 1;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+const first = (res) => res?.[0]?.results?.[0] ?? {};
+
+async function exists(run, table) {
+  return Boolean(first(await run(`SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name = '${table}'`)).n);
+}
+
+/** Rows each table should hold: search_meta's count, or one per INSERT where each writes one row. */
+async function expectedRows(run, list, tables) {
+  if (tables.includes("search_meta")) return { search_docs: Number(first(await run("SELECT v FROM search_meta_next WHERE k = 'rows'")).v) };
+  const want = {};
+  for (const t of tables) want[t] = list.filter((s) => s.startsWith(`INSERT INTO ${t}_next VALUES(`)).length;
+  return want;
+}
+
+/**
+ * Loads `sql` into the spare tables, checks them and switches readers over.
+ * Resolves to { rows } on success; throws (leaving the live tables untouched) if the spare copy
+ * fails its check.
+ */
+export async function bluegreenLoad(sql, run, { tables = SEARCH.tables, probe = SEARCH.probe, maxBytes = 250_000, log = () => {} } = {}) {
+  const tag = `b${Date.now().toString(36)}`;
+  const list = statements(sql, tables).map((s) => toNext(s, tables, tag));
+  await run(tables.map((t) => `DROP TABLE IF EXISTS ${t}_next;`).join("\n"));
+  const groups = batches(list, maxBytes);
+  log(`loading ${list.length} statements into ${tables.map((t) => `${t}_next`).join(", ")} in ${groups.length} batches`);
+  for (let i = 0; i < groups.length; i++) {
+    await run(groups[i].join("\n"));
+    if ((i + 1) % 50 === 0) log(`  ${i + 1}/${groups.length} batches`);
+  }
+  // The check: each table holds exactly the rows the file wrote, and a word search finds some.
+  const want = await expectedRows(run, list, tables);
+  const rows = {};
+  for (const [t, n] of Object.entries(want)) {
+    rows[t] = Number(first(await run(`SELECT count(*) AS n FROM ${t}_next`)).n);
+    if (!n || rows[t] !== n) throw new Error(`the new ${t} failed its check (rows ${rows[t]} of ${n}); the live tables are unchanged`);
+  }
+  const fts = `${tables[0]}_next`;
+  const hits = Number(first(await run(`SELECT count(*) AS n FROM (SELECT 1 FROM ${fts} WHERE ${fts} MATCH '${probe}' LIMIT 5)`)).n);
+  if (!hits) throw new Error(`the new ${tables[0]} failed its check (0 hits for "${probe}"); the live tables are unchanged`);
+  log(`checked: ${Object.entries(rows).map(([t, n]) => `${t} ${n} rows`).join(", ")}; search works`);
+  // Switch in one transaction: live -> _prev, next -> live.
+  const swap = [];
+  for (const t of tables) swap.push(`DROP TABLE IF EXISTS ${t}_prev;`);
+  for (const t of tables) if (await exists(run, t)) swap.push(`ALTER TABLE ${t} RENAME TO ${t}_prev;`);
+  for (const t of tables) swap.push(`ALTER TABLE ${t}_next RENAME TO ${t};`);
+  try {
+    await run(swap.join("\n"));
+  } catch (e) {
+    // Should the switch not run as one transaction and stop part-way, put back any live table
+    // left missing, so readers are never without an index.
+    for (const t of tables) if (!(await exists(run, t)) && (await exists(run, `${t}_prev`))) await run(`ALTER TABLE ${t}_prev RENAME TO ${t};`);
+    throw e;
+  }
+  log(`switched: readers now use the new tables; the previous ones are kept as ${tables.map((t) => `${t}_prev`).join(", ")}`);
+  return { rows };
+}
+
+/** Puts the previous copy back (live -> _next, _prev -> live) in one transaction. */
+export async function rollback(run, tables = SEARCH.tables) {
+  for (const t of tables) if (!(await exists(run, `${t}_prev`))) throw new Error(`no ${t}_prev to roll back to`);
+  const sql = [];
+  for (const t of tables) sql.push(`DROP TABLE IF EXISTS ${t}_next;`, `ALTER TABLE ${t} RENAME TO ${t}_next;`, `ALTER TABLE ${t}_prev RENAME TO ${t};`);
+  await run(sql.join("\n"));
+}

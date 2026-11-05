@@ -2,9 +2,9 @@
 /**
  * Loads the search index into D1: downloads ${DATA_ORIGIN}/search-index/parts.json and its parts
  * (or ${DATA_ORIGIN}/search.sql.gz where there are no parts, or reads a local .sql/.sql.gz
- * given as an argument), gunzips it and runs it with wrangler. The SQL drops and
- * recreates search_docs, so the load is a full replace; the deploy workflow runs it on every
- * deploy and the site's data workflow republishes the file a few times a week.
+ * given as an argument), gunzips it and loads it blue-green (bluegreen-load.mjs): a spare copy is
+ * built beside the live index, checked, then switched in one step, so readers never lose search
+ * and a bad load never goes live. The deploy workflow runs it on every deploy.
  *
  *   node scripts/load-search.mjs [path/to/search.sql(.gz)] [--local]
  */
@@ -13,7 +13,8 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
-import { importRetryDelay } from "./import-retry.mjs";
+import { bluegreenLoad } from "./bluegreen-load.mjs";
+import { d1Query } from "./d1-query.mjs";
 
 const args = process.argv.slice(2);
 const local = args.includes("--local");
@@ -44,22 +45,26 @@ if (/^https?:\/\//.test(source)) {
 }
 console.error(`${(sql.length / 1e6).toFixed(1)} MB of SQL`);
 
-const dir = mkdtempSync(join(tmpdir(), "cj-search-"));
-const file = join(dir, "search.sql");
-// A byte-identical file re-imported soon after the last one makes D1 "resume" a finished import
-// and fail; a comment with the time keeps every run's upload fresh.
-writeFileSync(file, Buffer.concat([sql, Buffer.from(`\n-- loaded ${new Date().toISOString()}\n`)]));
-try {
-  // D1 runs one import at a time and its imports occasionally drop part-way: see import-retry.mjs.
-  for (let attempt = 1; ; attempt++) {
-    const run = spawnSync("npx", ["wrangler", "d1", "execute", DB, local ? "--local" : "--remote", "--yes", "--file", file], { cwd: new URL("..", import.meta.url), encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    process.stdout.write(run.stdout ?? ""); process.stderr.write(run.stderr ?? "");
-    if (run.status === 0) break;
-    const wait = importRetryDelay(`${run.stdout ?? ""}\n${run.stderr ?? ""}`, attempt);
-    if (wait === null) throw new Error(`the search index import failed (attempt ${attempt}, exit ${run.status ?? run.signal})`);
-    console.error(`the import did not finish; trying again in ${wait} s (attempt ${attempt + 1})`);
-    await new Promise((r) => setTimeout(r, wait * 1000));
+if (local) {
+  // A local database (wrangler dev) has no readers to keep: the plain import is fine there.
+  const dir = mkdtempSync(join(tmpdir(), "cj-search-"));
+  const file = join(dir, "search.sql");
+  writeFileSync(file, sql);
+  try {
+    const run = spawnSync("npx", ["wrangler", "d1", "execute", DB, "--local", "--yes", "--file", file], { cwd: new URL("..", import.meta.url), encoding: "utf8", stdio: ["ignore", "inherit", "inherit"] });
+    if (run.status !== 0) throw new Error(`the local search index load failed (exit ${run.status ?? run.signal})`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
-} finally {
-  rmSync(dir, { recursive: true, force: true });
+} else {
+  // Production and staging: blue-green, through D1's query API (no import, so no lock), see
+  // bluegreen-load.mjs.
+  const { CLOUDFLARE_API_TOKEN: token, CLOUDFLARE_ACCOUNT_ID: account } = process.env;
+  if (!token || !account) throw new Error("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are needed");
+  const api = `https://api.cloudflare.com/client/v4/accounts/${account}/d1/database`;
+  const headers = { authorization: `Bearer ${token}`, "content-type": "application/json" };
+  const dbs = await fetch(`${api}?name=${encodeURIComponent(DB)}`, { headers }).then((r) => r.json());
+  const id = dbs.result?.find((d) => d.name === DB)?.uuid;
+  if (!id) throw new Error(`no D1 database named ${DB}`);
+  await bluegreenLoad(sql.toString("utf8"), d1Query(`${api}/${id}/query`, headers), { log: (m) => console.error(m) });
 }
