@@ -210,9 +210,11 @@ async function ownedStudies(env: Env, root: string, firebaseUid: string): Promis
 }
 
 /**
- * Deletes every document this reader's logins own: account sync under users/tg_<id>, and, for a linked
- * login, everything the Bible Strong app keeps for it (see ACCOUNT_ROOTS and STUDY_ROOTS), with every
- * subcollection and revision history. Returns how many documents were removed. A no-op (0) when this
+ * Deletes discoverable account data: all descendants of the known UID roots, including missing
+ * intermediate documents, and top-level studies whose existing parent identifies this login as owner.
+ * A top-level study whose parent was already removed cannot be attributed by this owner query; its
+ * orphan history requires trusted ownership evidence before cleanup. This is not proof of complete
+ * historical account erasure. Returns how many documents were removed. A no-op (0) when this
  * Worker has no Firestore access configured. Throws, like every other store in mydata.ts, when a step
  * fails, so the caller reports an incomplete deletion rather than acknowledging one.
  */

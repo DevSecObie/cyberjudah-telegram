@@ -307,3 +307,63 @@ test("a failed revision delete preserves the owning study for an owner-query ret
     assert.deepEqual([...store.keys()].sort(), [other, `${other}/revisions/r1`].sort());
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test("recursive deletion reaches revisions below missing UID roots and parents, including paginated unknown collections", async () => {
+  const { deleteAccountSyncMarks } = await load("missing-parents");
+  const root = "projects/demo-cyberjudah/databases/(default)/documents";
+  const owned = ["users", "staging_users"].flatMap(scope => [
+    `${scope}/tg_7/notes/gone/revisions/r1`,
+    `${scope}/tg_7/notes/gone/revisions/r2`,
+    `${scope}/tg_7/studies/gone/revisions/r1`,
+    `${scope}/tg_7/assistantConversations/gone/turns/t1`,
+  ]);
+  const untouched = ["users/tg_8/notes/gone/revisions/r1", "studies/unknown-owner/revisions/r1"];
+  // Every intermediate parent, including users/tg_7 itself, is already absent.
+  const store = new Set([...owned, ...untouched]);
+  const batches = [], requests = [];
+  let failRead = true;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url);
+    assert.equal(u.hostname, "127.0.0.1");
+    if (u.pathname.endsWith(":batchWrite")) {
+      const writes = JSON.parse(init.body).writes.map(w => w.delete);
+      batches.push(writes);
+      writes.forEach(name => store.delete(name.slice(root.length + 1)));
+      return Response.json({ status: writes.map(() => ({})) });
+    }
+    // No existing top-level study retains an ownership field. Never guess ownership.
+    if (u.pathname.endsWith(":runQuery")) return Response.json([]);
+    const path = u.pathname.slice(u.pathname.indexOf("/documents/") + "/documents/".length);
+    requests.push(path);
+    if (path.endsWith(":listCollectionIds")) {
+      const parent = path.slice(0, -":listCollectionIds".length);
+      const ids = [...new Set([...store].filter(p => p.startsWith(`${parent}/`)).map(p => p.slice(parent.length + 1).split("/")[0]))];
+      const offset = Number(JSON.parse(init.body).pageToken ?? 0);
+      return Response.json({ collectionIds: ids.slice(offset, offset + 1), ...(offset + 1 < ids.length ? { nextPageToken: String(offset + 1) } : {}) });
+    }
+    if (path.split("/").length % 2 === 0) {
+      return store.has(path) ? Response.json(doc(`${root}/${path}`, {})) : new Response("", { status: 404 });
+    }
+    if (failRead && path === "users/tg_7/notes/gone/revisions") return new Response("", { status: 503 });
+    assert.equal(u.searchParams.get("showMissing"), "true", "recursive inventory must request missing parent placeholders");
+    const children = [...new Set([...store].filter(p => p.startsWith(`${path}/`)).map(p => p.slice(path.length + 1).split("/")[0]))];
+    const offset = Number(u.searchParams.get("pageToken") ?? 0);
+    return Response.json({
+      documents: children.slice(offset, offset + 1).map(id => store.has(`${path}/${id}`) ? doc(`${root}/${path}/${id}`, {}) : { name: `${root}/${path}/${id}` }),
+      ...(offset + 1 < children.length ? { nextPageToken: String(offset + 1) } : {}),
+    });
+  };
+  try {
+    const env = { ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" };
+    await assert.rejects(deleteAccountSyncMarks(env, 7), /read failed/i);
+    assert.equal(batches.length, 0, "a failed orphan inventory must precede every write");
+    assert.equal(store.size, owned.length + untouched.length);
+    failRead = false;
+    assert.equal(await deleteAccountSyncMarks(env, 7), owned.length);
+    assert.deepEqual(batches.flat().sort(), owned.map(path => `${root}/${path}`).sort());
+    assert.deepEqual([...store].sort(), untouched.sort(), "other accounts and unattributable top-level orphans are never guessed to belong to this login");
+    assert.ok(requests.filter(path => path === "staging_users/tg_7:listCollectionIds").length > 1, "collection-id pagination is followed");
+    assert.ok(requests.filter(path => path === "staging_users/tg_7/notes/gone/revisions").length > 1, "document pagination is followed");
+  } finally { globalThis.fetch = originalFetch; }
+});

@@ -1,1 +1,3 @@
 Account data deletion now verifies each Firestore batch-write status before reporting success. A failed, missing, or malformed write status stops the operation and reports an incomplete deletion. Descendants are deleted and acknowledged by depth before any parent is removed, so a partial failure leaves the owning study discoverable for retry.
+
+Recursive traversal is covered for missing account, note and legacy study parents in both collection scopes, including paginated unknown subcollections. An already-missing top-level study parent cannot be attributed by the owner query; those histories require trusted ownership evidence before cleanup. The returned count covers discoverable documents and does not certify complete historical erasure.
