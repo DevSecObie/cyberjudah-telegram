@@ -52,7 +52,7 @@ firebaseAuth.post("/token", async c => {
     // falls back to its own reserved identity.
     const fallback = telegramFirebaseUid(c.get("telegramId"));
     if (uid !== fallback && c.env.DB && !(await firebaseUserExists(c.env, uid))) {
-      await removeAccountLink(c.env, c.get("telegramId"));
+      await removeAccountLink(c.env, c.get("telegramId"), uid);
       uid = fallback;
     }
     const token = await mintFirebaseToken(c.env, uid);
@@ -104,6 +104,7 @@ export async function firebaseAccount(request: Request, env: Env, recent = false
   await limitSession(request, env);
   const identity = await verifyFirebaseIdentity(header.slice(7), recent);
   await limitPerson(env, identity.uid);
+  if (await accountDeletionBlocked(env, identity.uid)) throw new IdentityError(409, "account_deletion_in_progress");
   const id = await linkedTelegram(env, identity.uid);
   return { identity, user: id ? { id, first_name: identity.name } : null };
 }

@@ -84,7 +84,22 @@ export async function linkAccounts(env: Env, id: number, firebaseUid: string): P
   if (await accountDeletionBlocked(env, firebaseUid) || await accountDeletionBlocked(env, legacy)) throw new IdentityError(409, "account_deletion_in_progress");
   if (await linkedTelegram(env, firebaseUid) !== id || await linkedFirebase(env, id) !== firebaseUid) throw new IdentityError(409, "account_link_conflict");
 }
-export async function removeAccountLink(env: Env, id: number) {
+export async function removeAccountLink(env: Env, id: number, expectedUid?: string) {
   await schema(env);
+  if (expectedUid !== undefined) {
+    await env.DB.prepare("DELETE FROM account_links WHERE telegram_owner=? AND firebase_uid=?").bind(await pid(env, id), expectedUid).run();
+    return;
+  }
   await env.DB.prepare("DELETE FROM account_links WHERE telegram_owner=?").bind(await pid(env, id)).run();
+}
+
+/** Sever only the deleting app UID. Its durable barrier prevents relinking, and selecting by
+ * UID means a retry can never remove a Telegram identity's newer link to a different account.
+ * No Telegram owner, sealed payload, wallet or sync document is retained in a cleanup job. */
+export async function unlinkDeletingFirebaseAccount(env: Env, uid: string): Promise<void> {
+  if (!validFirebaseUid(uid) || uid.startsWith("tg_")) throw new IdentityError(409, "native_account_required");
+  if (!(await accountDeletionBlocked(env, uid))) throw new Error("Account deletion barrier required.");
+  await schema(env);
+  await env.DB.prepare("DELETE FROM account_links WHERE firebase_uid=? AND EXISTS (SELECT 1 FROM account_deletion_blocks WHERE firebase_uid=?)").bind(uid, uid).run();
+  if (await env.DB.prepare("SELECT 1 FROM account_links WHERE firebase_uid=?").bind(uid).first()) throw new Error("Account unlink incomplete.");
 }

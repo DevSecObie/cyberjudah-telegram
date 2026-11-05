@@ -1,4 +1,4 @@
-import { linkedFirebase, linkedTelegram, telegramFirebaseUid, validFirebaseUid } from "./account-links";
+import { linkedFirebase, telegramFirebaseUid, validFirebaseUid } from "./account-links";
 import { importPKCS8, SignJWT } from "jose";
 import type { Env } from "./env";
 
@@ -370,12 +370,11 @@ export async function deleteAccountSyncMarks(env: Env, uid: number): Promise<num
 }
 
 /** Call only after verifying a recent Firebase identity. Unlike the optional Telegram sync cleanup,
- * native account deletion must fail closed when Firestore is unavailable. A legacy identity comes
- * exclusively from the server's authenticated account-link record, never from request parameters. */
+ * native account deletion must fail closed when Firestore is unavailable. App-owned shared sync
+ * follows its app UID; Telegram-owned roots are a separate domain and must never be traversed. */
 export async function deleteFirebaseAccountSyncMarks(env: Env, firebaseUid: string): Promise<number> {
-  if (!validFirebaseUid(firebaseUid) || !syncConfigured(env)) throw new Error("Account deletion is unavailable.");
-  const telegramId = await linkedTelegram(env, firebaseUid);
-  return deleteIdentityDocuments(env, [firebaseUid, ...(telegramId === null ? [] : [telegramFirebaseUid(telegramId)])]);
+  if (!validFirebaseUid(firebaseUid) || firebaseUid.startsWith("tg_") || !syncConfigured(env)) throw new Error("Account deletion is unavailable.");
+  return deleteIdentityDocuments(env, [firebaseUid]);
 }
 
 async function deleteIdentityDocuments(env: Env, identities: string[]): Promise<number> {
