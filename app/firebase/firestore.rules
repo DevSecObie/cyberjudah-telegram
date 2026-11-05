@@ -3,6 +3,10 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
     function owns(userId) { return signedIn() && request.auth.uid == userId; }
+    function studyWritable(studyId) {
+      let ledgerId = 'studies:' + studyId;
+      return !exists(/databases/$(database)/documents/study_deletion_owners/$(ledgerId));
+    }
     // These are personal documents. They never grant Telegram admin rights or API quotas.
     match /users/{userId} {
       allow read, write: if owns(userId);
@@ -23,18 +27,18 @@ service cloud.firestore {
       allow read, write: if owns(userId);
     }
     match /studies/{studyId}/revisions/{revisionId} {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.user.id == request.auth.uid;
+      allow read: if signedIn() && studyWritable(studyId);
+      allow create: if signedIn() && request.resource.data.user.id == request.auth.uid && studyWritable(studyId);
       allow update: if signedIn() && resource.data.user.id == request.auth.uid
-        && request.resource.data.user.id == request.auth.uid;
-      allow delete: if signedIn() && resource.data.user.id == request.auth.uid;
+        && request.resource.data.user.id == request.auth.uid && studyWritable(studyId);
+      allow delete: if signedIn() && resource.data.user.id == request.auth.uid && studyWritable(studyId);
     }
     match /studies/{studyId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.user.id == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.user.id == request.auth.uid && studyWritable(studyId);
       allow update: if signedIn() && resource.data.user.id == request.auth.uid
-        && request.resource.data.user.id == request.auth.uid;
-      allow delete: if signedIn() && resource.data.user.id == request.auth.uid;
+        && request.resource.data.user.id == request.auth.uid && studyWritable(studyId);
+      allow delete: if false; // Use the authenticated server route that retains ownership.
     }
     match /users-status/{userId} {
       allow read, write: if owns(userId);

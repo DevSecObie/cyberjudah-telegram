@@ -57,6 +57,7 @@ import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { keyedHash, pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
+import { AccountDeletionNotReadyError, accountDeletionUnavailableMessage } from "./account-deletion-readiness";
 import { photoFile, photoManifest, removePhoto, setPhoto } from "./photos";
 import { MAX_BYTES } from "./photos.mjs";
 import { browserAuth, browserSession } from "./browser-auth";
@@ -70,6 +71,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { nativeAccountData } from "./native-account-data";
+import { nativeStudyDeletion } from "./native-study-deletion";
 import { mcp } from "./mcp";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
@@ -90,6 +92,7 @@ app.route("/api/nave", nave);
 app.route("/api/published-studies", publishedStudies);
 // Verified, recent Firebase identity; no Telegram link is required.
 app.route("/api/native-account-data", nativeAccountData);
+app.route("/api/native-studies", nativeStudyDeletion);
 app.route("/app/published", publishedStudyPage);
 // The private MCP server for the owner's assistants: it checks its own key (mcp.ts).
 app.all("/mcp", (c) => mcp(c.req.raw, c.env, c.executionCtx));
@@ -564,8 +567,9 @@ app.post("/api/privacy/delete", async (c) => {
   try {
     const d = await deleteData(c.env, c.get("tma").user!.id);
     return c.json({ ok: true, deleted: d, summary: deletedSummary(d) });
-  } catch {
-    return c.json({ ok: false, error: "Deletion could not finish. Some data may already have been removed. Please try again." }, 503);
+  } catch (error) {
+    if (error instanceof AccountDeletionNotReadyError) return c.json({ ok: false, reason: "account_deletion_not_ready", error: accountDeletionUnavailableMessage }, 503);
+    return c.json({ ok: false, reason: "account_deletion_incomplete", error: "Deletion could not finish. Some data may already have been removed. Please try again or contact privacy@cyberjudah.io." }, 503);
   }
 });
 

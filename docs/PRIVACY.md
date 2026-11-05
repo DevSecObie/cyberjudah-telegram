@@ -191,3 +191,9 @@ CyberJudah is not directed to children under 13 (16 in the EEA). The Privacy scr
    tell readers to set reminders again.
 5. **Requests by message:** the app and the bot answer data requests at once. Anything sent to the
    admins (for example through `/paysupport`) is answered within 30 days.
+
+### Deletion readiness and retained ownership records
+
+The review branch uses a single `ACCOUNT_DATA_DELETION_READY` gate for native, browser and Telegram account-data deletion. Until historical ownership and the deployed deletion contract are verified, these flows report unavailability and do not confirm erasure. Partial failures retain the verified account link for retry and report incomplete deletion. There is no automatic background completion promise. User-facing Privacy and Delete Account pages explain the incomplete state and the existing privacy contact.
+
+Ordinary study deletion retains a server-only Firestore `study_deletion_owners` record containing the proven account ID, study ID, collection and format version. It contains no study text. It survives ordinary study removal to prevent ID reuse and preserve ownership for interrupted/late history cleanup, and is removed after successful account-data cleanup. An unresolved historical quarantine record contains no asserted owner and remains pending trusted reconciliation. These changes and rule candidates are not evidence of production deployment or completed historical erasure.

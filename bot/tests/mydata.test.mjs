@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test, after } from "node:test";
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { DatabaseSync } from "node:sqlite";
@@ -7,7 +7,18 @@ import { pid, seal } from "../src/privacy.mjs";
 // mydata.ts reaches the chat, reminder and billing stores, which import one another without
 // file extensions (as Workers bundles them), so it is bundled for Node first.
 const out = new URL("./.build/mydata.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/mydata.ts"; export { saveExchange } from "./src/chats.ts"; export { saveReminder, tgRid } from "./src/remind.ts"; export { requestNotes } from "./src/requests.ts"; export { adjust } from "./src/credits.ts"; export { setTopupReminder } from "./src/topup-remind.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+await build({ stdin: { contents: 'export * from "./src/mydata.ts"; export { linkAccounts, linkedFirebase } from "./src/account-links.ts"; export { saveExchange } from "./src/chats.ts"; export { saveReminder, tgRid } from "./src/remind.ts"; export { requestNotes } from "./src/requests.ts"; export { adjust } from "./src/credits.ts"; export { setTopupReminder } from "./src/topup-remind.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+// No real Firestore service is contacted by these multi-store unit tests.
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async (url) => {
+  const u = new URL(url);
+  assert.equal(u.hostname, "127.0.0.1");
+  if (u.pathname.endsWith(":runQuery")) return Response.json([]);
+  if (u.pathname.endsWith(":listCollectionIds")) return Response.json({ collectionIds: [] });
+  if (u.search) return Response.json({ documents: [] });
+  return new Response("", { status: 404 });
+};
+after(() => { globalThis.fetch = originalFetch; });
 const { deleteData, deletionToken, exportData, useDeletionToken, saveExchange, saveReminder, tgRid, requestNotes } = await import(out);
 
 const kv = () => {
@@ -31,7 +42,7 @@ const d1 = {
 const reminder = { on: true, hour: 7, minute: 0, tz: "UTC", channels: { telegram: true }, chatId: 77, pushes: [], pending: [], from: "2026-10-01" };
 
 async function reader() {
-  const env = { SUBS: kv(), DB: d1, PRIVACY_KEY: "test-key", BOT_TOKEN: "1:x" };
+  const env = { ACCOUNT_DATA_DELETION_READY: "true", FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089", SUBS: kv(), DB: d1, PRIVACY_KEY: "test-key", BOT_TOKEN: "1:x" };
   await saveExchange(env, 77, "abc12345", "Why keep the Passover?", { content: "A memorial." });
   await saveReminder(env, await tgRid(env, 77), reminder);
   const subKey = `sub:${await pid(env, 77)}`;
@@ -50,7 +61,7 @@ test("Download my data: everything kept about the reader, readable, in one file"
   assert.deepEqual(d.dailyVerse, { hour: 8, tzOffsetMinutes: 0 });
   assert.deepEqual(d.classNoteRequests, ["AAAAAAAAAAA"]);
   assert.match(d.note, /stay on your device/);
-  assert.equal(d.accountSync, null, "no Firestore access is configured on this Worker");
+  assert.equal(d.accountSync, null, "the synthetic Firestore account has no records");
 });
 
 test("Delete my data: every record about the reader goes, and other readers' are untouched", async () => {
@@ -233,4 +244,29 @@ test("Download my data: a failed top-up reminder read rejects rather than omitti
   await assert.rejects(api.exportData(env, 77), /storage unavailable/);
   fail();
   assert.deepEqual((await api.exportData(env, 77)).askTopupReminder, { on: true, tz: "America/Los_Angeles" });
+});
+
+for (const unavailable of [undefined, "false", "TRUE", "missing-firestore"]) {
+  test(`Delete my data: readiness ${unavailable} preserves every store and does not report success`, async () => {
+    const env = await reader();
+    if (unavailable === "missing-firestore") delete env.FIRESTORE_EMULATOR_HOST;
+    else env.ACCOUNT_DATA_DELETION_READY = unavailable;
+    const before = [...env.SUBS.m], sqlBefore = sql.length;
+    await assert.rejects(deleteData(env, 77), /account_deletion_not_ready/);
+    assert.deepEqual([...env.SUBS.m], before, "no KV deletion, session revocation or link loss");
+    assert.equal(sql.length, sqlBefore, "no database mutations before readiness");
+  });
+}
+
+test("Delete my data: incomplete Firestore cleanup retains the verified link for a later retry", async t => {
+  const { api, env } = await storedReader(t, "firestore-link-retry");
+  await api.linkAccounts(env, 77, "verified-login");
+  const fetchBefore = globalThis.fetch;
+  globalThis.fetch = async () => new Response("", { status: 503 });
+  try {
+    await assert.rejects(api.deleteData(env, 77), /Firestore read failed/);
+    assert.equal(await api.linkedFirebase(env, 77), "verified-login");
+  } finally { globalThis.fetch = fetchBefore; }
+  await api.deleteData(env, 77);
+  assert.equal(await api.linkedFirebase(env, 77), null);
 });

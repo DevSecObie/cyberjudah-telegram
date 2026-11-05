@@ -4,6 +4,7 @@ import { IdentityError, verifyFirebaseIdentity } from "./account-links";
 import { limitPerson, limitSession } from "./app-identity";
 import { deleteFirebaseAccountSyncMarks } from "./firestore-admin";
 import type { Env } from "./env";
+import { AccountDeletionNotReadyError, assertAccountDeletionReady } from "./account-deletion-readiness";
 
 /** Native account erasure, including unlinked Firebase accounts. The client deletes Auth only after
  * this acknowledgment and publication cleanup. No client-supplied UID, path or scope is accepted. */
@@ -24,10 +25,11 @@ nativeAccountData.delete("/", async c => {
     await limitPerson(c.env, identity.uid);
     // Recursive queries cannot infer the owner of historical top-level orphan studies. Keep this
     // closed until their reconciliation and the deployed deletion contract have been verified.
-    if (c.env.NATIVE_ACCOUNT_DELETION_READY !== "true") return c.json({ error: "account_deletion_not_ready" }, 503);
+    assertAccountDeletionReady(c.env);
     const removed = await deleteFirebaseAccountSyncMarks(c.env, identity.uid);
     return c.json({ version: 1, uid: identity.uid, firestoreDeleted: true, removed });
   } catch (error) {
+    if (error instanceof AccountDeletionNotReadyError) return c.json({ error: "account_deletion_not_ready" }, 503);
     if (error instanceof IdentityError) return c.json({ error: error.reason }, error.status);
     // Never expose private paths, token material or signing configuration.
     return c.json({ error: "account_deletion_incomplete" }, 503);

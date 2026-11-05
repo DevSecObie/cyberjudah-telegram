@@ -10,13 +10,14 @@ import { publicView } from "./reminders.mjs";
 import { open, pid, seal } from "./privacy.mjs";
 import type { NoteRequest } from "./requests";
 import { deleteAccountSyncMarks, exportAccountSyncMarks } from "./firestore-admin";
+import { assertAccountDeletionReady } from "./account-deletion-readiness";
 
 /**
  * A reader's rights over what CyberJudah keeps about them (docs/PRIVACY.md; Telegram's Standard
  * Bot Privacy Policy 7.3; Apple's account-deletion requirements):
  * - Download my data: a copy of everything kept, as one JSON file sent to their Telegram chat.
- * - Delete my data: everything removed at once, in the app or with /deletemydata, confirmed
- *   when done. A payment record keeps only Telegram's charge ID, kind, amount and date, no
+ * - Delete my data: confirmed only after every required store succeeds; failures remain incomplete.
+ *   A payment record keeps only Telegram's charge ID, kind, amount and date, no
  *   longer linked to the person: Telegram's refund process and the owner's accounts need it.
  */
 export type MyData = {
@@ -74,6 +75,8 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
 export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse: boolean; classNoteRequests: number; askBalanceUsd: number; topupReminder: boolean; accountSyncRecords: number };
 
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
+  // Preserve links and sessions before touching any store while complete erasure is unverified.
+  assertAccountDeletionReady(env);
   const me = await pid(env, uid);
   await deleteStudyBackup(env, uid);
   const savedChats = await deleteAllChats(env, uid);
