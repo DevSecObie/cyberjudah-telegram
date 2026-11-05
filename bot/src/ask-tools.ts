@@ -6,7 +6,8 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { Env, Exec } from "./env";
 import type { Passage } from "./ai.mjs";
 import { dataJson } from "./data";
-import { captionAt, formatVerseStudy, snippetWanted, type Concordance, type Xref } from "./verse-study";
+import { captionAt, formatVerseStudy, snippetWanted, undatedVideos, type Concordance, type Xref } from "./verse-study";
+import { uploadDates } from "./upload-date";
 import { loadTranscript } from "./teachings";
 import { all as easton, lookup as eastonLookup } from "./dictionary";
 import timeline from "../../app/src/data/timeline.json";
@@ -166,15 +167,19 @@ const verseStudy: Tool = async (env, input, ctx, emit) => {
   ]);
   if (!conc && !xref) return { content: `${b.book} ${ch} could not be read just now. Try again in a moment.`, error: true };
   // The words said at each of the first readings shown, from the class's own transcript.
+  // Classes with no date of their own get their YouTube upload date, labelled as that.
   const snippets: Record<string, string> = {};
-  if (v != null) await Promise.all(snippetWanted(conc, v, to ?? v).map(async ({ video, t }) => {
-    const got = await loadTranscript(env, video, ctx).catch(() => null);
-    if (got && !("error" in got)) { const s = captionAt(got.file.segments ?? [], t); if (s) snippets[`${video}@${t}`] = s; }
-  }));
+  const [, uploads] = await Promise.all([
+    v != null ? Promise.all(snippetWanted(conc, v, to ?? v).map(async ({ video, t }) => {
+      const got = await loadTranscript(env, video, ctx).catch(() => null);
+      if (got && !("error" in got)) { const s = captionAt(got.file.segments ?? [], t); if (s) snippets[`${video}@${t}`] = s; }
+    })) : null,
+    uploadDates(env, undatedVideos(conc, v ?? 1, to ?? v ?? 999, v == null)),
+  ]);
   const names = Object.fromEntries((books ?? []).map((x) => [x.slug, x.book]));
   // Whole addresses, so an assistant outside the app can open them; Ask's reader resolves them the same.
   const site = (path: string) => (path.startsWith("/") && env.SITE_URL ? `${env.SITE_URL}${path}` : path);
-  return { content: formatVerseStudy(conc, xref, { book: b.book, slug: b.slug, chapter: ch, from: v, to }, names, site, snippets) };
+  return { content: formatVerseStudy(conc, xref, { book: b.book, slug: b.slug, chapter: ch, from: v, to }, names, site, snippets, uploads) };
 };
 
 type LawIndex = { n: number; title: string; url: string; sections: { id: string; title: string; laws: number; url: string }[] }[];

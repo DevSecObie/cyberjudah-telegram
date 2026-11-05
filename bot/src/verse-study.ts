@@ -71,7 +71,9 @@ type Hit = { tier: number; rank: number; date: string; video: string | null; t: 
  * caller for the hits it chose (key `${video}@${second}`); without one the words where the
  * reference was called for (`said`) stand in.
  */
-export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: Ask, names: BookNames, site: (path: string) => string, snippets: Record<string, string> = {}): string {
+export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: Ask, names: BookNames, site: (path: string) => string, snippets: Record<string, string> = {}, uploads: Record<string, string> = {}): string {
+  // A class with no date of its own shows its YouTube upload date, said to be that.
+  const dated = (d: string | undefined, video: string | null | undefined) => (d && d.trim()) || !video || !uploads[video] ? when(d) : `${uploads[video]} (YouTube upload date)`;
   const { book, chapter } = ask;
   const verseLabel = ask.from == null ? `${book} ${chapter}` : `${book} ${chapter}:${ask.from}${ask.to && ask.to > ask.from ? `-${ask.to}` : ""}`;
   const from = ask.from ?? 1, to = ask.to ?? ask.from ?? 999;
@@ -91,7 +93,7 @@ export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: 
       for (const r of study.filter((x) => x.note.url === url)) {
         r.points.forEach((pt, i) => {
           const s = r.sources?.[i];
-          const src = s ? `Source: ${s.title} (${when(s.date)}, ${who(s.teacher)}) at ${s.ts}, ${videoAt(s.video, s.t)}${s.url ? `, notes ${site(s.url)}` : ""}; matched by wording ${s.how === "pass" ? "in the class's precept pass" : "in the class transcript"}.` : "Source: unsourced (no class has been found that says this).";
+          const src = s ? `Source: ${s.title} (${dated(s.date, s.video)}, ${who(s.teacher)}) at ${s.ts}, ${videoAt(s.video, s.t)}${s.url ? `, notes ${site(s.url)}` : ""}; matched by wording ${s.how === "pass" ? "in the class's precept pass" : "in the class transcript"}.` : "Source: unsourced (no class has been found that says this).";
           lines.push(`- (verse ${r.verses}) ${pt}\n  ${src}`);
         });
       }
@@ -169,7 +171,7 @@ export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: 
   hits.sort((a, b) => a.tier - b.tier || a.rank - b.rank || b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
   if (hits.length) {
     const shown = hits.slice(0, MAX_CLASSES).map((h, i) => {
-      const head = `${i + 1}. ${tidyTitle(h.title)}${h.feed ? ` (${h.feed})` : ""}, ${when(h.date)}, ${who(h.teacher)}`;
+      const head = `${i + 1}. ${tidyTitle(h.title)}${h.feed ? ` (${h.feed})` : ""}, ${dated(h.date, h.video)}, ${who(h.teacher)}`;
       const notes = h.notes ? `Notes: ${site(h.notes)}` : "Notes: none yet";
       return [head, `   Match: ${h.reason}.`, h.snippet ? `   Said: “${h.snippet.replace(/\s+/g, " ").trim()}”` : null, h.link ? `   Video: ${h.link}` : null, `   ${notes}`].filter(Boolean).join("\n");
     });
@@ -204,4 +206,15 @@ export function captionAt(segments: [number, string][], t: number, words = 24): 
   if (i < 0) return "";
   const text = segments.slice(i, i + 12).map(([, s]) => s).join(" ").replace(/>>/g, " ").replace(/\s+/g, " ").trim();
   return text.split(" ").slice(0, words).join(" ");
+}
+
+/** Videos with no date of their own, in roughly the order the tool lists them, for upload dates. */
+export function undatedVideos(c: Concordance | null, from: number, to: number, whole = false): string[] {
+  const out: string[] = [];
+  const rows = Object.entries(c?.read ?? {}).filter(([v]) => +v >= from && +v <= to).flatMap(([, r]) => r);
+  rows.sort((a, b) => teacherRank(a.teacher) - teacherRank(b.teacher));
+  for (const r of rows) if (!r.date) out.push(r.video);
+  for (const m of c?.moments ?? []) if (!m.date && (whole || overlaps(m.verses, from, to))) out.push(m.video);
+  for (const r of c?.commentary ?? []) for (const s of r.sources ?? []) if (s && !s.date && overlaps(r.verses, from, to)) out.push(s.video);
+  return [...new Set(out)];
 }
