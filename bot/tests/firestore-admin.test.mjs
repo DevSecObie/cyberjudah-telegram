@@ -27,7 +27,7 @@ function firestoreFetch({ byPath = {}, tokenEndpoint } = {}) {
     if (u.pathname.endsWith(":batchWrite")) {
       const body = JSON.parse(init.body);
       batches.push(body.writes);
-      return new Response(JSON.stringify({ writeResults: body.writes.map(() => ({})) }), { status: 200 });
+      return new Response(JSON.stringify({ writeResults: body.writes.map(() => ({})), status: body.writes.map(() => ({})) }), { status: 200 });
     }
     // Path after ".../documents/" identifies the collection or subcollection being listed.
     const marker = "/documents/";
@@ -191,7 +191,7 @@ test("deletion of a linked login reaches everything Bible Strong keeps for it, s
   globalThis.fetch = async (url, init = {}) => {
     const u = new URL(url);
     assert.equal(u.hostname, "127.0.0.1");
-    if (u.pathname.endsWith(":batchWrite")) { writes.push(...JSON.parse(init.body).writes.map((w) => w.delete)); return Response.json({}); }
+    if (u.pathname.endsWith(":batchWrite")) { const batch = JSON.parse(init.body).writes; writes.push(...batch.map((w) => w.delete)); return Response.json({ status: batch.map(() => ({})) }); }
     if (u.pathname.endsWith("/documents:runQuery")) {
       const query = JSON.parse(init.body).structuredQuery;
       queries.push([query.from[0].collectionId, query.where.fieldFilter.field.fieldPath, query.where.fieldFilter.value.stringValue]);
@@ -222,5 +222,35 @@ test("deletion of a linked login reaches everything Bible Strong keeps for it, s
     assert.ok(writes.indexOf(`${root}/staging_studies/s1/revisions/r1`) < writes.indexOf(`${root}/staging_studies/s1`), "children go before their parent");
     assert.deepEqual(queries.filter(([, , uid]) => uid === "google-uid").map(([c]) => c).sort(), ["staging_studies", "studies"]);
     assert.ok(queries.every(([, field]) => field === "user.id"), "studies are found by their owner, never by listing other readers'");
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("HTTP 200 does not acknowledge deletion when a write failed or its status is missing", async () => {
+  const { deleteAccountSyncMarks } = await load("write-status");
+  const documents = Array.from({ length: 301 }, (_, i) => doc(`projects/demo-cyberjudah/databases/(default)/documents/users/tg_7/highlights/doc${i}`, {}));
+  const { fetchFn } = firestoreFetch({ byPath: { "users/tg_7/highlights": [{ documents }] } });
+  const originalFetch = globalThis.fetch;
+  try {
+    for (const body of [
+      { status: Array.from({ length: 300 }, (_, i) => i === 0 ? { code: 7, message: "Permission denied" } : {}) },
+      {}, { status: [] }, { status: Array(299).fill({}) },
+      { status: Array(300).fill(null) }, { status: Array(300).fill({ code: "0" }) },
+    ]) {
+      let writes = 0;
+      globalThis.fetch = async (url, init) => {
+        if (new URL(url).pathname.endsWith(":batchWrite")) {
+          writes++;
+          return Response.json(body);
+        }
+        return fetchFn(url, init);
+      };
+      await assert.rejects(deleteAccountSyncMarks({ ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, 7), /deletion failed/i);
+      assert.equal(writes, 1, "stop before another batch when any delete is unconfirmed");
+    }
+    globalThis.fetch = async (url, init) => {
+      if (new URL(url).pathname.endsWith(":batchWrite")) return Response.json({ status: JSON.parse(init.body).writes.map(() => ({ code: 0 })) });
+      return fetchFn(url, init);
+    };
+    assert.equal(await deleteAccountSyncMarks({ ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, 7), 301);
   } finally { globalThis.fetch = originalFetch; }
 });

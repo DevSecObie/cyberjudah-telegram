@@ -75,7 +75,7 @@ test("Download and Delete my data reach the Firestore marks account sync writes 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
     const u = new URL(url);
-    if (u.pathname.endsWith(":batchWrite")) { highlightDeleted = true; return new Response(JSON.stringify({ writeResults: [{}] }), { status: 200 }); }
+    if (u.pathname.endsWith(":batchWrite")) { highlightDeleted = true; return new Response(JSON.stringify({ writeResults: [{}], status: [{}] }), { status: 200 }); }
     if (u.pathname.endsWith(":runQuery")) return new Response(JSON.stringify([{ readTime: "2026-10-28T00:00:00Z" }]), { status: 200 });
     const marker = "/documents/";
     const path = u.pathname.slice(u.pathname.indexOf(marker) + marker.length);
