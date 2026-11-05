@@ -149,8 +149,9 @@ test('search uses real FTS5, applies filters before paging, counts all matches a
   const { json: phrase } = await request('/v1/bibles/KJV/search?q=%22in%20the%20beginning%22&section=nt', Bible.BibleSearchResponseDto);
   assert.ok(phrase.results.every((r: any) => r.text.toLowerCase().includes('in the beginning') && r.book === 43));
   for (const path of ['/v1/bibles/KJV/semantic-search?q=faith', '/v1/bibles/semantic-search?versions=KJV&q=faith']) {
-    const { json } = await request(path, path.includes('?versions') ? Bible.BibleMultiSearchResponseDto : Bible.BibleSearchResponseDto);
-    assert.deepEqual(json.results, []); assert.equal(json.count, 0);
+    const { json } = await request(path, Problems.ResourceUnavailableProblem, { status: 503 });
+    assert.match(json.detail, /Semantic Bible search/);
+    assert.equal(json.results, undefined, 'an unavailable capability is not a successful empty search');
   }
 });
 
