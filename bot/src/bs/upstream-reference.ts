@@ -27,12 +27,24 @@ export async function readBibleStrongReference(
     if (!upstream) { unmatched = true; return '/verses/1-1-1'; }
     return `/verses/${upstream}-${chapter}-${verse}`;
   });
+  const owned = origin === 'https://reference.internal';
+  const signal = AbortSignal.timeout(owned ? 8_000 : 15_000);
+  const read = () => fetcher(`${origin}${mappedPath}${incoming.search}`, {
+    method: 'GET', headers: { accept: 'application/json' }, redirect: 'manual', signal,
+  });
   let response: Response;
   try {
-    response = await fetcher(`${origin}${mappedPath}${incoming.search}`, {
-      method: 'GET', headers: { accept: 'application/json' }, redirect: 'manual',
-      signal: AbortSignal.timeout(15_000),
+    const first = await read().catch(error => {
+      if (!owned || signal.aborted) throw error;
+      return undefined;
     });
+    // Retry a transient transport failure once within the same deadline. Respect origin backoff.
+    if (!first || (owned && !signal.aborted && [502, 503, 504].includes(first.status) && !first.headers.has('retry-after'))) {
+      await first?.body?.cancel();
+      response = await read();
+    } else {
+      response = first;
+    }
   } catch {
     throw new FeedError(503, `${family}_PUBLICATION_INACTIVE`, `The ${label} service could not be reached`);
   }

@@ -1,0 +1,10 @@
+{
+  "name": "cyberjudah-nave-production",
+  "main": "src/nave-publication.ts",
+  "compatibility_date": "2026-08-19",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "cyberjudah.io/bs/reference/v1/naves/*", "zone_name": "cyberjudah.io" }],
+  "services": [{ "binding": "REFERENCE_PUBLICATIONS", "service": "cyberjudah-resources-production" }],
+  "ratelimits": [{ "name": "NAVE_LIMIT", "namespace_id": "9798024399698", "simple": { "limit": 240, "period": 60 } }]
+}

@@ -180,6 +180,10 @@ URL and original error for Worker diagnostics; clients receive the typed 503 pro
 
 ## Hosting the dictionary and Nave in CyberJudah
 
+The production Nave route is `https://cyberjudah.io/bs/reference/v1/naves/*`. Its small gateway uses `bot/wrangler.nave-production.jsonc`, binds only the private production Resource service, and has its own per-client rate limit. New clients select this edition explicitly. The existing `/bs/v1/naves/*` belongs to CyberJudah's 71 teaching topics. Both collections have a “Faith” entry, with separate content and stable URLs.
+
+Run `node bot/scripts/verify-owned-nave.mjs https://cyberjudah.io/bs/reference/v1/naves/` after deploying. Verify the new private version by service binding first. If a publication or gateway regresses, roll back the affected Worker to its last verified version. On a first release, withdraw only the new route and keep the existing topic gateway active. Rotate only the affected environment's database reader. The production Resource service, PostgreSQL project and connection pool are independent of staging.
+
 Run the Resource service from the native monorepo with CyberJudah's database and publication storage. Import validated Easton + Webster and Nave publication bundles with their original revision, attribution, links and verse indexes. Run the service's dictionary and Nave smoke suites on the imported publications before changing the gateway.
 
 For staging, bind the private Worker as `REFERENCE_PUBLICATIONS`. After importing and checking both Nave editions, set `REFERENCE_HOSTING` to `nave-self-hosted` in that environment. Switch to `self-hosted` only after verifying the dictionary editions on the same service. The binding receives only public GETs and the JSON Accept header. The gateway translates verse keys by book identity. If an enabled service fails, clients receive an unavailable response. Restore the last verified publication during recovery. The CyberJudah adapter serves the Jewish Encyclopedia.
