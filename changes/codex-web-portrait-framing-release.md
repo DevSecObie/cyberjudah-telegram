@@ -1,0 +1,1 @@
+- The portraits of Abraham, Miriam and Ebed-melech now fill their frames in encyclopedia entries, family diagrams and class thumbnails on the web.
