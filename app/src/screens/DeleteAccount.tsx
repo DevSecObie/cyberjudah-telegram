@@ -29,6 +29,10 @@ export function DeleteAccount() {
         <p>If you no longer have the app or cannot sign in, email <a href={`mailto:${PRIVACY_CONTACT}?subject=${subject}`}>{PRIVACY_CONTACT}</a> from the email address you signed in with, or give your Telegram @username if you used Telegram. Ask for your account to be deleted. You may be asked to confirm the request from that address or account. Requests are completed within 30 days, and you are told when it is done.</p>
       </Section>
 
+      <Section title="If Deletion Cannot Finish">
+        <p>Deletion is complete only when confirmed. If it is temporarily unavailable, or reports an error, some records may remain. Please retry or email <a href={`mailto:${PRIVACY_CONTACT}?subject=${subject}`}>{PRIVACY_CONTACT}</a> for help completing your request. A failed attempt does not confirm that earlier study versions have been erased.</p>
+      </Section>
+
       <Section title="What Is Deleted">
         <ul>
           <li><b>Delete account in the phone app:</b> your Google, Apple or email sign-in, and your synced highlights, notes, bookmarks, tags, links and personal studies, with their earlier versions.</li>

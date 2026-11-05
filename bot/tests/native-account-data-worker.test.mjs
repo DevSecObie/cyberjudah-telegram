@@ -7,9 +7,11 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 const { outputFiles } = await build({ stdin: {
   contents: `import { Hono } from "hono";
     import { nativeAccountData } from "./src/native-account-data.ts";
+    import { nativeStudyDeletion } from "./src/native-study-deletion.ts";
     import { linkAccounts } from "./src/account-links.ts";
     const app = new Hono();
     app.route("/api/native-account-data", nativeAccountData);
+    app.route("/api/native-studies", nativeStudyDeletion);
     app.post("/fixture/link", async c => { await linkAccounts(c.env, 7, "reader-one"); return c.text("ok"); });
     export default { fetch(request, env, ctx) {
       env.FIREBASE_SESSION_LIMIT = { limit: async () => ({ success: env.TEST_RATE_LIMIT !== "blocked" }) };
@@ -40,7 +42,7 @@ const fixture = (bindings = {}) => {
   const mf = new Miniflare(convertV4MiniflareOptions({
     modules: true, script: outputFiles[0].text, compatibilityDate: '2026-10-01',
     d1Databases: { DB: 'native-account-data-test' },
-    bindings: { PRIVACY_KEY: 'synthetic-test-privacy-key', BOT_TOKEN: 'synthetic-test-bot-token', NATIVE_ACCOUNT_DELETION_READY: 'true', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8089', ...bindings },
+    bindings: { PRIVACY_KEY: 'synthetic-test-privacy-key', BOT_TOKEN: 'synthetic-test-bot-token', ACCOUNT_DATA_DELETION_READY: 'true', NATIVE_STUDY_DELETION_READY: 'true', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8089', ...bindings },
     outboundService: async request => {
       const url = new URL(request.url);
       if (url.hostname === 'identitytoolkit.googleapis.com') {
@@ -51,7 +53,15 @@ const fixture = (bindings = {}) => {
       }
       assert.equal(url.hostname, '127.0.0.1', 'no unexpected outbound service or production access');
       state.firestoreCalls++;
-      const doc = path => ({ name: `${root}/${path}`, fields: store.get(path), createTime: '2026-11-05T00:00:00Z' });
+      const doc = path => ({ name: `${root}/${path}`, fields: store.get(path), createTime: '2026-11-05T00:00:00Z', updateTime: '2026-11-05T00:00:00Z' });
+      if (url.pathname.endsWith(':commit')) {
+        const { writes } = await request.json();
+        for (const write of writes) {
+          if (write.update) store.set(write.update.name.slice(root.length + 1), write.update.fields);
+          if (write.delete) store.delete(write.delete.slice(root.length + 1));
+        }
+        return Response.json({ writeResults: writes.map(() => ({})) });
+      }
       if (url.pathname.endsWith(':batchWrite')) {
         const { writes } = await request.json();
         const paths = writes.map(w => w.delete.slice(root.length + 1));
@@ -141,7 +151,7 @@ test('client identities, paths and scopes are rejected rather than overriding th
 
 test('reconciliation gate, unavailable Firestore and rate limits fail closed without writes', async () => {
   for (const [bindings, expected] of [
-    [{ NATIVE_ACCOUNT_DELETION_READY: '' }, 503],
+    [{ ACCOUNT_DATA_DELETION_READY: '' }, 503],
     [{ FIRESTORE_EMULATOR_HOST: '' }, 503],
     [{ TEST_RATE_LIMIT: 'blocked' }, 429],
   ]) {
@@ -152,4 +162,33 @@ test('reconciliation gate, unavailable Firestore and rate limits fail closed wit
       assert.equal(store.size, 7);
     } finally { await mf.dispose(); }
   }
+});
+
+test('ordinary study endpoint verifies ownership and retains a server ledger across retries', async () => {
+  const { mf, store } = fixture();
+  const removeStudy = (uid = 'reader-one', scope = 'production', id = 'owned') => mf.dispatchFetch(`https://cyberjudah.test/api/native-studies/${scope}/${id}`, { method: 'DELETE', headers: { authorization: `Bearer ${token(uid)}` } });
+  try {
+    assert.equal((await removeStudy('reader-two')).status, 403);
+    assert.equal((await removeStudy('reader-one', 'unknown')).status, 409);
+    assert.equal(store.has('studies/owned'), true);
+    const result = await removeStudy();
+    assert.equal(result.status, 200, await result.clone().text());
+    assert.deepEqual(await result.json(), { version: 1, uid: 'reader-one', scope: 'production', studyId: 'owned', deleted: true });
+    assert.equal(store.has('studies/owned'), false);
+    assert.equal(store.has('studies/owned/revisions/r1'), false);
+    assert.equal(store.get('study_deletion_owners/studies:owned').user.mapValue.fields.id.stringValue, 'reader-one');
+    assert.equal((await removeStudy()).status, 200);
+    assert.equal((await removeStudy('reader-two')).status, 409);
+    assert.equal((await removeStudy('reader-one', 'production', 'unattributable')).status, 409);
+    assert.equal(store.has('studies/unattributable/revisions/r1'), true);
+  } finally { await mf.dispose(); }
+});
+
+test('ordinary study endpoint remains closed until its ledger privacy contract is verified', async () => {
+  const { mf, state } = fixture({ NATIVE_STUDY_DELETION_READY: '' });
+  try {
+    const result = await mf.dispatchFetch('https://cyberjudah.test/api/native-studies/production/owned', { method: 'DELETE', headers: { authorization: `Bearer ${token()}` } });
+    assert.equal(result.status, 503);
+    assert.equal(state.firestoreCalls, 0);
+  } finally { await mf.dispose(); }
 });

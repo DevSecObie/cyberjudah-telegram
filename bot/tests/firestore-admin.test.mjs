@@ -220,7 +220,7 @@ test("deletion of a linked login reaches everything Bible Strong keeps for it, s
     assert.deepEqual([...writes].sort(), [...expected].sort());
     assert.equal(deleted, expected.length);
     assert.ok(writes.indexOf(`${root}/staging_studies/s1/revisions/r1`) < writes.indexOf(`${root}/staging_studies/s1`), "children go before their parent");
-    assert.deepEqual(queries.filter(([, , uid]) => uid === "google-uid").map(([c]) => c).sort(), ["staging_studies", "studies"]);
+    assert.deepEqual(queries.filter(([, , uid]) => uid === "google-uid").map(([c]) => c).sort(), ["staging_studies", "studies", "study_deletion_owners"]);
     assert.ok(queries.every(([, field]) => field === "user.id"), "studies are found by their owner, never by listing other readers'");
   } finally { globalThis.fetch = originalFetch; }
 });
@@ -388,5 +388,27 @@ test("orphan inventory is read-only, paginated and projects away study content w
     assert.equal(batches.length, 0);
     assert.equal(calls.length, 3);
     assert.ok(calls.every(call => call.url.searchParams.get("showMissing") === "true" && call.url.searchParams.get("mask.fieldPaths") === "user.id"));
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test("read-only inventory can use an existing short-lived identity without copying a signing key", async () => {
+  const { inventoryOrphanedStudyParents } = await load("inventory-existing-identity");
+  const originalFetch = globalThis.fetch;
+  let reads = 0;
+  globalThis.fetch = async (url, init) => {
+    const u = new URL(url);
+    assert.equal(u.origin, "https://firestore.googleapis.com");
+    assert.match(u.pathname, /^\/v1\/projects\/cyberjudah-app\/databases\/\(default\)\/documents\/(studies|staging_studies)$/);
+    assert.equal(init.method ?? "GET", "GET");
+    assert.equal(init.headers.authorization, "Bearer synthetic-existing-identity");
+    assert.equal(u.searchParams.get("showMissing"), "true");
+    reads++;
+    return Response.json({ documents: [] });
+  };
+  try {
+    assert.deepEqual(await inventoryOrphanedStudyParents({}, async () => "synthetic-existing-identity"), {
+      version: 1, orphanParents: [], ownershipResolved: false,
+    });
+    assert.equal(reads, 2);
   } finally { globalThis.fetch = originalFetch; }
 });

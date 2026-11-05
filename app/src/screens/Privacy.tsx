@@ -15,7 +15,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-11-04";
+export const PRIVACY_UPDATED = "2026-11-05";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -53,7 +53,9 @@ export function Privacy() {
       (await import("./Ask")).clearAskSession();
       if (!inTelegram) queries.setQueryData(ACCOUNT_SESSION_KEY, { available: session.data?.available ?? true, user: null });
       haptic("success"); setStatus(r.summary);
-    } catch { setStatus("Deletion could not finish. Some data may already have been removed. Please try again."); }
+    } catch (error) { setStatus(error instanceof ApiError && error.reason === "account_deletion_not_ready"
+      ? "Deletion is temporarily unavailable because complete removal cannot yet be verified. Your account has not been deleted. Contact privacy@cyberjudah.io for help completing your request."
+      : "Deletion could not finish. Some data may already have been removed. Please try again or contact privacy@cyberjudah.io."); }
     finally { setBusy(""); }
   };
 
@@ -63,10 +65,11 @@ export function Privacy() {
         {signedIn ? (
           <List>
             <Row icon="download" title={busy === "export" ? "Sending…" : "Download my data"} sub={inTelegram ? "A copy of everything kept about you, sent to your chat with the bot" : "Download a JSON copy of your account data"} onClick={busy ? undefined : () => void sendCopy()} />
-            <Row icon="trash" title={busy === "delete" ? "Deleting…" : "Delete my data"} sub="Everything kept about you, removed at once" onClick={busy ? undefined : () => void deleteAll()} />
+            <Row icon="trash" title={busy === "delete" ? "Deleting…" : "Delete my data"} sub="Remove your account data and confirm when complete" onClick={busy ? undefined : () => void deleteAll()} />
             <Row icon="close" title="Withdraw AI agreement" sub={agreed.length ? `You agreed to: ${agreed.join(", ")}. Ask and Search will ask again before sending a question to an external AI provider.` : "You have not agreed to any AI provider."} onClick={agreed.length ? () => { withdraw(); setAgreed([]); haptic("select"); setStatus("Done. Ask and Search will ask before sending your next question to an external AI provider."); } : undefined} />
           </List>
         ) : <p className="hint">Open CyberJudah in Telegram to download or delete what is kept about you. In the bot you can also send /mydata or /deletemydata. A reminder set up in this browser is removed in Settings → Reading reminders.</p>}
+        <p>Deletion is complete only when confirmed. If removal cannot be verified, some records may remain; contact <a href={`mailto:${PRIVACY_CONTACT}`}>{PRIVACY_CONTACT}</a> for help completing it.</p>
         {status ? <p className="hint" role="status">{status}</p> : null}
       </Section>
 

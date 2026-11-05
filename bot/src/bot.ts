@@ -14,6 +14,7 @@ import { fmtUsd } from "../../shared/credits.mjs";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
 import { pid, seal } from "./privacy.mjs";
 import { deleteData, deletionToken, exportData, useDeletionToken, type Deleted } from "./mydata";
+import { AccountDeletionNotReadyError, accountDeletionUnavailableMessage } from "./account-deletion-readiness";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -158,8 +159,9 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     if (!(await useDeletionToken(env, ctx.match[1], ctx.from.id))) return ctx.answerCallbackQuery({ text: "That button has expired. Send /deletemydata again." });
     let d: Deleted;
     try { d = await deleteData(env, ctx.from.id); }
-    catch {
+    catch (error) {
       await ctx.answerCallbackQuery();
+      if (error instanceof AccountDeletionNotReadyError) return ctx.editMessageText(accountDeletionUnavailableMessage);
       return ctx.editMessageText("Deletion could not finish. Some data may already have been removed. Send /deletemydata to try again.");
     }
     await ctx.answerCallbackQuery();
