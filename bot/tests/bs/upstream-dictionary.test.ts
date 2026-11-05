@@ -114,6 +114,25 @@ test("the Easton's entries withheld for church doctrine stay hidden in Bible Str
   assert.equal((await open.json()).entry.word, 'Aaron');
 });
 
+test('staging can move Nave independently of the dictionary and reports a missing Nave binding', async () => {
+  const fetchBefore = globalThis.fetch;
+  const settings = { BIBLE_STRONG_WEB: '1', REFERENCE_HOSTING: 'nave-self-hosted' };
+  const lookup = (path: string) => worker.fetch(new Request('https://staging.example/bs/v1/' + path), settings as any);
+  const reads: string[] = [];
+  globalThis.fetch = async url => {
+    reads.push(String(url));
+    return Response.json({ dictionaries: [{ title: 'Easton + Webster' }] });
+  };
+  try {
+    assert.equal((await lookup('naves/en/random')).status, 503);
+    const dictionary = await lookup('dictionaries?language=en');
+    assert.equal(dictionary.status, 200);
+    assert.equal(dictionary.headers.get('x-cyberjudah-reference-hosting'), null);
+    assert.deepEqual(await dictionary.json(), { dictionaries: [{ title: 'Easton + Webster' }] });
+    assert.deepEqual(reads, ['https://api.bible-strong.app/v1/dictionaries?language=en']);
+  } finally { globalThis.fetch = fetchBefore; }
+});
+
 test('self-hosted editions use only the bound service for dictionaries and Nave, even without the web profile', async () => {
   const globalFetch = globalThis.fetch;
   let externalReads = 0;
