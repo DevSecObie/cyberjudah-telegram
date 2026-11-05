@@ -20,6 +20,12 @@ const { outputFiles } = await build({ stdin: {
       catch (error) { if (error instanceof IdentityError) return c.json({ error: error.reason }, error.status); throw error; }
     });
     export default { fetch(request, env, ctx) {
+      env.PUBLICATION_STORE_ID = "production";
+      env.PUBLICATION_ERASURE_PEER = {
+        describe: async () => ({ version: 1, store: "staging" }),
+        block: async identities => ({ version: 1, store: "staging", phase: "blocked", identities }),
+        erase: async identities => ({ version: 1, store: "staging", phase: "deleted", identities }),
+      };
       env.FIREBASE_SESSION_LIMIT = { limit: async () => ({ success: env.TEST_RATE_LIMIT !== "blocked" }) };
       env.FIREBASE_UID_LIMIT = { limit: async () => ({ success: true }) };
       return app.fetch(request, env, ctx);
@@ -50,7 +56,7 @@ const fixture = (bindings = {}) => {
   const mf = new Miniflare(convertV4MiniflareOptions({
     modules: true, script: outputFiles[0].text, compatibilityDate: '2026-10-01',
     d1Databases: { DB: 'native-account-data-test' },
-    bindings: { PRIVACY_KEY: 'synthetic-test-privacy-key', BOT_TOKEN: 'synthetic-test-bot-token', ACCOUNT_DATA_DELETION_READY: 'true', NATIVE_STUDY_DELETION_READY: 'true', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8089', ...bindings },
+    bindings: { PRIVACY_KEY: 'synthetic-test-privacy-key', BOT_TOKEN: 'synthetic-test-bot-token', NATIVE_ACCOUNT_DELETION_READY: 'true', NATIVE_STUDY_DELETION_READY: 'true', FIRESTORE_EMULATOR_HOST: '127.0.0.1:8089', ...bindings },
     outboundService: async request => {
       const url = new URL(request.url);
       if (url.hostname === 'identitytoolkit.googleapis.com') {
@@ -171,7 +177,7 @@ test('client identities, paths and scopes are rejected rather than overriding th
 
 test('reconciliation gate, unavailable Firestore and rate limits fail closed without writes', async () => {
   for (const [bindings, expected] of [
-    [{ ACCOUNT_DATA_DELETION_READY: '' }, 503],
+    [{ NATIVE_ACCOUNT_DELETION_READY: '', TELEGRAM_ACCOUNT_DELETION_READY: 'true', ACCOUNT_DATA_DELETION_READY: 'true' }, 503],
     [{ FIRESTORE_EMULATOR_HOST: '' }, 503],
     [{ TEST_RATE_LIMIT: 'blocked' }, 429],
   ]) {

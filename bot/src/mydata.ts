@@ -10,7 +10,7 @@ import { publicView } from "./reminders.mjs";
 import { open, pid, seal } from "./privacy.mjs";
 import type { NoteRequest } from "./requests";
 import { deleteAccountSyncMarks, exportAccountSyncMarks } from "./firestore-admin";
-import { assertAccountDeletionReady } from "./account-deletion-readiness";
+import { assertTelegramAccountDeletionReady } from "./account-deletion-readiness";
 import { beginTelegramErasure } from "./account-erasure";
 
 /**
@@ -77,7 +77,7 @@ export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse
 
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   // Preserve links and sessions before touching any store while complete erasure is unverified.
-  assertAccountDeletionReady(env);
+  assertTelegramAccountDeletionReady(env);
   await beginTelegramErasure(env, uid);
   const me = await pid(env, uid);
   await deleteStudyBackup(env, uid);
