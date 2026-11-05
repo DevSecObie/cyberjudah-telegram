@@ -1,1 +1,1 @@
-Account data deletion now verifies each Firestore batch-write status before reporting success. A failed, missing, or malformed write status stops the operation and reports an incomplete deletion.
+Account data deletion now verifies each Firestore batch-write status before reporting success. A failed, missing, or malformed write status stops the operation and reports an incomplete deletion. Descendants are deleted and acknowledged by depth before any parent is removed, so a partial failure leaves the owning study discoverable for retry.

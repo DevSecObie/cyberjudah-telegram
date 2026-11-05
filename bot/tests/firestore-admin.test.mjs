@@ -254,3 +254,56 @@ test("HTTP 200 does not acknowledge deletion when a write failed or its status i
     assert.equal(await deleteAccountSyncMarks({ ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" }, 7), 301);
   } finally { globalThis.fetch = originalFetch; }
 });
+
+test("a failed revision delete preserves the owning study for an owner-query retry", async () => {
+  const { deleteAccountSyncMarks } = await load("parent-retry");
+  const root = "projects/demo-cyberjudah/databases/(default)/documents";
+  const study = `${root}/studies/mine`, other = `${root}/studies/theirs`;
+  const revision = `${study}/revisions/r1`, sibling = `${study}/revisions/r2`;
+  const store = new Map([
+    [study, { user: { mapValue: { fields: { id: { stringValue: "tg_7" } } } } }],
+    [other, { user: { mapValue: { fields: { id: { stringValue: "tg_8" } } } } }],
+    [revision, {}], [sibling, {}], [`${other}/revisions/r1`, {}],
+  ]);
+  let failRevision = true;
+  const batches = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const u = new URL(url);
+    assert.equal(u.hostname, "127.0.0.1");
+    const document = name => ({ name, fields: store.get(name), createTime: "2026-11-05T00:00:00Z" });
+    if (u.pathname.endsWith(":batchWrite")) {
+      const writes = JSON.parse(init.body).writes.map(w => w.delete);
+      batches.push(writes);
+      // A real batchWrite is not atomic: a sibling or parent succeeds even if a revision fails.
+      return Response.json({ status: writes.map(name => {
+        if (name === revision && failRevision) return { code: 14 };
+        store.delete(name);
+        return {};
+      }) });
+    }
+    if (u.pathname.endsWith(":runQuery")) {
+      const query = JSON.parse(init.body).structuredQuery;
+      assert.equal(query.where.fieldFilter.value.stringValue, "tg_7");
+      return Response.json(query.from[0].collectionId === "studies" && store.has(study)
+        ? [{ document: document(study) }] : []);
+    }
+    const path = u.pathname.slice(u.pathname.indexOf("/documents/") + "/documents/".length);
+    if (path.endsWith(":listCollectionIds")) return Response.json({ collectionIds: [] });
+    const name = `${root}/${path}`;
+    if (store.has(name)) return Response.json(document(name));
+    const docs = [...store.keys()].filter(key => key.startsWith(`${name}/`) && !key.slice(name.length + 1).includes('/'));
+    return Response.json({ documents: docs.map(document) });
+  };
+  try {
+    const env = { ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" };
+    await assert.rejects(deleteAccountSyncMarks(env, 7), /deletion failed/i);
+    assert.equal(store.has(sibling), false, "a successful sibling write may already be gone");
+    assert.equal(store.has(revision), true);
+    assert.equal(store.has(study), true, "keep the parent discoverable by its owner while any descendant remains");
+    assert.ok(batches.every(batch => !batch.includes(study)));
+    failRevision = false;
+    assert.equal(await deleteAccountSyncMarks(env, 7), 2);
+    assert.deepEqual([...store.keys()].sort(), [other, `${other}/revisions/r1`].sort());
+  } finally { globalThis.fetch = originalFetch; }
+});
