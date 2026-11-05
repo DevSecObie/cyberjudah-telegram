@@ -2,9 +2,28 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { calculateLabel, dateMarks, flatten, geometry, hasDetails, linkedEvents, rowToPx, searchEvents } from "../../shared/timeline.mjs";
+import { attachCases } from '../scripts/timeline-data.mjs';
 
 const DATA = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8"));
 const first = DATA.sections[0];
+
+test('Lamech namesakes do not share case identity or dated biographies', () => {
+  const father = flatten(DATA.sections).find(e => e.slug === 'lamech');
+  assert.equal(father.title, 'Lamech, father of Noah');
+  assert.equal(father.identityNote.personId, 'lamech-gen-5-25');
+  assert.equal(hasDetails(father), true);
+  assert.ok(!father.cases.some(c => c.slug === 'lamech'));
+  assert.equal(father.identityNote.namesake.url, '/cases/01-primeval/lamech');
+  const sections = [{ events: [{ id: 673, slug: 'lamech', title: 'Lamech', start: -3080, end: -2303 }] }];
+  const people = [{ id: 'lamech-gen-4-18', name: 'Lamech' }, { id: 'lamech-gen-5-25', name: 'Lamech' }];
+  const result = attachCases(sections, [
+    { slug: 'lamech', name: 'Lamech', people: [people[0]] },
+    { slug: 'noahs-family', name: 'Noah’s family', people: [people[1]] },
+  ], new Map(), people);
+  assert.deepEqual(sections[0].events[0].cases.map(c => c.slug), ['noahs-family']);
+  assert.equal(result.personEvent.get(people[0].id), undefined);
+  assert.equal(result.personEvent.get(people[1].id), 'lamech');
+});
 
 test("dates read as Bible Strong writes them", () => {
   assert.equal(calculateLabel(-3954, -3024), "3954-3024 BC (930)");

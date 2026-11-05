@@ -4,6 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { byCaptivity, captivityOf } from '../../shared/captivities.mjs';
 import { flatten, hasDetails, linkedEvents } from '../../shared/timeline.mjs';
+import { applyTimelineIdentities } from '../../shared/timeline-identities.mjs';
 
 const read = async path => JSON.parse(await readFile(new URL(path, import.meta.url), 'utf8'));
 const source = await read('../../app/src/data/timeline.json');
@@ -13,7 +14,7 @@ const cases = await read('../data/bs-timeline-cases.json');
 const books = await read('../data/bs-books.json');
 const publication = await read('../data/bs-metadata.json');
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const sections = byCaptivity(source.sections);
+const sections = byCaptivity(applyTimelineIdentities(source.sections));
 const all = flatten(sections);
 const image = path => `https://cyberjudah.io/api/img/${path}`;
 const periodPictures = new Set(['1', '2', '4', '5', '6', '7', '8', '8-assyrian', '8-babylonian', '8-persian', '8-greek', '9', '10', '10-roman', '11', '12', 'fc-into-the-ships', 'fc-house-of-bondage', 'fc-jim-crow', 'fc-civil-rights-awakening']);
@@ -61,11 +62,13 @@ const events = all.filter(hasDetails).map(event => {
   });
   const reign = event.reign;
   const refs = [...new Set([
+    ...(event.identityNote ? scripture(event.identityNote.reference.book, event.identityNote.reference.chapter, event.identityNote.reference.verses) : []),
     ...studies.flatMap(c => (c.refs ?? []).flatMap(r => scripture(r.book, r.chapter, r.verses))),
     ...(detail?.scriptures ?? []).flatMap(r => reference(r.ref)),
     ...(detail?.answer ?? []).flatMap(r => reference(r.ref)),
   ])];
   const article = text([
+    event.identityNote ? [event.identityNote.text, `Source: https://cyberjudah.io${event.identityNote.reference.url}`, `A different person: ${event.identityNote.namesake.name}. https://cyberjudah.io${event.identityNote.namesake.url}`] : [],
     reign ? ['Reign', reign.label ?? `${reign.approx ? 'c. ' : ''}${reign.from}–${reign.to} BC`, reign.kingdom, reign.notes, reign.born ? `Born: ${reign.born}` : '', reign.died ? `Died: ${reign.died}` : '', reign.source ?? text([source.reigns])] : [],
     studies.flatMap(c => [c.name, c.charge, c.verdictLabel, ...(c.offenseFull ?? [c.offense]), ...(c.judgmentFull ?? [c.judgment]), `Source: https://cyberjudah.io${c.url}`]),
     detail ? [
@@ -82,7 +85,7 @@ const events = all.filter(hasDetails).map(event => {
   const picture = portrait(event);
   return {
     id: String(event.id), slug: event.slug, title: event.title,
-    description: detail?.summary ?? studies.map(c => c.summary).join('\n\n'), article,
+    description: event.identityNote?.text ?? detail?.summary ?? studies.map(c => c.summary).join('\n\n'), article,
     period: section.sectionTitle, dates: detail?.date?.text ?? dates(event.start, event.end),
     scriptures: refs,
     related: linkedEvents(sections, event.slug).filter(hasDetails).map(e => ({ slug: e.slug, title: e.title })),

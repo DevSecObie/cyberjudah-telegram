@@ -1,0 +1,3 @@
+Correct event 673 to identify Lamech, Methuselah's son and Noah's father. Preserve its existing dates, ID and route. The same-name case about Cain's descendant remains available as a separately labeled reference, rather than being imported as this dated person's biography.
+
+The importer now applies the explicit person identity before matching case names. The published detail cites CyberJudah's Genesis 5:25–31. Generated-data checks preserve every other biography and all timeline geometry; tests cover both person IDs, web search/detail availability and the existing HTTP contract. No upstream biography, new portrait or speculative date is introduced.

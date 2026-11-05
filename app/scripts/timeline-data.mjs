@@ -20,6 +20,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFinalCaptivity } from "./final-captivity/build.mjs";
+import { applyTimelineIdentities } from '../../shared/timeline-identities.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SOURCE = path.join(ROOT, "app/scripts/timeline/bible-strong-events.txt");
@@ -126,6 +127,8 @@ export function attachReigns(sections, reigns) {
  *    who share a name (Ahab the king, Ahab the son of Kolaiah) are never confused.
  */
 export function attachCases(sections, cases, kings = new Map(), peopleIndex = []) {
+  // Apply before name matching so the Cain-line case cannot identify Noah's father.
+  applyTimelineIdentities(sections);
   const slugsOf = new Map(), copies = new Map();
   for (const s of sections) for (const e of s.events) {
     const k = norm(e.title);
@@ -141,6 +144,7 @@ export function attachCases(sections, cases, kings = new Map(), peopleIndex = []
 
   // Pass 1: by the case's own name (or king's reign); the people of such a case are that event's people.
   const personEvent = new Map();
+  for (const s of sections) for (const e of s.events) if (e.identityNote) personEvent.set(e.identityNote.personId, e.slug);
   const rest = [];
   for (const c of cases) {
     const king = /^(.+) of (Israel|Judah)$/.exec(c.name);

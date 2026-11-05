@@ -550,6 +550,14 @@ export function TimelineEventScreen() {
         {e.fc ? <AgeEventDetail slug={e.slug} source="fc" reviewedThrough={FINAL_CAPTIVITY?.reviewedThrough} /> : null}
         {e.btt ? <AgeEventDetail slug={e.slug} source="btt" /> : null}
 
+        {e.identityNote ? (
+          <section className="tl-event__section" aria-label="Identity and scripture">
+            <p>{e.identityNote.text}</p>
+            <p><Link to={`/read/genesis/${e.identityNote.reference.chapter}?v=${e.identityNote.reference.verses}`}>{e.identityNote.reference.label}</Link></p>
+            <p>A different person: <Link to={e.identityNote.namesake.url}>{e.identityNote.namesake.name}</Link></p>
+          </section>
+        ) : null}
+
         {e.reign ? (
           <section className="tl-event__section" aria-label="Reign">
             <h2>Reign</h2>

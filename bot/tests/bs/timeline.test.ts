@@ -10,6 +10,22 @@ import { TimelineEventDto, TimelineEventsResponseDto, TimelineEventResponseDto }
 import { metadata } from '../../src/bs/core.ts';
 const request = (path: string) => bs.request(path, {}, {} as any);
 
+test('Noah’s father retains his timeline identity without importing the Cain-line case as his biography', async () => {
+  const response = await request('/v1/timelines/en/events/lamech');
+  const { event } = Schema.decodeUnknownSync(TimelineEventResponseDto)(await response.json());
+  assert.equal(event.title, 'Lamech, father of Noah');
+  assert.match(event.description, /son of Methuselah/);
+  assert.match(event.description, /777 years/);
+  assert.deepEqual(event.scriptures, ['1|5:25-31']);
+  assert.ok(!event.article.includes('Lamech took two wives'));
+  assert.match(event.article, /A different person: Lamech of Cain’s line/);
+  assert.match(event.article, /https:\/\/cyberjudah.io\/cases\/01-primeval\/lamech/);
+  for (const section of publication.sections) for (const row of section.events.filter(e => e.id === 673)) {
+    assert.equal(row.title, event.title);
+    assert.equal(row.end - row.start, 777);
+  }
+});
+
 test('every published timeline event survives the existing captivity grouping, with unique readable details', () => {
   const original = new Set(source.sections.flatMap(s => s.events.map(e => e.slug)));
   const projected = new Set(publication.sections.flatMap(s => s.events.map(e => e.slug)));
