@@ -1,0 +1,1 @@
+- The hourly health check waits out the few minutes when a content publish is loading the search index into the teachings database ("Currently processing a long-running import"), instead of paging the owner about it. An import still running after four minutes still pages.
