@@ -7,8 +7,14 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 const { outputFiles } = await build({
   stdin: {
     contents: `import { Hono } from "hono";
-      import { publishedStudies, publishedStudyPage } from "./src/published-studies.ts";
+      import { publishedStudies, publishedStudyPage, deletePublishedStudiesForIdentities } from "./src/published-studies.ts";
+      import { blockAccountIdentities } from "./src/account-deletion-state.ts";
       const app = new Hono();
+      app.post("/fixture/erase/:uid", async c => {
+        await blockAccountIdentities(c.env, [c.req.param("uid")]);
+        await deletePublishedStudiesForIdentities(c.env, [c.req.param("uid")]);
+        return c.json({ done: true });
+      });
       app.route("/api/published-studies", publishedStudies);
       app.route("/app/published", publishedStudyPage);
       export default app;`,
@@ -25,11 +31,12 @@ const token = uid => {
   })).toString('base64url'), 'synthetic-signature'].join('.');
 };
 
-const worker = (bindings = { PRIVACY_KEY: 'test-privacy-key' }) => new Miniflare(convertV4MiniflareOptions({
+const worker = (bindings = { PRIVACY_KEY: 'test-privacy-key' }, beforeIdentity = async () => {}) => new Miniflare(convertV4MiniflareOptions({
   modules: true, script: outputFiles[0].text, compatibilityDate: '2026-10-01',
   d1Databases: { DB: 'published-test' }, bindings,
   // Google's accounts:lookup: the token's own subject is the signed-in reader.
   outboundService: async request => {
+    await beforeIdentity();
     const { idToken } = await request.json();
     const sub = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64url').toString()).sub;
     return Response.json({ users: [{ localId: sub, validSince: '1' }] });
@@ -125,4 +132,31 @@ test('deleting the account takes down every study the reader published, and only
     assert.equal((await view(mf, 'study-mine02')).status, 404);
     assert.equal((await view(mf, 'study-other1')).status, 200);
   } finally { await mf.dispose(); }
+});
+
+test('publication cleanup blocks an already-started publish and future republishing while preserving other accounts', async () => {
+  let hold = false, entered, release;
+  const reachedIdentity = new Promise(resolve => { entered = resolve; });
+  const continueIdentity = new Promise(resolve => { release = resolve; });
+  const mf = worker({ PRIVACY_KEY: 'test-privacy-key' }, async () => {
+    if (hold) { hold = false; entered(); await continueIdentity; }
+  });
+  try {
+    assert.equal((await put(mf, 'study-before', 'reader-one', { title: 'mine', body: 'private' })).status, 200);
+    assert.equal((await put(mf, 'study-other01', 'reader-two', { title: 'other', body: 'other' })).status, 200);
+    hold = true;
+    const inFlight = put(mf, 'study-late01', 'reader-one', { title: 'late', body: 'must not survive' });
+    await reachedIdentity;
+    const erased = await mf.dispatchFetch('https://cyberjudah.test/fixture/erase/reader-one', { method: 'POST' });
+    assert.equal(erased.status, 200);
+    release();
+    assert.equal((await inFlight).status, 409);
+    for (const id of ['study-before', 'study-late01', 'study-new001']) {
+      assert.equal((await put(mf, id, 'reader-one', { title: 'retry', body: 'stale device' })).status, 409);
+      assert.equal((await view(mf, id)).status, 404);
+    }
+    assert.equal((await view(mf, 'study-other01')).status, 200);
+    assert.equal((await view(mf, 'study-other01')).headers.get('cache-control'), 'no-store');
+    assert.equal((await mf.dispatchFetch('https://cyberjudah.test/fixture/erase/reader-one', { method: 'POST' })).status, 200);
+  } finally { release?.(); await mf.dispose(); }
 });

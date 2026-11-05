@@ -4,6 +4,7 @@ import { IdentityError, verifyFirebaseIdentity } from "./account-links";
 import { limitPerson, limitSession } from "./app-identity";
 import { deleteOwnedStudy, StudyDeletionError } from "./firestore-admin";
 import type { Env } from "./env";
+import { accountDeletionBlocked } from "./account-deletion-state";
 
 export const nativeStudyDeletion = new Hono<{ Bindings: Env }>();
 nativeStudyDeletion.use("*", bodyLimit({ maxSize: 1024, onError: c => c.json({ error: "unexpected_deletion_parameters" }, 413) }));
@@ -19,6 +20,7 @@ nativeStudyDeletion.delete("/:scope/:id", async c => {
     const identity = await verifyFirebaseIdentity(token);
     await limitPerson(c.env, identity.uid);
     if (c.env.NATIVE_STUDY_DELETION_READY !== "true") return c.json({ error: "study_deletion_not_ready" }, 503);
+    if (await accountDeletionBlocked(c.env, identity.uid)) return c.json({ error: "account_deletion_in_progress" }, 409);
     const scope = c.req.param("scope"), studyId = c.req.param("id");
     await deleteOwnedStudy(c.env, identity.uid, scope, studyId);
     return c.json({ version: 1, uid: identity.uid, scope, studyId, deleted: true });

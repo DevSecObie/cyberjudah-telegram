@@ -8,11 +8,17 @@ const { outputFiles } = await build({ stdin: {
   contents: `import { Hono } from "hono";
     import { nativeAccountData } from "./src/native-account-data.ts";
     import { nativeStudyDeletion } from "./src/native-study-deletion.ts";
-    import { linkAccounts } from "./src/account-links.ts";
+    import { linkAccounts, IdentityError } from "./src/account-links.ts";
+    import { publishedStudies, publishedStudyPage } from "./src/published-studies.ts";
     const app = new Hono();
+    app.route("/api/published-studies", publishedStudies);
+    app.route("/app/published", publishedStudyPage);
     app.route("/api/native-account-data", nativeAccountData);
     app.route("/api/native-studies", nativeStudyDeletion);
-    app.post("/fixture/link", async c => { await linkAccounts(c.env, 7, "reader-one"); return c.text("ok"); });
+    app.post("/fixture/link", async c => {
+      try { await linkAccounts(c.env, 7, "reader-one"); return c.text("ok"); }
+      catch (error) { if (error instanceof IdentityError) return c.json({ error: error.reason }, error.status); throw error; }
+    });
     export default { fetch(request, env, ctx) {
       env.FIREBASE_SESSION_LIMIT = { limit: async () => ({ success: env.TEST_RATE_LIMIT !== "blocked" }) };
       env.FIREBASE_UID_LIMIT = { limit: async () => ({ success: true }) };
@@ -98,8 +104,8 @@ test('an unlinked Firebase account deletes its missing-parent histories; the ack
     const response = await remove(mf);
     assert.equal(response.status, 200, await response.clone().text());
     assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.deepEqual(await response.json(), { version: 1, uid: 'reader-one', firestoreDeleted: true, removed: 4 });
-    assert.deepEqual([...store.keys()].sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1', 'users/tg_7/notes/missing/revisions/r1']);
+    assert.deepEqual(await response.json(), { version: 2, uid: 'reader-one', firestoreDeleted: true, publicationsDeleted: true, writesBlocked: true, removed: 4 });
+    assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1', 'users/tg_7/notes/missing/revisions/r1']);
     const retry = await remove(mf);
     assert.equal(retry.status, 200);
     assert.equal((await retry.json()).removed, 0);
@@ -120,7 +126,7 @@ test('a linked legacy identity comes only from the server link and its evidence 
     state.failRevision = false;
     assert.equal((await remove(mf)).status, 200);
     assert.equal(store.has('users/tg_7/notes/missing/revisions/r1'), false);
-    assert.deepEqual([...store.keys()].sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1']);
+    assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1']);
   } finally { await mf.dispose(); }
 });
 
@@ -190,5 +196,25 @@ test('ordinary study endpoint remains closed until its ledger privacy contract i
     const result = await mf.dispatchFetch('https://cyberjudah.test/api/native-studies/production/owned', { method: 'DELETE', headers: { authorization: `Bearer ${token()}` } });
     assert.equal(result.status, 503);
     assert.equal(state.firestoreCalls, 0);
+  } finally { await mf.dispose(); }
+});
+
+test('native erasure cleans publications after an earlier client unpublish and blocks later writes or relinking', async () => {
+  const { mf, store } = fixture();
+  const publish = uid => mf.dispatchFetch('https://cyberjudah.test/api/published-studies/release-fixture', { method: 'PUT', headers: { authorization: `Bearer ${token(uid)}`, 'content-type': 'application/json' }, body: JSON.stringify({ title: 'study', body: 'text' }) });
+  try {
+    assert.equal((await publish('reader-one')).status, 200);
+    assert.equal((await mf.dispatchFetch('https://cyberjudah.test/api/published-studies', { method: 'DELETE', headers: { authorization: `Bearer ${token()}` } })).status, 200);
+    // Another device publishes in the gap between the client's old unpublish call and erasure.
+    assert.equal((await publish('reader-one')).status, 200);
+    assert.equal((await remove(mf)).status, 200);
+    assert.equal((await mf.dispatchFetch('https://cyberjudah.test/app/published/release-fixture')).status, 404);
+    assert.equal((await publish('reader-one')).status, 409);
+    assert.equal(store.has('account_deletion_blocks/reader-one'), true);
+    assert.equal((await mf.dispatchFetch('https://cyberjudah.test/fixture/link', { method: 'POST' })).status, 409, 'a deleted identity cannot be attached to another sign-in');
+    const remaining = [...store.entries()];
+    const ordinaryDelete = await mf.dispatchFetch('https://cyberjudah.test/api/native-studies/production/owned', { method: 'DELETE', headers: { authorization: `Bearer ${token()}` } });
+    assert.equal(ordinaryDelete.status, 409, 'new privileged study deletions stop after the account barrier');
+    assert.deepEqual([...store.entries()], remaining);
   } finally { await mf.dispose(); }
 });

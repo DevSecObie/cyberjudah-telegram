@@ -35,8 +35,8 @@ export function DeleteAccount() {
 
       <Section title="What Is Deleted">
         <ul>
-          <li><b>Delete account in the phone app:</b> your Google, Apple or email sign-in, and your synced highlights, notes, bookmarks, tags, links and personal studies, with their earlier versions.</li>
-          <li><b>Delete my data in Telegram or the browser:</b> your saved Ask chats, Ask balance and its history (any balance left is lost), reading reminder, daily verse, top-up reminder, class-note requests, cloud study backup, browser sign-ins, and the link between your Telegram and Google, Apple or email sign-ins.</li>
+          <li><b>Delete account in the phone app:</b> your Google, Apple or email sign-in, your published studies, and your synced highlights, notes, bookmarks, tags, links and personal studies, with their earlier versions.</li>
+          <li><b>Delete my data in Telegram or the browser:</b> your saved Ask chats, Ask balance and its history (any balance left is lost), reading reminder, daily verse, top-up reminder, class-note requests, cloud study backup, published studies, browser sign-ins, and the link between your Telegram and Google, Apple or email sign-ins.</li>
           <li><b>A request by email:</b> all of the above.</li>
         </ul>
       </Section>
@@ -44,6 +44,7 @@ export function DeleteAccount() {
       <Section title="What Is Kept">
         <ul>
           <li>The record of each Telegram Stars payment or gift (Telegram's charge reference, the amount and the date) is kept for refunds and the accounts, no longer linked to you.</li>
+          <li>A minimal account identifier is retained in deletion-protection records so old devices cannot restore erased study data or republish it. These records contain no study text.</li>
           <li>Counts and network limits that never name you expire on their own within seven days.</li>
           <li>What is stored only on your device, and files you exported, stay with you until you remove them or the app.</li>
         </ul>

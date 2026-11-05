@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { importPKCS8, SignJWT } from "jose";
 import type { Env } from "./env";
 import { browserSession } from "./browser-auth";
+import { accountDeletionBlocked } from "./account-deletion-state";
 import { SENSITIVE_MAX_AGE, validateInitData } from "./initdata.mjs";
 
 const AUDIENCE = "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit";
@@ -43,6 +44,9 @@ firebaseAuth.post("/token", async c => {
   let uid = c.get("firebaseUid");
   if (!(await c.env.FIREBASE_AUTH_LIMIT.limit({ key: uid })).success) return c.json({ error: "sign_in_rate_limited", message: "Please wait a minute and try again." }, 429);
   try {
+    if (c.env.DB && (await accountDeletionBlocked(c.env, uid) || await accountDeletionBlocked(c.env, telegramFirebaseUid(c.get("telegramId"))))) {
+      return c.json({ error: "account_deletion_in_progress" }, 409);
+    }
     // A custom token for a deleted UID would recreate that account, and with it the deleted
     // login's study data. A link to a login that no longer exists is removed, and Telegram
     // falls back to its own reserved identity.
