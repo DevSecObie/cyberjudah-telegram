@@ -1,3 +1,5 @@
+import { embed } from "./ai-embeddings";
+export { embed } from "./ai-embeddings";
 import type { ResourcePins } from "../../shared/resources";
 import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
@@ -6,7 +8,7 @@ import { approvedFor, approvedSources } from "./approved-answers";
 import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
@@ -28,14 +30,7 @@ export { freeSpendToday, freePaused } from "./free-budget";
  * citations (llama 3.3 70b), search by meaning, and the reading voices (Deepgram Aura),
  * each verse generated once and kept in R2.
  */
-export async function embed(env: Env, texts: string[]): Promise<number[][]> {
-  const out: number[][] = [];
-  for (let i = 0; i < texts.length; i += 100) {
-    const res = await env.AI.run(EMBED_MODEL, { text: texts.slice(i, i + 100) }, viaGateway(env)) as { data?: number[][] };
-    out.push(...(res.data ?? []));
-  }
-  return out;
-}
+
 
 const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Passage & { score: number } => {
   const md = (m.metadata ?? {}) as Record<string, string | number>;

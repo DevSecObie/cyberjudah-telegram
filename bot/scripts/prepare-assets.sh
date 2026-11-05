@@ -13,6 +13,11 @@ rm -rf .deploy
 mkdir -p .deploy/app
 cp -r app/dist/. .deploy/
 cp -r app/dist/. .deploy/app/
+# Optional verified publication from build-online-interlinear.py. The caller chooses
+# the exact local artifact; ordinary deployments keep the feature unavailable.
+if [ -n "${CYBERJUDAH_INTERLINEAR_ASSETS:-}" ]; then
+  python3 bot/scripts/stage-online-interlinear.py --source "$CYBERJUDAH_INTERLINEAR_ASSETS" --destination .deploy/bs-data/interlinear
+fi
 # The People module's people, places and groups, read by the /bs feed (src/bs/entities.ts).
 # Optional: without the file the feed reports the module unavailable.
 if [ -f bot/data/entities/people.json ]; then

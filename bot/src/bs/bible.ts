@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { runBibleSearch } from '../search';
+import { bhgChapter } from './interlinear';
+import { semanticBibleSearch } from './semantic-search';
 import { type App, type Ctx, BOOKS, VERSION, bibleResource, bookById, emptyPresentation, html, integer, invalid, limit, load, location, mapLimit, metadata, missing, readChapter, unavailable, verseKey, version, versions } from './core';
 
 export const bible = new Hono<App>();
@@ -15,9 +17,11 @@ async function chapterDto(c: Ctx, book: number, chapter: number) {
   }) };
 }
 bible.get('/chapters', async c => {
-  versions(c);
+  const requested = c.req.query('versions')?.split(',');
+  if (!requested?.length || requested.length > 20) return invalid();
+  if (requested.some(v => v !== VERSION && v !== 'BHG')) return missing('BIBLE_UNSUPPORTED');
   const book = bookById(c.req.query('book')).id, chapter = integer(c.req.query('chapter'), 1, 200);
-  return c.json({ chapters: [await chapterDto(c, book, chapter)] });
+  return c.json({ chapters: await Promise.all([...new Set(requested)].map(v => v === 'BHG' ? bhgChapter(c, book, chapter) : chapterDto(c, book, chapter))) });
 });
 async function search(c: Ctx, multi: boolean, semantic: boolean) {
   if (multi) versions(c); else version(c);
@@ -30,12 +34,19 @@ async function search(c: Ctx, multi: boolean, semantic: boolean) {
   // Version coverage supplies our canon; never silently reinterpret another canon's numbering.
   if (canon && !['protestant-66', 'kjv-1611'].includes(canon)) return missing('BIBLE_UNSUPPORTED', 'This canon is not provided by CyberJudah');
   const selected = b ? bookById(b).id : undefined;
-  // This publication has no semantic verse index yet. The reader already presents
-  // typed unavailability; a successful empty response falsely claims a completed search.
-  if (semantic) return unavailable('Semantic Bible search is not available for this publication');
   // Bible Strong's web port filters only Old/New Testament; the Mini App has its own Apocrypha filter.
   const oldTestamentHasApocrypha = c.env.BIBLE_STRONG_WEB === '1';
   const books = BOOKS.filter(row => (!selected || row.id === selected) && (!section || (section === 'nt' ? row.id >= 40 && row.id <= 66 : section === 'apoc' ? row.id > 66 : row.id <= 39 || (oldTestamentHasApocrypha && row.id > 66))) && (canon !== 'protestant-66' || row.id <= 66));
+  if (semantic) {
+    const found = await semanticBibleSearch(c, q, books.map(b => b.id), take, offset, sort);
+    if (!found) {
+      c.header('retry-after', '60');
+      return c.json({ _tag: 'ResourceRateLimitedProblem', type: 'https://cyberjudah.io/bs/problems/rate-limited',
+        title: 'Too many searches', status: 429, code: 'RESOURCE_RATE_LIMITED', detail: 'Please wait before searching again.',
+        requestId: crypto.randomUUID(), retryAfterSeconds: 60 }, 429);
+    }
+    return c.json(multi ? { resources: [bibleResource], ...found } : { resource: bibleResource, ...found });
+  }
   let results: { version: string; book: number; chapter: number; verse: number; text: string; highlighted: string; match: { kind: 'lexical' } }[] = [], count = 0;
   if (books.length) {
     const found = await runBibleSearch(c.env.DB, q, books.map(b => b.sourceName), take, offset, sort === 'book');

@@ -12,6 +12,12 @@ export type Env = {
   ASSETS: Fetcher;
   AI: Ai;
   VEC: Vectorize;
+  /** Reviewed, separately populated Bible-only index; never mutate the live teachings index. */
+  BIBLE_VEC?: Vectorize;
+  /** Exact published KJV text SHA after index acceptance, not a boolean capability claim. */
+  BIBLE_SEMANTIC_REVISION?: string;
+  /** Dedicated public search cost limit; absent means semantic inference is unavailable. */
+  BIBLE_SEMANTIC_LIMIT?: RateLimit;
   AUDIO: R2Bucket;
   /** Our own copies of the public-domain library PDFs (library/<item>.pdf); archive.org when unset or missing. */
   LIBRARY?: R2Bucket;
@@ -19,6 +25,9 @@ export type Env = {
   LIBRARY_ORIGIN?: string;
   DATA_ORIGIN: string;
   BIBLE_STRONG_WEB?: string;
+  /** Private resource publication routing, enabled only after binding acceptance. */
+  REFERENCE_HOSTING?: 'nave-self-hosted' | 'self-hosted';
+  REFERENCE_PUBLICATIONS?: Fetcher;
   SITE_URL: string;
   /** The Mini App's direct link from @BotFather (https://t.me/<bot>/<app>); empty until /newapp. */
   APP_URL: string;

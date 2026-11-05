@@ -1,10 +1,14 @@
 # CyberJudah resource feed
 
+The current integration candidate adds paired online BHG/interlinear, gated semantic search, and optional owned Nave delivery. See [ONLINE-RESOURCES.md](ONLINE-RESOURCES.md) for exact preparation, behavior and activation requirements.
+
 The Worker serves the Bible Strong HTTP interface at `https://cyberjudah.io/bs`.
 Set `EXPO_PUBLIC_RESOURCE_API_URL` to that base URL. These are public routes,
-independent of Telegram authentication. All content comes from CyberJudah's dataset
-(`DATA_ORIGIN`, normally `https://data.cyberjudah.io`) or its existing bundled Easton
-file. There is no Bible Strong content or fallback to a Bible Strong server.
+independent of Telegram authentication. The default feed uses CyberJudah's dataset
+(`DATA_ORIGIN`, normally `https://data.cyberjudah.io`) and existing bundled resources.
+The optional legacy `BIBLE_STRONG_WEB` flag selects the upstream public reference
+service for dictionaries/Nave. An explicitly selected owned reference publication
+uses its private service binding and never falls back to that upstream service.
 
 The interface follows `smontlouis/bible-strong` at upstream commit `d7e9fb5`. The test-only
 Effect contract fixtures remain pinned to
@@ -16,7 +20,7 @@ suite and installs/runs the separately locked contract test dependencies inside
 
 ## Compatibility and unavailable fields
 
-- Bible version: **KJV only**, with 81 books. `data/bs-books.json` fixes books 1–66
+- Primary Bible version: **KJV**, with 81 books. BHG text and English interlinear are additionally served when their verified assets are staged. `data/bs-books.json` fixes books 1–66
   in Protestant order, then 67–81 as 1 Esdras, 2 Esdras, Tobit, Judith, Rest of
   Esther, Wisdom of Solomon, Ecclesiasticus, Baruch, Epistle of Jeremiah, Song of
   the Three Holy Children, History of Susanna, Bel and the Dragon, Prayer of
@@ -56,13 +60,10 @@ suite and installs/runs the separately locked contract test dependencies inside
   chapters: some contain only citations and therefore have empty teaching sections.
   Reading-section requests require the exact reading-index revision; stale IDs
   return a typed 404. The adapter does not supply book/chapter introduction prose.
-- Our Hidden History currently describes **episodes**, with publication dates, not
-  dated historical events with periods. Timeline lists return empty; event lookup
-  returns `TIMELINE_EVENT_NOT_FOUND`. Episode dates are not presented as event dates.
-- Pericopes and semantic search return schema-valid empty results. Interlinear
-  routes return `INTERLINEAR_UNSUPPORTED` (404), rather than fabricating the required
-  `BHG`/`STEP` publication metadata. Search events return `{accepted:false}` (202)
-  and are not stored. Unsupported enhanced lexicon collections are empty or 404.
+- Timeline reads use the generated CyberJudah timeline publication (21 periods and
+  517 readable events in the verified candidate). Class/episode publication dates
+  are not substituted for historical event dates.
+- KJV pericopes remain an empty index. Semantic search is available only with an accepted Bible index, matching revision and dedicated limiter. BHG English interlinear requires its paired verified assets; inactive publications return typed 503, unsupported versions/languages return 404.
 - Xref identifiers are language-neutral. Both `/fr` (the original request schema's
   sole language) and `/en` return our same numeric references. No translated content
   is implied. Bible presentation layout/headings/start tags are empty; lexical search
@@ -83,8 +84,8 @@ problem responses use `resource-service/src/http/problems.ts`.
 | `/v1/bibles/:version/coverage` | Generated counts and actual source chapter IDs from all KJV chapters | `BibleVersionCoverageDto` |
 | `/v1/bibles/:version/search` | CyberJudah D1 `search_docs`, verse-only; shared parser/FTS policy in `src/search.ts` | `BibleSearchResponseDto` |
 | `/v1/bibles/search` | Same search; KJV only | `BibleMultiSearchResponseDto` |
-| `/v1/bibles/:version/semantic-search` | Empty results/count 0 | `BibleSearchResponseDto` |
-| `/v1/bibles/semantic-search` | Empty results/count 0 | `BibleMultiSearchResponseDto` |
+| `/v1/bibles/:version/semantic-search` | Gated, revision-filtered semantic verse search; 503 when inactive | `BibleSearchResponseDto` |
+| `/v1/bibles/semantic-search` | Same gated KJV search with multi-version response | `BibleMultiSearchResponseDto` |
 | `/v1/bibles/:version/pericopes` | Empty verses | `BiblePericopeIndexDto` |
 | `/v1/strong-bibles/:version/coverage` | Actual tagged verses in CyberJudah KJV chapters | `StrongBibleCoverageDto` |
 | `/v1/strong-bibles/:version/books/:book/chapters/:chapter` | KJV `verses[].words` → exact UTF-16 spans and classic identities | `StrongBibleChapterDto` |
@@ -120,8 +121,8 @@ problem responses use `resource-service/src/http/problems.ts`.
 | `/v1/cross-references/:language/verses/:verseKey` | `/api/xref/<slug>/<chapter>.json` tuples → numeric verse keys | `CrossReferenceResponseDto` |
 | `/v1/timelines/:language/events` | Empty; Hidden History is episode data | `TimelineEventsResponseDto` |
 | `/v1/timelines/:language/events/:slug` | No dated historical event record | `ResourceNotFoundProblem` |
-| `/v1/interlinear-bibles/:version/languages/:language/coverage` | Unsupported | `ResourceNotFoundProblem` |
-| `/v1/interlinear-bibles/:version/languages/:language/books/:book/chapters/:chapter` | Unsupported | `ResourceNotFoundProblem` |
+| `/v1/interlinear-bibles/:version/languages/:language/coverage` | Verified BHG English asset coverage; inactive 503 | `InterlinearBibleCoverageDto` |
+| `/v1/interlinear-bibles/:version/languages/:language/books/:book/chapters/:chapter` | Paired BHG English token assets; inactive 503 | `InterlinearBibleChapterDto` |
 | **POST** `/v1/search-events` | Not collected, `accepted:false`, status 202 | `SearchAnalyticsAcceptedDto` |
 
 `commentarySections` has no response Effect schema of its own. Tests additionally

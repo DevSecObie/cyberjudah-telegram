@@ -155,6 +155,59 @@ test('search uses real FTS5, applies filters before paging, counts all matches a
   }
 });
 
+test('semantic search ranks verified verses with book filters, pagination and rate limits', async () => {
+  let calls = 0;
+  const records = [43, 1].map(book => ({ id: `KJV:${book}:1:1`, score: book === 43 ? 0.9 : 0.8,
+    metadata: { book, chapter: 1, verse: 1, revision: metadata.textSha256,
+      text: originals.get(`/api/kjv/${book === 43 ? 'john' : 'genesis'}/1.json`).verses[0].text } }));
+  const binding = {
+    BIBLE_SEMANTIC_REVISION: metadata.textSha256,
+    BIBLE_SEMANTIC_LIMIT: { limit: async () => ({ success: true }) },
+    AI: { run: async (model: string, input: any) => { calls++; assert.equal(model, '@cf/baai/bge-m3'); assert.deepEqual(input.text, ['origin of everything']); return { data: [Array(1024).fill(0.1)] }; } },
+    BIBLE_VEC: {
+      query: async (_vector: number[], options: any) => {
+        assert.equal(options.returnMetadata, 'none'); assert.equal(options.topK, 100);
+        assert.equal(options.filter.revision, metadata.textSha256);
+        assert.ok(Array.isArray(options.filter.book.$in));
+        return { matches: records.filter(r => options.filter.book.$in.includes(r.metadata.book)).map(({ id, score }) => ({ id, score })) };
+      },
+      getByIds: async (ids: string[]) => records.filter(r => ids.includes(r.id)),
+    },
+  };
+  const search = (suffix = '') => request('/v1/bibles/KJV/semantic-search?q=origin%20of%20everything' + suffix, Bible.BibleSearchResponseDto, { env: binding });
+  const { json: first } = await search('&limit=1');
+  assert.equal(first.count, 2); assert.equal(first.results[0].book, 43); assert.equal(first.results[0].match.kind, 'semantic');
+  const { json: second } = await search('&offset=1&limit=1'); assert.equal(second.results[0].book, 1);
+  const { json: sorted } = await search('&sortOrder=book'); assert.deepEqual(sorted.results.map((r: any) => r.book), [1, 43]);
+  const { json: selected } = await search('&book=1'); assert.equal(selected.count, 1); assert.equal(selected.results[0].book, 1);
+  const { json: empty } = await search('&book=1&section=nt'); assert.equal(empty.count, 0);
+  assert.equal(calls, 4, 'empty scope invokes no inference');
+  await request('/v1/bibles/KJV/semantic-search?q=origin%20of%20everything', Problems.ResourceRateLimitedProblem, { status: 429, env: { ...binding, BIBLE_SEMANTIC_LIMIT: { limit: async () => ({ success: false }) } } });
+  assert.equal(calls, 4, 'rate limits precede inference');
+  records[0].metadata.text = 'stale index text';
+  await request('/v1/bibles/KJV/semantic-search?q=origin%20of%20everything', Problems.ResourceUnavailableProblem, { status: 503, env: binding });
+});
+
+test('semantic revision, provider and malformed result failures do not report empty success', async () => {
+  let calls = 0;
+  const binding = {
+    BIBLE_SEMANTIC_REVISION: metadata.textSha256,
+    BIBLE_SEMANTIC_LIMIT: { limit: async () => ({ success: true }) },
+    AI: { run: async () => { calls++; return { data: [Array(1024).fill(0.1)] }; } },
+    BIBLE_VEC: { query: async () => ({ matches: [] }), getByIds: async () => [] },
+  };
+  for (const overrides of [
+    { BIBLE_SEMANTIC_REVISION: 'old' },
+    { BIBLE_SEMANTIC_LIMIT: undefined },
+    { AI: { run: async () => ({ data: [[]] }) } },
+    { BIBLE_VEC: { query: async () => { throw new Error('unavailable'); } } },
+    { BIBLE_VEC: { query: async () => ({ matches: [{ id: 'missing', score: 0.5 }] }), getByIds: async () => [] } },
+  ]) await request('/v1/bibles/KJV/semantic-search?q=faith', Problems.ResourceUnavailableProblem, { status: 503, env: { ...binding, ...overrides } });
+  assert.equal(calls, 2);
+  const { json } = await request('/v1/bibles/KJV/semantic-search?q=faith', Bible.BibleSearchResponseDto, { env: binding });
+  assert.equal(json.count, 0); assert.deepEqual(json.results, []);
+});
+
 test('lexicon routes, modules, cursors, batch cards and unavailable enhancements match schemas', async () => {
   await request('/v1/strong-lexicon/modules/core', Lexicon.StrongLexiconModuleStateDto);
   const { json: module } = await request('/v1/strong-lexicon/modules/entities', Lexicon.StrongLexiconModuleStateDto); assert.equal(module.status, 'available'); assert.match(module.revision, /^cj-entities-/);
@@ -351,8 +404,8 @@ test('cross references, published timelines and unsupported resources use the do
   await request('/v1/cross-references/en/verses/43-1-1', Supplementary.CrossReferenceResponseDto);
   const { json: timeline } = await request('/v1/timelines/en/events', Timeline.TimelineEventsResponseDto); assert.equal(timeline.events.length, 517);
   await request('/v1/timelines/en/events/unknown', Problems.ResourceNotFoundProblem, { status: 404 });
-  await request('/v1/interlinear-bibles/BHG/languages/en/coverage', Problems.ResourceNotFoundProblem, { status: 404 });
-  await request('/v1/interlinear-bibles/BHG/languages/en/books/1/chapters/1', Problems.ResourceNotFoundProblem, { status: 404 });
+  await request('/v1/interlinear-bibles/BHG/languages/en/coverage', Problems.ResourceUnavailableProblem, { status: 503 });
+  await request('/v1/interlinear-bibles/BHG/languages/en/books/1/chapters/1', Problems.ResourceUnavailableProblem, { status: 503 });
   const { json: analytics } = await request('/v1/search-events', Analytics.SearchAnalyticsAcceptedDto, { body: {}, status: 202 }); assert.equal(analytics.accepted, false);
 });
 

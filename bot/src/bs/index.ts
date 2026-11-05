@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { bible } from './bible';
+import { bhgBible, interlinear } from './interlinear';
 import { dictionaries } from './dictionary';
 import { jewishEncyclopedia } from './jewish-encyclopedia';
 import { readBibleStrongReference } from './upstream-reference';
@@ -19,8 +20,16 @@ bs.use('*', async (c, next) => {
     c.header('access-control-max-age', '86400');
     return c.body(null, 204);
   }
-  if (c.env.BIBLE_STRONG_WEB === '1' && !c.req.path.startsWith('/bs/v1/dictionaries/jewish-encyclopedia/') && /^\/bs\/v1\/(?:dictionaries|naves)(?:\/|$)/.test(c.req.path)) {
-    const response = await readBibleStrongReference(c.req.raw);
+  const family = /^\/bs\/v1\/(dictionaries|naves)(?:\/|$)/.exec(c.req.path)?.[1];
+  const owned = c.env.REFERENCE_HOSTING === 'self-hosted'
+    || (family === 'naves' && c.env.REFERENCE_HOSTING === 'nave-self-hosted');
+  if (family && (owned || c.env.BIBLE_STRONG_WEB === '1') && !c.req.path.startsWith('/bs/v1/dictionaries/jewish-encyclopedia/')) {
+    const service = c.env.REFERENCE_PUBLICATIONS;
+    if (owned && !service) throw new FeedError(503, 'REFERENCE_PUBLICATION_INACTIVE', 'The CyberJudah reference service is not configured');
+    const response = owned && service
+      ? await readBibleStrongReference(c.req.raw, (url, init) => service.fetch(url, init), 'https://reference.internal')
+      : await readBibleStrongReference(c.req.raw);
+    if (owned) response.headers.set('x-cyberjudah-reference-hosting', 'self-hosted');
     response.headers.set('access-control-allow-origin', '*');
     return response;
   }
@@ -33,7 +42,7 @@ bs.onError((error, c) => {
   const status = known ? error.status : 503;
   let code = known ? error.code : 'BIBLE_PUBLICATION_INACTIVE';
   if (status === 503) {
-    const family = c.req.path.includes('/strong-lexicon/') ? 'STRONG_LEXICON' : c.req.path.includes('/strong-bibles/') ? 'STRONG_BIBLE' : c.req.path.includes('/dictionaries') ? 'DICTIONARY' : c.req.path.includes('/naves/') ? 'NAVE' : /\/(commentaries|cross-references)\//.test(c.req.path) ? 'SUPPLEMENTARY' : c.req.path.includes('/timelines/') ? 'TIMELINE' : 'BIBLE';
+    const family = c.req.path.includes('/interlinear-bibles/') ? 'INTERLINEAR' : c.req.path.includes('/strong-lexicon/') ? 'STRONG_LEXICON' : c.req.path.includes('/strong-bibles/') ? 'STRONG_BIBLE' : c.req.path.includes('/dictionaries') ? 'DICTIONARY' : c.req.path.includes('/naves/') ? 'NAVE' : /\/(commentaries|cross-references)\//.test(c.req.path) ? 'SUPPLEMENTARY' : c.req.path.includes('/timelines/') ? 'TIMELINE' : 'BIBLE';
     code = `${family}_PUBLICATION_INACTIVE`;
     c.header('retry-after', '60');
   }
@@ -42,6 +51,7 @@ bs.onError((error, c) => {
   return c.json({ _tag: status === 400 ? 'InvalidResourceRequestProblem' : status === 404 ? 'ResourceNotFoundProblem' : 'ResourceUnavailableProblem', type: `https://cyberjudah.io/bs/problems/${code.toLowerCase().replaceAll('_', '-')}`, title: status === 400 ? 'Invalid request' : status === 404 ? 'Resource not found' : 'Resource unavailable', status, code, detail: known ? error.message : 'The CyberJudah data source could not be read', requestId: crypto.randomUUID(), ...(status === 503 ? { retryAfterSeconds: 60 } : {}) }, status);
 });
 bs.get('/health', c => c.json({ status: 'ok' }));
+bs.route('/v1/bibles', bhgBible);
 bs.route('/v1/bibles', bible);
 bs.route('/v1/dictionaries/jewish-encyclopedia', jewishEncyclopedia);
 bs.route('/v1/dictionaries', dictionaries);
@@ -63,7 +73,6 @@ bs.get('/v1/cross-references/:language/verses/:verseKey', async c => {
   return c.json({ resource: { kind: 'cross-references', resourceId: 'cyberjudah-xref', language: lang, revision: `cj-xref-${await sha(data)}` }, verseKey: c.req.param('verseKey'), references });
 });
 bs.route('/v1/timelines', timelines);
-bs.get('/v1/interlinear-bibles/:version/languages/:language/coverage', c => missing('INTERLINEAR_UNSUPPORTED'));
-bs.get('/v1/interlinear-bibles/:version/languages/:language/books/:book/chapters/:chapter', c => missing('INTERLINEAR_UNSUPPORTED'));
+bs.route('/v1/interlinear-bibles', interlinear);
 bs.post('/v1/search-events', c => c.json({ accepted: false }, 202));
 bs.all('*', c => missing('SUPPLEMENTARY_CONTENT_NOT_FOUND', 'No CyberJudah resource exists at this route'));
