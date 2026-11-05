@@ -1,3 +1,4 @@
+import { accountDeletionSchema, accountDeletionBlocked } from "./account-deletion-state";
 import { archiveSchema } from "../../shared/studies";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
@@ -5,7 +6,7 @@ import type { Env } from "./env";
 import type { InitData } from "./initdata.mjs";
 import { open, pid, seal } from "./privacy.mjs";
 
-async function schema(env: Env) { await env.DB.prepare("CREATE TABLE IF NOT EXISTS study_backups (owner TEXT PRIMARY KEY, revision INTEGER NOT NULL, sealed TEXT NOT NULL, updated TEXT NOT NULL)").run(); }
+async function schema(env: Env) { await accountDeletionSchema(env); await env.DB.prepare("CREATE TABLE IF NOT EXISTS study_backups (owner TEXT PRIMARY KEY, revision INTEGER NOT NULL, sealed TEXT NOT NULL, updated TEXT NOT NULL)").run(); }
 export async function readStudyBackup(env: Env, uid: number) {
   await schema(env); const owner = await pid(env, uid);
   const record = await env.DB.prepare("SELECT revision,sealed,updated FROM study_backups WHERE owner=?").bind(owner).first<{ revision: number; sealed: string; updated: string }>();
@@ -26,8 +27,9 @@ studyBackup.put("/", async c => {
   const owner = await pid(c.env, c.get("tma").user!.id), revision = payload.revision! + 1, updated = new Date().toISOString();
   const sealed = await seal(c.env, owner, checked.data);
   const result = payload.revision === 0
-    ? await c.env.DB.prepare("INSERT INTO study_backups(owner,revision,sealed,updated) VALUES(?,?,?,?) ON CONFLICT(owner) DO NOTHING").bind(owner, revision, sealed, updated).run()
-    : await c.env.DB.prepare("UPDATE study_backups SET revision=?,sealed=?,updated=? WHERE owner=? AND revision=?").bind(revision, sealed, updated, owner, payload.revision).run();
+    ? await c.env.DB.prepare("INSERT INTO study_backups(owner,revision,sealed,updated) SELECT ?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM account_deletion_blocks WHERE firebase_uid=?) ON CONFLICT(owner) DO NOTHING").bind(owner, revision, sealed, updated, `tg_${c.get("tma").user!.id}`).run()
+    : await c.env.DB.prepare("UPDATE study_backups SET revision=?,sealed=?,updated=? WHERE owner=? AND revision=? AND NOT EXISTS (SELECT 1 FROM account_deletion_blocks WHERE firebase_uid=?)").bind(revision, sealed, updated, owner, payload.revision, `tg_${c.get("tma").user!.id}`).run();
+  if (!result.meta.changes && await accountDeletionBlocked(c.env, `tg_${c.get("tma").user!.id}`)) return c.json({ error: "Account deletion is in progress.", reason: "account_deletion_in_progress" }, 409);
   if (!result.meta.changes) return c.json({ error: "The cloud backup changed on another device. Reload before saving.", reason: "conflict" }, 409);
   return c.json({ revision, updated });
 });
