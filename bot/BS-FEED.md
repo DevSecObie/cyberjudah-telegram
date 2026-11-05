@@ -177,3 +177,11 @@ for a day; upstream JSON is edge-cached for one hour. POSTs and errors use `no-s
 All `/bs` responses include CORS and `nosniff`; failed source responses are not cached.
 Origin HTTP, network and JSON decoding failures log `bs_load_failed` with the source
 URL and original error for Worker diagnostics; clients receive the typed 503 problem.
+
+## Hosting the dictionary and Nave in CyberJudah
+
+Run the Resource service from the native monorepo with CyberJudah's database and publication storage. Import validated Easton + Webster and Nave publication bundles with their original revision, attribution, links and verse indexes. Run the service's dictionary and Nave smoke suites on the imported publications before changing the gateway.
+
+For staging, bind the private Worker as `REFERENCE_PUBLICATIONS` in that environment and set `REFERENCE_HOSTING` to `self-hosted`. The two settings are environment-specific. The binding receives only public GETs and the JSON Accept header. The gateway translates verse keys by book identity. If the binding or service fails, clients receive an unavailable response. Keep the self-hosted setting in place during recovery and restore the last verified publication. The existing Jewish Encyclopedia remains served by the CyberJudah adapter.
+
+Exercise the catalog, entries by word and ID, topics, scripture associations (including an Apocrypha book), missing entries, and a cold app start. Record revisions and confirm zero outbound requests to Bible Strong in both the gateway and resource server before promoting a staging configuration.
