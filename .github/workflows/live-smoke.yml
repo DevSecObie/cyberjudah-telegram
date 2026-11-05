@@ -19,6 +19,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Verify both original Nave editions on the public resource service
+        run: node bot/scripts/verify-owned-nave.mjs https://cyberjudah.io/bs/reference/v1/naves/
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install --with-deps chromium
       # The suite runs at the Worker's root (the app is served at both / and /app/ there), so it

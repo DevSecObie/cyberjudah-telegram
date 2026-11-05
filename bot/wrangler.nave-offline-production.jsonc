@@ -1,0 +1,17 @@
+{
+  "name": "cyberjudah-nave-offline-production",
+  "main": "src/nave-offline-publication.ts",
+  "compatibility_date": "2026-08-19",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "cyberjudah.io/offline/catalog.json*", "zone_name": "cyberjudah.io" },
+    { "pattern": "cyberjudah.io/offline/databases/en/nave.sqlite.zip*", "zone_name": "cyberjudah.io" },
+    { "pattern": "cyberjudah.io/offline/databases/nave-fr.sqlite.zip*", "zone_name": "cyberjudah.io" }
+  ],
+  "assets": {
+    "directory": "./.wrangler/nave-offline-release",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  }
+}

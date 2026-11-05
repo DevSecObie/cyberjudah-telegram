@@ -15,6 +15,9 @@ export type Env = {
   LIBRARY_ORIGIN?: string;
   DATA_ORIGIN: string;
   BIBLE_STRONG_WEB?: string;
+  /** Select the private Resource API for dictionary and Nave publications after import. */
+  REFERENCE_HOSTING?: 'nave-self-hosted' | 'self-hosted';
+  REFERENCE_PUBLICATIONS?: Fetcher;
   SITE_URL: string;
   /** The Mini App's direct link from @BotFather (https://t.me/<bot>/<app>); empty until /newapp. */
   APP_URL: string;

@@ -117,6 +117,16 @@ jobs:
             }
             console.log("Offline downloads match their catalog:", Object.keys(catalog.resources).length);'
           sha256sum app/dist/embed/youtube.html
+      - name: Check out the verified Nave offline publications
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: c85b95a7cea6362804ac6df2202b4e027e5b8421
+          path: nave-release
+          persist-credentials: false
+          sparse-checkout: apps/expo/public/offline
+      - name: Assemble the two Nave downloads for the production release
+        run: node bot/scripts/stage-nave-offline.mjs nave-release/apps/expo/public/offline app/dist/offline https://cyberjudah.io
       - name: Upload the app's pictures to R2
         working-directory: bot
         env:

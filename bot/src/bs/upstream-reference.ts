@@ -1,12 +1,15 @@
 import { FeedError, invalid, missing } from './core';
 import { isWithheld } from '../dictionary';
 
-const origin = 'https://api.bible-strong.app';
 // Both apps agree on books 1–66. Map the shared Apocrypha by identity, never by position.
 const upstreamBooks = new Map([[67, 74], [69, 67], [70, 68], [72, 69], [73, 70], [74, 71], [80, 72], [81, 73]]);
 
 /** Public Bible Strong dictionary and Nave reads only. No reader identity, cookies or service credentials leave staging. */
-export async function readBibleStrongReference(request: Request, fetcher: typeof fetch = fetch): Promise<Response> {
+export async function readBibleStrongReference(
+  request: Request,
+  fetcher: typeof fetch = fetch,
+  origin: 'https://api.bible-strong.app' | 'https://reference.internal' = 'https://api.bible-strong.app',
+): Promise<Response> {
   const incoming = new URL(request.url);
   const path = incoming.pathname.replace(/^\/bs/, '');
   if (request.method !== 'GET') return new Response(null, { status: 405, headers: { allow: 'GET' } });
@@ -24,17 +27,29 @@ export async function readBibleStrongReference(request: Request, fetcher: typeof
     if (!upstream) { unmatched = true; return '/verses/1-1-1'; }
     return `/verses/${upstream}-${chapter}-${verse}`;
   });
+  const owned = origin === 'https://reference.internal';
+  const signal = AbortSignal.timeout(owned ? 8_000 : 15_000);
+  const read = () => fetcher(`${origin}${mappedPath}${incoming.search}`, {
+    method: 'GET', headers: { accept: 'application/json' }, redirect: 'manual', signal,
+  });
   let response: Response;
   try {
-    response = await fetcher(`${origin}${mappedPath}${incoming.search}`, {
-      method: 'GET', headers: { accept: 'application/json' }, redirect: 'manual',
-      signal: AbortSignal.timeout(15_000),
+    const first = await read().catch(error => {
+      if (!owned || signal.aborted) throw error;
+      return undefined;
     });
+    // Retry a transient transport failure once within the same deadline. Respect origin backoff.
+    if (!first || (owned && !signal.aborted && [502, 503, 504].includes(first.status) && !first.headers.has('retry-after'))) {
+      await first?.body?.cancel();
+      response = await read();
+    } else {
+      response = first;
+    }
   } catch {
-    throw new FeedError(503, `${family}_PUBLICATION_INACTIVE`, `Bible Strong’s ${label} service could not be reached`);
+    throw new FeedError(503, `${family}_PUBLICATION_INACTIVE`, `The ${label} service could not be reached`);
   }
   if (!response.headers.get('content-type')?.includes('json') || response.status >= 500 || response.status >= 300 && response.status < 400) {
-    throw new FeedError(503, `${family}_PUBLICATION_INACTIVE`, `Bible Strong’s ${label} service is temporarily unavailable`);
+    throw new FeedError(503, `${family}_PUBLICATION_INACTIVE`, `The ${label} service is temporarily unavailable`);
   }
   const body = await response.json() as Record<string, unknown>;
   if (originalVerseKey && typeof body.verseKey === 'string') body.verseKey = originalVerseKey;

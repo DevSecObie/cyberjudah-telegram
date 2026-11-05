@@ -19,8 +19,16 @@ bs.use('*', async (c, next) => {
     c.header('access-control-max-age', '86400');
     return c.body(null, 204);
   }
-  if (c.env.BIBLE_STRONG_WEB === '1' && !c.req.path.startsWith('/bs/v1/dictionaries/jewish-encyclopedia/') && /^\/bs\/v1\/(?:dictionaries|naves)(?:\/|$)/.test(c.req.path)) {
-    const response = await readBibleStrongReference(c.req.raw);
+  const family = /^\/bs\/v1\/(dictionaries|naves)(?:\/|$)/.exec(c.req.path)?.[1];
+  const owned = c.env.REFERENCE_HOSTING === 'self-hosted'
+    || (family === 'naves' && c.env.REFERENCE_HOSTING === 'nave-self-hosted');
+  if (family && (owned || c.env.BIBLE_STRONG_WEB === '1') && !c.req.path.startsWith('/bs/v1/dictionaries/jewish-encyclopedia/')) {
+    const service = c.env.REFERENCE_PUBLICATIONS;
+    if (owned && !service) throw new FeedError(503, 'REFERENCE_PUBLICATION_INACTIVE', 'The CyberJudah reference service is not configured');
+    const response = owned && service
+      ? await readBibleStrongReference(c.req.raw, (url, init) => service.fetch(url, init), 'https://reference.internal')
+      : await readBibleStrongReference(c.req.raw);
+    if (owned) response.headers.set('x-cyberjudah-reference-hosting', 'self-hosted');
     response.headers.set('access-control-allow-origin', '*');
     return response;
   }

@@ -146,6 +146,16 @@ jobs:
             cp -n "$src/databases/$f" app/dist/offline/databases/
           done
           sha256sum app/dist/offline/BHG.json.zip app/dist/offline/databases/strong_lexicon.simple-en.sqlite.zip app/dist/offline/databases/strong_lexicon.resources.sqlite.zip app/dist/offline/databases/bible-bhg-interlinear-en.sqlite.zip
+      - name: Check out the two verified Nave editions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: c85b95a7cea6362804ac6df2202b4e027e5b8421
+          path: nave-release
+          persist-credentials: false
+          sparse-checkout: apps/expo/public/offline
+      - name: Add Nave downloads to the existing staging catalog
+        run: node bot/scripts/stage-nave-offline.mjs nave-release/apps/expo/public/offline app/dist/offline
       - name: Deploy the staging worker
         id: deploy
         working-directory: bot
