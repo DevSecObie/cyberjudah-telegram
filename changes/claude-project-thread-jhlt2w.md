@@ -1,1 +1,1 @@
-- verse_study, search_classes and read_transcript show a class's YouTube upload date, labelled "YouTube upload date", when the class's own date is not known. The date is read from the video's watch page (no API credits) and kept in KV; "date unknown" stays when YouTube gives none.
+- Production now exempts the release check's synthetic reader (ID 1) from the daily search-answer count, as staging does, so several production deploys on one day no longer fail the post-deploy check with HTTP 429 and roll back.
