@@ -45,11 +45,11 @@ async function reading(c: Ctx, book: number, chapter: number, resourceId = COLLE
   // As a Bible Strong commentary reads: one section per class passage, headed by the scripture,
   // each verse's teaching in verse order with the precepts the class lined up under it, then
   // the class it came from. A verse used as the precept for another scripture stands alone.
-  const passages = new Map<string, { note: Note; ts: string; video?: string | null; t?: number; label: string; verses: Map<number, { points: string[]; precepts: string[] }> }>();
+  const passages = new Map<string, { note: Note; ts: string; video?: string | null; t?: number; label: string; coverage: Set<number>; verses: Map<number, { points: string[]; precepts: string[] }> }>();
   const passage = (note: Note, ts: string, label: string) => {
     const key = `${note.url}|${ts}|${note.teacher}`;
     let row = passages.get(key);
-    if (!row) passages.set(key, row = { note, ts, label, verses: new Map() });
+    if (!row) passages.set(key, row = { note, ts, label, coverage: new Set(), verses: new Map() });
     if (!row.label) row.label = label;
     return row;
   };
@@ -61,7 +61,9 @@ async function reading(c: Ctx, book: number, chapter: number, resourceId = COLLE
   for (const p of data.commentary ?? []) {
     const row = passage(p.note, p.ts, p.passage);
     row.video ??= p.video; row.t ??= p.t;
-    const v = numbers(p.verses)[0];
+    const associated = numbers(p.verses);
+    for (const verse of associated) row.coverage.add(verse);
+    const v = associated[0];
     if (v) at(row, v).points.push(...p.points);
   }
   for (const p of data.precepts ?? []) {
@@ -74,13 +76,16 @@ async function reading(c: Ctx, book: number, chapter: number, resourceId = COLLE
     }
     const row = passage(p.note, p.ts, '');
     row.video ??= video; row.t ??= seconds(p.ts) ?? moment?.t;
-    const v = numbers(p.verses)[0];
+    const associated = numbers(p.verses);
+    for (const verse of associated) row.coverage.add(verse);
+    const v = associated[0];
     if (v) at(row, v).precepts.push(`<p><b>Precept</b> ${passageLink(p.ref)}</p>${paragraphs(p.why || p.text)}`);
   }
   for (const row of passages.values()) {
     const verses = [...row.verses.keys()].sort((a, b) => a - b);
     if (!verses.length) continue;
-    const heading = row.label || `${bookById(book).name} ${chapter}:${verses[0]}${verses.length > 1 ? `-${verses[verses.length - 1]}` : ''}`;
+    const coverage = [...row.coverage].sort((a, b) => a - b);
+    const heading = row.label || `${bookById(book).name} ${chapter}:${coverage.join(',')}`;
     const body = verses.map(v => {
       const cell = row.verses.get(v)!;
       const points = cell.points.map((point, i) => {
@@ -92,9 +97,9 @@ async function reading(c: Ctx, book: number, chapter: number, resourceId = COLLE
       return label + points + cell.precepts.join('');
     }).join('');
     const content = `<h3>${html(heading)}</h3>${body}${citation(row.note, row.ts, row.video, row.t)}`;
-    const span = [];
-    for (let v = verses[0]; v <= verses[verses.length - 1]; v++) span.push(v);
-    items.push({ verses: span, teacher: row.note.teacher, date: row.note.date, content });
+    // A passage's body is grouped once; its associations are exactly the source's
+    // explicit verses, including every range member and excluding gaps.
+    items.push({ verses: coverage, teacher: row.note.teacher, date: row.note.date, content });
   }
   if (teacher) items.splice(0, items.length, ...items.filter(item => item.teacher === teacher));
   items.sort((a, b) => teacherRank(a.teacher) - teacherRank(b.teacher) || (b.date || '').localeCompare(a.date || ''));
