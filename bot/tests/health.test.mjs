@@ -25,6 +25,7 @@ function d1(script) {
         const steps = script[table] ?? ["row"];
         const step = steps[Math.min(n, steps.length) - 1];
         if (step === "busy") throw new Error("D1_ERROR: D1 DB is overloaded. Requests queued for too long.");
+        if (step === "importing") throw new Error("D1_ERROR: Currently processing a long-running import.");
         return step === "empty" ? null : { n: 1, meta: { size_after: 1024 } };
       };
       const stmt = { bind: () => stmt, first: run, run: async () => ({ meta: { size_after: 1024 } }) };
@@ -55,4 +56,18 @@ test("an empty index fails without a retry", async () => {
   const r = await selfCheck(env(db, d1({})), Date.now(), 1);
   assert.deepEqual(check(r, "d1-search"), { name: "d1-search", ok: false, detail: "empty" });
   assert.equal(db.calls.search_docs, 1);
+});
+
+test("a data-set publish's D1 import is waited out instead of paging the admins", async () => {
+  const teach = d1({ teaching_passages: ["importing", "importing", "importing", "row"] });
+  const r = await selfCheck(env(d1({}), teach), Date.now(), 1, 1000);
+  assert.equal(check(r, "d1-teachings").ok, true);
+  assert.equal(teach.calls.teaching_passages, 4);
+  assert.equal(r.ok, true);
+});
+
+test("an import still running after the wait fails the check with the error", async () => {
+  const r = await selfCheck(env(d1({}), d1({ teaching_passages: ["importing"] })), Date.now(), 5, 20);
+  assert.equal(check(r, "d1-teachings").ok, false);
+  assert.match(check(r, "d1-teachings").detail, /long-running import/);
 });

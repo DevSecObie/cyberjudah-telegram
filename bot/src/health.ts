@@ -17,27 +17,43 @@ const DAILY_FAIL_SHARE = 0.2;
 
 /** How long to wait before the one retry of a failed D1 probe. */
 export const RETRY_MS = 5000;
+/** How long a probe waits out a D1 import (a publish of the data set) before the check fails. */
+export const IMPORT_WAIT_MS = 4 * 60_000;
+const IMPORTING = /long-running import/i;
 
 /**
  * D1 sometimes refuses a query for a moment ("D1 DB is overloaded. Requests queued for too
  * long."). A probe is tried once more after RETRY_MS, so a passing hiccup does not page the admins.
  */
-async function again<T>(probe: () => Promise<T>, wait = RETRY_MS): Promise<T> {
-  try { return await probe(); } catch { await new Promise((r) => setTimeout(r, wait)); return probe(); }
+async function again<T>(probe: () => Promise<T>, wait = RETRY_MS, importWait = IMPORT_WAIT_MS): Promise<T> {
+  const until = Date.now() + importWait;
+  for (;;) {
+    try { return await probe(); } catch (e) {
+      // The content repo's publish loads the search index with `wrangler d1 execute --file`,
+      // which locks the database for a minute or two. The probe waits that out, retrying every
+      // `wait`, instead of paging the admins about a publish; an import still running after
+      // `importWait` fails the check as before.
+      if (!IMPORTING.test(err(e)) || Date.now() + wait > until) {
+        await new Promise((r) => setTimeout(r, wait));
+        return probe();
+      }
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
 }
 
 const err = (e: unknown) => (e instanceof Error ? e.message?.slice(0, 120) : String(e).slice(0, 120));
 
 /** What the worker depends on, probed directly: the indexes, the vectors, and headroom. */
-export async function selfCheck(env: Env, now = Date.now(), retryMs = RETRY_MS): Promise<{ ok: boolean; checks: Check[] }> {
+export async function selfCheck(env: Env, now = Date.now(), retryMs = RETRY_MS, importWaitMs = IMPORT_WAIT_MS): Promise<{ ok: boolean; checks: Check[] }> {
   const checks: Check[] = [];
   // One row is enough to show the index is loaded; counting every row scans the whole table.
   try {
-    const r = await again(() => env.DB.prepare("SELECT 1 AS n FROM search_docs LIMIT 1").first<{ n: number }>(), retryMs);
+    const r = await again(() => env.DB.prepare("SELECT 1 AS n FROM search_docs LIMIT 1").first<{ n: number }>(), retryMs, importWaitMs);
     checks.push({ name: "d1-search", ok: Boolean(r), detail: r ? "loaded" : "empty" });
   } catch (e) { checks.push({ name: "d1-search", ok: false, detail: err(e) }); }
   try {
-    const r = await again(() => env.TEACH.prepare("SELECT 1 AS n FROM teaching_passages LIMIT 1").first<{ n: number }>(), retryMs);
+    const r = await again(() => env.TEACH.prepare("SELECT 1 AS n FROM teaching_passages LIMIT 1").first<{ n: number }>(), retryMs, importWaitMs);
     checks.push({ name: "d1-teachings", ok: Boolean(r), detail: r ? "loaded" : "empty" });
   } catch (e) { checks.push({ name: "d1-teachings", ok: false, detail: err(e) }); }
   try {
@@ -47,7 +63,7 @@ export async function selfCheck(env: Env, now = Date.now(), retryMs = RETRY_MS):
   try {
     // D1 does not allow the page_count/page_size pragmas (SQLITE_AUTH); every result's
     // metadata carries the database size in bytes after the statement instead.
-    const r = await again(() => env.DB.prepare("SELECT 1").run(), retryMs);
+    const r = await again(() => env.DB.prepare("SELECT 1").run(), retryMs, importWaitMs);
     const bytes = Number((r.meta as { size_after?: number }).size_after ?? 0);
     // D1's per-database storage has a documented ceiling; alert at 80% of it so there is
     // room to act. Override with the D1_SIZE_ALERT_BYTES var when Cloudflare moves it.
