@@ -1,0 +1,1 @@
+- web.cyberjudah.io: the lion shows as soon as the page opens, and less code loads before the first screen.
