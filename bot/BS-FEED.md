@@ -186,6 +186,17 @@ Run `node bot/scripts/verify-owned-nave.mjs https://cyberjudah.io/bs/reference/v
 
 The native offline copies ship with the website's offline catalog in a separate release. Both workflows take just the two Nave ZIPs and their entries from a pinned native revision. The production assembly writes production download URLs and preserves existing catalog entries. Before mobile release, download both public ZIPs, compare bytes and SHA-256 against the catalog, and open a downloaded topic on a phone in airplane mode.
 
+On 5 November 2026 the two offline copies went live independently of the rest of the website, under the three routes in `bot/wrangler.nave-offline-production.jsonc`. The catalog reads the original public production Worker's catalog and adds the two pinned Nave entries. The two ZIPs are static assets of the same deployment. Production Worker version `30153a5f-1ad9-49e8-a60a-1ab6d7ef3098` preserved the six original records. English and French passed ZIP/SQLite SHA-256 verification and SQLite integrity checks on both the production host and the staging host used by TestFlight.
+
+To reproduce the scoped deployment, run the following from `bot`, with `NATIVE_OFFLINE_DIR` pointing to `apps/expo/public/offline` from native commit `c85b95a7cea6362804ac6df2202b4e027e5b8421`.
+
+```sh
+node scripts/stage-nave-offline.mjs "$NATIVE_OFFLINE_DIR" .wrangler/nave-offline-release/offline https://cyberjudah.io --nave-only
+npx wrangler deploy --config wrangler.nave-offline-production.jsonc
+```
+
+When the normal website release includes both archives, verify its public workers.dev origin first, including all catalog entries and the uncompressed database hashes. Remove only the three scoped routes after the origin passes, then repeat the checks on cyberjudah.io. If a later scoped deployment regresses, restore the previous verified Worker version together with its assets.
+
 Run the Resource service from the native monorepo with CyberJudah's database and publication storage. Import validated Easton + Webster and Nave publication bundles with their original revision, attribution, links and verse indexes. Run the service's dictionary and Nave smoke suites on the imported publications before changing the gateway.
 
 For staging, bind the private Worker as `REFERENCE_PUBLICATIONS`. After importing and checking both Nave editions, set `REFERENCE_HOSTING` to `nave-self-hosted` in that environment. Switch to `self-hosted` only after verifying the dictionary editions on the same service. The binding receives only public GETs and the JSON Accept header. The gateway translates verse keys by book identity. If an enabled service fails, clients receive an unavailable response. Restore the last verified publication during recovery. The CyberJudah adapter serves the Jewish Encyclopedia.

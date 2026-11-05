@@ -4,10 +4,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
 // The website and the native publication have independent release pins.
-const [source, destination, origin] = process.argv.slice(2);
+const [source, destination, origin, mode] = process.argv.slice(2);
+assert.ok(mode === undefined || mode === '--nave-only', 'Unknown catalog assembly mode');
 const readCatalog = async dir => JSON.parse(await readFile(join(dir, 'catalog.json'), 'utf8'));
 const published = await readCatalog(source);
-const staged = await readCatalog(destination);
+const staged = mode === '--nave-only'
+  ? { ...published, resourceCount: 0, resources: {} }
+  : await readCatalog(destination);
 assert.equal(published.schemaVersion, staged.schemaVersion);
 assert.equal(published.format, staged.format);
 
