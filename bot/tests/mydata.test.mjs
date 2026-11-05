@@ -45,7 +45,11 @@ const reminder = { on: true, hour: 7, minute: 0, tz: "UTC", channels: { telegram
 
 async function reader() {
   deletionBlocks.clear();
-  const env = { ACCOUNT_DATA_DELETION_READY: "true", FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089", SUBS: kv(), DB: d1, PRIVACY_KEY: "test-key", BOT_TOKEN: "1:x" };
+  const env = { TELEGRAM_ACCOUNT_DELETION_READY: "true", FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089", SUBS: kv(), DB: d1, PUBLICATION_STORE_ID: "production", PUBLICATION_ERASURE_PEER: {
+    describe: async () => ({ version: 1, store: "staging" }),
+    block: async identities => ({ version: 1, store: "staging", phase: "blocked", identities }),
+    erase: async identities => ({ version: 1, store: "staging", phase: "deleted", identities }),
+  }, PRIVACY_KEY: "test-key", BOT_TOKEN: "1:x" };
   await saveExchange(env, 77, "abc12345", "Why keep the Passover?", { content: "A memorial." });
   await saveReminder(env, await tgRid(env, 77), reminder);
   const subKey = `sub:${await pid(env, 77)}`;
@@ -255,7 +259,7 @@ for (const unavailable of [undefined, "false", "TRUE", "missing-firestore"]) {
   test(`Delete my data: readiness ${unavailable} preserves every store and does not report success`, async () => {
     const env = await reader();
     if (unavailable === "missing-firestore") delete env.FIRESTORE_EMULATOR_HOST;
-    else env.ACCOUNT_DATA_DELETION_READY = unavailable;
+    else env.TELEGRAM_ACCOUNT_DELETION_READY = unavailable;
     const before = [...env.SUBS.m], sqlBefore = sql.length;
     await assert.rejects(deleteData(env, 77), /account_deletion_not_ready/);
     assert.deepEqual([...env.SUBS.m], before, "no KV deletion, session revocation or link loss");

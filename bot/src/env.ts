@@ -1,5 +1,9 @@
 export type Env = {
   DB: D1Database;
+  /** Explicit two-store topology. Unset keeps account erasure unavailable. */
+  PUBLICATION_STORE_ID?: "production" | "staging";
+  /** Named internal RPC binding to the other reviewed Worker; never a public URL. */
+  PUBLICATION_ERASURE_PEER?: import("./publication-erasure").PublicationErasurePeer;
   /** The site's own D1 database (cyberjudah): teaching_passages and teaching_refs, filled by the cyberjudah repository. */
   TEACH: D1Database;
   SUBS: KVNamespace;
@@ -25,9 +29,10 @@ export type Env = {
   BOT_TOKEN: string;
   /** Server-only signing credential for the existing Telegram account. */
   FIREBASE_SERVICE_ACCOUNT?: string;
-  /** Enable only after historical orphan ownership is reconciled and deletion acceptance passes.
-   * Unset/false blocks all account-data deletion channels before any data or identity removal. */
-  ACCOUNT_DATA_DELETION_READY?: string;
+  /** Native Firebase-account release gate; enable only after native deletion acceptance passes. */
+  NATIVE_ACCOUNT_DELETION_READY?: string;
+  /** Separate Telegram/browser account-data gate; native readiness never enables this flow. */
+  TELEGRAM_ACCOUNT_DELETION_READY?: string;
   /** Enable after historical reconciliation and rules block parent-only deletion, ledger access and ID reuse. */
   NATIVE_STUDY_DELETION_READY?: string;
   /** The FCM topic new class alerts go to (class-alerts.ts); alerts are off when unset. */

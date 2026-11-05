@@ -31,6 +31,14 @@ test("the end-to-end tests' clock is never on in a deployed Worker", () => {
   assert.equal(config.env.staging.vars.E2E_CLOCK, undefined);
 });
 
+test("deletion gates and privileged publication peer bindings require an explicit reviewed rollout", () => {
+  assert.equal(config.main, 'src/worker.ts');
+  for (const env of [config, config.env.staging]) {
+    for (const flag of ['NATIVE_ACCOUNT_DELETION_READY', 'TELEGRAM_ACCOUNT_DELETION_READY', 'NATIVE_STUDY_DELETION_READY']) assert.equal(env.vars[flag], undefined);
+    assert.equal(env.services?.some(binding => binding.binding === 'PUBLICATION_ERASURE_PEER'), undefined);
+  }
+});
+
 test("production and staging search use only a hosted free-tier model", () => {
   for (const vars of [config.vars, config.env.staging.vars]) {
     assert.equal(vars.SEARCH_AI_FREE_ONLY, "on");

@@ -4,7 +4,7 @@ import { IdentityError, verifyFirebaseIdentity } from "./account-links";
 import { limitPerson, limitSession } from "./app-identity";
 import { deleteFirebaseAccountSyncMarks } from "./firestore-admin";
 import type { Env } from "./env";
-import { AccountDeletionNotReadyError, assertAccountDeletionReady } from "./account-deletion-readiness";
+import { AccountDeletionNotReadyError, assertNativeAccountDeletionReady } from "./account-deletion-readiness";
 import { beginFirebaseErasure } from "./account-erasure";
 
 /** Native account erasure, including unlinked Firebase accounts. The client deletes Auth only after
@@ -26,7 +26,7 @@ nativeAccountData.delete("/", async c => {
     await limitPerson(c.env, identity.uid);
     // Recursive queries cannot infer the owner of historical top-level orphan studies. Keep this
     // closed until their reconciliation and the deployed deletion contract have been verified.
-    assertAccountDeletionReady(c.env);
+    assertNativeAccountDeletionReady(c.env);
     await beginFirebaseErasure(c.env, identity.uid);
     const removed = await deleteFirebaseAccountSyncMarks(c.env, identity.uid);
     return c.json({ version: 2, uid: identity.uid, firestoreDeleted: true, publicationsDeleted: true, writesBlocked: true, removed });
