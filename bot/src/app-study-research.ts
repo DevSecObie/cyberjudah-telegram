@@ -360,7 +360,7 @@ export function createAppResearch(env: Env, initial: Passage[], emit: (e: { stat
       try {
         await Promise.race([run(request, found), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('TIMEOUT')), 9000); })]);
       } catch { console.log(JSON.stringify({ event: 'app_study_resource_unavailable', release: APP_STUDY_RELEASE.version, resource: request.resource })); unavailable.push(request.resource); emit({ status: `${request.resource.replaceAll('-', ' ')} could not be read just now` }); }
-      finally { clearTimeout(timer); }
+      finally { if (timer !== undefined) clearTimeout(timer); }
       // What a timed-out search found before the limit stays; anything later is not read.
       return found.splice(0);
     }));
