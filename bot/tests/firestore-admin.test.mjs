@@ -13,7 +13,7 @@ const identityEnv = { BOT_TOKEN: "firestore-identity-fixture", DB: { prepare: ()
 
 function field(v) { return { stringValue: v }; }
 // Firestore stamps every stored document with createTime; a "missing" parent (subcollections only) has none.
-function doc(name, fields) { return { name, createTime: "2026-10-28T00:00:00Z", fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, field(String(v))])) }; }
+function doc(name, fields) { return { name, createTime: "2026-10-28T00:00:00Z", updateTime: "2026-10-28T00:00:00Z", fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, field(String(v))])) }; }
 
 /** A minimal stand-in for both real Firestore and the local emulator: GET lists documents (with one
  * page of pagination so the loop is exercised), POST :batchWrite records and accepts every delete. */
@@ -191,6 +191,14 @@ test("deletion of a linked login reaches everything Bible Strong keeps for it, s
   globalThis.fetch = async (url, init = {}) => {
     const u = new URL(url);
     assert.equal(u.hostname, "127.0.0.1");
+    if (u.pathname.endsWith(":commit")) {
+      const batch = JSON.parse(init.body).writes;
+      for (const write of batch) if (write.delete) {
+        writes.push(write.delete);
+        for (const [key, list] of Object.entries(lists)) lists[key] = list.filter(d => d.name !== write.delete);
+      }
+      return Response.json({ writeResults: batch.map(() => ({ updateTime: "2026-10-28T00:00:00Z" })) });
+    }
     if (u.pathname.endsWith(":batchWrite")) { const batch = JSON.parse(init.body).writes; writes.push(...batch.map((w) => w.delete)); return Response.json({ status: batch.map(() => ({})) }); }
     if (u.pathname.endsWith("/documents:runQuery")) {
       const query = JSON.parse(init.body).structuredQuery;
@@ -207,6 +215,7 @@ test("deletion of a linked login reaches everything Bible Strong keeps for it, s
       if (lists[path].some((d) => !d.createTime)) assert.equal(u.searchParams.get("showMissing"), "true");
       return Response.json({ documents: lists[path] });
     }
+    if (path === "staging_studies/s1") return Response.json({ ...doc(`${root}/${path}`, {}), fields: { user: { mapValue: { fields: { id: { stringValue: "google-uid" } } } } } });
     if (docs.has(path)) return Response.json(doc(`${root}/${path}`, { n: 1 }));
     return new Response("", { status: 404 });
   };
@@ -218,7 +227,7 @@ test("deletion of a linked login reaches everything Bible Strong keeps for it, s
       "users/tg_8/highlights/h1", "staging_studies/s1/revisions/r1", "staging_studies/s1",
     ].map((p) => `${root}/${p}`);
     assert.deepEqual([...writes].sort(), [...expected].sort());
-    assert.equal(deleted, expected.length);
+    assert.equal(deleted, expected.length + 1, "includes removal of UID from the fence");
     assert.ok(writes.indexOf(`${root}/staging_studies/s1/revisions/r1`) < writes.indexOf(`${root}/staging_studies/s1`), "children go before their parent");
     assert.deepEqual(queries.filter(([, , uid]) => uid === "google-uid").map(([c]) => c).sort(), ["staging_studies", "studies", "study_deletion_owners"]);
     assert.ok(queries.every(([, field]) => field === "user.id"), "studies are found by their owner, never by listing other readers'");
@@ -271,7 +280,14 @@ test("a failed revision delete preserves the owning study for an owner-query ret
   globalThis.fetch = async (url, init) => {
     const u = new URL(url);
     assert.equal(u.hostname, "127.0.0.1");
-    const document = name => ({ name, fields: store.get(name), createTime: "2026-11-05T00:00:00Z" });
+    const document = name => ({ name, fields: store.get(name), createTime: "2026-11-05T00:00:00Z", updateTime: "2026-11-05T00:00:00Z" });
+    if (u.pathname.endsWith(":commit")) {
+      const writes = JSON.parse(init.body).writes;
+      batches.push(writes.filter(w => w.delete).map(w => w.delete));
+      if (failRevision && writes.some(w => w.delete === revision)) return new Response("", { status: 503 });
+      for (const w of writes) { if (w.update) store.set(w.update.name, w.update.fields); if (w.delete) store.delete(w.delete); }
+      return Response.json({ writeResults: writes.map(() => ({ updateTime: "2026-11-05T00:00:00Z" })) });
+    }
     if (u.pathname.endsWith(":batchWrite")) {
       const writes = JSON.parse(init.body).writes.map(w => w.delete);
       batches.push(writes);
@@ -288,7 +304,7 @@ test("a failed revision delete preserves the owning study for an owner-query ret
       return Response.json(query.from[0].collectionId === "studies" && store.has(study)
         ? [{ document: document(study) }] : []);
     }
-    const path = u.pathname.slice(u.pathname.indexOf("/documents/") + "/documents/".length);
+    const path = decodeURIComponent(u.pathname.slice(u.pathname.indexOf("/documents/") + "/documents/".length));
     if (path.endsWith(":listCollectionIds")) return Response.json({ collectionIds: [] });
     const name = `${root}/${path}`;
     if (store.has(name)) return Response.json(document(name));
@@ -299,13 +315,14 @@ test("a failed revision delete preserves the owning study for an owner-query ret
   try {
     const env = { ...identityEnv, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8089" };
     await assert.rejects(deleteAccountSyncMarks(env, 7), /deletion failed/i);
-    assert.equal(store.has(sibling), false, "a successful sibling write may already be gone");
+    assert.equal(store.has(sibling), true, "a fenced study chunk is atomic when any revision fails");
     assert.equal(store.has(revision), true);
     assert.equal(store.has(study), true, "keep the parent discoverable by its owner while any descendant remains");
     assert.ok(batches.every(batch => !batch.includes(study)));
     failRevision = false;
-    assert.equal(await deleteAccountSyncMarks(env, 7), 2);
-    assert.deepEqual([...store.keys()].sort(), [other, `${other}/revisions/r1`].sort());
+    assert.equal(await deleteAccountSyncMarks(env, 7), 4);
+    assert.deepEqual([...store.keys()].sort(), [other, `${other}/revisions/r1`, `${root}/study_deletion_owners/studies:mine`].sort());
+    assert.equal(store.get(`${root}/study_deletion_owners/studies:mine`).user, undefined);
   } finally { globalThis.fetch = originalFetch; }
 });
 
@@ -335,7 +352,7 @@ test("recursive deletion reaches revisions below missing UID roots and parents, 
     }
     // No existing top-level study retains an ownership field. Never guess ownership.
     if (u.pathname.endsWith(":runQuery")) return Response.json([]);
-    const path = u.pathname.slice(u.pathname.indexOf("/documents/") + "/documents/".length);
+    const path = decodeURIComponent(u.pathname.slice(u.pathname.indexOf("/documents/") + "/documents/".length));
     requests.push(path);
     if (path.endsWith(":listCollectionIds")) {
       const parent = path.slice(0, -":listCollectionIds".length);
@@ -430,7 +447,7 @@ for (const ledgerFields of [
       return Response.json(q.from[0].collectionId === "studies" ? [{ document: { name: root + "/studies/reclaimed", fields: { user: { mapValue: { fields: { id: { stringValue: "new-owner" } } } } } } }] : []);
     }
     if (path === "study_deletion_owners/studies:reclaimed") return Response.json({ name: root + "/" + path, fields: ledgerFields });
-    if (path === "users/new-owner/notes") return Response.json({ documents: [{ name: root + "/users/new-owner/notes/own-note", createTime: "2026-11-05T00:00:00Z" }] });
+    if (path === "users/new-owner/notes") return Response.json({ documents: [{ name: root + "/users/new-owner/notes/own-note", createTime: "2026-11-05T00:00:00Z", updateTime: "2026-11-05T00:00:00Z" }] });
     if (path.endsWith(":listCollectionIds")) return Response.json({ collectionIds: [] });
     return new Response("", { status: 404 });
   };

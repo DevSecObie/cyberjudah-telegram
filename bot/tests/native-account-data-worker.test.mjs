@@ -44,6 +44,8 @@ const fixture = (bindings = {}) => {
     ['users/tg_7/notes/missing/revisions/r1', {}],
     ['studies/unattributable/revisions/r1', {}],
   ]);
+  const versions = new Map(); let serial = 0;
+  const version = path => versions.get(path) ?? '2026-11-05T00:00:00.000000Z';
   const state = { failRevision: false, googleStatus: 200, googleUser: undefined, firestoreCalls: 0, batches: [] };
   const mf = new Miniflare(convertV4MiniflareOptions({
     modules: true, script: outputFiles[0].text, compatibilityDate: '2026-10-01',
@@ -59,14 +61,24 @@ const fixture = (bindings = {}) => {
       }
       assert.equal(url.hostname, '127.0.0.1', 'no unexpected outbound service or production access');
       state.firestoreCalls++;
-      const doc = path => ({ name: `${root}/${path}`, fields: store.get(path), createTime: '2026-11-05T00:00:00Z', updateTime: '2026-11-05T00:00:00Z' });
+      const doc = path => ({ name: `${root}/${path}`, fields: store.get(path), createTime: '2026-11-05T00:00:00Z', updateTime: version(path) });
       if (url.pathname.endsWith(':commit')) {
         const { writes } = await request.json();
-        for (const write of writes) {
-          if (write.update) store.set(write.update.name.slice(root.length + 1), write.update.fields);
-          if (write.delete) store.delete(write.delete.slice(root.length + 1));
+        const deletes = writes.filter(w => w.delete).map(w => w.delete.slice(root.length + 1));
+        state.batches.push(deletes);
+        if (state.failRevision && deletes.includes(`${ownedStudy}/revisions/r1`)) return new Response('', { status: 503 });
+        for (const w of writes) {
+          const path = (w.update?.name ?? w.delete).slice(root.length + 1);
+          const condition = w.currentDocument;
+          if (condition && ((condition.exists === false && store.has(path)) || (condition.updateTime && (!store.has(path) || condition.updateTime !== version(path))))) return new Response('', { status: 409 });
         }
-        return Response.json({ writeResults: writes.map(() => ({})) });
+        const timestamp = `2026-11-05T00:00:00.${String(++serial).padStart(6, '0')}Z`;
+        for (const write of writes) {
+          const path = (write.update?.name ?? write.delete).slice(root.length + 1);
+          if (write.update) { store.set(path, write.update.fields); versions.set(path, timestamp); }
+          if (write.delete) { store.delete(path); versions.delete(path); }
+        }
+        return Response.json({ writeResults: writes.map(() => ({ updateTime: timestamp })) });
       }
       if (url.pathname.endsWith(':batchWrite')) {
         const { writes } = await request.json();
@@ -104,8 +116,10 @@ test('an unlinked Firebase account deletes its missing-parent histories; the ack
     const response = await remove(mf);
     assert.equal(response.status, 200, await response.clone().text());
     assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.deepEqual(await response.json(), { version: 2, uid: 'reader-one', firestoreDeleted: true, publicationsDeleted: true, writesBlocked: true, removed: 4 });
-    assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1', 'users/tg_7/notes/missing/revisions/r1']);
+    assert.deepEqual(await response.json(), { version: 2, uid: 'reader-one', firestoreDeleted: true, publicationsDeleted: true, writesBlocked: true, removed: 5 });
+    assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/') && !path.startsWith('study_deletion_owners/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1', 'users/tg_7/notes/missing/revisions/r1']);
+    assert.equal(store.get('study_deletion_owners/studies:owned').state.stringValue, 'erased');
+    assert.equal(store.get('study_deletion_owners/studies:owned').user, undefined);
     const retry = await remove(mf);
     assert.equal(retry.status, 200);
     assert.equal((await retry.json()).removed, 0);
@@ -126,7 +140,7 @@ test('a linked legacy identity comes only from the server link and its evidence 
     state.failRevision = false;
     assert.equal((await remove(mf)).status, 200);
     assert.equal(store.has('users/tg_7/notes/missing/revisions/r1'), false);
-    assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1']);
+    assert.deepEqual([...store.keys()].filter(path => !path.startsWith('account_deletion_blocks/') && !path.startsWith('study_deletion_owners/')).sort(), ['studies/unattributable/revisions/r1', 'users/reader-two/notes/missing/revisions/r1']);
   } finally { await mf.dispose(); }
 });
 

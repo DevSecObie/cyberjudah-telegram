@@ -47,6 +47,7 @@ test('actual Firestore traverses missing parents, preserves failed study parents
     let failRevision = true;
     globalThis.fetch = async (url, init) => {
       assert.ok(String(url).startsWith(base), 'cleanup must never contact production');
+      if (String(url).endsWith(':commit') && failRevision && JSON.parse(init.body).writes.some(w => w.delete === `${root}/${study}/revisions/r1`)) return new Response('', { status: 503 });
       if (String(url).endsWith(':batchWrite') && failRevision) {
         const { writes } = JSON.parse(init.body);
         const blocked = `${root}/${study}/revisions/r1`;
@@ -72,7 +73,7 @@ test('actual Firestore traverses missing parents, preserves failed study parents
   } finally {
     globalThis.fetch = originalFetch;
     // Only this test's unique synthetic paths are removed; no collection/database-wide reset.
-    for (const path of [...owned, ...untouched]) await request(`/${path}`, { method: 'DELETE' });
+    for (const path of [...owned, ...untouched, `study_deletion_owners/studies:${uid}`]) await request(`/${path}`, { method: 'DELETE' });
   }
 });
 
@@ -111,7 +112,7 @@ test('ordinary deletion atomically retains ownership, rejects changed parents, a
         if (String(url).endsWith(':commit')) {
           if (mode === 'concurrent-edit') await seed(path, { ...parentFields, edit: { stringValue: 'newer' } });
           const response = await originalFetch(url, init);
-          if (response.ok && mode === 'late-history') {
+          if (response.ok && mode === 'late-history' && JSON.parse(init.body).writes.some(w => w.delete === `${root}/${path}`)) {
             await seed(`${path}/revisions/late`);
             postCommitFailure = true;
           }
@@ -147,8 +148,9 @@ test('ordinary deletion atomically retains ownership, rejects changed parents, a
       batches.length = 0;
       await deleteFirebaseAccountSyncMarks(env, uid);
       assert.equal((await request(`${path}/revisions/after-retry`)).status, 404);
-      assert.equal((await request(ledgerPath)).status, 404);
-      assert.deepEqual(batches.at(-1), [`${root}/${ledgerPath}`], 'account deletion removes ownership evidence last');
+      const erased = await (await request(ledgerPath)).json();
+      assert.equal(erased.fields.state.stringValue, 'erased');
+      assert.equal(erased.fields.user, undefined, 'account deletion removes UID while reserving the study ID');
     } finally {
       globalThis.fetch = originalFetch;
       for (const p of paths) await request(p, { method: 'DELETE' });
@@ -180,5 +182,83 @@ test('the actual barrier commit survives cleanup and a quarantined replacement p
     for (const path of paths) assert.equal((await call(path)).status, 200, 'neither quarantine, history nor unrelated own data may disappear');
   } finally {
     for (const path of paths) await call(path, { method: 'DELETE' });
+  }
+});
+
+for (const operation of ['account', 'ordinary-study']) test(`a paused ${operation} erasure cannot delete a replacement owner after another erasure completes`, { skip: !host }, async () => {
+  const uid = `interleaved-${randomUUID()}`, bob = `other-${uid}`;
+  const root = 'projects/demo-cyberjudah/databases/(default)/documents', base = `http://${host}/v1/${root}`;
+  const path = `studies/${uid}`, child = `${path}/revisions/r1`, ledger = `study_deletion_owners/studies:${uid}`;
+  const headers = { authorization: 'Bearer owner', 'content-type': 'application/json' };
+  const env = { FIRESTORE_EMULATOR_HOST: host, DB: { prepare: () => ({ bind() { return this; }, run: async () => ({}), first: async () => null }) } };
+  const originalFetch = globalThis.fetch;
+  const call = (p, init = {}) => originalFetch(`${base}/${p}`, { headers, ...init });
+  const fields = owner => ({ user: { mapValue: { fields: { id: { stringValue: owner } } } } });
+  const seed = (p, f) => call(p, { method: 'PATCH', body: JSON.stringify({ fields: f }) });
+  let release, paused, intercepted = false;
+  const hold = new Promise(resolve => { release = resolve; });
+  const reached = new Promise(resolve => { paused = resolve; });
+  let older;
+  try {
+    await seed(path, fields(uid)); await seed(child, { text: { stringValue: 'Alice revision' } });
+    globalThis.fetch = async (url, init) => {
+      assert.ok(String(url).startsWith(base));
+      const writes = init?.body && JSON.parse(init.body).writes;
+      if (!intercepted && writes?.some(w => w.delete === `${root}/${child}`)) {
+        intercepted = true; paused(); await hold;
+      }
+      return originalFetch(url, init);
+    };
+    older = (operation === 'account' ? deleteFirebaseAccountSyncMarks(env, uid) : deleteOwnedStudy(env, uid, 'production', uid)).then(() => null, error => error);
+    await reached;
+    await deleteFirebaseAccountSyncMarks(env, uid);
+    const now = Math.floor(Date.now() / 1000);
+    const clientToken = [Buffer.from('{"alg":"none","typ":"JWT"}').toString('base64url'), Buffer.from(JSON.stringify({
+      sub: bob, user_id: bob, aud: 'demo-cyberjudah', iss: 'https://securetoken.google.com/demo-cyberjudah', iat: now, exp: now + 3600, auth_time: now,
+      firebase: { sign_in_provider: 'custom', identities: {} },
+    })).toString('base64url'), ''].join('.');
+    const reused = await call(path, { method: 'PATCH', headers: { ...headers, authorization: `Bearer ${clientToken}` }, body: JSON.stringify({ fields: fields(bob) }) });
+    // Even privileged repair that bypasses rules must not be erased by a stale operation.
+    await seed(path, fields(bob)); await seed(child, { text: { stringValue: 'Bob replacement' } });
+    release(); const error = await older;
+    assert.equal((await call(path)).status, 200, 'the replacement parent survives');
+    const replacement = await (await call(child)).json();
+    assert.equal(replacement.fields?.text?.stringValue, 'Bob replacement', 'stale names cannot erase replacement revisions');
+    assert.ok(error, 'the stale deletion must fail rather than acknowledge completion');
+    assert.equal(reused.status, 403, 'a retained tombstone forbids client ID reuse');
+    const tombstone = await (await call(ledger)).json();
+    assert.equal(tombstone.fields?.state?.stringValue, 'erased');
+    assert.equal(tombstone.fields?.user, undefined, 'completed tombstones retain no account identity');
+  } finally {
+    release(); if (older) await older;
+    globalThis.fetch = originalFetch;
+    for (const p of [child, path, ledger]) await call(p, { method: 'DELETE' });
+  }
+});
+
+test('conditional descendant deletes preserve a concurrent privileged revision edit and its parent for retry', { skip: !host }, async () => {
+  const uid = `conditional-${randomUUID()}`, path = `users/${uid}/notes/n1`, child = `${path}/revisions/r1`;
+  const root = 'projects/demo-cyberjudah/databases/(default)/documents', base = `http://${host}/v1/${root}`;
+  const originalFetch = globalThis.fetch, headers = { authorization: 'Bearer owner', 'content-type': 'application/json' };
+  const env = { FIRESTORE_EMULATOR_HOST: host, DB: { prepare: () => ({ bind() { return this; }, run: async () => ({}), first: async () => null }) } };
+  const call = (p, init = {}) => originalFetch(`${base}/${p}`, { headers, ...init });
+  const seed = (p, text) => call(p, { method: 'PATCH', body: JSON.stringify({ fields: { text: { stringValue: text } } }) });
+  let edited = false;
+  try {
+    await seed(path, 'parent'); await seed(child, 'original revision');
+    globalThis.fetch = async (url, init) => {
+      if (String(url).endsWith(':batchWrite') && !edited && JSON.parse(init.body).writes.some(w => w.delete === `${root}/${child}`)) {
+        edited = true; await seed(child, 'concurrent edit');
+      }
+      return originalFetch(url, init);
+    };
+    await assert.rejects(deleteFirebaseAccountSyncMarks(env, uid), /deletion failed/i);
+    assert.equal((await call(path)).status, 200);
+    assert.equal((await (await call(child)).json()).fields.text.stringValue, 'concurrent edit');
+    assert.equal(await deleteFirebaseAccountSyncMarks(env, uid), 2);
+    assert.equal((await call(child)).status, 404);
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const p of [child, path]) await call(p, { method: 'DELETE' });
   }
 });
