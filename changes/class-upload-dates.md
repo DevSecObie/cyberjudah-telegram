@@ -1,0 +1,1 @@
+- verse_study, search_classes and read_transcript show a class's YouTube upload date, labelled "YouTube upload date", when the class's own date is not known. The date is read from the video's watch page (no API credits) and kept in KV; "date unknown" stays when YouTube gives none.

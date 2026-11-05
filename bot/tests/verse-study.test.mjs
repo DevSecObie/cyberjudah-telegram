@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 const out = new URL('./.build/verse-study.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/verse-study.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', outfile: out, logLevel: 'error' });
-const { formatVerseStudy, teacherRank, versesOf, captionAt, snippetWanted } = await import(out);
+const { formatVerseStudy, teacherRank, versesOf, captionAt, snippetWanted, undatedVideos } = await import(out);
 
 const site = (p) => `https://cyberjudah.io${p}`;
 const names = { exodus: 'Exodus', leviticus: 'Leviticus' };
@@ -78,4 +78,13 @@ test('rank: Bishops, Deacons, Captains, the rest, unknown, Zakai last', () => {
 test('snippets are fetched for the readings shown first and cut from the captions', () => {
   assert.deepEqual(snippetWanted(conc, 14, 14).map((x) => x.video), ['VyDEbsxgcas', '-t9W3dyGuTI']);
   assert.equal(captionAt([[1850, '>> Uh-huh.'], [1851.5, '>> And this day shall be unto you for a'], [1853.9, 'memorial.']], 1851, 10), 'And this day shall be unto you for a memorial.');
+});
+
+test('a class with no date of its own shows its YouTube upload date, said to be that', async () => {
+  const text = formatVerseStudy(conc, xref, ask, names, site, {}, { 'VyDEbsxgcas': '2099-01-01' });
+  assert.match(text, /Passover Class.*, 2026-04-17, Deacon Malachiyah/, 'a known date is kept');
+  const undated = { ...conc, read: { '14': [{ ...conc.read['14'][0], date: '' }] } };
+  assert.match(formatVerseStudy(undated, xref, ask, names, site, {}, { '-t9W3dyGuTI': '2020-05-25' }), /Gods Holidays \(15 Min w\/ Captains\), 2020-05-25 \(YouTube upload date\), teacher unknown/);
+  assert.match(formatVerseStudy(undated, xref, ask, names, site), /Gods Holidays \(15 Min w\/ Captains\), date unknown/);
+  assert.deepEqual(undatedVideos(undated, 14, 14), ['-t9W3dyGuTI']);
 });
