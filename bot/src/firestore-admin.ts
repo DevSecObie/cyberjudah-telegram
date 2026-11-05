@@ -248,6 +248,14 @@ export async function deleteAccountSyncMarks(env: Env, uid: number): Promise<num
       body: JSON.stringify({ writes: chunk.map((name) => ({ delete: name })) }),
     });
     if (!response.ok) throw new Error("Firestore deletion failed.");
+    // batchWrite can return HTTP 200 with failures for individual writes. Protobuf JSON
+    // may omit code for OK (0), but there must be one status object for every delete.
+    const result = await response.json() as { status?: { code?: number }[] } | null;
+    if (!Array.isArray(result?.status) || result.status.length !== chunk.length ||
+      result.status.some(status => !status || typeof status !== "object" || Array.isArray(status) ||
+        (status.code !== undefined && status.code !== 0))) {
+      throw new Error("Firestore deletion failed.");
+    }
   }
   return names.length;
 }
