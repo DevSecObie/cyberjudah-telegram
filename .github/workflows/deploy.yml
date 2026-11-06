@@ -117,6 +117,16 @@ jobs:
             }
             console.log("Offline downloads match their catalog:", Object.keys(catalog.resources).length);'
           sha256sum app/dist/embed/youtube.html
+      - name: Check out tested build 312 downloads
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 6bff2703815e4f78a1bb442b0e343c16f4b6a980
+          path: store-resources
+          persist-credentials: false
+          sparse-checkout: apps/expo/public/offline
+      - name: Publish matching native archives and catalog
+        run: node bot/scripts/prepare-native-offline.mjs store-resources/apps/expo/public/offline app/dist/offline
       - name: Upload the app's pictures to R2
         working-directory: bot
         env:
