@@ -30,6 +30,95 @@ async function withGoogle(fn, response) {
 }
 const launch = (id = 77, age = 0) => signInitData({ user: { id, first_name: 'Telegram reader' }, auth_date: now()-age }, '100:local-test');
 
+test('native unlink preserves Telegram wallet, chats, another link and another device grant', async () => {
+  const { env, db } = fixture();
+  await m.linkAccounts(env, 77, 'firebase-alice');
+  await m.linkAccounts(env, 78, 'firebase-bob');
+  const owner = await m.ownerOfUser(env, 77);
+  await m.adjust(env, owner, 1000000, 'unlink-test', 'Synthetic test only');
+  await m.saveExchange(env, 77, 'unlinkchat', 'Keep my Telegram question', { content: 'Keep my answer' });
+  const wallet = await m.wallet(env, owner), chat = await m.getChat(env, 77, 'unlinkchat');
+  db.exec("CREATE TABLE device_signins (code TEXT PRIMARY KEY, secret_hash TEXT UNIQUE NOT NULL, expires INTEGER NOT NULL, firebase_uid TEXT)");
+  db.prepare('INSERT INTO device_signins VALUES (?,?,?,?)').run('alice-code', 'alice-secret', Date.now()+100000, 'firebase-alice');
+  db.prepare('INSERT INTO device_signins VALUES (?,?,?,?)').run('bob-code', 'bob-secret', Date.now()+100000, 'firebase-bob');
+  await withGoogle(async () => {
+    for (let attempt=0; attempt<2; attempt++) {
+      const response = await m.firebaseAuth.request('https://test/link', { method:'DELETE', headers:{authorization:`Bearer ${token()}`} }, env);
+      assert.equal(response.status, 200, await response.text());
+    }
+  });
+  assert.equal(await m.linkedTelegram(env, 'firebase-alice'), null);
+  assert.equal(await m.linkedTelegram(env, 'firebase-bob'), 78);
+  assert.deepEqual(await m.wallet(env, owner), wallet);
+  assert.deepEqual(await m.getChat(env, 77, 'unlinkchat'), chat);
+  assert.deepEqual(db.prepare('SELECT firebase_uid FROM device_signins').all().map(r=>r.firebase_uid), ['firebase-bob']);
+  // Repeating old cleanup cannot remove a later association owned by Bob.
+  await m.removeAccountLink(env, 78);
+  await m.linkAccounts(env, 77, 'firebase-bob');
+  await m.removeNativeAccountLink(env, 'firebase-alice');
+  assert.equal(await m.linkedTelegram(env, 'firebase-bob'), 77);
+});
+
+test('native unlink rejects missing/stale proof, Telegram identities and caller-selected UIDs', async () => {
+  const { env } = fixture();
+  await m.linkAccounts(env, 77, 'firebase-alice');
+  await withGoogle(async () => {
+    for (const [bearer, body, expected] of [
+      [undefined, undefined, 401], [token('firebase-alice', {auth_time:now()-301}), undefined, 401],
+      [token('tg_77'), undefined, 409], [token(), '{"uid":"firebase-bob"}', 400],
+    ]) {
+      const response = await m.firebaseAuth.request('https://test/link', { method:'DELETE', headers:bearer ? {authorization:`Bearer ${bearer}`} : {}, body }, env);
+      assert.equal(response.status, expected);
+    }
+  });
+  assert.equal(await m.linkedTelegram(env, 'firebase-alice'), 77);
+});
+
+test('a token request already in flight cannot recreate a removed native link', async () => {
+  const { env } = fixture();
+  const keys = await generateKeyPair('RS256', { extractable:true });
+  env.FIREBASE_SERVICE_ACCOUNT = JSON.stringify({ type:'service_account', project_id:'cyberjudah-app', client_email:'bridge@cyberjudah-app.iam.gserviceaccount.com', private_key:await exportPKCS8(keys.privateKey) });
+  await m.linkAccounts(env, 77, 'firebase-alice');
+  env.FIREBASE_AUTH_LIMIT.limit = async () => {
+    await m.removeNativeAccountLink(env, 'firebase-alice');
+    return { success:true };
+  };
+  const response = await m.firebaseAuth.request('https://test/token', { method:'POST', headers:{authorization:`tma ${await launch()}`} }, env);
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).token, undefined);
+  assert.equal(await m.linkedTelegram(env, 'firebase-alice'), null);
+});
+
+test('a device exchange drops its signed token if native unlink finishes during exchange', async () => {
+  const { env } = fixture();
+  const keys = await generateKeyPair('RS256', { extractable:true });
+  env.FIREBASE_SERVICE_ACCOUNT = JSON.stringify({ type:'service_account', project_id:'cyberjudah-app', client_email:'bridge@cyberjudah-app.iam.gserviceaccount.com', private_key:await exportPKCS8(keys.privateKey) });
+  await m.linkAccounts(env, 77, 'firebase-alice');
+  const request = (path, body, bearer) => m.deviceAuth.request(`https://test${path}`, {
+    method:'POST', headers:bearer ? {authorization:`Bearer ${bearer}`} : {},
+    ...(body ? {body:JSON.stringify(body)} : {}),
+  }, env);
+  const flow = await (await request('/start')).json();
+  await withGoogle(async () => assert.equal((await request('/approve', {code:flow.code}, token())).status, 200));
+  const prepare = env.DB.prepare;
+  let removed = false;
+  env.DB.prepare = sql => {
+    const statement = prepare(sql);
+    if (!sql.startsWith('SELECT firebase_uid,telegram_owner,sealed')) return statement;
+    return { ...statement, bind: (...values) => {
+      const bound = statement.bind(...values);
+      return { ...bound, first: async () => {
+        const row = await bound.first();
+        if (row && !removed) { removed = true; await m.removeNativeAccountLink(env, 'firebase-alice'); }
+        return row;
+      } };
+    } };
+  };
+  const response = await request('/exchange', {secret:flow.secret});
+  assert.equal(response.status, 401);
+  assert.equal((await response.json()).token, undefined);
+});
+
 test('Firebase verification rejects wrong project, missing/future/expired claims and anonymous sessions before any lookup', async () => {
   const variants = ['invalid', token('x', { aud: 'other' }), token('x', { iss: 'https://evil.test' }), token('', {}), token('x', { exp: now()-1 }), token('x', { iat: now()+120 }), token('x', { auth_time: now()+10 }), token('x', { auth_time: null }), token('x', { firebase: { sign_in_provider: 'anonymous' } })];
   await withGoogle(async () => { for (const t of variants) await assert.rejects(m.verifyFirebaseIdentity(t), { status: 401 }); }, () => { throw new Error('No network call expected'); });

@@ -59,5 +59,7 @@ deviceAuth.post("/exchange", async c => {
     return pending ? c.json({ pending: true }, 202) : c.json({ error: "sign_in_expired" }, 401);
   }
   if (!await linkedTelegram(c.env, row.firebase_uid)) return c.json({ error: "telegram_link_required" }, 401);
-  return c.json({ token: await mintFirebaseToken(c.env, row.firebase_uid) });
+  const token = await mintFirebaseToken(c.env, row.firebase_uid);
+  if (!await linkedTelegram(c.env, row.firebase_uid)) return c.json({ error: "telegram_link_required" }, 401);
+  return c.json({ token });
 });

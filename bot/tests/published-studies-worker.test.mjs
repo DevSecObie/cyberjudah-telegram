@@ -8,9 +8,12 @@ const { outputFiles } = await build({
   stdin: {
     contents: `import { Hono } from "hono";
       import { publishedStudies, publishedStudyPage } from "./src/published-studies.ts";
+      import { firebaseAuth } from "./src/firebase-auth.ts";
       const app = new Hono();
+      app.use("*", async (c, next) => { c.env.FIREBASE_AUTH_LIMIT = { limit: async () => ({ success: true }) }; await next(); });
       app.route("/api/published-studies", publishedStudies);
       app.route("/app/published", publishedStudyPage);
+      app.route("/api/firebase", firebaseAuth);
       export default app;`,
     resolveDir: new URL('..', import.meta.url).pathname,
   },
@@ -43,6 +46,31 @@ const del = (mf, id, uid) => mf.dispatchFetch(`https://cyberjudah.test/api/publi
   method: 'DELETE', headers: { authorization: `Bearer ${token(uid)}` },
 });
 const view = (mf, id) => mf.dispatchFetch(`https://cyberjudah.test/app/published/${id}`);
+
+test('both independent Worker stores remove native publications and links while preserving Telegram', async () => {
+  const workers = [worker({ PRIVACY_KEY:'production-test-key' }), worker({ PRIVACY_KEY:'staging-test-key' })];
+  try {
+    for (const mf of workers) {
+      for (const [id, uid] of [['native-alice', 'alice'], ['native-bob', 'bob'], ['telegram-77', 'tg_77']]) {
+        assert.equal((await put(mf, id, uid, { title:'Study', body:'Preserve each owner' })).status, 200);
+      }
+      const db = await mf.getD1Database('DB');
+      await db.prepare('CREATE TABLE account_links (firebase_uid TEXT PRIMARY KEY, telegram_owner TEXT NOT NULL UNIQUE, sealed TEXT NOT NULL, created_at INTEGER NOT NULL)').run();
+      await db.prepare("INSERT INTO account_links VALUES ('alice','tg-owner-77','sealed-alice',1),('bob','tg-owner-78','sealed-bob',1)").run();
+      await db.prepare('CREATE TABLE device_signins (code TEXT PRIMARY KEY, secret_hash TEXT UNIQUE NOT NULL, expires INTEGER NOT NULL, firebase_uid TEXT)').run();
+      await db.prepare("INSERT INTO device_signins VALUES ('a','sa',9999999999999,'alice'),('b','sb',9999999999999,'bob')").run();
+      for (const path of ['/api/published-studies', '/api/firebase/link']) {
+        const response = await mf.dispatchFetch(`https://cyberjudah.test${path}`, { method:'DELETE', headers:{authorization:`Bearer ${token('alice')}`} });
+        assert.equal(response.status, 200, await response.text());
+      }
+      assert.equal((await view(mf, 'native-alice')).status, 404);
+      assert.equal((await view(mf, 'native-bob')).status, 200);
+      assert.equal((await view(mf, 'telegram-77')).status, 200);
+      assert.deepEqual((await db.prepare('SELECT firebase_uid FROM account_links').all()).results, [{firebase_uid:'bob'}]);
+      assert.deepEqual((await db.prepare('SELECT firebase_uid FROM device_signins').all()).results, [{firebase_uid:'bob'}]);
+    }
+  } finally { await Promise.all(workers.map(mf=>mf.dispose())); }
+});
 
 test('a reader publishes, updates and unpublishes their own study', async () => {
   const mf = worker();

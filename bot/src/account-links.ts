@@ -79,3 +79,15 @@ export async function removeAccountLink(env: Env, id: number) {
   await schema(env);
   await env.DB.prepare("DELETE FROM account_links WHERE telegram_owner=?").bind(await pid(env, id)).run();
 }
+
+/** Native deletion removes the association, never the Telegram account or its data.
+ * The caller must supply a recently verified Firebase identity. */
+export async function removeNativeAccountLink(env: Env, firebaseUid: string) {
+  if (!validFirebaseUid(firebaseUid) || firebaseUid.startsWith("tg_")) throw new IdentityError(409, "native_account_required");
+  await schema(env);
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS device_signins (code TEXT PRIMARY KEY, secret_hash TEXT UNIQUE NOT NULL, expires INTEGER NOT NULL, firebase_uid TEXT)").run();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM account_links WHERE firebase_uid=?").bind(firebaseUid),
+    env.DB.prepare("DELETE FROM device_signins WHERE firebase_uid=?").bind(firebaseUid),
+  ]);
+}

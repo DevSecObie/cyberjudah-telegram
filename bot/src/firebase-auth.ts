@@ -1,6 +1,6 @@
 import { bodyLimit } from "hono/body-limit";
 import { limitPerson, limitSession } from "./app-identity";
-import { IdentityError, linkAccounts, linkedFirebase, linkedTelegram, verifyFirebaseIdentity } from "./account-links";
+import { IdentityError, linkAccounts, linkedFirebase, linkedTelegram, removeNativeAccountLink, verifyFirebaseIdentity } from "./account-links";
 import { Hono } from "hono";
 import { importPKCS8, SignJWT } from "jose";
 import type { Env } from "./env";
@@ -18,6 +18,23 @@ export function telegramFirebaseUid(id: unknown): string {
 
 export const firebaseAuth = new Hono<{ Bindings: Env; Variables: { firebaseUid: string; telegramId: number; telegramAuthTime: number } }>();
 firebaseAuth.use("/link", bodyLimit({ maxSize: 18000, onError: c => c.json({ error: "invalid_link_request" }, 413) }));
+// Register before Telegram launch middleware: native deletion proves the Firebase
+// identity directly and must also work after an earlier attempt already unlinked it.
+firebaseAuth.delete("/link", async c => {
+  c.header("cache-control", "no-store");
+  if (!c.env.DB || !c.env.FIREBASE_AUTH_LIMIT) return c.json({ error: "account_link_unavailable" }, 503);
+  if (Object.keys(c.req.query()).length || (await c.req.text()).length) return c.json({ error: "invalid_link_request" }, 400);
+  const token = c.req.header("authorization")?.match(/^Bearer (.+)$/)?.[1];
+  if (!token) return c.json({ error: "firebase_sign_in_required" }, 401);
+  try {
+    const identity = await verifyFirebaseIdentity(token, true);
+    if (!(await c.env.FIREBASE_AUTH_LIMIT.limit({ key: `unlink:${identity.uid}` })).success) return c.json({ error: "sign_in_rate_limited" }, 429);
+    await removeNativeAccountLink(c.env, identity.uid);
+    return c.json({ ok: true });
+  } catch (error) {
+    return c.json({ error: error instanceof IdentityError ? error.reason : "account_link_unavailable" }, error instanceof IdentityError ? error.status : 503);
+  }
+});
 firebaseAuth.use("*", async (c, next) => {
   c.header("cache-control", "no-store");
   c.header("x-content-type-options", "nosniff");
@@ -47,7 +64,15 @@ firebaseAuth.post("/token", async c => {
   if (!(await c.env.FIREBASE_AUTH_LIMIT.limit({ key: uid })).success) return c.json({ error: "sign_in_rate_limited", message: "Please wait a minute and try again." }, 429);
   try {
     const token = await mintFirebaseToken(c.env, uid);
-    if (c.env.DB) await linkAccounts(c.env, c.get("telegramId"), uid);
+    if (c.env.DB) {
+      if (uid === telegramFirebaseUid(c.get("telegramId"))) {
+        await linkAccounts(c.env, c.get("telegramId"), uid);
+      } else if (await linkedFirebase(c.env, c.get("telegramId")) !== uid) {
+        // A native unlink may have completed while signing. Never recreate it
+        // from a stale session-restoration request or return its newly minted token.
+        throw new IdentityError(409, "account_link_changed");
+      }
+    }
     return c.json({ uid, token });
   } catch {
     // Never expose key material, launch data or custom tokens in errors or logs.
