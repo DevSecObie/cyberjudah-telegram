@@ -29,7 +29,7 @@ The endpoint's unit and local Worker tests are not evidence that historical prod
 
 ### Continuous verification
 
-The `end-to-end` workflow runs `bot/tests/firestore-admin-emulator.test.mjs` against a real, isolated Firestore emulator in two jobs: this repository's Telegram production rules, and the native production/staging rules pinned to app candidate `198c31124fd6e4c424979839aa0b72f49dfbe90f`. Its `playwright` summary requires both deletion jobs and every browser job to succeed. The native rules are test input only; no workflow in this change deploys rules or enables deletion.
+The `end-to-end` workflow runs `bot/tests/firestore-admin-emulator.test.mjs` against a real, isolated Firestore emulator in two jobs: this repository's Telegram production rules, and the native production/staging rules pinned to account-deletion PR #81 at `5074a2b45ea5816d3a390ff2e1150af85fe11731`. Its `playwright` summary requires both deletion jobs and every browser job to succeed. The native rules are test input only; no workflow in this change deploys rules or enables deletion. See [the release evidence and remaining acceptance work](ACCOUNT-DELETION-ACCEPTANCE.md).
 
 The Telegram rules do not expose staging collections, so their job sets `FIRESTORE_RULES_TEST_SCOPE=production`. The native job exercises both scopes. Both set `REQUIRE_FIRESTORE_EMULATOR=1`, which fails if the emulator host is missing instead of reporting skipped acceptance tests as success. Ordinary `npm test` still runs the synthetic Worker/D1 tests, but its skipped emulator tests are not acceptance evidence.
 
