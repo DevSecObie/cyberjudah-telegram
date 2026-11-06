@@ -27,6 +27,14 @@ The ordinary-study route defaults closed unless `NATIVE_STUDY_DELETION_READY=tru
 
 The endpoint's unit and local Worker tests are not evidence that historical production orphans have been reconciled. A release with the gate closed cannot claim a functioning complete account-deletion flow. A release with the gate opened without reconciliation cannot claim complete erasure either.
 
+### Continuous verification
+
+The `end-to-end` workflow runs `bot/tests/firestore-admin-emulator.test.mjs` against a real, isolated Firestore emulator in two jobs: this repository's Telegram production rules, and the native production/staging rules pinned to app candidate `198c31124fd6e4c424979839aa0b72f49dfbe90f`. Its `playwright` summary requires both deletion jobs and every browser job to succeed. The native rules are test input only; no workflow in this change deploys rules or enables deletion.
+
+The Telegram rules do not expose staging collections, so their job sets `FIRESTORE_RULES_TEST_SCOPE=production`. The native job exercises both scopes. Both set `REQUIRE_FIRESTORE_EMULATOR=1`, which fails if the emulator host is missing instead of reporting skipped acceptance tests as success. Ordinary `npm test` still runs the synthetic Worker/D1 tests, but its skipped emulator tests are not acceptance evidence.
+
+The emulator checks cover missing-parent history, ownership fences, interruption/retry, quarantine, concurrent edits, and interleaved erasures. The separate rules suite verifies that old clients cannot delete a study parent, write through an account barrier, forge a reservation, or reuse a reserved study ID. These checks do not establish deployed rules, historical ownership, privileged-writer exclusion, or device behavior. When the native candidate changes, update the pinned test input and rerun both contracts before using the results for that candidate.
+
 ## Historical ID reuse and unresolved ownership
 
 A missing top-level parent with surviving revisions can be recreated under another account under the earlier create rules. Revision access in the mobile rule file then follows the replacement parent. A live parent today is therefore not sufficient evidence of ownership of all historical revisions. The inventory lists missing parents; it cannot detect IDs already reclaimed before inventory. No production exploitation or absence of orphans has been established.
