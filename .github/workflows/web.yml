@@ -20,7 +20,7 @@ concurrency:
 
 env:
   # The app commit the iPhone build was checked against. Change it in a pull request.
-  APP_COMMIT: bfa6821dcc9f56f09bd370f5ba5a8055b8b86df5
+  APP_COMMIT: 32aa4b5733ae86461402a926bcfbaa30a555d310
 
 jobs:
   deploy:
