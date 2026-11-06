@@ -1,0 +1,1 @@
+- A failed account deletion keeps sign-in available so cleanup can be retried. App deletion disconnects Telegram while preserving its separate history. Rollout stays blocked until historical ownership and deployed protections are verified.

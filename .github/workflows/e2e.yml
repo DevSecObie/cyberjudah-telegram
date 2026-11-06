@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: DevSecObie/cyberjudah-app
-          ref: 198c31124fd6e4c424979839aa0b72f49dfbe90f
+          ref: 5074a2b45ea5816d3a390ff2e1150af85fe11731
           path: native-deletion-contract
           persist-credentials: false
           sparse-checkout: apps/expo/firebase/cyberjudah/firestore.rules
