@@ -1,0 +1,1 @@
+- web.cyberjudah.io deploys are blue-green: each build is uploaded as a version that serves no one, checked on its own version address, then switched in for everyone in one step.
