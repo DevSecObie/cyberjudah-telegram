@@ -1,0 +1,1 @@
+- Release verification now checks both deletion-support email links on the public account-deletion page.
