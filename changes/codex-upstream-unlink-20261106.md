@@ -1,0 +1,1 @@
+- Deleting a native app account removes its Telegram association and pending device sign-ins while preserving the Telegram account and its data.
