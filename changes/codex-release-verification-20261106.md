@@ -1,0 +1,1 @@
+- Release checks now require account-deletion tests against the separate native and Telegram Firestore rules, including interruption, retry and protection of another reader's data.
