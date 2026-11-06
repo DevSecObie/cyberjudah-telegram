@@ -20,6 +20,64 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  account-deletion:
+    name: account-deletion (${{ matrix.contract }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - contract: telegram-production
+            rules: app/firebase/firestore.rules
+            scope: production
+          - contract: native-production-and-staging
+            rules: native-deletion-contract/apps/expo/firebase/cyberjudah/firestore.rules
+            scope: both
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Test the actual saved native candidate, not whichever rules an unrelated branch has today.
+      # This checkout is test input only; no rule deployment or readiness gate is changed.
+      - name: Check out the native candidate's rules
+        if: matrix.contract == 'native-production-and-staging'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: DevSecObie/cyberjudah-app
+          ref: 198c31124fd6e4c424979839aa0b72f49dfbe90f
+          path: native-deletion-contract
+          persist-credentials: false
+          sparse-checkout: apps/expo/firebase/cyberjudah/firestore.rules
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --no-audit --no-fund
+      - name: Configure the isolated deletion emulator
+        env:
+          DELETION_RULES: ${{ matrix.rules }}
+        run: |
+          node --input-type=module <<'JS'
+          import { accessSync, writeFileSync } from 'node:fs';
+          accessSync(process.env.DELETION_RULES);
+          writeFileSync('.firestore-deletion-test.json', JSON.stringify({
+            firestore: { rules: process.env.DELETION_RULES },
+            emulators: { firestore: { host: '127.0.0.1', port: 8089 }, ui: { enabled: false }, singleProjectMode: true },
+          }));
+          JS
+      - name: Verify deletion, isolation, interruption and retry against Firestore
+        env:
+          REQUIRE_FIRESTORE_EMULATOR: '1'
+          FIRESTORE_RULES_TEST_SCOPE: ${{ matrix.scope }}
+        run: >-
+          npx --yes --package firebase-tools@15.33.0 firebase emulators:exec
+          --config .firestore-deletion-test.json --only firestore --project demo-cyberjudah
+          'node --test bot/tests/firestore-admin-emulator.test.mjs'
+
   browser-tests:
     runs-on: ubuntu-latest
     # Microsoft's Playwright image already carries every browser's system packages (and the browsers
@@ -86,8 +144,10 @@ jobs:
   # Preserve the required status name while each engine runs its own isolated Worker.
   playwright:
     if: always()
-    needs: browser-tests
+    needs: [browser-tests, account-deletion]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - run: test "${{ needs.browser-tests.result }}" = success
+      - run: |
+          test "${{ needs.browser-tests.result }}" = success
+          test "${{ needs.account-deletion.result }}" = success

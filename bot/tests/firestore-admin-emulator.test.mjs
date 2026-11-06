@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 
 // Opt-in, isolated emulator only. This test never uses a production hostname or credential.
 const host = process.env.FIRESTORE_EMULATOR_HOST;
+if (process.env.REQUIRE_FIRESTORE_EMULATOR === '1' && !host) throw new Error('The account-deletion acceptance check requires a Firestore emulator');
 if (host && !/^(127\.0\.0\.1|localhost):\d+$/.test(host)) throw new Error('A loopback emulator is required');
 const out = new URL('./.build/firestore-admin-emulator.mjs', import.meta.url).pathname;
 await build({ entryPoints: [new URL('../src/firestore-admin.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });

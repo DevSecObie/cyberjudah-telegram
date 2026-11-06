@@ -28,7 +28,7 @@ test('reader data and every upstream saved collection stay private to the owner'
   await assertFails(setDoc(doc(alice, 'users/alice/notes/saved/permissions/admin'), { admin: true }))
 })
 
-test('a published study cannot be overwritten, transferred or deleted by another reader', async () => {
+test('a published study cannot be overwritten or transferred, and client deletion preserves its ownership history', async () => {
   const alice = db('alice'), bob = db('bob'), path = 'studies/shared-fixture'
   await assertSucceeds(setDoc(doc(alice, path), { user: { id: 'alice' }, title: 'Published fixture' }))
   await assertSucceeds(getDoc(doc(bob, path)))
@@ -38,7 +38,65 @@ test('a published study cannot be overwritten, transferred or deleted by another
   await assertFails(updateDoc(doc(alice, path), { 'user.id': 'bob' }))
   await assertFails(deleteDoc(doc(bob, path)))
   await assertSucceeds(updateDoc(doc(alice, path), { title: 'Revised fixture' }))
-  await assertSucceeds(deleteDoc(doc(alice, path)))
+  const revision = `${path}/revisions/previous`
+  await assertSucceeds(setDoc(doc(alice, revision), { user: { id: 'alice' }, title: 'Previous fixture' }))
+  await assertFails(deleteDoc(doc(alice, path)))
+  assert.equal((await getDoc(doc(alice, path))).data().user.id, 'alice')
+  assert.equal((await getDoc(doc(alice, revision))).data().title, 'Previous fixture')
+})
+
+test('a server-owned study reservation denies client access and prevents reuse and revision access', async () => {
+  const owner = db('reserved-owner'), other = db('reserved-other')
+  const study = 'studies/reserved-fixture', ledger = 'study_deletion_owners/studies:reserved-fixture'
+  const revision = `${study}/revisions/previous`
+  await assertSucceeds(setDoc(doc(owner, study), { user: { id: 'reserved-owner' } }))
+  await assertSucceeds(setDoc(doc(owner, revision), { user: { id: 'reserved-owner' } }))
+  for (const client of [owner, other, db()]) {
+    await assertFails(setDoc(doc(client, ledger), { state: 'erased' }))
+  }
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), ledger), { version: 1, state: 'ownership-unresolved', studyRoot: 'studies', studyId: 'reserved-fixture' })
+  })
+  for (const client of [owner, other, db()]) {
+    await assertFails(getDoc(doc(client, ledger)))
+    await assertFails(deleteDoc(doc(client, ledger)))
+    await assertFails(getDoc(doc(client, revision)))
+    await assertFails(setDoc(doc(client, revision), { user: { id: 'reserved-owner' } }))
+    await assertFails(updateDoc(doc(client, study), { title: 'Replace history' }))
+  }
+  await environment.withSecurityRulesDisabled(async context => {
+    await deleteDoc(doc(context.firestore(), study))
+  })
+  for (const uid of ['reserved-owner', 'reserved-other']) {
+    await assertFails(setDoc(doc(db(uid), study), { user: { id: uid } }))
+  }
+})
+
+test('an account deletion barrier rejects old-client writes while other readers keep their own data', async () => {
+  const uid = 'blocked-owner', owner = db(uid), other = db('unblocked-owner')
+  const marker = `account_deletion_blocks/${uid}`
+  const paths = [
+    `users/${uid}`, `users-status/${uid}`, `users/${uid}/notes/note`,
+    `users/${uid}/notes/note/revisions/previous`, `studies/blocked-fixture`,
+    `studies/blocked-fixture/revisions/previous`,
+  ]
+  for (const path of paths) await assertSucceeds(setDoc(doc(owner, path), { user: { id: uid }, text: 'Retained fixture' }))
+  await assertFails(setDoc(doc(owner, marker), { version: 1 }))
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), marker), { version: 1 })
+  })
+  for (const client of [owner, other, db()]) {
+    await assertFails(getDoc(doc(client, marker)))
+    await assertFails(deleteDoc(doc(client, marker)))
+  }
+  for (const path of paths) {
+    await assertFails(updateDoc(doc(owner, path), { text: 'Late update' }))
+    await assertFails(deleteDoc(doc(owner, path)))
+    assert.equal((await getDoc(doc(owner, path))).data().text, 'Retained fixture')
+  }
+  await assertFails(setDoc(doc(owner, `users/${uid}/notes/new`), { text: 'Offline replay' }))
+  await assertFails(setDoc(doc(owner, 'studies/blocked-new'), { user: { id: uid } }))
+  await assertSucceeds(setDoc(doc(other, 'users/unblocked-owner/notes/own'), { text: 'Unaffected' }))
 })
 
 test('an existing owner can migrate saved notes and sync tabs without exposing either account', async () => {
