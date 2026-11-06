@@ -6,6 +6,8 @@ Status on 6 November 2026: implementation tested; production acceptance incomple
 
 The server implementation at `1b39bcff299b6f72999a4a6bf837d96f29f5c187` includes main `3e425df8` and only the deletion backend dependencies, rules candidates, disclosures and tests. [CI 42188290065](https://github.com/DevSecObie/cyberjudah-telegram/actions/runs/42188290065) passed all 11 jobs: Chromium, Firefox, WebKit and both Firestore configurations. Root typecheck/build and 150 app, 544 bot and 94 resource tests passed locally. Six emulator-only tests skip in the ordinary unit invocation; a separate real emulator run passed all six without skips, and CI requires the emulator.
 
+The shared browser fixture also starts Firestore for the native-reader profile. Both browser workflows must provision Java 21 before starting it; the reader-profile job now uses the same pinned Java setup action as the end-to-end jobs. Its Chromium/WebKit assertions and the native iOS/Android build jobs are unchanged. Current PR-head checks, including that profile, must pass independently of the earlier implementation run.
+
 [Native PR #81](https://github.com/DevSecObie/cyberjudah-app/pull/81) at `5074a2b45ea5816d3a390ff2e1150af85fe11731` passed its full repository CI and 3,812 local Expo tests. The server matrix pins that exact native commit. Native rules SHA256 is `f77b7a443ed60d4166e7b798cbf0bd22e27a97b124fdf87e3fcf2e91dc5f0bbd`; server Telegram rules SHA256 is `5ecdbecb8aa45cd881be782b1a18cd5079a55ab6ca731de84b05e4f4db532300`. These files have different read policies and collection coverage. Neither hash proves which rules are deployed.
 
 ## Read-only findings and missing evidence

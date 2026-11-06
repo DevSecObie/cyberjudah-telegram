@@ -22,6 +22,11 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npx playwright install chromium webkit
         working-directory: app
+      # The shared browser fixture starts Firestore even for native-reader checks.
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
       - name: Verify native reading, linked Ask access and disabled purchases
         run: npm run test:e2e --workspace app -- native-reader.spec.ts offline-search.spec.ts --project=chromium --project=webkit
         env:
