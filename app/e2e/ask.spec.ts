@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { STAND_IN, type Logged } from "./stand-ins";
 import type { ClaudeRequest } from "./claude";
-import { pid } from "../../bot/src/privacy.mjs";
+import { keyedHash, pid } from "../../bot/src/privacy.mjs";
 
 /**
  * Ask CyberJudah as the app's assistant, at 390×844, against the real local Worker: its own
@@ -236,6 +236,33 @@ test("Claude overloaded: Ask turns to the backup model, and with nothing to answ
 /** The local Worker's own D1 (the Ask accounts), as the Worker stores it. */
 const d1 = (sql: string) => execFileSync("npx", ["wrangler", "d1", "execute", "DB", "--local", "--persist-to", ".wrangler/e2e", "--json", "--command", sql], { cwd: new URL("../../bot/", import.meta.url).pathname, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
 
+// The two stores intentionally use different owner hashes. Seed another reader alongside
+// the deleting reader so a fake RPC receipt or an over-broad cleanup cannot pass this test.
+async function publicationFixture(uid: number) {
+  const identities = [`tg_${uid}`, `tg_${uid + 100}`];
+  const stores = [
+    { config: "primary", key: "e2e-privacy-key-not-secret" },
+    { config: "peer", key: "e2e-peer-privacy-key-not-secret" },
+  ];
+  const query = (config: string, sql: string) => JSON.parse(execFileSync("npx", ["wrangler", "d1", "execute", "DB",
+    "--config", `.wrangler/e2e-config/${config}.json`, "--local", "--persist-to", ".wrangler/e2e", "--json", "--command", sql],
+  { cwd: new URL("../../bot/", import.meta.url).pathname, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
+  for (const { config, key } of stores) {
+    const owners = await Promise.all(identities.map(id => keyedHash({ PRIVACY_KEY: key }, "published-study", id)));
+    query(config, `CREATE TABLE IF NOT EXISTS published_studies (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL, author TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL);
+      INSERT INTO published_studies VALUES ('delete_${uid}', '${owners[0]}', 'Delete mine', 'Reader', 'Private body', '2026-11-06'),
+        ('keep_${uid}', '${owners[1]}', 'Keep theirs', 'Other reader', 'Their body', '2026-11-06');`);
+  }
+  return () => {
+    for (const { config } of stores) {
+      const result = query(config, `SELECT id FROM published_studies WHERE id IN ('delete_${uid}', 'keep_${uid}');
+        SELECT firebase_uid FROM account_deletion_blocks WHERE firebase_uid IN ('${identities[0]}', '${identities[1]}');`);
+      expect(result[0].results, config).toEqual([{ id: `keep_${uid}` }]);
+      expect(result[1].results, config).toEqual([{ firebase_uid: identities[0] }]);
+    }
+  };
+}
+
 test("privacy: nothing is sent to an AI provider until the reader agrees, and the agreement can be withdrawn", async ({ page, request }) => {
   await page.addInitScript(() => { (window as unknown as { __noConsent: boolean }).__noConsent = true; });
   await setup(page);
@@ -267,6 +294,8 @@ test("privacy: nothing is sent to an AI provider until the reader agrees, and th
 });
 
 test("privacy: Delete my data removes the reader's saved chats and balance, and Download my data then shows nothing kept", async ({ page, request }) => {
+  test.setTimeout(90_000);
+  const checkPublications = await publicationFixture(RUN + 13);
   await setup(page);
   await page.goto(`/ask${launch(13)}`);
   await ask(page, "Who are the twelve tribes?");
@@ -285,6 +314,7 @@ test("privacy: Delete my data removes the reader's saved chats and balance, and 
   // The balance, its history and holds are gone from D1 too.
   const id = await pid({ PRIVACY_KEY: "e2e-privacy-key-not-secret" }, RUN + 13);
   for (const t of ["credit_lots", "credit_ledger", "credit_usage", "credit_holds"]) expect(JSON.parse(d1(`SELECT COUNT(*) AS n FROM ${t} WHERE user_id = '${id}'`))[0].results[0].n).toBe(0);
+  checkPublications();
 });
 
 test("the model is chosen at the top: an admin starts on Claude Opus 5.5, every other reader on Claude Sonnet", async ({ page, request }) => {
