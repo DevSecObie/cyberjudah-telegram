@@ -8,6 +8,10 @@ permissions:
 jobs:
   reader-profile:
     runs-on: ubuntu-latest
+    # Reuse the browser libraries already validated by e2e.yml instead of installing them
+    # from the runner's package mirror before this bounded verification job can start.
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -16,7 +20,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npx playwright install --with-deps chromium webkit
+      - run: npx playwright install chromium webkit
         working-directory: app
       - name: Verify native reading, linked Ask access and disabled purchases
         run: npm run test:e2e --workspace app -- native-reader.spec.ts offline-search.spec.ts --project=chromium --project=webkit
