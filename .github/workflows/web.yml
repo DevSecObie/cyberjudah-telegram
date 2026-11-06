@@ -3,8 +3,10 @@ name: web
 # The CyberJudah web app at web.cyberjudah.io: the iPhone app's own web export, built from one
 # pinned commit of DevSecObie/cyberjudah-app with the store app's production settings (it reads
 # cyberjudah.io, like the App Store build). Runs only by hand, and the production environment's
-# reviewer approves it before anything goes live. Roll back with `wrangler rollback` on the
-# cyberjudah-web Worker (seconds); the Telegram Worker and the cyberjudah.io site are not touched.
+# reviewer approves it before anything goes live. The new build goes up as a version that serves
+# nobody, is checked on its own version URL, then replaces the live one in one switch. Roll back
+# with `wrangler rollback` on the cyberjudah-web Worker (seconds); the Telegram Worker and the
+# cyberjudah.io site are not touched.
 
 on:
   workflow_dispatch:
@@ -18,7 +20,7 @@ concurrency:
 
 env:
   # The app commit the iPhone build was checked against. Change it in a pull request.
-  APP_COMMIT: bfa6821dcc9f56f09bd370f5ba5a8055b8b86df5
+  APP_COMMIT: 32aa4b5733ae86461402a926bcfbaa30a555d310
 
 jobs:
   deploy:
@@ -95,18 +97,49 @@ jobs:
         env:
           NODE_ENV: development
         run: npm ci --no-audit --no-fund --include=dev
-      - name: Deploy the web Worker
+      # Blue-green: the new build is uploaded as a version that serves no visitors, checked on
+      # its own version URL, and only then switched in for everyone in one step. The version it
+      # replaces stays on Cloudflare for `wrangler rollback`.
+      - name: Apply the Worker's address settings
+        # Turns on version URLs (preview_urls) so an uploaded version can be checked by itself.
+        # This changes no code that visitors get.
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler triggers deploy --config web/wrangler.jsonc
+      - name: Upload the new version (not live yet)
+        id: upload
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-upload.jsonl
         run: |
-          npx wrangler deploy --config web/wrangler.jsonc \
-            || { echo "::error::The deploy failed. If the message is about the custom domain or a zone, give the CLOUDFLARE_API_TOKEN the Zone · Workers Routes · Edit and Zone · DNS · Edit permissions for cyberjudah.io (Cloudflare dashboard → My Profile → API Tokens)."; exit 1; }
+          set -euo pipefail
+          npx wrangler versions upload --config web/wrangler.jsonc --message "app ${APP_COMMIT::12}"
+          node -e '
+            const rows = require("fs").readFileSync(process.argv[1], "utf8").trim().split("\n").map(l => JSON.parse(l));
+            const row = rows.reverse().find(r => r.type === "version-upload");
+            if (!row?.version_id) throw new Error("wrangler did not report the uploaded version");
+            if (!row.preview_url) throw new Error("the uploaded version has no version URL to check (preview_urls)");
+            require("fs").appendFileSync(process.env.GITHUB_OUTPUT, `version=${row.version_id}\nurl=${row.preview_url}\n`);
+            console.log(`uploaded ${row.version_id} at ${row.preview_url}`);
+          ' "$WRANGLER_OUTPUT_FILE_PATH"
+      - name: Check the new version before it goes live
+        env:
+          VERSION_URL: ${{ steps.upload.outputs.url }}
+        run: |
+          set -euo pipefail
+          node .github/scripts/check-web-version.mjs "$VERSION_URL" web/dist
+      - name: Switch web.cyberjudah.io to the new version
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VERSION_ID: ${{ steps.upload.outputs.version }}
+        run: |
+          npx wrangler versions deploy "$VERSION_ID@100%" --config web/wrangler.jsonc --yes \
+            || { echo "::error::The switch failed; web.cyberjudah.io still serves the previous version."; exit 1; }
       - name: Check web.cyberjudah.io
         run: |
-          # A new custom domain can take a few minutes to get its certificate.
-          for i in $(seq 1 20); do
-            if curl -sf https://web.cyberjudah.io/home | grep -q '_expo/static/js/web/'; then echo "web.cyberjudah.io serves the app"; exit 0; fi
-            sleep 30
-          done
-          echo "::error::web.cyberjudah.io did not serve the app within 10 minutes."; exit 1
+          set -euo pipefail
+          node .github/scripts/check-web-version.mjs https://web.cyberjudah.io web/dist \
+            || { echo "::error::web.cyberjudah.io does not serve the new build. Roll back with: npx wrangler rollback --name cyberjudah-web"; exit 1; }

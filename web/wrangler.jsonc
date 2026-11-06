@@ -5,7 +5,9 @@
   "name": "cyberjudah-web",
   "compatibility_date": "2026-09-16",
   "workers_dev": false,
-  "preview_urls": false,
+  // Each uploaded version gets its own workers.dev address, where web.yml checks it before the
+  // switch. Cloudflare marks those addresses noindex.
+  "preview_urls": true,
   "assets": {
     "directory": "./dist",
     "not_found_handling": "single-page-application"
