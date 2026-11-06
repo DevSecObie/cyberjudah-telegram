@@ -21,6 +21,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeFinalCaptivity } from "./final-captivity/build.mjs";
 import { applyTimelineIdentities } from '../../shared/timeline-identities.mjs';
+import { applyTimelineChronology } from '../../shared/timeline-chronology.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SOURCE = path.join(ROOT, "app/scripts/timeline/bible-strong-events.txt");
@@ -55,10 +56,10 @@ export const notKept = (title) => INTERPRETATION.test(title.trim()) || NOT_KEPT.
 
 /** The KJV corrections above, on sections already in the timeline's shape. */
 export function setRight(sections) {
-  return sections.map((s) => ({
+  return applyTimelineChronology(sections.map((s) => ({
     ...s,
     events: s.events.filter((e) => !notKept(e.title)).map((e) => (TITLES[e.title.trim()] ? { ...e, title: TITLES[e.title.trim()] } : e)),
-  }));
+  })));
 }
 
 export const norm = (t) => String(t).toLowerCase().replace(/[’']/g, "'").replace(/^the /, "").replace(/[^a-z0-9' ]/g, " ").replace(/\s+/g, " ").trim();

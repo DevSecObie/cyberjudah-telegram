@@ -74,6 +74,13 @@ test("an event opens to its date, our case study and its verses in the KJV", asy
   await expect(page).toHaveURL(/\/read\/genesis\/4/);
 });
 
+test("Abraham's event page displays the corrected 175-year lifespan", async ({ page }) => {
+  await page.goto("/timeline/event/abraham");
+  await expect(page.locator(".tl-event__title")).toHaveText("Abraham");
+  await expect(page.locator(".tl-event__date")).toHaveText("1946-1771 BC (175)");
+  await shot(page, "abraham-corrected-lifespan");
+});
+
 test("search finds the two kings Ahaziah, each with the reign Who's Who gives and the right case study", async ({ page }) => {
   await page.goto("/timeline/search");
   await expect(page.locator(".tl-search")).toHaveCSS("padding-top", "0px");

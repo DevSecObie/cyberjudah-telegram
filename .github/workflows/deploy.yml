@@ -35,6 +35,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
+      - name: Require the stated KJV timeline ages to match before release
+        run: npm run verify:timeline
       - run: npm run build
         env:
           VITE_APP_URL: ${{ vars.TELEGRAM_APP_URL }}

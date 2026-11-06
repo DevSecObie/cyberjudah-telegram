@@ -10,6 +10,19 @@ import { TimelineEventDto, TimelineEventsResponseDto, TimelineEventResponseDto }
 import { metadata } from '../../src/bs/core.ts';
 const request = (path: string) => bs.request(path, {}, {} as any);
 
+test('Abraham retains the corrected lifespan in the API and every published chart row', async () => {
+  const response = await request('/v1/timelines/en/events/abraham');
+  assert.equal(response.status, 200);
+  const { event } = Schema.decodeUnknownSync(TimelineEventResponseDto)(await response.json());
+  assert.equal(event.dates, '1946 BC–1771 BC');
+  const rows = publication.sections.flatMap(section => section.events.filter(row => row.slug === 'abraham'));
+  assert.ok(rows.length > 0);
+  for (const row of rows) {
+    assert.equal(row.start, -1946);
+    assert.equal(row.end - row.start, 175);
+  }
+});
+
 test('Noah’s father retains his timeline identity without importing the Cain-line case as his biography', async () => {
   const response = await request('/v1/timelines/en/events/lamech');
   const { event } = Schema.decodeUnknownSync(TimelineEventResponseDto)(await response.json());

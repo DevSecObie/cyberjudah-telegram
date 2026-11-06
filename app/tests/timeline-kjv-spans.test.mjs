@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { flatten } from "../../shared/timeline.mjs";
+import { keepHistory } from "../scripts/timeline-data.mjs";
 
 const DATA = JSON.parse(fs.readFileSync(new URL("../src/data/timeline.json", import.meta.url), "utf8"));
 const bySlug = new Map(flatten(DATA.sections).map((e) => [e.slug, e]));
@@ -39,11 +40,28 @@ test("every stated age at a birth matches the gap between the bars", () => {
   for (const [child, father, age, verse] of BIRTHS) assert.equal(gap(child, father), age, `${child} (${verse})`);
 });
 
-// Bible Strong's bars for Abraham (1950-1771 BC, 179 years) disagree with Genesis 25:7 (175 years),
-// Genesis 21:5 (Isaac born when he was 100) and Genesis 16:16 (Ishmael at 86). Which end moves is
-// a chronology decision for the owner; until it is made these stay recorded, not silently passed.
-test("Abraham: 175 years, Isaac at 100, Ishmael at 86", { todo: "awaiting the owner's chronology decision" }, () => {
+test("Abraham's bar follows the four agreeing existing anchors and survives rebuilding", () => {
+  const original = JSON.parse(fs.readFileSync(new URL('../scripts/timeline/bible-strong-events.txt', import.meta.url), 'utf8'));
+  const rebuilt = keepHistory(original).kept.flatMap(section => section.events).filter(event => event.slug === 'abraham');
+  assert.ok(rebuilt.length > 0);
+  for (const event of [...rebuilt, bySlug.get('abraham')]) {
+    assert.equal(event.start, -1946);
+    assert.equal(event.end - event.start, 175, 'Genesis 25:7');
+    assert.equal(bySlug.get('ishmael').start - event.start, 86, 'Genesis 16:16');
+    assert.equal(bySlug.get('abram-called-and-departs-haran').start - event.start, 75, 'Genesis 12:4');
+    assert.equal(bySlug.get('sarah').start - event.start, 10, 'Genesis 17:17');
+  }
+});
+
+// The inherited Isaac date still disagrees with Genesis 21:5. Moving it also affects his
+// lifespan, Jacob's birth and the wider chronology. Keep every original assertion; the
+// strict release check must fail on this unresolved conflict instead of accepting a TODO.
+test("Abraham's lifespan, births and circumcision follow the stated ages", {
+  todo: process.env.REQUIRE_TIMELINE_KJV_MATCH === '1' ? false : "Isaac and circumcision dates still require chronology reconciliation",
+}, () => {
   assert.equal(span("abraham"), 175, "Genesis 25:7");
   assert.equal(gap("isaac", "abraham"), 100, "Genesis 21:5");
   assert.equal(gap("ishmael", "abraham"), 86, "Genesis 16:16");
+  assert.equal(gap("abram-becomes-abraham-covenant-of-circumcision", "abraham"), 99, "Genesis 17:24");
+  assert.equal(gap("abram-becomes-abraham-covenant-of-circumcision", "ishmael"), 13, "Genesis 17:25");
 });

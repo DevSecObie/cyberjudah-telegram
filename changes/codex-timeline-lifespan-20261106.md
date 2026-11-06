@@ -1,0 +1,1 @@
+- Abraham's timeline bar now spans the 175 years stated in Genesis and agrees with the existing Ishmael, Sarah and Haran-departure anchors. Isaac's separate date conflict remains an explicit release blocker.
