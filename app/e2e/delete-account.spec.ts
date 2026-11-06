@@ -7,7 +7,11 @@ test("Delete your account opens without signing in and names every way to delete
   await expect(page.getByText("choose Delete account", { exact: false }).first()).toBeVisible();
   await expect(page.getByText("/deletemydata", { exact: false })).toBeVisible();
   const request = page.getByRole("link", { name: "privacy@cyberjudah.io" });
-  await expect(request).toHaveAttribute("href", /^mailto:privacy@cyberjudah\.io\?subject=Delete%20my%20CyberJudah%20account$/);
+  // Both the account-recovery paragraph and the closed-release-gate notice offer help.
+  await expect(request).toHaveCount(2);
+  for (let i = 0; i < 2; i++) {
+    await expect(request.nth(i)).toHaveAttribute("href", /^mailto:privacy@cyberjudah\.io\?subject=Delete%20my%20CyberJudah%20account$/);
+  }
   await expect(page.getByText("Telegram Stars payment or gift", { exact: false })).toBeVisible();
   await page.getByRole("link", { name: "privacy policy" }).click();
   await expect(page).toHaveURL(/\/privacy$/);
