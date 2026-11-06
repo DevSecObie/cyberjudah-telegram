@@ -1,0 +1,1 @@
+- web.cyberjudah.io shows the opening chapter's text while the app loads, then the app takes over in place.
