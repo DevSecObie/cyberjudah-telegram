@@ -1,0 +1,1 @@
+- Fix native account deletion being incorrectly blocked by Telegram sign-in requirements.
