@@ -107,6 +107,11 @@ jobs:
       - name: Install the browser
         timeout-minutes: 20
         run: npx playwright install ${{ matrix.browser }}
+      # Every local browser Worker has the complete deletion fixture, including Firestore.
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
       - run: npm run test:e2e --workspace app -- --project=${{ matrix.browser }} --shard=${{ matrix.shard }}/${{ matrix.total }}
         env:
           CI: "true"
@@ -114,11 +119,6 @@ jobs:
           # own; Actions sets each step's HOME to /github/home, so it is set back here.
           HOME: /root
       # The Firebase checks run once per engine, in its first shard.
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad  # v6.1.0
-        if: matrix.shard == 1
-        with:
-          distribution: temurin
-          java-version: '21'
       - name: Check the published rules and retry-safe imports
         if: matrix.browser == 'chromium' && matrix.shard == 1
         run: npx --yes --package firebase-tools@15.33.0 firebase emulators:exec --config app/firebase/firebase.json --only firestore --project demo-cyberjudah 'node --test app/firebase/tests/*.test.mjs'

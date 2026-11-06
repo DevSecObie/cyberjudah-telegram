@@ -94,3 +94,16 @@ The named RPC advertises `nativeUnlink: 1`. The caller rejects an older/incompat
 No cleanup record retains the Telegram owner or encrypted link payload. The minimal app UID barriers intentionally survive; they are not anonymous and require a reviewed retention/re-enrollment policy. Native bearer access to Telegram APIs is denied once its barrier exists. A new Telegram sign-in after unlink uses its own reserved UID; stale app UID tokens cannot bypass the candidate Firestore rules. Auth lookup cleanup uses a compare-and-delete so an older in-flight lookup cannot remove a newer link.
 
 This uses durable, idempotent checkpoints in the existing Worker/D1/Firestore architecture. It does not add RabbitMQ/SQS or promise automatic background completion: a failed or timed-out request requires retry while Firebase Auth remains intact. Both channel gates stay closed. These source changes are not a deployment or a claim of legal compliance. Telegram's separate Delete my data flow remains independently gated and deferred.
+
+## Local browser deletion fixture
+
+The Playwright local server starts Auth and Firestore emulators for `demo-cyberjudah` (Java 21 required), plus the actual Worker and its `PublicationErasure` RPC peer. The peer has its own local D1 database and a different fixture privacy key. Only generated, ignored `.wrangler/e2e-config` files enable the Telegram deletion gate; the checked-in deployment configuration and native gate stay closed. Both Workers run with `wrangler dev --local`. Local storage starts empty for each browser run, and an existing Worker is never silently reused.
+
+The Ask privacy tests retain their success, partial-payment-failure and retry assertions. The success case additionally seeds publications owned by two readers in both stores, checks that the deleting reader's publications disappear, and checks that the other reader's publications survive. Both stores must retain only the deleting identity's barrier. This exercises the real peer entrypoint rather than accepting a mocked success receipt.
+
+```sh
+npm run test:e2e --workspace app -- ask.spec.ts delete-account.spec.ts --project=chromium
+VITE_ACCOUNT_SYNC=true VITE_FIREBASE_EMULATOR=true npm run test:e2e --workspace app -- account-sync.spec.ts
+```
+
+The existing CI account-sync command may continue to wrap Playwright in `firebase emulators:exec`; the fixture reuses that emulator only when the wrapper explicitly supplies `FIRESTORE_EMULATOR_HOST=127.0.0.1:8089`. A live `PLAYWRIGHT_BASE_URL` does not start or configure these fixtures. Browser emulation verifies the local candidate, not production topology, credentials, historical ownership, or mobile-device acceptance.

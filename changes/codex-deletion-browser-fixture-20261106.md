@@ -1,0 +1,1 @@
+- Restore complete local browser verification of Delete my data using Firestore and independent publication stores, including another reader's data and interrupted-deletion retries. Production deletion remains gated pending release acceptance.

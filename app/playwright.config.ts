@@ -56,7 +56,14 @@ const vars = [
   "WEBHOOK_SECRET:e2e-webhook-secret",
   // Records are filed under pseudonymous IDs (bot/src/privacy.mjs); the tests derive the same ones.
   "PRIVACY_KEY:e2e-privacy-key-not-secret",
-].map((v) => `--var '${v}'`).join(" ");
+];
+
+// The deletion path requires Firestore even when browser account sync is off. An outer
+// `firebase emulators:exec` may own the emulator; never reuse an arbitrary existing server.
+const externalFirestore = process.env.FIRESTORE_EMULATOR_HOST;
+if (!liveBaseURL && externalFirestore && externalFirestore !== "127.0.0.1:8089") {
+  throw new Error("Local browser fixtures require FIRESTORE_EMULATOR_HOST=127.0.0.1:8089");
+}
 
 /**
  * Pull requests use the local Worker; the scheduled live smoke suite uses production. The
@@ -89,10 +96,19 @@ export default defineConfig({
     { name: "webkit", testMatch: ["nave-port.spec.ts", "new-tab-look.spec.ts", "new-tab-search.spec.ts", "native-reader.spec.ts", "offline-search.spec.ts", "ask-browser.spec.ts", "firebase-signin.spec.ts", "people-*.spec.ts", "account-sync.spec.ts", "telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "contrast.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "material-budget.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "webkit" } },
     { name: "firefox", testMatch: ["nave-port.spec.ts", "new-tab-look.spec.ts", "new-tab-search.spec.ts", "native-reader.spec.ts", "offline-search.spec.ts", "ask-browser.spec.ts", "firebase-signin.spec.ts", "people-*.spec.ts", "account-sync.spec.ts", "telegram-launch.spec.ts", "reader-parity.spec.ts", "study-tools.spec.ts", "recordings.spec.ts", "ambient.spec.ts", "glass.spec.ts", "material-budget.spec.ts", "search-placement.spec.ts", "search-provider.spec.ts", "icons.spec.ts", "feed-notice.spec.ts", "tab-flow.spec.ts", "resources.spec.ts", "resource-installer.spec.ts", "strongs-pages.spec.ts", "offline-shell-update.spec.ts", "cms.spec.ts"], use: { browserName: "firefox" } },
   ],
-  webServer: liveBaseURL ? undefined : {
-    command: `VITE_NATIVE_BUILD=${nativeReaderCheck ? "true" : "false"} CYBERJUDAH_APP_BASE=/app/ npm run build && bash ../bot/scripts/prepare-assets.sh && cd ../bot && rm -rf .wrangler/e2e && npx wrangler dev --local --port 8787 --persist-to .wrangler/e2e --test-scheduled ${vars}`,
-    url: "http://127.0.0.1:8787/api/auth/status",
-    reuseExistingServer: !process.env.CI && !nativeReaderCheck,
+  webServer: liveBaseURL ? undefined : [{
+    command: "npx --yes --package firebase-tools@15.33.0 firebase emulators:start --config firebase/firebase.json --only auth,firestore --project demo-cyberjudah",
+    url: "http://127.0.0.1:8089/",
+    reuseExistingServer: Boolean(externalFirestore),
+    // Firebase detaches the Java process; let its CLI shut that child down before exit.
+    gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     timeout: 180_000,
-  },
+  }, {
+    command: `VITE_NATIVE_BUILD=${nativeReaderCheck ? "true" : "false"} CYBERJUDAH_APP_BASE=/app/ npm run build && bash ../bot/scripts/prepare-assets.sh && node e2e/start-worker.mjs`,
+    env: { E2E_WORKER_VARS: JSON.stringify(vars) },
+    url: "http://127.0.0.1:8787/api/auth/status",
+    reuseExistingServer: false,
+    gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
+    timeout: 180_000,
+  }],
 });
