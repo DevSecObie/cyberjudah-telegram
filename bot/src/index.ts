@@ -125,6 +125,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.method === "GET" && c.req.path === "/api/og") return next();
   // The channel's newest uploads and live stream are public YouTube listings, open to every app reader (app-channel.ts).
   if (c.req.method === "GET" && (c.req.path === "/api/app/channel/recent" || c.req.path === "/api/app/channel/live")) return next();
+  // Native unlink verifies fresh Firebase proof itself; it must work without a Telegram link.
+  if (c.req.method === "DELETE" && c.req.path === "/api/firebase/link") return next();
   if (c.req.header("authorization")?.startsWith("Bearer ")) {
     // A linked Firebase login may read/spend its own Ask balance and manage its data.
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.

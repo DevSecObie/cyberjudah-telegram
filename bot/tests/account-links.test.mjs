@@ -43,7 +43,7 @@ test('native unlink preserves Telegram wallet, chats, another link and another d
   db.prepare('INSERT INTO device_signins VALUES (?,?,?,?)').run('bob-code', 'bob-secret', Date.now()+100000, 'firebase-bob');
   await withGoogle(async () => {
     for (let attempt=0; attempt<2; attempt++) {
-      const response = await m.firebaseAuth.request('https://test/link', { method:'DELETE', headers:{authorization:`Bearer ${token()}`} }, env);
+      const response = await m.worker.fetch(new Request('https://test/api/firebase/link', { method:'DELETE', headers:{authorization:`Bearer ${token()}`} }), env, { waitUntil() {} });
       assert.equal(response.status, 200, await response.text());
     }
   });
@@ -67,7 +67,7 @@ test('native unlink rejects missing/stale proof, Telegram identities and caller-
       [undefined, undefined, 401], [token('firebase-alice', {auth_time:now()-301}), undefined, 401],
       [token('tg_77'), undefined, 409], [token(), '{"uid":"firebase-bob"}', 400],
     ]) {
-      const response = await m.firebaseAuth.request('https://test/link', { method:'DELETE', headers:bearer ? {authorization:`Bearer ${bearer}`} : {}, body }, env);
+      const response = await m.worker.fetch(new Request('https://test/api/firebase/link', { method:'DELETE', headers:bearer ? {authorization:`Bearer ${bearer}`} : {}, body }), env, { waitUntil() {} });
       assert.equal(response.status, expected);
     }
   });
@@ -211,4 +211,14 @@ test('native device handoff needs approval and a separate secret, expires, and r
   assert.equal(verified.payload.uid,'firebase-alice');
   const expired = await (await req('/start')).json(); db.prepare('UPDATE device_signins SET expires=0').run();
   assert.equal((await req('/exchange', {secret:expired.secret})).status,401);
+});
+
+ test('native account without a Telegram link can complete idempotent cleanup through the Worker', async () => {
+  const { env } = fixture();
+  await withGoogle(async () => {
+    for (let attempt=0; attempt<2; attempt++) {
+      const response = await m.worker.fetch(new Request('https://test/api/firebase/link', { method:'DELETE', headers:{authorization:`Bearer ${token('email-only-test')}`} }), env, { waitUntil() {} });
+      assert.equal(response.status, 200, await response.text());
+    }
+  });
 });

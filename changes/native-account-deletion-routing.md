@@ -1,0 +1,2 @@
+- Fix native account deletion being incorrectly blocked by Telegram sign-in requirements.
+- Serve the offline archives matching iOS build 312, fixing failed Strong’s downloads.
