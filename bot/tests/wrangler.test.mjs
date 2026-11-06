@@ -12,10 +12,19 @@ const config = JSON.parse(
 
 test("staging has every production setting (environments do not inherit vars)", () => {
   const prod = Object.keys(config.vars).sort();
-  const staging = Object.keys(config.env.staging.vars).sort();
+  const staging = Object.keys(config.env.staging.vars).filter(key => key !== 'REFERENCE_HOSTING').sort();
   assert.deepEqual(staging, prod);
   assert.equal(config.env.staging.vars.DATA_ORIGIN, config.vars.DATA_ORIGIN);
   assert.notEqual(config.env.staging.vars.APP_URL, config.vars.APP_URL);
+});
+
+test("staging retains its existing Nave service without widening production reference hosting", () => {
+  assert.equal(config.vars.REFERENCE_HOSTING, undefined);
+  assert.equal(config.services?.some(binding => binding.binding === 'REFERENCE_PUBLICATIONS') ?? false, false);
+  assert.equal(config.env.staging.vars.REFERENCE_HOSTING, 'nave-self-hosted');
+  assert.deepEqual(config.env.staging.services, [
+    { binding: 'REFERENCE_PUBLICATIONS', service: 'cyberjudah-resources-staging' },
+  ]);
 });
 
 test("staging explicitly binds inference and the shared published library, with separate reader storage", () => {
@@ -35,7 +44,7 @@ test("deletion gates and privileged publication peer bindings require an explici
   assert.equal(config.main, 'src/worker.ts');
   for (const env of [config, config.env.staging]) {
     for (const flag of ['NATIVE_ACCOUNT_DELETION_READY', 'TELEGRAM_ACCOUNT_DELETION_READY', 'NATIVE_STUDY_DELETION_READY']) assert.equal(env.vars[flag], undefined);
-    assert.equal(env.services?.some(binding => binding.binding === 'PUBLICATION_ERASURE_PEER'), undefined);
+    assert.equal(env.services?.some(binding => binding.binding === 'PUBLICATION_ERASURE_PEER') ?? false, false);
   }
 });
 

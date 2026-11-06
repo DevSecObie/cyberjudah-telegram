@@ -72,9 +72,13 @@
       "ai": { "binding": "AI" },
       "vectorize": [{ "binding": "VEC", "index_name": "cyberjudah-teachings" }],
       "r2_buckets": [{ "binding": "AUDIO", "bucket_name": "cyberjudah-audio" }],
-      // Environments do not inherit "vars": every production setting is repeated here (only
-      // APP_URL differs). tests/wrangler.test.mjs fails if one goes missing.
+      // Preserve the existing staging Nave publication service on the next deployment.
+      // This read-only reference gateway is separate from privileged account-erasure RPC.
+      "services": [{ "binding": "REFERENCE_PUBLICATIONS", "service": "cyberjudah-resources-staging" }],
+      // Environments do not inherit "vars": repeat production keys and override staging values.
+      // REFERENCE_HOSTING is staging-only; tests/wrangler.test.mjs checks the key coverage.
       "vars": {
+        "REFERENCE_HOSTING": "nave-self-hosted",
         "DATA_ORIGIN": "https://data.cyberjudah.io",
         "SITE_URL": "https://cyberjudah.io",
         "D1_SIZE_ALERT_BYTES": "8000000000",
