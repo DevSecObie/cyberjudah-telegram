@@ -361,7 +361,7 @@ export class DeadlineError extends Error { constructor(ms: number) { super(`dead
 export function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new DeadlineError(ms)), ms); });
-  return Promise.race([work, late]).finally(() => { if (timer !== undefined) clearTimeout(timer); });
+  return Promise.race([work, late]).finally(() => clearTimeout(timer));
 }
 
 export async function answerSearch(env: Env, q: string, uid: number, consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS): Promise<SearchAnswer> {
