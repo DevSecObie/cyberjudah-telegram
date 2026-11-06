@@ -1,0 +1,1 @@
+- Commentary now covers every verse in its cited ranges while preserving gaps between separate passages. A grouped paragraph appears once without claiming verses between unrelated references.
