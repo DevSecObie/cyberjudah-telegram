@@ -1,0 +1,1 @@
+- Web app: deploys app commit a2422b59, where the Bible reader responds to taps faster (verse selection, chapter changes, book picker and settings menus).
