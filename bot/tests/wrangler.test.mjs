@@ -12,10 +12,12 @@ const config = JSON.parse(
 
 test("staging has every production setting (environments do not inherit vars)", () => {
   const prod = Object.keys(config.vars).sort();
-  const staging = Object.keys(config.env.staging.vars).sort();
+  const staging = Object.keys(config.env.staging.vars).filter(key => key !== "REFERENCE_HOSTING").sort();
   assert.deepEqual(staging, prod);
   assert.equal(config.env.staging.vars.DATA_ORIGIN, config.vars.DATA_ORIGIN);
   assert.notEqual(config.env.staging.vars.APP_URL, config.vars.APP_URL);
+  assert.equal(config.env.staging.vars.REFERENCE_HOSTING, "nave-self-hosted");
+  assert.deepEqual(config.env.staging.services, [{ binding: "REFERENCE_PUBLICATIONS", service: "cyberjudah-resources-staging" }]);
 });
 
 test("staging explicitly binds inference and the shared published library, with separate reader storage", () => {

@@ -62,6 +62,7 @@
       // Staging stays on workers.dev: the production cyberjudah.io routes above are not
       // inherited here on purpose (an empty routes list clears them for this environment).
       "routes": [],
+      "services": [{ "binding": "REFERENCE_PUBLICATIONS", "service": "cyberjudah-resources-staging" }],
       "d1_databases": [
         { "binding": "DB", "database_name": "cyberjudah-telegram-staging", "database_id": "00000000-0000-0000-0000-000000000000" },
         { "binding": "TEACH", "database_name": "cyberjudah", "database_id": "11111111-1111-1111-1111-111111111111" }
@@ -75,6 +76,7 @@
       // Environments do not inherit "vars": every production setting is repeated here (only
       // APP_URL differs). tests/wrangler.test.mjs fails if one goes missing.
       "vars": {
+        "REFERENCE_HOSTING": "nave-self-hosted",
         "DATA_ORIGIN": "https://data.cyberjudah.io",
         "SITE_URL": "https://cyberjudah.io",
         "D1_SIZE_ALERT_BYTES": "8000000000",
