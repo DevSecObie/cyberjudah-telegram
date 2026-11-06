@@ -279,6 +279,7 @@ test('commentary sections agree with the upstream section builder, maintain rank
   assert.match(comments['1'][1], /Deacon Example/);
   assert.match(comments['1'][2], /Captain Example/);
   assert.equal(comments['2'], undefined);
+  assert.deepEqual(comments['3'], comments['1'], 'every explicitly associated verse keeps the commentary');
   const upstream = buildCommentaryReadingSections({ entry: { id: 'cyberjudah', publicationId: 'cyberjudah' }, language: 'en', book: 43, chapter: 1, comments });
   const own = makeSections(comments, 43, 1);
   assert.deepEqual(own.map(({ excerpt, ...s }) => s), upstream.map(({ preview, ...s }) => s));
@@ -297,6 +298,25 @@ test('commentary sections agree with the upstream section builder, maintain rank
   const fragment = '<p>CyberJudah</p>';
   const runs = makeSections({ 1: [fragment], 3: [fragment] }, 43, 1);
   assert.deepEqual(runs.map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 1], [3, 3]]);
+});
+
+test('commentary keeps complete ranges and discontiguous precept associations without inventing intervening verses', async () => {
+  const variant = structuredClone(originals.get('/api/concordance/john/1.json'));
+  const original = variant.commentary[0];
+  variant.commentary = [
+    { ...original, verses: '1-3', passage: '', points: ['Teaching for the full range'] },
+    { ...original, verses: '7', passage: '', points: ['Teaching for verse seven'] },
+  ];
+  variant.precepts = [{ note: original.note, ts: original.ts, verses: '5,9-10', kind: 'precept', ref: { label: 'Genesis 1:1', url: '/bible/genesis/1#v1' }, why: 'Supporting precept', text: '' }];
+  data.set('/api/concordance/john/1.json', variant);
+  data.set('/api/notes/index.json', []);
+  const result = (await request('/v1/commentaries/cyberjudah/en/chapters/43/1', Supplementary.CommentaryChapterResponseDto)).json;
+  const comments = JSON.parse(result.serializedComments);
+  assert.deepEqual(Object.keys(comments).map(Number), [1, 2, 3, 5, 7, 9, 10]);
+  for (const verse of [1, 2, 3, 5, 7, 9, 10]) assert.match(comments[verse][0], /Teaching for the full range/);
+  assert.match(comments[1][0], /John 1:1,2,3,5,7,9,10/);
+  assert.equal((comments[1][0].match(/Teaching for the full range/g) ?? []).length, 1, 'the paragraph is rendered once per grouped passage');
+  assert.deepEqual(makeSections(comments, 43, 1).map(s => [s.rangeStartVerse, s.rangeEndVerse]), [[1, 3], [5, 5], [7, 7], [9, 10]]);
 });
 
 test('each Bishop commentary holds only his own entries and lists only his chapters', async () => {
