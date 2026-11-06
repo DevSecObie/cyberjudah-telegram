@@ -81,6 +81,13 @@ test("Abraham's event page displays the corrected 175-year lifespan", async ({ p
   await shot(page, "abraham-corrected-lifespan");
 });
 
+test("Isaac's event page displays the reconciled birth and 180-year lifespan", async ({ page }) => {
+  await page.goto("/timeline/event/isaac");
+  await expect(page.locator(".tl-event__title")).toHaveText("Isaac");
+  await expect(page.locator(".tl-event__date")).toHaveText("1846-1666 BC (180)");
+  await shot(page, "isaac-reconciled-lifespan");
+});
+
 test("search finds the two kings Ahaziah, each with the reign Who's Who gives and the right case study", async ({ page }) => {
   await page.goto("/timeline/search");
   await expect(page.locator(".tl-search")).toHaveCSS("padding-top", "0px");

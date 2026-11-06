@@ -13,7 +13,7 @@
     "build": "npm run build --workspace app",
     "test": "npm test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "verify:timeline": "REQUIRE_TIMELINE_KJV_MATCH=1 node --test app/tests/timeline-kjv-spans.test.mjs",
+    "verify:timeline": "node --test app/tests/timeline-kjv-spans.test.mjs",
     "deploy": "npm run verify:timeline && npm run build && npm run deploy --workspace bot",
     "postinstall": "patch-package"
   },

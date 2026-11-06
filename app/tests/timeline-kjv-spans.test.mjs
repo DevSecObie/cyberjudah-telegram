@@ -53,15 +53,51 @@ test("Abraham's bar follows the four agreeing existing anchors and survives rebu
   }
 });
 
-// The inherited Isaac date still disagrees with Genesis 21:5. Moving it also affects his
-// lifespan, Jacob's birth and the wider chronology. Keep every original assertion; the
-// strict release check must fail on this unresolved conflict instead of accepting a TODO.
-test("Abraham's lifespan, births and circumcision follow the stated ages", {
-  todo: process.env.REQUIRE_TIMELINE_KJV_MATCH === '1' ? false : "Isaac and circumcision dates still require chronology reconciliation",
-}, () => {
+test("Abraham's lifespan, births and circumcision follow the stated ages", () => {
   assert.equal(span("abraham"), 175, "Genesis 25:7");
   assert.equal(gap("isaac", "abraham"), 100, "Genesis 21:5");
   assert.equal(gap("ishmael", "abraham"), 86, "Genesis 16:16");
   assert.equal(gap("abram-becomes-abraham-covenant-of-circumcision", "abraham"), 99, "Genesis 17:24");
   assert.equal(gap("abram-becomes-abraham-covenant-of-circumcision", "ishmael"), 13, "Genesis 17:25");
+});
+
+test("Isaac, Jacob and Joseph retain the ages and sequence stated in Genesis", () => {
+  assert.equal(gap('isaac', 'abram-becomes-abraham-covenant-of-circumcision'), 1, 'Genesis 17:21');
+  assert.ok(bySlug.get('sodom-destroyed').start < bySlug.get('isaac').start, 'Genesis 18–21');
+  assert.equal(gap('isaac-rebekah-married', 'isaac'), 40, 'Genesis 25:20');
+  assert.ok(bySlug.get('isaac-rebekah-married').start > bySlug.get('sarah').end, 'Genesis 24:67');
+  assert.equal(gap('esau', 'jacob'), 0, 'Genesis 25:24–26: twins');
+  assert.equal(gap('esau-marries-two-wives', 'esau'), 40, 'Genesis 26:34');
+  assert.equal(gap('jacob-finishes-first-7-years-for-laban', 'jacob-fled-canaan-jacobs-ladder'), 7, 'Genesis 29:20');
+  assert.equal(gap('jacob-finishes-next-7-years-for-laban', 'jacob-finishes-first-7-years-for-laban'), 7, 'Genesis 29:27');
+  assert.equal(gap('jacob-leaves-haran', 'jacob-fled-canaan-jacobs-ladder'), 20, 'Genesis 31:38–41');
+  assert.equal(gap('josephs-dreams', 'joseph'), 17, 'Genesis 37:2');
+  assert.equal(gap('joseph-freed-pharaohs-dream-7-years-of-plenty', 'joseph'), 30, 'Genesis 41:46');
+  assert.equal(gap('joseph-freed-pharaohs-dream-7-years-of-plenty', 'joseph-butler-and-baker-cast-into-prison'), 2, 'Genesis 41:1');
+  const famine = bySlug.get('7-year-drought-josephs-brothers-come-to-egypt');
+  assert.equal(famine.start - bySlug.get('joseph-freed-pharaohs-dream-7-years-of-plenty').start, 7, 'Genesis 41:53–54');
+  assert.equal(famine.end - famine.start, 7, 'Genesis 45:6');
+  assert.equal(bySlug.get('jacob-and-family-come-to-egypt').start - famine.start, 2, 'Genesis 45:6');
+  assert.equal(gap('jacob-and-family-come-to-egypt', 'jacob'), 130, 'Genesis 47:9');
+  assert.equal(bySlug.get('jacob').end - bySlug.get('jacob-and-family-come-to-egypt').start, 17, 'Genesis 47:28');
+  assert.equal(bySlug.get('joseph-and-end-of-7-year-drought').start, famine.end);
+  assert.equal(bySlug.get('joseph-and-end-of-7-year-drought').end, famine.end);
+  for (const slug of ['manasseh', 'ephraim']) assert.ok(bySlug.get(slug).start < famine.start, 'Genesis 41:50');
+});
+
+test('corrected dates survive rebuilding, repeat application and repeated period rows', async () => {
+  const { applyTimelineChronology } = await import('../../shared/timeline-chronology.mjs');
+  const original = JSON.parse(fs.readFileSync(new URL('../scripts/timeline/bible-strong-events.txt', import.meta.url), 'utf8'));
+  const rebuilt = keepHistory(original).kept;
+  const once = structuredClone(rebuilt);
+  applyTimelineChronology(rebuilt);
+  assert.deepEqual(rebuilt, once);
+  for (const section of rebuilt) for (const event of section.events) {
+    const checked = bySlug.get(event.slug);
+    if (checked) assert.deepEqual([event.start, event.end], [checked.start, checked.end], event.slug);
+  }
+  for (const event of flatten(DATA.sections)) {
+    const checked = bySlug.get(event.slug);
+    assert.deepEqual([event.start, event.end], [checked.start, checked.end], event.slug);
+  }
 });

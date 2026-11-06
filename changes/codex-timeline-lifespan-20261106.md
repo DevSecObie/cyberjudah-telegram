@@ -1,1 +1,1 @@
-- Abraham's timeline bar now spans the 175 years stated in Genesis and agrees with the existing Ishmael, Sarah and Haran-departure anchors. Isaac's separate date conflict remains an explicit release blocker.
+- Abraham, Isaac, Jacob and Joseph now follow the stated Genesis ages, including circumcision, Isaac's marriage after Sarah's death, and the seven-year famine. Related inherited estimates remain estimates; the strict chronology tests pass without removing the release gate.

@@ -39,6 +39,27 @@ test('Noah’s father retains his timeline identity without importing the Cain-l
   }
 });
 
+test('the API and repeated chart rows carry the reconciled patriarchal chronology', async () => {
+  for (const [slug, start, end, dates] of [
+    ['isaac', -1846, -1666, '1846 BC–1666 BC'],
+    ['jacob', -1786, -1639, '1786 BC–1639 BC'],
+    ['joseph', -1695, -1585, '1695 BC–1585 BC'],
+  ] as const) {
+    const response = await request(`/v1/timelines/en/events/${slug}`);
+    if (slug === 'isaac') {
+      assert.equal(response.status, 200);
+      const { event } = Schema.decodeUnknownSync(TimelineEventResponseDto)(await response.json());
+      assert.equal(event.dates, dates);
+    } else {
+      // Jacob and Joseph currently have chart rows, not published readable articles.
+      assert.equal(response.status, 404);
+    }
+    const rows = publication.sections.flatMap(section => section.events.filter(row => row.slug === slug));
+    assert.ok(rows.length > 0);
+    for (const row of rows) assert.deepEqual([row.start, row.end], [start, end]);
+  }
+});
+
 test('every published timeline event survives the existing captivity grouping, with unique readable details', () => {
   const original = new Set(source.sections.flatMap(s => s.events.map(e => e.slug)));
   const projected = new Set(publication.sections.flatMap(s => s.events.map(e => e.slug)));
