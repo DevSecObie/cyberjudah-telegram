@@ -1,4 +1,5 @@
 export const SITE_ROUTES: string[];
+export const APP_SECTIONS: string[];
 export function siteServes(path: string): boolean;
 export function startParamTarget(param: unknown): string;
 export function startParamToPath(param: unknown): string | null;

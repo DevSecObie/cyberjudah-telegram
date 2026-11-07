@@ -1,7 +1,7 @@
 import test from "node:test";
 import fs from "node:fs";
 import assert from "node:assert/strict";
-import { SITE_ROUTES, launchPath, pathToStartParam, siteServes, startParamTarget, startParamToPath } from "../../shared/links.mjs";
+import { APP_SECTIONS, SITE_ROUTES, launchPath, pathToStartParam, siteServes, startParamTarget, startParamToPath } from "../../shared/links.mjs";
 
 // The website's routes, copied from the cyberjudah repo's router (site/src/routes, a149538d). Kept
 // apart from SITE_ROUTES on purpose: a route added to links.mjs that the site lacks fails here.
@@ -19,9 +19,12 @@ test("SITE_ROUTES is the site's router, route for route", () => {
 });
 
 // Every page kind a start param can name, at each depth it can take.
+// Written out, not derived from links.mjs, so a section that drops out of SECTIONS fails here.
 const KINDS = ["plan", "resources", "doctrine", "about", "api", "ask", "bible", "captains", "cases", "classes", "concordance",
   "dictionary", "downloads", "encyclopedia", "giving-the-sense", "glossary", "history", "law", "lexicon", "people", "person", "precepts", "privacy",
-  "search", "settings", "shows", "study", "tags", "teachings", "terms", "timeline", "topics", "truth-shall-make-you-free"];
+  "search", "settings", "shows", "study", "tags", "teachings", "terms", "timeline", "topics", "truth-shall-make-you-free",
+  "bookmarks", "books", "class-books", "class-wikipedia", "credits", "delete-account", "highlights", "more", "nave", "new", "note", "notes",
+  "place", "plans", "read", "relations", "sabbath", "studies", "support", "tabs", "watch"];
 const params = KINDS.flatMap((k) => [k, `${k}_a`, `${k}_2026_b`, `${k}_a_b_c`]).concat(["john", "john_3", "john_3_16-18x20", ""]);
 
 test("every site link a start param gives is a route the site serves, or null", () => {
@@ -62,7 +65,8 @@ test("the app still opens its own screens the site lacks", () => {
   assert.equal(launchPath("person_moses"), "/person/moses");
 });
 
-const FILL = { ":book": "john", ":chapter": "3", ":year": "2026", ":era": "kings", ":part": "part-1", ":section": "a", ":slug": "some-slug" };
+const FILL = { ":book": "john", ":chapter": "3", ":year": "2026", ":era": "kings", ":part": "part-1", ":section": "a", ":slug": "some-slug",
+  ":id": "some-id", ":release": "r1", ":number": "h1", ":n": "1", ":key": "some-key", ":page": "2", ":k": "k", ":name": "abel", ":video": "v1", "*": "x" };
 const sample = (route) => "/" + route.split("/").filter(Boolean).map((s) => {
   if (s.startsWith(":") && !(s in FILL)) throw new Error(`no sample value for ${s} in ${route}`);
   return FILL[s] ?? s;
@@ -94,4 +98,47 @@ test("every site route's start param opens an app screen in the Mini App", () =>
     assert.equal(appServes(opened), !NO_APP_SCREEN.has(route), `${route} -> ${opened}`);
   }
   assert.equal(launchPath("giving-the-sense"), "/classes?feed=sense");
+});
+
+const ROUTES = APP.map((a) => "/" + a.join("/"));
+const BOOKS = new Set(JSON.parse(fs.readFileSync(new URL("../../shared/cms-bible.json", import.meta.url), "utf8")).books.map((b) => b.slug));
+
+test("APP_SECTIONS is every App.tsx screen the site doesn't have", () => {
+  const site = new Set(SITE_ROUTES.map((r) => r.split("/")[1]).filter(Boolean));
+  const appOnly = new Set(ROUTES.map((r) => r.split("/")[1]).filter((s) => s && !site.has(s)));
+  assert.deepEqual([...APP_SECTIONS].sort(), [...appOnly].sort());
+});
+
+test("no section is a Bible book's name", () => {
+  const heads = [...SITE_ROUTES.map((r) => r.split("/")[1]).filter(Boolean), ...APP_SECTIONS, ...KINDS];
+  for (const k of heads) assert.ok(!BOOKS.has(k), k);
+});
+
+test("every app screen round-trips through a start param and opens a screen, not Home or a Bible book", () => {
+  for (const route of ROUTES) {
+    const path = sample(route);
+    const param = pathToStartParam(path);
+    // The reader and note screens are named by the site page they show.
+    const same = path.replace(/^\/read\//, "/bible/").replace(/^\/note\/(?=.)/, "/");
+    assert.ok([path, same].includes(startParamTarget(param)), `${route}: ${path} -> ${param} -> ${startParamTarget(param)}`);
+    const opened = launchPath(param);
+    assert.ok(appServes(opened) && (opened !== "/" || route === "/"), `${route} -> ${opened}`);
+    if (!["bible", "read"].includes(route.split("/")[1])) assert.ok(!opened.startsWith("/bible") && !opened.startsWith("/read"), `${route} -> ${opened}`);
+  }
+  for (const p of ["bookmarks", "sabbath", "highlights", "notes", "nave", "plans", "studies", "support"]) assert.equal(launchPath(p), `/${p}`);
+  assert.equal(launchPath("books_x"), "/books/x");
+  assert.equal(launchPath("place_x"), "/place/x");
+  assert.equal(launchPath("watch_x"), "/watch/x");
+});
+
+test("a video link keeps its id; reader and note links name the site page", () => {
+  assert.equal(launchPath("watch_dQw4w9WgXcQ"), "/watch/dQw4w9WgXcQ");
+  assert.equal(launchPath("watch_ab_CD-9"), "/watch/ab_CD-9");
+  assert.equal(pathToStartParam("/watch/dQw4w9WgXcQ"), "watch_dQw4w9WgXcQ");
+  assert.equal(startParamToPath("watch_dQw4w9WgXcQ"), null);
+  assert.equal(launchPath("read_john_3_16"), "/read/john/3?v=16");
+  assert.equal(startParamToPath("read_john_3"), "/bible/john/3");
+  assert.equal(startParamToPath("note_classes_2026_x"), "/classes/2026/x");
+  assert.equal(launchPath("note_classes_2026_x"), "/note/classes/2026/x");
+  assert.equal(launchPath("note"), "/note");
 });
