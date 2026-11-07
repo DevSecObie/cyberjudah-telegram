@@ -1,0 +1,1 @@
+- Ask answers directly in a natural conversational voice, keeps numbered citations and source rules, and explains search limits without asserting a subject has never been discussed. Older cached wording is refreshed.
