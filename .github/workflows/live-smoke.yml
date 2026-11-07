@@ -10,7 +10,15 @@ permissions:
 
 jobs:
   production:
+    name: production (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # The journeys share one synthetic account. Serialize shards so chats, settings and
+      # subscriptions cannot be changed by two shards at once; do not use max-parallel: 4.
+      max-parallel: 1
+      matrix:
+        shard: [1, 2, 3, 4]
     environment: automation
     timeout-minutes: 35
     steps:
@@ -50,16 +58,26 @@ jobs:
           print('Production:', url)
           PY
       - name: Exercise production user journeys
-        run: npm run test:e2e --workspace app -- --project=chromium
+        id: journeys
+        # Playwright fails at 28 minutes; this fallback and the job leave time for reporting.
+        timeout-minutes: 30
+        run: npm run test:e2e --workspace app -- --project=chromium --shard=${{ matrix.shard }}/4 --global-timeout=1680000 --reporter=list,github,json
         env:
+          PLAYWRIGHT_JSON_OUTPUT_FILE: ${{ github.workspace }}/app/test-results/live-smoke.json
           RUN_LIVE_E2E: "1"
           PLAYWRIGHT_BASE_URL: ${{ steps.address.outputs.url }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+      - name: Summarize production user journeys
+        if: always()
+        env:
+          SMOKE_SHARD: ${{ matrix.shard }}/4
+          SMOKE_OUTCOME: ${{ steps.journeys.outcome }}
+        run: node app/scripts/summarize-live-smoke.mjs app/test-results/live-smoke.json
       - name: Upload Playwright traces
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         with:
-          name: live-smoke-${{ github.run_id }}
+          name: live-smoke-${{ github.run_id }}-${{ matrix.shard }}
           path: |
             app/test-results
             app/playwright-report
