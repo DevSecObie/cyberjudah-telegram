@@ -316,13 +316,13 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
       const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources);
       const answer = await checkedVerses(env, splitFollowups(text).answer);
       if (meter) await finishMeter(env, meter, answer.trim() ? "ok" : "empty");
-      return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
+      return { ok: true, q: question, answer, sources: askSourcesOf(answer, passages), ms: Date.now() - t0 };
     }
     if (meter) await finishMeter(env, meter, "backup");
     const passages = first;
     if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], ms: Date.now() - t0 };
     const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history)));
-    return { ok: true, q: question, answer, sources: sourcesOf(answer, passages), ms: Date.now() - t0 };
+    return { ok: true, q: question, answer, sources: askSourcesOf(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
     // An answer that failed is not charged: the hold goes back.
     if (meter) await finishMeter(env, meter, "failed");
@@ -708,6 +708,10 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
   return (used.length ? used : passages.slice(0, 4).map((_, i) => i + 1)).map((n) => ({ ...passages[n - 1], n }));
 };
 
+// Telegram clients can show credited source text without opening an outside site.
+const askSourcesOf = (answer: string, passages: Passage[]) => sourcesOf(answer, passages)
+  .map(source => ({ ...source, excerpt: source.text.slice(0, 1000) }));
+
 /**
  * The same, streamed: one JSON line with the passages first, then a line per piece of the
  * answer as the model writes it, then a line with the sources it cited.
@@ -789,7 +793,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               if (refused && !answer.trim()) { await finish("refused"); send({ error: "refused" }); return; }
               if (!answer.trim()) { await finish("empty"); send({ error: "empty" }); return; }
               const used = await finish("ok");
-              const sources = sourcesOf(answer, passages);
+              const sources = askSourcesOf(answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
               send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}) });
@@ -814,7 +818,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), backup)) { answer += piece; send({ delta: piece }); }
           const { answer: clean, followups } = splitFollowups(answer);
           if (!clean.trim()) { send({ error: "empty" }); return; }
-          const sources = sourcesOf(clean, passages);
+          const sources = askSourcesOf(clean, passages);
           await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
           await finish("backup");

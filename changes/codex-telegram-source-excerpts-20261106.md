@@ -1,0 +1,1 @@
+- Ask answers include short source excerpts so Telegram clients can show credited source text inside the app.
