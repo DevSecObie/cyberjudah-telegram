@@ -155,3 +155,13 @@ test("note_ unwraps before read_, and reader shares keep their verses", () => {
   assert.equal(pathToStartParam("/read/john/3", "16"), "read_john_3_16");
   assert.equal(launchPath(pathToStartParam("/read/john/3", "16")), "/read/john/3?v=16");
 });
+
+test("a video id keeps its case; a note never wraps a video", () => {
+  assert.equal(startParamTarget("watch_AbC"), "/watch/AbC");
+  assert.equal(launchPath("watch_AbC"), "/watch/AbC");
+  assert.equal(startParamTarget("note_watch_AbC"), "/");
+  assert.equal(launchPath("note_watch_AbC"), "/");
+  assert.equal(startParamToPath("note_watch_AbC"), "/");
+  assert.equal(launchPath("NOTE_WATCH"), "/");
+  for (const p of ["note__watch_AbC", "_note_watch_AbC", "_watch_AbC", "watch"]) assert.equal(launchPath(p), "/", p);
+});
