@@ -9,19 +9,53 @@
  *   matthew_15_24x26     ->  /bible/matthew/15?v=24,26#v24
  *   classes_2026_slug    ->  /classes/2026/slug
  *   (empty)              ->  /
+ *
+ * startParamToPath gives that page on the website only when the site serves it (SITE_ROUTES);
+ * the app has more screens than the site (people, timeline, settings, ...), so a param for one of
+ * those has no site page (null) and the caller falls back to the site's home or the app.
  */
 
 const SECTIONS = new Set([
   "plan", "resources", "doctrine",
   "about", "api", "ask", "bible", "captains", "cases", "classes", "concordance", "dictionary", "downloads",
-  "encyclopedia", "history", "law", "lexicon", "people", "person", "precepts", "privacy", "search", "settings", "shows", "study", "tags", "teachings", "terms", "timeline", "topics", "truth-shall-make-you-free",
+  "encyclopedia", "glossary", "history", "law", "lexicon", "people", "person", "precepts", "privacy", "search", "settings", "shows", "study", "tags", "teachings", "terms", "timeline", "topics", "truth-shall-make-you-free",
 ]);
 
 const SAFE = /^[A-Za-z0-9_-]{1,512}$/;
 const SEGMENT = /^[a-z0-9-]+$/;
 const VERSES = /^\d+(-\d+)?(x\d+(-\d+)?)*$/;
 
-export function startParamToPath(param) {
+/**
+ * The website's routes (cyberjudah repo, site/src/routes, TanStack file routes, as of a149538d):
+ * ":x" is one path segment. A path the site has no route for 404s there.
+ */
+export const SITE_ROUTES = [
+  "/", "/about", "/api", "/downloads", "/giving-the-sense", "/glossary", "/search", "/teachings", "/truth-shall-make-you-free",
+  "/bible", "/bible/:book", "/bible/:book/:chapter",
+  "/captains", "/captains/:year/:slug",
+  "/cases", "/cases/:era/:slug",
+  "/classes", "/classes/:year/:slug",
+  "/concordance", "/concordance/:book",
+  "/dictionary", "/dictionary/:slug",
+  "/doctrine", "/doctrine/:slug",
+  "/encyclopedia", "/encyclopedia/:slug",
+  "/history", "/history/:year/:slug",
+  "/law", "/law/:part", "/law/:part/:section",
+  "/precepts", "/precepts/:slug",
+  "/shows", "/shows/:slug",
+  "/study", "/study/:book", "/study/:book/:chapter",
+  "/topics", "/topics/:slug",
+];
+const ROUTE_SHAPES = SITE_ROUTES.map((r) => r.split("/").filter(Boolean));
+
+/** Does the website have a route for this path (its query and fragment aside)? */
+export function siteServes(path) {
+  const parts = String(path).replace(/[?#].*$/, "").split("/").filter(Boolean);
+  return ROUTE_SHAPES.some((shape) => shape.length === parts.length && shape.every((s, i) => s.startsWith(":") || s === parts[i]));
+}
+
+/** The page a start param names, in the paths the site and the app share ("/" when it names none). */
+export function startParamTarget(param) {
   if (typeof param !== "string" || !SAFE.test(param)) return "/";
   const parts = param.toLowerCase().split("_").filter(Boolean);
   if (!parts.length || !parts.every((p) => SEGMENT.test(p))) return "/";
@@ -31,6 +65,13 @@ export function startParamToPath(param) {
     return `/bible/${parts[1]}/${parts[2]}?v=${v}#v${v.match(/^\d+/)[0]}`;
   }
   return `/${parts.join("/")}`;
+}
+
+/** The website page for a start param, or null when the site has no route for it (the caller
+ *  falls back to the site's home or the app). An empty or malformed param is the home page. */
+export function startParamToPath(param) {
+  const path = startParamTarget(param);
+  return siteServes(path) ? path : null;
 }
 
 export function pathToStartParam(pathname, verses) {
@@ -84,5 +125,6 @@ export function sitePathOf(pathname) {
 
 /** Where a Telegram launch lands: the app screen for the start param. */
 export function launchPath(param) {
-  return toAppPath(startParamToPath(param).split("#")[0]) ?? "/";
+  // The app has screens the site doesn't (people, timeline, settings): it reads the named page itself.
+  return toAppPath(startParamTarget(param).split("#")[0]) ?? "/";
 }
