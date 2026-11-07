@@ -43,5 +43,6 @@ test("an answer is read aloud as words only: no citation marks, links or markdow
   const out = new URL("./.build/app-voice.mjs", import.meta.url).pathname;
   await build({ entryPoints: [new URL("../src/app-voice.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
   const { speakable } = await import(out);
+  assert.equal(speakable("Recorded text [100, 255]."), "Recorded text.");
   assert.equal(speakable("### Why\n\nIt is kept **for ever** [1, 2].\n\n> A memorial. **Exodus 12:14**\n\nSee [the class](/classes/x)."), "Why\nIt is kept for ever.\nA memorial. Exodus 12:14\nSee the class.");
 });
