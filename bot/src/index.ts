@@ -34,6 +34,7 @@ import { semanticSearch } from "./semantic-search";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
+import { createBroadcastSender, withBroadcastLease } from "./broadcast";
 import { push, reminderCounts, reminders, sendReminders } from "./remind";
 import { reportHealth, selfCheck } from "./health";
 import { bookLabel, validVerseDate } from "./verse-of-day.mjs";
@@ -689,15 +690,21 @@ app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 export default {
   fetch: app.fetch,
   scheduled(event, env, ctx) {
-    // Reading reminders every quarter hour, so each reader's own time is reached in every time zone (remind.ts).
-    ctx.waitUntil(sendReminders(env, new Date(event.scheduledTime)).catch((e) => console.error(JSON.stringify({ event: "reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
-    // The opt-in reminder to top up before a Sabbath, feast day or New Moon, at midday where each reader is (topup-remind.ts).
-    ctx.waitUntil(sendTopupReminders(env, event.scheduledTime).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "topup_reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // All scheduled Telegram deliveries share one budget, including catch-up slots and retries.
+    // A slow previous run can outlive the 15-minute interval: skip delivery while it holds a lease.
+    ctx.waitUntil(withBroadcastLease(env.SUBS, async () => {
+      const sender = createBroadcastSender();
+      await Promise.all([
+        sendReminders(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "reminders_failed" }))),
+        sendTopupReminders(env, event.scheduledTime, sender).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch(() => console.error(JSON.stringify({ event: "topup_reminders_failed" }))),
+        ...(event.cron === "0 * * * *" ? [sendDaily(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "daily_failed" })))] : []),
+      ]);
+    }).then((ran) => { if (!ran) console.log(JSON.stringify({ event: "broadcast_skipped", reason: "leased" })); })
+      .catch(() => console.error(JSON.stringify({ event: "broadcast_failed" }))));
     // New class alerts for the phone app, every quarter hour so a live class is announced soon after it starts (class-alerts.ts).
     ctx.waitUntil(sendClassAlerts(env).then((r) => { if (r.sent || r.failed || r.seeded) console.log(JSON.stringify({ event: "class_alerts", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "class_alerts_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Everything else runs on the hour only.
     if (event.cron !== "0 * * * *") return;
-    ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
     // The hourly self-check pages the admins over Telegram when something breaks.
     ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));
     // Old usage rows are pruned; the tables stay small.

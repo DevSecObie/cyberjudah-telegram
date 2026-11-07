@@ -4,7 +4,8 @@ import type { Env } from "./env";
 import { validateInitData } from "./initdata.mjs";
 import { books, escapeHtml } from "./data";
 import { openButton } from "./bot";
-import { CHUNK, SENDS_PER_SECOND, SLOT_TTL, sleep } from "./daily";
+import { CHUNK, SLOT_TTL } from "./daily";
+import { createBroadcastSender, type BroadcastSender } from "./broadcast";
 import { tellAdmins } from "./health";
 import { telegramApi } from "./telegram-api";
 import {
@@ -126,15 +127,6 @@ function telegramKeyboard(env: Env, p: Portion, done = false): InlineKeyboard {
   const kb = openButton(env, env.WORKER_URL, "private", p.param, "Open");
   if (done) return kb;
   return kb.text("Done", "rd:done").row().text("Pause…", "rd:pause").text("Stop", "rd:stop");
-}
-
-/** A Telegram send, retried once after the server's own backoff on 429. */
-async function withBackoff<T>(f: () => Promise<T>): Promise<T> {
-  try { return await f(); } catch (e) {
-    if (!(e instanceof GrammyError && e.error_code === 429)) throw e;
-    await sleep(Math.min(60, Number((e as { parameters?: { retry_after?: number } }).parameters?.retry_after ?? 1)) * 1000);
-    return f();
-  }
 }
 
 /** The Telegram reminder of the day, when it was sent, is marked done in place. */
@@ -457,15 +449,15 @@ const slotKey = (when: Date) => { const t = new Date(Math.floor(when.getTime() /
  * an interrupted run resumes, and the previous run, if unfinished, finished first. Each
  * channel's sent day is saved on the record, so a resumed or repeated run never sends twice.
  */
-export async function sendReminders(env: Env, now = new Date()): Promise<Counts> {
+export async function sendReminders(env: Env, now = new Date(), sender: BroadcastSender = createBroadcastSender()): Promise<Counts> {
   const out: Counts = { telegram: 0, push: 0, fallback: 0, failed: 0 };
   const list = (await books(env)) ?? [];
   if (!list.length) { console.error(JSON.stringify({ event: "reminders_no_books" })); return out; }
-  for (const t of [new Date(now.getTime() - QUARTER), now]) await runSlot(env, slotKey(t), now, list, out);
+  for (const t of [new Date(now.getTime() - QUARTER), now]) await runSlot(env, slotKey(t), now, list, out, sender);
   return out;
 }
 
-async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Awaited<ReturnType<typeof books>>>, out: Counts) {
+async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Awaited<ReturnType<typeof books>>>, out: Counts, sender: BroadcastSender) {
   const saved = (await env.SUBS.get(key, "json")) as { cursor?: string; done?: boolean } | null;
   if (saved?.done) return;
   const api = telegramApi(env);
@@ -476,7 +468,7 @@ async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Await
   /** Telegram, for a reminder already claimed: a refused chat switches Telegram off; any other failure gives the claim back to retry on the next run. */
   const toTelegram = async (r: Reminder, p: Portion, before: Reminder): Promise<Reminder> => {
     try {
-      const msg = await withBackoff(() => api.sendMessage(r.chatId!, telegramMessage(p), { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup: telegramKeyboard(env, p) }));
+      const msg = await sender.send(() => api.sendMessage(r.chatId!, telegramMessage(p), { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup: telegramKeyboard(env, p) }));
       slot.telegram++;
       return { ...r, tgMessage: { date: localNow(r.tz, now).date, id: msg.message_id } };
     } catch (e) {
@@ -528,12 +520,8 @@ async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Await
       const due = page.keys.filter((k) => mayBeDue(k.metadata, now));
       for (let i = 0; i < due.length; i += CHUNK) {
         const chunk = due.slice(i, i + CHUNK);
-        const t0 = Date.now();
         const results = await Promise.allSettled(chunk.map(({ name }) => one(name)));
         for (const r of results) if (r.status === "rejected") slot.failed++;
-        const budget = (chunk.length / SENDS_PER_SECOND) * 1000;
-        const elapsed = Date.now() - t0;
-        if (elapsed < budget) await sleep(budget - elapsed);
       }
       if (cursor) await env.SUBS.put(key, JSON.stringify({ cursor, done: false }), { expirationTtl: SLOT_TTL });
     } while (cursor);

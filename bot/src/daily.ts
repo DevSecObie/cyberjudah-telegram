@@ -1,13 +1,14 @@
-import { Api, GrammyError, InlineKeyboard } from "grammy";
+import { GrammyError, InlineKeyboard } from "grammy";
 import type { Env, Sub } from "./env";
 import { todaysVerse, openButton } from "./bot";
 import { open } from "./privacy.mjs";
 import { deleteSub, isDueHour, SENT_TTL, sentKeyOf, subscriberDate } from "./subscribe";
+import { createBroadcastSender, type BroadcastSender } from "./broadcast";
+import { telegramApi } from "./telegram-api";
 
-export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-/** Telegram allows roughly 30 messages a second to distinct users; the broadcast stays under it. */
-export const SENDS_PER_SECOND = 25;
 export const CHUNK = 20;
+/** KV's binding supports at most 100 keys in one bulk get. Values stay sealed until opened below. */
+const READ_BATCH = 100;
 /** A slot's counts live three days: the health check reads the last finished slot. */
 export const SLOT_TTL = 3 * 86400;
 
@@ -25,9 +26,9 @@ const slotKey = (when: Date) => `daily:${when.toISOString().slice(0, 10)}:${Stri
  * interrupted run resumes where it stopped, and the previous hour's unfinished slot is
  * finished first (a very long send can outlive its hour).
  */
-export async function sendDaily(env: Env, now = new Date()): Promise<Counts> {
+export async function sendDaily(env: Env, now = new Date(), sender: BroadcastSender = createBroadcastSender()): Promise<Counts> {
   const out: Counts = { sent: 0, dropped: 0, failed: 0 };
-  for (const t of [new Date(now.getTime() - 3600000), now]) await sendSlot(env, t, out);
+  for (const t of [new Date(now.getTime() - 3600000), now]) await sendSlot(env, t, out, sender);
   return out;
 }
 
@@ -42,28 +43,22 @@ async function markSent(env: Env, name: string, date: string): Promise<void> {
   }
 }
 
-async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
+async function sendSlot(env: Env, when: Date, out: Counts, sender: BroadcastSender): Promise<void> {
   const key = slotKey(when);
   const saved = (await env.SUBS.get(key, "json")) as { cursor?: string; done?: boolean } | null;
   if (saved?.done) return;
   const verse = await todaysVerse(env);
   if (!verse.text) { console.error(JSON.stringify({ event: "daily_no_verse", slot: key })); return; }
-  const api = new Api(env.BOT_TOKEN);
+  const api = telegramApi(env);
   const html = `<b>Verse of the day</b>\n\n${verse.html}`;
   const reply_markup: InlineKeyboard = openButton(env, env.WORKER_URL, "private", verse.param, "Read in CyberJudah");
   const slot: Counts = { sent: 0, dropped: 0, failed: 0 };
-  const send = async (name: string): Promise<"sent" | "dropped" | "skip"> => {
-    // Sealed at rest (privacy.mjs); subscriptions from before sealing read as they are.
-    const sub = await open<Sub>(env, name, await env.SUBS.get(name));
-    // Their hour in their zone when the app sent one (right across daylight saving), else at their
-    // fixed offset; and not twice on one local date (the night clocks fall back).
-    if (!sub || !isDueHour(sub, when)) return "skip";
-    // The sent date is read only at the subscriber's hour (one read a day, not one an hour).
+  const send = async (name: string, sub: Sub, sent: Map<string, string | null>): Promise<"sent" | "dropped" | "skip"> => {
     const date = subscriberDate(sub, when);
     const sentKey = sentKeyOf(name);
-    if (sentKey && (await env.SUBS.get(sentKey)) === date) return "skip";
+    if (sentKey && sent.get(sentKey) === date) return "skip";
     const attempt = async (): Promise<void> => {
-      await api.sendMessage(sub.chatId, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup });
+      await sender.send(() => api.sendMessage(sub.chatId, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup }));
       await markSent(env, name, date);
     };
     try {
@@ -71,14 +66,6 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
       return "sent";
     } catch (e) {
       if (e instanceof GrammyError && e.error_code === 403) { await deleteSub(env, name); return "dropped"; }
-      if (e instanceof GrammyError && e.error_code === 429) {
-        const wait = Math.min(60, Number((e as { parameters?: { retry_after?: number } }).parameters?.retry_after ?? 1));
-        await sleep(wait * 1000);
-        try { await attempt(); return "sent"; } catch (e2) {
-          if (e2 instanceof GrammyError && e2.error_code === 403) { await deleteSub(env, name); return "dropped"; }
-          throw e2;
-        }
-      }
       throw e;
     }
   };
@@ -87,19 +74,22 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
     do {
       const page = await env.SUBS.list({ prefix: "sub:", cursor });
       cursor = page.list_complete ? undefined : page.cursor;
-      for (let i = 0; i < page.keys.length; i += CHUNK) {
-        const chunk = page.keys.slice(i, i + CHUNK);
-        const t0 = Date.now();
-        const results = await Promise.allSettled(chunk.map(({ name }) => send(name)));
-        for (const r of results) {
-          if (r.status === "rejected") slot.failed++;
-          else if (r.value === "sent") slot.sent++;
-          else if (r.value === "dropped") slot.dropped++;
+      for (let i = 0; i < page.keys.length; i += READ_BATCH) {
+        const names = page.keys.slice(i, i + READ_BATCH).map(({ name }) => name);
+        const values = await env.SUBS.get(names, "text");
+        const opened = await Promise.all(names.map(async (name) => ({ name, sub: await open<Sub>(env, name, values.get(name) ?? null) })));
+        const due = opened.filter((x): x is { name: string; sub: Sub } => !!x.sub && isDueHour(x.sub, when));
+        const sentKeys = due.map(({ name }) => sentKeyOf(name)).filter((key): key is string => key !== null);
+        const sent = sentKeys.length ? await env.SUBS.get(sentKeys, "text") : new Map<string, string | null>();
+        // Bound in-flight requests independently of the shared send budget.
+        for (let j = 0; j < due.length; j += CHUNK) {
+          const results = await Promise.allSettled(due.slice(j, j + CHUNK).map(({ name, sub }) => send(name, sub, sent)));
+          for (const r of results) {
+            if (r.status === "rejected") slot.failed++;
+            else if (r.value === "sent") slot.sent++;
+            else if (r.value === "dropped") slot.dropped++;
+          }
         }
-        // Pace the broadcast under Telegram's per-second limit.
-        const budget = (chunk.length / SENDS_PER_SECOND) * 1000;
-        const elapsed = Date.now() - t0;
-        if (elapsed < budget) await sleep(budget - elapsed);
       }
       // Checkpoint: an interrupted run resumes from here instead of starting over.
       if (cursor) await env.SUBS.put(key, JSON.stringify({ cursor, done: false }), { expirationTtl: SLOT_TTL });
