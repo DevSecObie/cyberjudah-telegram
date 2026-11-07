@@ -107,3 +107,30 @@ test("How we know: each link shows its evidence label, its verses and, for histo
   await expect(known.getByRole("button", { name: "Jewish Encyclopedia vol. 8 p. 378" })).toBeVisible();
   await expect(page.locator(".entity__source")).toHaveText("Names, family and verses from the King James Bible with Apocrypha. A link the text does not state is left out.");
 });
+
+test("evidenced People links keep priestly courses, titles and variants outside the family graph", async ({ page }, testInfo) => {
+  const make = (id: string, extra = {}) => ({ id, name: id, names: [id], type: "Male", description: "", tribe: "", father: [], mother: [], siblings: [], partners: [], children: [], verses: [], taught: [], source: { name: "Evidence fixture", license: "", url: "" }, ...extra });
+  const records: Record<string, ReturnType<typeof make>> = {
+    mattathias: make("mattathias", { father: [{ id: "john", name: "John" }], priestly: [{ id: "joarib", name: "Joarib", evidenceLabel: "Scripturally confirmed", verses: ["1-maccabees/2/1"] }] }),
+    joarib: make("joarib", { same: [{ id: "jehoiarib", name: "Jehoiarib", evidenceLabel: "Parallel identification", verses: ["1-chronicles/24/7"] }], course: [{ id: "mattathias", name: "Mattathias", evidenceLabel: "Scripturally confirmed" }, { id: "mattathias", name: "Mattathias", evidenceLabel: "Scripturally confirmed" }] }),
+    jehoiarib: make("jehoiarib", { alsoNamed: [{ id: "joarib", name: "Joarib", evidenceLabel: "Identity uncertain", note: "Keep this qualification.", sources: [{ title: "Fixture source", url: "https://example.org/fixture" }] }], titles: [{ title: "Priest", evidenceLabel: "Scripturally confirmed" }], variants: [{ reading: "Alternate reading", note: "A textual variant." }] }),
+  };
+  await setup(page, { people: Object.values(records) });
+  await page.route(/\/api\/people\/(mattathias|joarib|jehoiarib)\.json$/, r => r.fulfill({ json: records[new URL(r.request().url()).pathname.split("/").pop()!.slice(0, -5)] }));
+  await page.goto("/person/mattathias");
+  await expect(page.locator(".fg__chip")).toHaveText(["Father"]);
+  const course = page.getByRole("region", { name: "Priestly course", exact: true });
+  await expect(course).toContainText("Scripturally confirmed");
+  await expect(course.getByRole("link", { name: "1 Maccabees 2:1" })).toHaveAttribute("href", /\/bible\/1-maccabees\/2#v1$/);
+  await course.getByRole("link", { name: "Joarib", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Members of this priestly course", exact: true }).getByRole("listitem")).toHaveCount(2);
+  await page.getByRole("region", { name: "How we know", exact: true }).getByRole("link", { name: "Jehoiarib", exact: true }).click();
+  const known = page.getByRole("region", { name: "How we know", exact: true });
+  await expect(known).toContainText("Identity uncertain");
+  await expect(known.getByRole("button", { name: "Fixture source" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Titles", exact: true })).toContainText("Priest");
+  await expect(page.getByRole("region", { name: "Textual variants", exact: true })).toContainText("Alternate reading");
+  await expect(page.getByRole("heading", { name: "jehoiarib", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "mattathias", exact: true })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath("people-evidence-phone.png"), fullPage: true });
+});

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
-import { data, fmtDate, type Person as P, type PersonLink } from "@/api/data";
+import { data, fmtDate, type Person as P, type PersonEvidence, type PersonLink } from "@/api/data";
 import { Feather } from "@/bible/icons";
 import { useKeptScroll, useVisitState } from "@/lib/place";
 import { teacherRank } from "@/lib/taught";
@@ -75,6 +75,18 @@ export function Person() {
       ) : null}
 
       <HowWeKnow person={d} bookName={bookName} />
+      <PriestlyCourse title="Priestly course" links={d.priestly} bookName={bookName} />
+      <PriestlyCourse title="Members of this priestly course" links={d.course} bookName={bookName} />
+      {d.titles?.length ? (
+        <EntitySection title="Titles" count={d.titles.length}>
+          <ul className="entity__known">{d.titles.map((t, i) => <li key={`${t.title}:${i}`}><p><strong>{t.title}</strong>{t.evidenceLabel ? <> · {t.evidenceLabel}</> : null}</p><Evidence e={t} bookName={bookName} /></li>)}</ul>
+        </EntitySection>
+      ) : null}
+      {d.variants?.length ? (
+        <EntitySection title="Textual variants" count={d.variants.length}>
+          <ul className="entity__known">{d.variants.map((v, i) => <li key={`${v.reading}:${i}`}><p><strong>{v.reading}</strong></p>{v.note ? <p className="hint">{v.note}</p> : null}</li>)}</ul>
+        </EntitySection>
+      ) : null}
 
       <EntitySection title="What the classes taught" count={taught.length}>
         {taught.length ? (
@@ -143,9 +155,33 @@ function HowWeKnow({ person, bookName }: { person: P; bookName: (slug: string) =
         {rows.map(({ label, e }, i) => (
           <li key={`${label}:${e.id}:${i}`}>
             <p>{label}: <Link to={`/person/${e.id}`} onClick={() => haptic("select")}>{e.name}</Link> · <strong>{e.evidenceLabel}</strong></p>
-            {e.verses?.length ? <p className="hint">{e.verses.map(refOfPath).filter((r): r is VerseRef => !!r).map((r, j) => <span key={j}>{j ? ", " : ""}<Link to={`/bible/${r.slug}/${r.chapter}#v${r.from}`}>{refLabel(r, bookName)}</Link></span>)}</p> : null}
-            {e.note ? <p className="hint">{e.note}</p> : null}
-            {e.sources?.map((s, j) => <p key={j} className="hint"><button type="button" onClick={() => { haptic("select"); openLink(s.url); }}>{s.title}</button></p>)}
+            <Evidence e={e} bookName={bookName} />
+          </li>
+        ))}
+      </ul>
+    </EntitySection>
+  );
+}
+
+/** The verses that state a link, its note and, for history, its sources. */
+function Evidence({ e, bookName }: { e: PersonEvidence; bookName: (slug: string) => string }) {
+  return <>
+    {e.verses?.length ? <p className="hint">{e.verses.map(refOfPath).filter((r): r is VerseRef => !!r).map((r, j) => <span key={j}>{j ? ", " : ""}<Link to={`/bible/${r.slug}/${r.chapter}#v${r.from}`}>{refLabel(r, bookName)}</Link></span>)}</p> : null}
+    {e.note ? <p className="hint">{e.note}</p> : null}
+    {e.sources?.map((s, j) => <p key={j} className="hint"><button type="button" onClick={() => { haptic("select"); openLink(s.url); }}>{s.title}</button></p>)}
+  </>;
+}
+
+/** A priestly course the person belongs to (or its members): kept apart from the family graph, since it isn't a parent. */
+function PriestlyCourse({ title, links, bookName }: { title: string; links?: PersonLink[]; bookName: (slug: string) => string }) {
+  if (!links?.length) return null;
+  return (
+    <EntitySection title={title} count={links.length}>
+      <ul className="entity__known">
+        {links.map((e, i) => (
+          <li key={`${e.id}:${i}`}>
+            <p><Link to={`/person/${e.id}`} onClick={() => haptic("select")}>{e.name}</Link>{e.evidenceLabel ? <> · <strong>{e.evidenceLabel}</strong></> : null}</p>
+            <Evidence e={e} bookName={bookName} />
           </li>
         ))}
       </ul>
