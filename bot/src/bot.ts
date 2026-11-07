@@ -93,7 +93,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     if (param) {
       // The page it names (in the app, which has every screen the site has and more), for the label.
       const path = startParamTarget(param);
-      const label = path === "/" ? "CyberJudah" : path.replace(/[?#].*$/, "").split("/").filter(Boolean).map((p) => p.replace(/-/g, " ")).join(" › ");
+      const label = path === "/" ? "CyberJudah" : path.startsWith("/watch/") ? "Video" : path.replace(/[?#].*$/, "").split("/").filter(Boolean).map((p) => p.replace(/-/g, " ")).join(" › ");
       return ctx.reply(`Open <b>${escapeHtml(label)}</b> in CyberJudah:`, { parse_mode: "HTML", reply_markup: open(ctx, param, "Open") });
     }
     await ctx.reply(`Welcome, ${escapeHtml(ctx.from?.first_name ?? "friend")}.\n\n${HELP.replace(/@BOT/g, `@${bot.botInfo.username}`)}`, {

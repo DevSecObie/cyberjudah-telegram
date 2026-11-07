@@ -15,13 +15,9 @@
  * those has no site page (null) and the caller falls back to the site's home or the app.
  */
 
-const SECTIONS = new Set([
-  "plan", "resources", "doctrine",
-  "about", "api", "ask", "bible", "captains", "cases", "classes", "concordance", "dictionary", "downloads",
-  "encyclopedia", "giving-the-sense", "glossary", "history", "law", "lexicon", "people", "person", "precepts", "privacy", "search", "settings", "shows", "study", "tags", "teachings", "terms", "timeline", "topics", "truth-shall-make-you-free",
-]);
-
 const SAFE = /^[A-Za-z0-9_-]{1,512}$/;
+/** A video id, as the Watch screen takes it: case kept, "_" and "-" allowed. */
+const VIDEO_ID = /^[A-Za-z0-9_-]{1,500}$/;
 const SEGMENT = /^[a-z0-9-]+$/;
 const VERSES = /^\d+(-\d+)?(x\d+(-\d+)?)*$/;
 
@@ -48,6 +44,23 @@ export const SITE_ROUTES = [
 ];
 const ROUTE_SHAPES = SITE_ROUTES.map((r) => r.split("/").filter(Boolean));
 
+/**
+ * The app's screens the site doesn't have (app/src/App.tsx, first path segment). A start param that
+ * begins with one of these, or with a site section, names that page; anything else is a Bible book.
+ * app/tests/site-routes.test.mjs checks this list against App.tsx.
+ */
+export const APP_SECTIONS = [
+  "ask", "bookmarks", "books", "class-books", "class-wikipedia", "credits", "delete-account", "highlights", "lexicon",
+  "more", "nave", "new", "note", "notes", "people", "person", "place", "plan", "plans", "privacy", "read", "relations",
+  "resources", "sabbath", "settings", "studies", "support", "tabs", "tags", "terms", "timeline", "watch",
+];
+const SECTIONS = new Set([...ROUTE_SHAPES.map((shape) => shape[0]).filter(Boolean), ...APP_SECTIONS]);
+
+/** Is this word a page section (a site route head or an app screen), not a Bible book? */
+export function isSection(word) {
+  return typeof word === "string" && SECTIONS.has(word.toLowerCase());
+}
+
 /** Does the website have a route for this path (its query and fragment aside)? */
 export function siteServes(path) {
   const parts = String(path).replace(/[?#].*$/, "").split("/").filter(Boolean);
@@ -57,9 +70,15 @@ export function siteServes(path) {
 /** The page a start param names, in the paths the site and the app share ("/" when it names none). */
 export function startParamTarget(param) {
   if (typeof param !== "string" || !SAFE.test(param)) return "/";
+  // A video id keeps its case and may hold "_": everything after "watch_" is the id.
+  const video = /^watch_(.+)$/i.exec(param)?.[1];
+  if (video && VIDEO_ID.test(video)) return `/watch/${video}`;
   const parts = param.toLowerCase().split("_").filter(Boolean);
   if (!parts.length || !parts.every((p) => SEGMENT.test(p))) return "/";
-  if (!SECTIONS.has(parts[0])) parts.unshift("bible");
+  // The app's reader and note screens are the site's Bible chapter and note pages.
+  if (parts[0] === "note" && isSection(parts[1])) parts.shift();
+  if (parts[0] === "read") parts[0] = "bible";
+  if (!isSection(parts[0])) parts.unshift("bible");
   if (parts[0] === "bible" && parts.length === 4 && /^\d+$/.test(parts[2]) && VERSES.test(parts[3])) {
     const v = parts[3].replace(/x/g, ",");
     return `/bible/${parts[1]}/${parts[2]}?v=${v}#v${v.match(/^\d+/)[0]}`;
@@ -76,8 +95,9 @@ export function startParamToPath(param) {
 
 export function pathToStartParam(pathname, verses) {
   const parts = String(pathname).split("/").filter(Boolean);
+  if (parts[0] === "watch" && parts.length === 2 && VIDEO_ID.test(parts[1])) return `watch_${parts[1]}`;
   if (!parts.every((p) => SEGMENT.test(p))) return "";
-  if (parts[0] === "bible" && parts.length === 3 && verses && /^\d+(-\d+)?(,\d+(-\d+)?)*$/.test(verses)) parts.push(verses.replace(/,/g, "x"));
+  if ((parts[0] === "bible" || parts[0] === "read") && parts.length === 3 && verses && /^\d+(-\d+)?(,\d+(-\d+)?)*$/.test(verses)) parts.push(verses.replace(/,/g, "x"));
   const param = parts.join("_");
   return param.length <= 512 ? param : "";
 }
@@ -115,13 +135,34 @@ export function toAppPath(href) {
   return url.pathname + q + h;
 }
 
-/** The website page an app screen shows, for share links and "open in browser". */
+/** The site page each Classes feed is (toAppPath turns these pages into their feed). */
+const FEED_PAGES = { sense: "/giving-the-sense", truth: "/truth-shall-make-you-free", captains: "/captains", history: "/history", shows: "/shows" };
+
+/** The website page an app screen shows, for share links and "open in browser". A Classes feed
+ *  with its own site page (?feed=sense, ?feed=truth, ...) gives that page; any other feed or
+ *  filter, the site's /classes. */
 export function sitePathOf(pathname) {
+  const feedPage = classesFeedPage(String(pathname));
+  if (feedPage) return feedPage;
+  const bibleQuery = /^\/bible\/?\?([^#]*)/.exec(String(pathname));
+  const book = bibleQuery && new URLSearchParams(bibleQuery[1]).get("book")?.toLowerCase();
+  if (book && SEGMENT.test(book)) return `/bible/${book}`;
   const parts = String(pathname).split("/").filter(Boolean);
   if (parts[0] === "read" && parts.length === 3) return `/bible/${parts[1]}/${parts[2]}`;
   if (parts[0] === "note" && parts.length > 1) return `/${parts.slice(1).join("/")}`;
-  if (["bible", "search", "classes", "law", "precepts", "doctrine", "cases", "topics", "encyclopedia", "glossary", "concordance", "study", "about"].includes(parts[0])) return `/${parts.join("/")}`;
+  if (["bible", "search", "classes", "law", "precepts", "doctrine", "cases", "topics", "encyclopedia", "glossary", "concordance", "study", "about"].includes(parts[0]?.replace(/[?#].*$/, ""))) return `/${parts.join("/")}`;
   return "/";
+}
+
+function classesFeedPage(pathname) {
+  const m = /^\/classes\/?\?([^#]*)/.exec(pathname);
+  if (!m) return null;
+  const q = new URLSearchParams(m[1]);
+  const feed = q.get("feed");
+  const page = feed && Object.hasOwn(FEED_PAGES, feed) ? FEED_PAGES[feed] : null;
+  if (!page) return "/classes";
+  const show = q.get("show");
+  return page === "/shows" && show && SEGMENT.test(show) ? `/shows/${show}` : page;
 }
 
 /** Where a Telegram launch lands: the app screen for the start param. */

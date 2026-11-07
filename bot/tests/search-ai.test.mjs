@@ -255,7 +255,7 @@ test("route checks consent even on a cached answer and separates models in the e
   assert.equal(first.status, 200);
   assert.equal(first.headers.get("cache-control"), "private, no-store");
   assert.equal(cache.size, 1);
-  assert.match([...cache.keys()][0], /version=library-answer-v3-grounded/);
+  assert.match([...cache.keys()][0], /version=library-answer-v4-cited-quotes/);
   const count = sent.length;
   const again = await request("Melchizedek", "Google");
   assert.equal(again.status, 200);
@@ -276,6 +276,61 @@ test("route checks consent even on a cached answer and separates models in the e
 });
 
 const modelReply = text => ({ choices: [{ message: { content: text } }], usage: { prompt_tokens: 800, completion_tokens: 80 } });
+
+function genesisFixture(t, draft) {
+  const f = fixture(t, { response: draft, usage: { prompt_tokens: 800, completion_tokens: 80 } });
+  delete f.env.SEARCH_AI_MODEL;
+  delete f.env.SEARCH_AI_FREE_ONLY;
+  f.env.DATA_ORIGIN = "https://data.test";
+  f.env.VEC.query = async () => ({ matches: [] });
+  const oldFetch = globalThis.fetch, oldCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async url => {
+    const path = new URL(url).pathname;
+    if (path === "/api/kjv/books.json") return Response.json([{ book: "Genesis", slug: "genesis", chapters: 50 }]);
+    if (path === "/api/kjv/genesis/1.json") return Response.json({ book: "Genesis", chapter: 1, verses: [{ verse: 1, text: "In the beginning God created the heaven and the earth." }] });
+    return new Response("", { status: 404 });
+  };
+  t.after(() => { globalThis.fetch = oldFetch; globalThis.caches = oldCaches; });
+  return f;
+}
+
+test("the exact Genesis 1:1 cited draft survives checkedVerses into valid citation diagnostics", async t => {
+  for (const draft of [
+    "> In the beginning God created the heaven and the earth. [1] **Genesis 1:1**",
+    "> In the beginning God created the heaven and the earth. **Genesis 1:1** [1]",
+  ]) {
+    await t.test(draft.endsWith("[1]") ? "after reference" : "before reference", async t => {
+      const { env, sent } = genesisFixture(t, draft);
+      const r = await answerSearch(env, "What does Genesis 1:1 say?", 7);
+      assert.equal(r.ok, true);
+      assert.equal(r.answer, draft);
+      assert.ok(r.citation_diagnostics.valid_ids >= 1);
+      assert.equal(r.citation_diagnostics.citation_tokens_found, 1);
+      assert.equal(r.citation_diagnostics.retries, 0);
+      assert.equal(r.sources[0].n, 1);
+      assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
+      const calls = sent.filter(s => s.model === r.model);
+      assert.equal(calls.length, 1, "a preserved citation needs no retry");
+      assert.match(calls[0].input.messages[0].content, /source_n=1 -> \[1\]/);
+      assert.match(calls[0].input.messages[0].content, /Worked formatting example/);
+    });
+  }
+});
+
+test("the plain citation guide reaches both real adapter calls; still-uncited output stays honest", async t => {
+  const { env, sent } = genesisFixture(t, "> In the beginning God created the heaven and the earth. **Genesis 1:1**");
+  const r = await answerSearch(env, "What does Genesis 1:1 say?", 7);
+  assert.equal(r.state, "no-cited-answer");
+  assert.deepEqual(r.sources, []);
+  const calls = sent.filter(s => s.model === r.model);
+  assert.equal(calls.length, 2);
+  for (const call of calls) {
+    assert.match(call.input.messages[0].content, /source_n=1 -> \[1\]/);
+    assert.match(call.input.messages[0].content, /Its recorded Bible reference\*\* \[1\]/);
+  }
+  assert.match(calls[1].input.messages[0].content, /Write a fresh answer/);
+});
 test("one citation retry repairs an uncited draft using the same evidence and reservation", async t => {
   let n = 0;
   const { env, sql, sent } = fixture(t, () => modelReply(++n === 1 ? "Private uncited draft." : "Melchizedek was king of Salem [1]."));

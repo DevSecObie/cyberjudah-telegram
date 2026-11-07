@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { guardVerses } from "../src/verse-guard.mjs";
+import { citationReport } from "../src/citations.mjs";
 
 const books = [{ book: "Exodus", slug: "exodus", chapters: 40 }, { book: "Deuteronomy", slug: "deuteronomy", chapters: 34 }];
 const chapters = {
@@ -25,9 +26,32 @@ test("a misquoted verse is replaced with the King James text; an unreadable one 
 
 test("a misquote of a long range is taken out rather than pasted whole", async () => {
   const long = { verses: Array.from({ length: 10 }, (_, i) => ({ verse: i + 1, text: `verse ${i + 1} text of the law` })) };
-  const r = await guardVerses("Before.\n> Made-up words here. **Exodus 12:1-10**\nAfter.", books, async () => long);
+  const r = await guardVerses("Before.\n> Made-up words here. **Exodus 12:1-10** [1]\nAfter.", books, async () => long);
   assert.equal(r.text, "Before.\nAfter.");
   assert.equal(r.removed, 1);
+});
+
+test("quote citations before or after the bold reference stay separate from exact KJV words", async () => {
+  const text = chapters["exodus/12"].verses[0].text;
+  for (const line of [`> ${text} [1] **Exodus 12:14**`, `> ${text} **Exodus 12:14** [1]`, `> ${text} **Exodus 12:14**. [1, 2].`]) {
+    const r = await guardVerses(line, books, chapter);
+    assert.equal(r.text, line);
+    assert.deepEqual([r.checked, r.fixed, r.removed], [1, 0, 0]);
+    assert.ok(citationReport(r.text, [1, 2]).supported.length >= 1);
+  }
+});
+
+test("a cited misquote is checked and repaired without inventing or laundering its IDs", async () => {
+  for (const line of ["> Made-up words [2, 99] **Exodus 12:14**", "> Made-up words **Exodus 12:14** [2, 99]"]) {
+    const r = await guardVerses(line, books, chapter);
+    assert.equal(r.fixed, 1);
+    assert.equal(r.text, `> ${chapters["exodus/12"].verses[0].text} **Exodus 12:14** [2, 99]`);
+    assert.deepEqual(citationReport(r.text, [2]), { supported: [2], unsupported_refs: ["[2, 99]"] });
+  }
+  const invalid = await guardVerses("> Made-up words [01] **Exodus 12:14** [-1]", books, chapter);
+  assert.deepEqual(citationReport(invalid.text, [1]), { supported: [], unsupported_refs: ["[01]", "[-1]"] });
+  const plain = await guardVerses("> Made-up words **Exodus 12:14**", books, chapter);
+  assert.deepEqual(citationReport(plain.text, [1]).supported, [], "uncited quotes never gain fabricated citations");
 });
 
 test("the Ask test set is well formed: unique ids, a question each, and no approved answer invented for the owner", async () => {
