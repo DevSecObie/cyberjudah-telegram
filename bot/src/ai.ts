@@ -31,6 +31,7 @@ import { citationReport, citationTokenCount } from "./citations.mjs";
 import { autoModel } from "./ask-routing";
 import { approvedSources as approvedOutsideHosts } from "./source-policy";
 import { recordedMoment, retrievedSourceUrl } from "./retrieved-source-url";
+import { issueAnswerReceipt } from "./feedback";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -727,7 +728,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return reply(400, { error: "too-short" });
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, history.length, userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
@@ -758,6 +759,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
+      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => send({ ...value, answer_id: await issueAnswerReceipt(env, userId, value.sources) });
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
@@ -797,7 +799,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
-              send({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) });
+              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) });
               // What the answer cost, and the balance after it; the free model and admins pay nothing.
               if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
               else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });
@@ -814,13 +816,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             const answer = "The search did not find enough reliable material in the library to answer that question.";
             await finish("empty");
             await keep(answer, [], []);
-            send({ delta: answer }); send({ done: true, answer, followups: [], sources: [], unsupported_refs: [] }); return;
+            send({ delta: answer }); await done({ done: true, answer, followups: [], sources: [], unsupported_refs: [] }); return;
           }
           if (assessCoverage(env, retrievalText(question, history), passages).blocked) {
             const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
             const sources = await askSourcesOf(env, gap.answer, gap.sources);
             await finish("empty"); await keep(gap.answer, sources, []);
-            send({ reset: true }); send({ delta: gap.answer }); send({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
+            send({ reset: true }); send({ delta: gap.answer }); await done({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
           }
           let answer = "";
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal)) { answer += piece; send({ delta: piece }); }
@@ -830,7 +832,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
           await finish("backup");
-          send({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
+          await done({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;

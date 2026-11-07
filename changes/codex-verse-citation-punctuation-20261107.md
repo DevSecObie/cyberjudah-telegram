@@ -1,0 +1,1 @@
+- Keep a Scripture quotation's existing source citations when sentence punctuation follows the citation before its bold Bible reference.
