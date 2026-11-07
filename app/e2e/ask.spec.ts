@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { STAND_IN, type Logged } from "./stand-ins";
 import type { ClaudeRequest } from "./claude";
+import { directAskWorker } from "./direct-ask-worker";
 import { pid } from "../../bot/src/privacy.mjs";
 
 /**
@@ -51,7 +52,7 @@ async function setup(page: Page) {
     const id = Number(JSON.parse(new URLSearchParams(data).get("user") ?? "{}").id);
     if (id && !funded.has(id)) {
       funded.add(id);
-      await page.request.post("/api/admin/adjust", { headers: { authorization: `tma ${adminData()}` }, data: { user: id, usd: 5, ref: "e2e-fund", note: "e2e" } });
+      await page.request.post(new URL("/api/admin/adjust", r.request().url()).href, { headers: { authorization: `tma ${adminData()}` }, data: { user: id, usd: 5, ref: "e2e-fund", note: "e2e" } });
     }
     await r.continue();
   });
@@ -197,33 +198,44 @@ test("a refusal is said plainly and is not shown as an answer", async ({ page })
   await expect(answer(page)).toContainText("CyberJudah can't answer that one. Ask about the Scripture, the teachings or the app.");
 });
 
-test("leaving mid-answer stops research, refunds the hold and lets the reader retry", async ({ page, request }) => {
-  test.setTimeout(90_000);
-  await setup(page);
-  await page.goto(`/ask${launch(8)}`);
-  await ask(page, "Answer this slowly");
-  await expect(answer(page).locator(".msg__thinking")).toBeVisible();
-  // While it is answering, a typed question stays in the composer instead of being lost.
-  await page.getByRole("textbox", { name: "Your question" }).fill("And then?");
-  await page.getByRole("textbox", { name: "Your question" }).press("Enter");
-  await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue("And then?");
-  // The typing indicator appears before resource pins load and the request is sent.
-  // Establish that the Worker accepted this question before testing mid-answer recovery.
-  const chat = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).chatId as string, `cj:ask:${RUN + 8}`);
-  await expect.poll(async () => {
-    const response = await page.request.get(`/api/chats/${chat}`, { headers: { authorization: `tma ${initData(8)}` } });
-    if (response.status() === 404) return null;
-    expect(response.ok()).toBe(true);
-    return (await response.json()).pending?.q;
-  }).toBe("Answer this slowly");
-  // The app is closed and opened again mid-answer.
-  await page.reload();
-  await expect(answer(page)).toContainText("This answer was interrupted before it was saved. Try again.", { timeout: 30_000 });
-  await expect(answer(page)).not.toContainText("A short answer to: Answer this slowly");
-  const usage = await (await request.get('/api/ask/history', { headers: { authorization: `tma ${initData(8)}` } })).json();
-  expect(usage.items.filter((item: { charged_mc: number }) => item.charged_mc > 0)).toHaveLength(0);
-  await shot(page, "4-interrupted-retry");
-});
+for (const streaming of [true, false]) {
+  test(`leaving mid-answer ${streaming ? "streamed" : "JSON"} stops research, refunds the hold and lets the reader retry`, async ({ page, request }) => {
+    test.setTimeout(90_000);
+    const direct = await directAskWorker();
+    funded.delete(RUN + 8);
+    try {
+      await setup(page);
+      if (!streaming) {
+        // Exercise the JSON handler too: its internal NDJSON reader cannot observe a network
+        // cancellation itself, so only the incoming request signal can stop the research.
+        await page.route("**/api/ask", route => route.continue({ postData: JSON.stringify({ ...route.request().postDataJSON(), model: "claude-sonnet-5-5", stream: false }) }));
+      }
+      await page.goto(`${direct.url}/app/ask${launch(8)}`);
+      await ask(page, "Answer this slowly");
+      await expect(answer(page).locator(".msg__thinking")).toBeVisible();
+      // While it is answering, a typed question stays in the composer instead of being lost.
+      await page.getByRole("textbox", { name: "Your question" }).fill("And then?");
+      await page.getByRole("textbox", { name: "Your question" }).press("Enter");
+      await expect(page.getByRole("textbox", { name: "Your question" })).toHaveValue("And then?");
+      // The typing indicator appears before resource pins load and the request is sent.
+      // Establish that the Worker accepted this question before testing mid-answer recovery.
+      const chat = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)!).chatId as string, `cj:ask:${RUN + 8}`);
+      await expect.poll(async () => {
+        const response = await page.request.get(`${direct.url}/api/chats/${chat}`, { headers: { authorization: `tma ${initData(8)}` } });
+        if (response.status() === 404) return null;
+        expect(response.ok()).toBe(true);
+        return (await response.json()).pending?.q;
+      }).toBe("Answer this slowly");
+      // The app is closed and opened again mid-answer.
+      await page.reload();
+      await expect(answer(page)).toContainText("This answer was interrupted before it was saved. Try again.", { timeout: 30_000 });
+      await expect(answer(page)).not.toContainText("A short answer to: Answer this slowly");
+      const usage = await (await request.get(`${direct.url}/api/ask/history`, { headers: { authorization: `tma ${initData(8)}` } })).json();
+      expect(usage.items.filter((item: { charged_mc: number }) => item.charged_mc > 0)).toHaveLength(0);
+      await shot(page, "4-interrupted-retry");
+    } finally { await direct.dispose(); }
+  });
+}
 
 test("the conversation is kept per account on this device", async ({ page }) => {
   await setup(page);

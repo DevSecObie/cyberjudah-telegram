@@ -125,3 +125,21 @@ The Worker opts into `enable_request_signal` for non-stream client disconnection
 compatibility date. Ask explicitly forwards that signal to model/embedding calls; the flag does
 not itself add automatic subrequest cancellation. Webhook/payment handlers do not forward it to
 their settlement work. See [Cloudflare's compatibility documentation](https://developers.cloudflare.com/workers/configuration/compatibility-flags/).
+
+
+The reload/cancellation browser test uses Wrangler's real bundled Worker and `wrangler.jsonc`
+on a direct workerd socket, with isolated local storage and the scripted local Claude provider.
+Wrangler 4.156's development ProxyWorker has a 2023-12-18 compatibility date without
+`enable_request_signal` and detaches its upstream fetch, so that proxy does not carry a browser
+reload's disconnect to the Worker. The direct fixture avoids that development-only hop; it does
+not skip the cancellation or refund assertions. A local HTTP relay converts the browser close
+into a TCP reset so workerd reliably observes it before JSON response headers exist. Production keeps compatibility date `2025-05-01`
+and explicitly opts into `enable_request_signal`.
+
+To check the test's sensitivity, run the focused browser case with the test-only environment
+variable `E2E_DISABLE_REQUEST_SIGNAL=1`. It removes only that flag from the isolated workerd
+fixture. The JSON-response variant must fail its interruption assertion as the scripted answer
+completes: unlike the streamed response, its internal NDJSON reader cannot observe the physical
+client disconnect through a stream cancellation hook. No deployed
+config or Cloudflare resource is changed. The provider-deadline unit test injects a TimeoutError
+after provider entry so runner load cannot move its deadline into setup.

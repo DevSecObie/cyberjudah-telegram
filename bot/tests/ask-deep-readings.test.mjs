@@ -275,17 +275,19 @@ test('cancelled or expired research starts no provider call, and sources are bou
 });
 
 test('a hard deadline aborts the provider, returns marked verbatim evidence and starts no further research', async () => {
-  const f = fixture();
+  const f = fixture(), deadline = new AbortController();
   f.env.AI = { run: async (_model, input, options) => {
     f.requests.push(input);
-    return new Promise((_resolve, reject) => options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true }));
+    return new Promise((_resolve, reject) => {
+      options.signal.addEventListener('abort', () => reject(options.signal.reason), { once: true });
+      // Fire the deadline after the provider starts. A 100 ms wall-clock window can expire
+      // during setup on a loaded runner, testing the pre-call rejection instead of this path.
+      deadline.abort(new DOMException('Research deadline reached', 'TimeoutError'));
+    });
   } };
-  const keepAlive = setTimeout(() => {}, 250);
-  try {
-    const result = await runAgent(f.env, 'Read recorded material', [], [{ kind: 'note', title: 'Recorded material', url: '/study/recorded', text: 'Existing recorded source words, copied exactly.' }], async () => [], () => {}, undefined, undefined, modelOf('@cf/google/gemma-4-26b-a4b-it'), undefined, undefined, 25, false, { deadlineAt: Date.now() + 100 });
-    assert.equal(result.cut, true);
-    assert.match(result.text, /Research reached its time limit/);
-    assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
-  } finally { clearTimeout(keepAlive); }
+  const result = await runAgent(f.env, 'Read recorded material', [], [{ kind: 'note', title: 'Recorded material', url: '/study/recorded', text: 'Existing recorded source words, copied exactly.' }], async () => [], () => {}, undefined, undefined, modelOf('@cf/google/gemma-4-26b-a4b-it'), undefined, undefined, 25, false, { signal: deadline.signal });
+  assert.equal(result.cut, true);
+  assert.match(result.text, /Research reached its time limit/);
+  assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
   assert.equal(f.requests.length, 1);
 });
