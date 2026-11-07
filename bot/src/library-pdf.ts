@@ -8,7 +8,8 @@ const ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/;
 type Book = { title: string; license: string; items: { id: string; label?: string }[]; chapters?: { k: number; vol: number; page: number; end: number }[] };
 type ArchiveFile = { name: string; format?: string; size?: string; private?: string | boolean };
 type ReadJson = <T>(path: string) => Promise<T | null>;
-type Send = (stream: ReadableStream<Uint8Array>, file: string, caption: string) => Promise<unknown>;
+type Send = (document: ReadableStream<Uint8Array> | string, file: string, caption: string) => Promise<unknown>;
+type FileCache = { get(key: string): Promise<string | null>; put(key: string, value: string, options: { expirationTtl: number }): Promise<unknown>; delete(key: string): Promise<unknown> };
 
 class PdfError extends Error {
   constructor(public status: number, message: string, public reason?: string) { super(message); }
@@ -42,14 +43,14 @@ async function allowed(read: ReadJson, slug: unknown, item: unknown) {
   return book;
 }
 
-async function fromArchive(book: Book, item: string, fetcher: typeof fetch) {
+async function fromArchive(book: Book, item: string, fetcher: typeof fetch, preferText = false) {
   const meta = await archive(`https://archive.org/metadata/${item}`, {}, fetcher);
   if (!meta.ok) throw unavailable();
   const info = await meta.json() as { is_dark?: boolean; metadata?: { "access-restricted-item"?: string }; files?: ArchiveFile[] };
   if (info.is_dark || info.metadata?.["access-restricted-item"] === "true") throw unavailable();
   const files = (info.files ?? []).filter(f => !f.private && safeFile(f.name));
   const pdfs = files.filter(f => /\.pdf$/i.test(f.name) && /^(Text PDF|Image Container PDF|PDF)$/i.test(f.format ?? ""));
-  const pdf = pdfs.find(f => f.name === `${item}.pdf`) ?? pdfs.find(f => f.format === "Text PDF") ?? pdfs[0];
+  const pdf = (preferText ? pdfs.find(f => f.format === "Text PDF") : undefined) ?? pdfs.find(f => f.name === `${item}.pdf`) ?? pdfs.find(f => f.format === "Text PDF") ?? pdfs[0];
   if (!pdf) throw unavailable();
   return { book, item, size: Number(pdf.size) || null, url: `https://archive.org/download/${item}/${encodeURIComponent(pdf.name)}` };
 }
@@ -75,8 +76,77 @@ async function open(doc: Doc, range: string | null, fetcher: typeof fetch, mirro
   return archive(url, { headers: range ? { range } : {} }, fetcher);
 }
 
+/** Upload a bounded stream; a missing or inaccurate Archive size never bypasses the limit. */
+async function upload(doc: Doc, send: Send | undefined, fetcher: typeof fetch, mirror?: Mirror): Promise<unknown> {
+  if ((doc.size ?? 0) > TELEGRAM_PDF_LIMIT) throw tooLarge();
+  const res = await open(doc, null, fetcher, mirror);
+  if (!res.ok || !res.body || !/^application\/pdf\b/i.test(res.headers.get("content-type") ?? "")) { await res.body?.cancel(); throw unavailable(); }
+  if (Number(res.headers.get("content-length")) > TELEGRAM_PDF_LIMIT) { await res.body.cancel(); throw tooLarge(); }
+  const reader = res.body.getReader();
+  let size = 0, exceeded = false;
+  const stream = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const chunk = await reader.read();
+        if (chunk.done) { reader.releaseLock(); controller.close(); return; }
+        size += chunk.value.byteLength;
+        if (size > TELEGRAM_PDF_LIMIT) { exceeded = true; await reader.cancel(); controller.error(tooLarge()); return; }
+        controller.enqueue(chunk.value);
+      } catch (e) { await reader.cancel().catch(() => undefined); controller.error(e); }
+    },
+    cancel: reason => reader.cancel(reason),
+  });
+  try {
+    if (!send) throw new Error("No chat");
+    return await send(stream, `${doc.item}.pdf`, doc.book.title.slice(0, 1000));
+  } catch {
+    await reader.cancel().catch(() => undefined);
+    if (exceeded) throw tooLarge();
+    throw new PdfError(400, "The bot could not send you the file. Open a chat with the bot, press Start, and try again.");
+  }
+}
+
+/** Only our shelf's explicit public-domain Archive IDs can use the additional chat-delivery path. */
+async function sendArchive(id: unknown, token: string, read: ReadJson, send: Send | undefined, fetcher: typeof fetch, mirror?: Mirror, cache?: FileCache) {
+  if (typeof id !== "string" || !ID.test(id)) throw new PdfError(400, "Not a public-domain library book.");
+  const shelf = await read<{ archive?: string; status?: string; title?: string }[]>("/api/library/class-books.json");
+  const row = shelf?.find(book => book.archive === id && book.status === "public-domain" && typeof book.title === "string" && book.title.length);
+  if (!row) throw unavailable();
+  if (!send) throw new PdfError(400, "Open a chat with the bot, press Start, and try again.");
+  const book: Book = { title: row.title!, license: "Public domain.", items: [{ id }] };
+  const key = `library-pdf-file:v1:${token.split(":")[0]}:${id}`;
+  const cached = await cache?.get(key).catch(() => null);
+  if (cached && /^[A-Za-z0-9_-]{8,1024}$/.test(cached)) {
+    try { await send(cached, `${id}.pdf`, book.title.slice(0, 1000)); return; }
+    catch {
+      await cache?.delete(key).catch(() => undefined);
+      throw new PdfError(400, "The bot could not send you the file. Open a chat with the bot, press Start, and try again.");
+    }
+  }
+  const heldSize = mirror ? await mirror.head(mirrorKey(id)).catch(() => null) : null;
+  const doc: Doc = heldSize !== null
+    ? { book, item: id, size: heldSize, mirrored: true }
+    : { ...(await fromArchive(book, id, fetcher, true)), mirrored: false };
+  if ((doc.size ?? 0) > TELEGRAM_PDF_LIMIT) throw tooLarge();
+  let result: unknown;
+  // Telegram fetches PDFs by URL up to 20 MB; larger or unknown sizes use the bounded upload.
+  if (!doc.mirrored && doc.url && doc.size !== null && doc.size > 0 && doc.size <= 20 * 1024 * 1024) {
+    const head = await archive(doc.url, { method: "HEAD" }, fetcher);
+    const actual = Number(head.headers.get("content-length"));
+    await head.body?.cancel();
+    if (actual > TELEGRAM_PDF_LIMIT) throw tooLarge();
+    if (head.ok && /^application\/pdf\b/i.test(head.headers.get("content-type") ?? "") && actual > 0 && actual <= 20 * 1024 * 1024) {
+      try { result = await send(doc.url, `${id}.pdf`, book.title.slice(0, 1000)); }
+      catch { throw new PdfError(400, "The bot could not send you the file. Open a chat with the bot, press Start, and try again."); }
+    } else result = await upload(doc, send, fetcher, mirror);
+  } else result = await upload(doc, send, fetcher, mirror);
+  const fileId = (result as { document?: { file_id?: unknown } } | undefined)?.document?.file_id;
+  if (typeof fileId === "string" && /^[A-Za-z0-9_-]{8,1024}$/.test(fileId)) await cache?.put(key, fileId, { expirationTtl: 86400 }).catch(() => undefined);
+}
+
 /** The viewer streams from the same allow-list as chat delivery: our own copy when we hold one, archive.org otherwise. */
-export async function libraryPdf(request: Request, token: string, read: ReadJson, send?: Send, fetcher: typeof fetch = fetch, mirror?: Mirror): Promise<Response> {
+export async function libraryPdf(request: Request, token: string, read: ReadJson, send?: Send, fetcher: typeof fetch = fetch, mirror?: Mirror, cache?: FileCache): Promise<Response> {
+  let archiveRequest = false;
   try {
     const url = new URL(request.url);
     if (request.method === "GET") {
@@ -93,38 +163,19 @@ export async function libraryPdf(request: Request, token: string, read: ReadJson
       for (const key of ["content-length", "content-range", "accept-ranges", "etag", "last-modified"]) { const value = upstream.headers.get(key); if (value) headers.set(key, value); }
       return new Response(upstream.body, { status: upstream.status, headers });
     }
-    const body = await request.json().catch(() => null) as { slug?: unknown; item?: unknown; send?: boolean; printed?: number } | null;
-    if (!body || typeof body !== "object" || Object.keys(body).some(k => !["slug", "item", "send", "printed"].includes(k))) throw new PdfError(400, "Not a library PDF request.");
+    const body = await request.json().catch(() => null) as { slug?: unknown; item?: unknown; archive?: unknown; send?: boolean; printed?: number } | null;
+    archiveRequest = !!body && typeof body === "object" && "archive" in body;
+    if (!body || typeof body !== "object" || Object.keys(body).some(k => !["slug", "item", "archive", "send", "printed"].includes(k))) throw new PdfError(400, "Not a library PDF request.");
+    if (archiveRequest) {
+      if (Object.keys(body).some(k => !["archive", "send"].includes(k)) || body.send !== true) throw new PdfError(400, "Not a public-domain library PDF request.");
+      await sendArchive(body.archive, token, read, send, fetcher, mirror, cache);
+      return Response.json({ ok: true, sent: true });
+    }
     if (body.send !== undefined && typeof body.send !== "boolean") throw new PdfError(400, "Not a library PDF request.");
     if (body.printed !== undefined && (!Number.isSafeInteger(body.printed) || body.printed < 1)) throw new PdfError(400, "Not a library PDF page.");
     const doc = await resolve(read, body.slug, body.item, fetcher, mirror);
     if (body.send) {
-      if ((doc.size ?? 0) > TELEGRAM_PDF_LIMIT) throw tooLarge();
-      const res = await open(doc, null, fetcher, mirror);
-      if (!res.ok || !res.body || !/^application\/pdf\b/i.test(res.headers.get("content-type") ?? "")) { await res.body?.cancel(); throw unavailable(); }
-      if (Number(res.headers.get("content-length")) > TELEGRAM_PDF_LIMIT) { await res.body.cancel(); throw tooLarge(); }
-      const reader = res.body.getReader();
-      let size = 0, exceeded = false;
-      const stream = new ReadableStream<Uint8Array>({
-        async pull(controller) {
-          try {
-            const chunk = await reader.read();
-            if (chunk.done) { reader.releaseLock(); controller.close(); return; }
-            size += chunk.value.byteLength;
-            if (size > TELEGRAM_PDF_LIMIT) { exceeded = true; await reader.cancel(); controller.error(tooLarge()); return; }
-            controller.enqueue(chunk.value);
-          } catch (e) { await reader.cancel().catch(() => undefined); controller.error(e); }
-        },
-        cancel: reason => reader.cancel(reason),
-      });
-      try {
-        if (!send) throw new Error("No chat");
-        await send(stream, `${doc.item}.pdf`, doc.book.title.slice(0, 1000));
-      } catch {
-        await reader.cancel().catch(() => undefined);
-        if (exceeded) throw tooLarge();
-        throw new PdfError(400, "The bot could not send you the file. Open a chat with the bot, press Start, and try again.");
-      }
+      await upload(doc, send, fetcher, mirror);
       return Response.json({ ok: true, sent: true });
     }
     let page: number | undefined;
@@ -145,6 +196,10 @@ export async function libraryPdf(request: Request, token: string, read: ReadJson
     const signed = `${url.origin}${path}?exp=${exp}&sig=${await pdfSig(token, path, exp)}`;
     return Response.json({ ok: true, url: signed, file: `${doc.item}.pdf`, size: doc.size, page });
   } catch (error) {
+    if (archiveRequest) {
+      const reason = error instanceof PdfError ? error.reason === "too-large" ? "too-big" : error.status === 404 ? "no-pdf" : "unavailable" : "unavailable";
+      return Response.json({ ok: false, sent: false, error: reason, message: error instanceof PdfError ? error.message : "The PDF could not be loaded just now. Try again in a moment." }, { status: error instanceof PdfError ? error.status : 502 });
+    }
     if (error instanceof PdfError) return Response.json({ ok: false, error: error.message, reason: error.reason }, { status: error.status });
     return Response.json({ ok: false, error: "The PDF could not be loaded just now. Try again in a moment." }, { status: 502 });
   }

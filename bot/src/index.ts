@@ -313,7 +313,7 @@ app.post("/api/notes/pdf", async (c) => {
   return c.json({ ok: true, url, file: pdfName(note) });
 });
 app.post("/api/library/pdf", c => libraryPdf(c.req.raw, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx),
-  (stream, file, caption) => new Api(c.env.BOT_TOKEN).sendDocument(c.get("tma").user!.id, new InputFile(stream, file), { caption }), fetch, libraryMirror(c.env)));
+  (document, file, caption) => new Api(c.env.BOT_TOKEN).sendDocument(c.get("tma").user!.id, typeof document === "string" ? document : new InputFile(document, file), { caption }), fetch, libraryMirror(c.env), c.env.SUBS));
 app.get("/api/library/pdf/:slug/:item", c => libraryPdf(c.req.raw, c.env.BOT_TOKEN, path => dataJson(c.env, path, c.executionCtx), undefined, fetch, libraryMirror(c.env)));
 // A backup of everything the reader kept (Bible Strong's Backup screen): the app sends its
 // CloudStorage keys, the bot sends them back as a JSON file in the reader's chat. Nothing is

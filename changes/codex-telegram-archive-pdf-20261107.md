@@ -1,0 +1,1 @@
+- Telegram can send the class-book shelf's allowlisted public-domain Archive PDFs to the reader's chat, using the recorded PDF filename, bounded streaming for larger files and reusable Telegram file IDs.
