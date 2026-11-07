@@ -3,6 +3,7 @@ import { isVoice, takeQuotaKey, toBytes } from "./ai";
 import { VOICE_MODEL } from "./ai.mjs";
 import { viaGateway } from "./providers";
 import { reserveFreeBudget, settleFreeBudget } from "./free-budget";
+import { citationPattern } from "./citations.mjs";
 
 /**
  * Voice for the app's Ask: a question spoken aloud becomes text (speech recognition), and an answer
@@ -20,7 +21,7 @@ const day = () => new Date().toISOString().slice(0, 10);
 
 /** Markdown and citation marks taken off, so the voice reads the words only. */
 export function speakable(text: string) {
-  return text.replace(/\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/g, "").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+  return text.replace(new RegExp(`\\s*${citationPattern().source}`, 'g'), "").replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/^#{1,6}\s*/gm, "").replace(/^>\s?/gm, "").replace(/[*_`]+/g, "").replace(/^\s*[-•]\s+/gm, "").replace(/\n{2,}/g, "\n").trim();
 }
 

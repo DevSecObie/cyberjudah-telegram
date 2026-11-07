@@ -8,9 +8,13 @@ import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
+import { MAX_RESEARCH_ROUNDS, MAX_RESEARCH_MS, adminBudgetPool, researchRounds, researchSignal, timeLeft } from "./research-policy.mjs";
+import { withTeachers } from "./class-attribution";
+export { withTeachers } from "./class-attribution";
+import { backupOnce, backupPieces } from "./backup-answer";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
-import { alertClaudeFunds, claude, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
+import { alertClaudeFunds, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
@@ -33,10 +37,11 @@ export { freeSpendToday, freePaused } from "./free-budget";
  * citations (llama 3.3 70b), search by meaning, and the reading voices (Deepgram Aura),
  * each verse generated once and kept in R2.
  */
-export async function embed(env: Env, texts: string[]): Promise<number[][]> {
+export async function embed(env: Env, texts: string[], signal?: AbortSignal): Promise<number[][]> {
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += 100) {
-    const res = await env.AI.run(EMBED_MODEL, { text: texts.slice(i, i + 100) }, viaGateway(env)) as { data?: number[][] };
+    signal?.throwIfAborted();
+    const res = await env.AI.run(EMBED_MODEL, { text: texts.slice(i, i + 100) }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { data?: number[][] };
     out.push(...(res.data ?? []));
   }
   return out;
@@ -51,11 +56,11 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
  * The passages for a question: the twenty closest in meaning from the index and the best
  * keyword matches from the library search, together, reranked by whether they answer it.
  */
-export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend): Promise<(Passage & { score: number })[]> {
+export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend, signal?: AbortSignal): Promise<(Passage & { score: number })[]> {
   const [vectorRes, keywordRes] = await Promise.all([
     // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
     // so a question is still answered (and Claude can still research) rather than failing whole.
-    embed(env, [text]).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] }))
+    embed(env, [text], signal).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] }))
       .catch((e: Error) => { console.error(JSON.stringify({ event: "retrieve_vector_failed", message: e.message?.slice(0, 120) })); return { matches: [] as VectorizeMatches["matches"] }; }),
     runSearch(env.DB, text, undefined, 3, true).catch(() => null),
   ]);
@@ -67,37 +72,7 @@ export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend)
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
   // What this search cost: the question embedded, one vector query, and what the reranker read.
   spend?.search({ query: text, contexts: all.length > 1 ? all.map((p) => `${p.title}\n${p.text}`.slice(0, 2000)) : [] });
-  return withTeachers(env, await rerank(env, text, all, topK));
-}
-
-/**
- * Who taught each passage's class, from the published class notes (their recording and page), so
- * the answer can put the Bishops' and Deacons' teaching first and name a teacher only when the
- * notes do. A class with no note, or a note with no teacher, stays unnamed: never guessed.
- */
-type NoteRow = { url?: string; videoId?: string | null; teacher?: string };
-let teacherIndex: { at: number; byVideo: Map<string, string>; byUrl: Map<string, string> } | null = null;
-async function teachers(env: Env) {
-  if (teacherIndex && Date.now() - teacherIndex.at < 3_600_000) return teacherIndex;
-  const rows = await dataJson<NoteRow[]>(env, "/api/notes/index.json").catch(() => null);
-  if (!Array.isArray(rows)) return teacherIndex;
-  const byVideo = new Map<string, string>(), byUrl = new Map<string, string>();
-  for (const r of rows) {
-    const teacher = typeof r.teacher === "string" ? r.teacher.trim().slice(0, 80) : "";
-    if (!teacher) continue;
-    if (r.videoId) byVideo.set(r.videoId, teacher);
-    if (r.url) byUrl.set(r.url, teacher);
-  }
-  teacherIndex = { at: Date.now(), byVideo, byUrl };
-  return teacherIndex;
-}
-export async function withTeachers<T extends Passage>(env: Env, passages: T[]): Promise<T[]> {
-  const index = await teachers(env).catch(() => null);
-  if (!index) return passages;
-  return passages.map((p) => {
-    const teacher = (p.video && index.byVideo.get(p.video)) || (p.url && index.byUrl.get(p.url.split(/[?#]/)[0])) || "";
-    return teacher ? { ...p, teacher } : p;
-  });
+  return withTeachers(env, await rerank(env, text, all, topK, signal));
 }
 
 /**
@@ -105,12 +80,12 @@ export async function withTeachers<T extends Passage>(env: Env, passages: T[]): 
  * they answer it rather than by how near their words sit; the vector order stands when the
  * reranker is unavailable.
  */
-async function rerank<T extends Passage>(env: Env, question: string, passages: T[], topK: number): Promise<T[]> {
+async function rerank<T extends Passage>(env: Env, question: string, passages: T[], topK: number, signal?: AbortSignal): Promise<T[]> {
   if (passages.length <= 1) return passages.slice(0, topK);
   try {
     // The published type leaves `query` out; the model takes it.
     const input = { query: question, contexts: passages.map((p) => ({ text: `${p.title}\n${p.text}`.slice(0, 2000) })), top_k: topK };
-    const res = await (env.AI as unknown as { run(model: string, input: unknown, options?: unknown): Promise<unknown> }).run(RERANK_MODEL, input, viaGateway(env)) as { response?: { id?: number; score?: number }[] };
+    const res = await (env.AI as unknown as { run(model: string, input: unknown, options?: unknown): Promise<unknown> }).run(RERANK_MODEL, input, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { response?: { id?: number; score?: number }[] };
     const order = (res.response ?? []).filter((r) => typeof r.id === "number" && passages[r.id!]).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     if (!order.length) return passages.slice(0, topK);
     return order.slice(0, topK).map((r) => passages[r.id!]);
@@ -204,14 +179,14 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  */
 export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number; reservation?: FreeReservation };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
-export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number> };
+export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean };
 
 /**
- * The free tier answers at the owner's expense, so it is capped twice: fewer research rounds
- * (ASK_FREE_MAX_ROUNDS, 3) and a hard per-answer ceiling (ASK_FREE_MAX_USD, five cents).
+ * The free tier answers at the owner's expense, with the same default research guard
+ * (ASK_FREE_MAX_ROUNDS, 3 by default, at most 25) and a hard per-answer ceiling (ASK_FREE_MAX_USD, five cents).
  * Without the ceiling, one answer's budget is the paid per-request maximum.
  */
-const freeMaxRounds = (env: Env) => Math.max(1, Math.floor(Number(env.ASK_FREE_MAX_ROUNDS ?? 3)));
+const freeMaxRounds = (env: Env) => { const rounds = Number(env.ASK_FREE_MAX_ROUNDS ?? 3); return researchRounds(Number.isFinite(rounds) ? rounds : 3); };
 const freeMaxUsd = (env: Env) => Math.max(0.001, Number(env.ASK_FREE_MAX_USD ?? 0.05));
 
 export async function startMeter(env: Env, uid: number, model: AskModel, opts: MeterOpts = {}): Promise<MeterStart> {
@@ -233,14 +208,14 @@ async function startMeterFor(env: Env, uid: number, model: AskModel, opts: Meter
   const isFree = sponsoredSearch || freeSet.has(model.id);
   if (isFree || admin) {
     const budgeted = isFree && (!admin || sponsoredSearch);
-    const rounds = sponsoredSearch ? 1 : isFree && !admin ? freeMaxRounds(env) : 6;
+    const rounds = sponsoredSearch ? 1 : isFree && !admin ? freeMaxRounds(env) : MAX_RESEARCH_ROUNDS;
     const estFree = budgeted ? estimateMc(model, cfg, { rounds }) : est;
     const budget = budgeted ? Math.min(estFree.maxMc * MC_USD, freeMaxUsd(env)) : est.maxMc * MC_USD;
     let reservation: FreeReservation | undefined;
-    if (!admin || sponsoredSearch) {
+    {
       try {
-        const held = await reserveFreeBudget(env, crypto.randomUUID(), budget);
-        if (!held) return { ok: false, status: 429, body: { error: "free-paused" } };
+        const held = await reserveFreeBudget(env, crypto.randomUUID(), budget, Date.now(), admin && !sponsoredSearch ? adminBudgetPool(env) : undefined);
+        if (!held) return { ok: false, status: 429, body: { error: "free-paused", ...(admin && !sponsoredSearch ? { message: "The admin answer budget is used up for today. It resets at midnight UTC." } : {}) } };
         reservation = held;
       } catch {
         return { ok: false, status: 503, body: { error: "unavailable", message: "The free answer budget is unavailable. Please try again later." } };
@@ -272,16 +247,16 @@ async function startMeterFor(env: Env, uid: number, model: AskModel, opts: Meter
  * charge is recorded as written off. Returns the charge and the new balance, or null when nothing
  * was settled (the free model, an admin).
  */
-export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | "refused" | "empty" | "backup", elapsedMs?: number): Promise<{ charged_mc: number; balance: Wallet } | null> {
+export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | "refused" | "empty" | "backup" | "partial", elapsedMs?: number, chargePartial = false): Promise<{ charged_mc: number; balance: Wallet } | null> {
   const cost = m.spend.total();
   const actual = mcOfUsd(cost);
-  const charged = status === "ok" && !m.free ? Math.min(actual, m.held) : 0;
-  const detail = { calls: m.spend.calls, searches: m.spend.searches, model_usd: Math.round(m.spend.modelUsd * 1e6) / 1e6, research_usd: Math.round(m.spend.researchUsd * 1e6) / 1e6 };
+  const charged = (status === "ok" || (status === "partial" && chargePartial)) && !m.free ? Math.min(actual, m.held) : 0;
+  const detail = { calls: m.spend.calls, searches: m.spend.searches, model_usd: Math.round(m.spend.modelUsd * 1e6) / 1e6, research_usd: Math.round(m.spend.researchUsd * 1e6) / 1e6, usage_complete: !m.spend.unreported };
   console.log(JSON.stringify({ event: "ask_usage", model: m.model.id, status, cost_usd: Math.round(cost * 1e6) / 1e6, charged_mc: charged, held_mc: m.held, free: m.free, ...(elapsedMs !== undefined ? { elapsedMs } : {}), ...detail }));
   // Failed/backup calls may have incurred unreported provider costs. Keep their full
   // reservation; a failed settlement leaves the reservation held, never reusable.
   if (m.reservation) await settleFreeBudget(env, m.reservation,
-    status === "failed" || status === "backup" || m.spend.unreported ? Math.max(cost, m.spend.budgetUsd ?? 0) : cost);
+    m.spend.unreported || (!m.admin && (status === "failed" || status === "backup")) ? Math.max(cost, m.spend.budgetUsd ?? 0) : cost);
   if (m.free) return null;
   const r = await settle(env, m.owner, m.request, { actualMc: charged, costUsd: cost, status, model: m.model.id, detail, absorbedMc: actual - charged }).catch((e: Error) => { console.error(JSON.stringify({ event: "credits_settle_failed", message: e.message?.slice(0, 160) })); return null; });
   return r ? { charged_mc: r.charged_mc, balance: await wallet(env, m.owner) } : null;
@@ -296,7 +271,7 @@ async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): P
   if (!creditsOn(env)) {
     if (!(await allowed(env, uid))) return { ok: false, status: 429, body: { error: "limit" } };
     // Disabling reader billing does not disable the free models' shared allowance.
-    return freeModels(env).has(model.id) ? startMeter(env, uid, model, opts) : { ok: true, meter: null };
+    return freeModels(env).has(model.id) || isAdmin(env, uid) ? startMeter(env, uid, model, opts) : { ok: true, meter: null };
   }
   // Apply the reader quota before reserving the global budget: denied requests use none.
   if (freeModels(env).has(model.id) && !isAdmin(env, uid) && !(await allowed(env, uid))) return { ok: false, status: 429, body: { error: "limit" } };
@@ -304,11 +279,13 @@ async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): P
 }
 
 /** A question answered in one piece (the bot and older clients). It cannot ask first, so it is held to ASK_CONFIRM_ABOVE_USD at most. */
-export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = [], consent: string[] = [], resources?: ResourcePins): Promise<Answer> {
+export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = [], consent: string[] = [], resources?: ResourcePins, callerSignal?: AbortSignal): Promise<Answer> {
   const t0 = Date.now();
-  const question = q.trim().slice(0, 400);
+  const signal = researchSignal(callerSignal, t0 + MAX_RESEARCH_MS);
+  const question = q.trim();
+  if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  const model = modelOf(env.CLAUDE_MODEL || CLAUDE_DEFAULT);
+  const model = modelOf(defaultModelId(env, userId));
   // The one-piece answer uses the setup's own model: agreed to, as in askStream.
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const r = await begin(env, userId, model, { maxMc: creditsConfig(env).confirmAboveMc });
@@ -316,18 +293,19 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   const meter = r.meter;
   const spend = meter?.spend ?? freeSpend();
   try {
-    const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
+    const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), timeLeft(t0 + MAX_RESEARCH_MS)), 8);
+    signal.throwIfAborted();
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
-      const { text, passages, grounded } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources, undefined, true);
+      const { text, passages, grounded, cut } = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
       const answer = await checkedVerses(env, splitFollowups(text).answer);
-      if (meter) await finishMeter(env, meter, grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
+      if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
       return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
     }
     if (meter) await finishMeter(env, meter, "backup");
     const passages = first;
     if (assessCoverage(env, retrievalText(question, history), passages).blocked && passages.length) { const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`))); return { ok: true, q: question, answer: gap.answer, sources: await askSourcesOf(env, gap.answer, gap.sources), unsupported_refs: [], ms: Date.now() - t0 }; }
     if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], unsupported_refs: [], ms: Date.now() - t0 };
-    const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history)));
+    const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal));
     return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
     // An answer that failed is not charged: the hold goes back.
@@ -421,8 +399,8 @@ export function appAskModels(env: Env, adminId?: number, readers = false): AskMo
   const free = MODELS.filter(m => allowed.has(m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
   const claudeOk = !!adminId && isAdmin(env, adminId) && hasClaude(env);
   if (!claudeOk) return readers === true && claudeForReaders(env) ? [...readerClaudes(env), ...free] : free;
-  // The everyday model first (the app's default), then the lighter one and the admin's own.
-  const ids = [env.CLAUDE_MODEL || CLAUDE_DEFAULT, env.CLAUDE_MODEL_LIGHT, defaultModelId(env, adminId)].filter((id): id is string => !!id).map((id) => modelOf(id).id);
+  // The admin's chosen frontier model is also the native linked-account default.
+  const ids = [defaultModelId(env, adminId), env.CLAUDE_MODEL || CLAUDE_DEFAULT, env.CLAUDE_MODEL_LIGHT].filter((id): id is string => !!id).map((id) => modelOf(id).id);
   const claudes = [...new Set(ids)].map((id) => MODELS.find((m) => m.id === id && m.format === "anthropic")).filter((m): m is AskModel => !!m);
   return [...claudes, ...free];
 }
@@ -434,7 +412,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (question.length < 2) return { ok: false, reason: "too-short" };
   // An answer the owner approved for this very question: given at once, with no model and no cost.
   const approved = approvedFor(question, history);
-  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
+  if (approved) return { ok: true, answer: approved.answer, sources: await withTeachers(env, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
   // With no choice, a deep question (routeOf) goes to the stronger free model when one is configured
   // (ASK_FREE_DEEP_MODEL) and approved; everything else to the fast default.
   const deep = !options.model && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? appAskModels(env).find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
@@ -473,13 +451,14 @@ const freeFallback = (env: Env, models: AskModel[]) => (models.find((m) => m.id 
  * anyone but the owner's console, except on the Sabbath, feasts and New Moons (no paid calls from
  * sunset to dark), when the free model answers instead.
  */
-export async function answerAppAgent(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model?: string; emit?: (event: AgentEvent) => void; traceId?: string; adminId?: number; quotaTaken?: boolean } = {}): Promise<SearchAnswer> {
+export async function answerAppAgent(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], options: { model?: string; emit?: (event: AgentEvent) => void; traceId?: string; adminId?: number; quotaTaken?: boolean; signal?: AbortSignal } = {}): Promise<SearchAnswer> {
   const t0 = Date.now();
+  const signal = researchSignal(options.signal, t0 + MAX_RESEARCH_MS);
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const approved = approvedFor(question, history);
-  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
+  if (approved) return { ok: true, answer: approved.answer, sources: await withTeachers(env, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
   const models = appAskModels(env, options.adminId, true);
   const paid = models.filter((m) => m.format === "anthropic");
   const adminClaude = !!options.adminId && isAdmin(env, options.adminId) && paid.length > 0;
@@ -498,7 +477,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     // An admin's linked account: the admin meter holds nothing and charges no one.
     const started = await startMeter(env, options.adminId!, model, {});
     if (!started.ok) return { ok: false, reason: "unavailable" };
-    meter = { ...started.meter, maxRounds: 4 };
+    meter = { ...started.meter, maxRounds: MAX_RESEARCH_ROUNDS };
   } else if (model.format === "anthropic") {
     // A signed-in reader on Claude (claudeForReaders): the reader's daily limit, then the answer's
     // most is reserved against Claude's own daily cap. Past the cap the free model answers.
@@ -510,9 +489,9 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     if (!reservation) {
       // The free model answers this same question: its quota is already counted, and only with the
       // reader's own agreement to the free model's provider (never assumed).
-      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
+      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
     }
-    meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: creditsConfig(env).research }), model, free: true, admin: false, reservation, maxRounds: 4 };
+    meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: creditsConfig(env).research }), model, free: true, admin: false, reservation, maxRounds: MAX_RESEARCH_ROUNDS };
   } else {
     if (!options.quotaTaken && !(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
     const cfg = creditsConfig(env);
@@ -531,20 +510,20 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     // even when the model answers from these passages without searching again.
     const searchText = retrievalText(question, history);
     emit({ status: `Searching the classes and library for “${question.slice(0, 160)}”` });
-    const [found, verses] = await Promise.all([retrieve(env, searchText, 12, spend), versesNamed(env, question)]);
+    const [found, verses] = await withDeadline(Promise.all([retrieve(env, searchText, 12, spend, signal), versesNamed(env, question)]), timeLeft(t0 + MAX_RESEARCH_MS));
     const first = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
     for (const passage of first) emit({ status: `Reading ${passage.title.slice(0, 180)}` });
     let ran: Awaited<ReturnType<typeof runAgent>>;
     try {
-      ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), emit, undefined, undefined, model, spend, undefined, meter.maxRounds);
+      ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), emit, undefined, undefined, model, spend, undefined, meter.maxRounds, false, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
     } catch (e) {
-      if (model.format !== "anthropic" || !claudeUnavailable(e)) throw e;
+      if (signal.aborted || model.format !== "anthropic" || !claudeUnavailable(e)) throw e;
       // Claude cannot answer now (out of money, overloaded, down): the free model answers instead.
       await alertClaudeFunds(env, e);
       await finishMeter(env, meter, "backup", Date.now() - t0);
       emit({ reset: true });
       // Only with the reader's own agreement to the free model's provider; a reader's quota is already counted.
-      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeFallback(env, models), adminId: undefined, quotaTaken: !adminClaude });
+      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: !adminClaude });
     }
     const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
     if (!answer.trim() && ran.cut && model.format === "anthropic" && !adminClaude) {
@@ -552,10 +531,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
       // answers instead, with the reader's own agreement to its provider and no second quota.
       await finishMeter(env, meter, "backup", Date.now() - t0);
       emit({ reset: true });
-      return answerAppAgent(env, q, account, history, consent, { ...options, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
+      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
     }
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
-    await finishMeter(env, meter, ran.grounded === false ? "empty" : "ok", Date.now() - t0);
+    await finishMeter(env, meter, ran.cut ? "partial" : ran.grounded === false ? "empty" : "ok", Date.now() - t0);
     const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
     if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false) await keepAnswer(env, key, result, options.traceId);
@@ -670,50 +649,13 @@ const CLAUDE_DEFAULT = "claude-sonnet-5-5";
  */
 export const defaultModelId = (env: Env, userId: number) => (isAdmin(env, userId) ? env.CLAUDE_MODEL_ADMIN || "claude-opus-5-5" : env.CLAUDE_MODEL || CLAUDE_DEFAULT);
 
-/** The answer, whole: Claude when it can be called (hasClaude), Llama on Workers AI otherwise, or when Claude cannot answer now. */
-async function answerOnce(env: Env, messages: Msg[]): Promise<string> {
-  if (hasClaude(env)) {
-    try { return await claudeOnce(env, messages); }
-    catch (e) {
-      if (!claudeUnavailable(e)) throw e;
-      console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
-      await alertClaudeFunds(env, e);
-    }
-  }
-  const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3 }, viaGateway(env)) as { response?: string };
-  return (res.response ?? "").trim();
-}
-async function claudeOnce(env: Env, messages: Msg[]): Promise<string> {
-  {
-    const client = await claude(env);
-    const res = await client.messages.create({ model: env.CLAUDE_MODEL || CLAUDE_DEFAULT, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system: messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n"), messages: messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role as "user" | "assistant", content: m.content })) });
-    return res.content.filter((b) => b.type === "text").map((b) => (b as { text: string }).text).join("").trim();
-  }
+/** Legacy/provider-outage answers use a separately budgeted Workers AI backup. */
+async function answerOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): Promise<string> {
+  return backupOnce(env, messages, admin, sources, signal);
 }
 
-/** The answer as it is written, piece by piece: Claude, or Workers AI when there is no key or `backup` is asked for. */
-async function* answerPieces(env: Env, messages: Msg[], backup = false): AsyncGenerator<string> {
-  if (hasClaude(env) && !backup) {
-    const client = await claude(env);
-    const stream = client.messages.stream({ model: env.CLAUDE_MODEL || CLAUDE_DEFAULT, max_tokens: 4000, thinking: { type: "adaptive" }, output_config: { effort: "medium" }, system: messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n"), messages: messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role as "user" | "assistant", content: m.content })) });
-    for await (const event of stream) if (event.type === "content_block_delta" && event.delta.type === "text_delta") yield event.delta.text;
-    return;
-  }
-  const out = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: 900, temperature: 0.3, stream: true }, viaGateway(env)) as ReadableStream<Uint8Array>;
-  let buffer = "";
-  const reader = out.getReader(); const decoder = new TextDecoder();
-  for (;;) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n"); buffer = events.pop() ?? "";
-    for (const ev of events) for (const l of ev.split("\n")) {
-      if (!l.startsWith("data:")) continue;
-      const data = l.slice(5).trim();
-      if (data === "[DONE]") continue;
-      try { const piece = (JSON.parse(data) as { response?: string }).response ?? ""; if (piece) yield piece; } catch { /* a partial event */ }
-    }
-  }
+async function* answerPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): AsyncGenerator<string> {
+  yield* backupPieces(env, messages, admin, sources, signal);
 }
 
 /** The answer with every quoted verse checked against the King James text (verse-guard.mjs). */
@@ -753,7 +695,7 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
 const citationMetadata = (answer: string, passages: Passage[]) => ({ unsupported_refs: citationStateOf(answer, passages).unsupported_refs });
 
 // Telegram clients can show credited source text without opening an outside site.
-const askSourcesOf = (env: Env, answer: string, passages: Passage[]) => withAskSourcePictures(env, withAskBookLinks(sourcesOf(answer, passages)
+const askSourcesOf = async (env: Env, answer: string, passages: Passage[]) => withAskSourcePictures(env, withAskBookLinks((await withTeachers(env, sourcesOf(answer, passages)))
   .map(source => ({ ...source, excerpt: source.text.slice(0, 1000) }))));
 
 /**
@@ -761,7 +703,11 @@ const askSourcesOf = (env: Env, answer: string, passages: Passage[]) => withAskS
  * answer as the model writes it, then a line with the sources it cited.
  */
 export async function askStream(env: Env, q: string, userId: number, ctx: Exec | undefined, history: Turn[], chatId?: string, replaceLast = false, modelId?: string, consent: string[] = [], opts: MeterOpts = {}): Promise<Response> {
-  const question = q.trim().slice(0, 400);
+  const startedAt = Date.now();
+  const abort = new AbortController();
+  const signal = researchSignal(AbortSignal.any([abort.signal, ...(opts.signal ? [opts.signal] : [])]), startedAt + MAX_RESEARCH_MS);
+  const question = q.trim();
+  if (question.length > 4000) return Response.json({ error: "too-long", message: "Keep the question within 4,000 characters; use the library reading tools for full source material." }, { status: 400 });
   // The reader's choice of model, or their configured account default. With no choice, a light
   // question (routeOf) goes to the lighter Claude model when one is configured (CLAUDE_MODEL_LIGHT):
   // it is answered faster and costs the reader less. Admins keep their own default.
@@ -772,15 +718,15 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return reply(400, { error: "too-short" });
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(approvedSources(approved))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, history.length, userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
   if (!consent.includes(model.provider)) return reply(428, { error: "consent", provider: model.provider, model: model.name, ...(countryOf(model.provider) ? { country: countryOf(model.provider) } : {}) });
   // The balance: held before anything is spent, settled once at the end with what the answer
-  // actually cost (finishMeter). Leaving mid-answer does not cancel it (waitUntil), so it is still
-  // settled once. Too little for this model: Ask says so and offers the free model and a top-up.
+  // actually cost (finishMeter). A disconnect stops further research; accounting still
+  // settles once under waitUntil. Too little for this model: Ask says so and offers the free model and a top-up.
   // A routed light answer may cost up to what the reader accepted for their default model, which is dearer.
   const fallbackCap = light ? opts.caps?.[modelOf(undefined, defaultModelId(env, userId)).id] : undefined;
   const started = await begin(env, userId, model, fallbackCap && !opts.caps?.[model.id] ? { ...opts, caps: { ...opts.caps, [model.id]: fallbackCap } } : opts);
@@ -789,20 +735,20 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const spend = meter?.spend ?? freeSpend();
   const encoder = new TextEncoder();
   // The reader can leave at any moment (Stop, another screen, the app closed). From then on
-  // nothing more is sent, but the answer is still finished, saved and charged exactly once:
-  // the work runs under waitUntil, not inside the response, so leaving does not cancel it.
-  let open = true;
+  // the shared signal stops provider work and further tools. Accounting still completes under
+  // waitUntil, so already incurred costs are recorded and a failed answer is not charged.
+  let open = true, deliveredText = false, backupAnswer = false;
   let settled = false;
-  const finish = async (status: Parameters<typeof finishMeter>[2]) => {
+  const finish = async (status: Parameters<typeof finishMeter>[2], chargePartial = false) => {
     if (settled || !meter) return null;
     settled = true;
-    return finishMeter(env, meter, status);
+    return finishMeter(env, meter, status, undefined, chargePartial);
   };
   // While it is being answered, the conversation says so, for a refresh or another device to wait on.
   if (chatId) await markPending(env, userId, chatId, question).catch(() => undefined);
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); } catch { open = false; } };
+      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
@@ -812,18 +758,19 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       };
       const job = (async () => {
         try {
-          const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
+          const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), timeLeft(startedAt + MAX_RESEARCH_MS)), 8);
+    signal.throwIfAborted();
           let backup = false;
           // Claude needs its own access (hasClaude); every other model goes through the AI Gateway.
           if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds, true); }
+            try { ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds, true, { signal, deadlineAt: startedAt + MAX_RESEARCH_MS }); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.
-              if (!claudeUnavailable(e)) throw e;
+              if (signal.aborted || !claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
               await alertClaudeFunds(env, e);
               await finish("backup");
@@ -837,7 +784,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer, not charged.
               if (refused && !answer.trim()) { await finish("refused"); send({ error: "refused" }); return; }
               if (!answer.trim()) { await finish("empty"); send({ error: "empty" }); return; }
-              const used = await finish(grounded === false ? "empty" : "ok");
+              const used = await finish(cut ? "partial" : grounded === false ? "empty" : "ok");
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
@@ -848,6 +795,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               return;
             }
           }
+          backupAnswer = true;
           const passages = first;
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
@@ -866,7 +814,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             send({ reset: true }); send({ delta: gap.answer }); send({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
           }
           let answer = "";
-          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), backup)) { answer += piece; send({ delta: piece }); }
+          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal)) { answer += piece; send({ delta: piece }); }
           const { answer: clean, followups } = splitFollowups(answer);
           if (!clean.trim()) { send({ error: "empty" }); return; }
           const sources = await askSourcesOf(env, clean, passages);
@@ -876,7 +824,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
-          await finish("failed");
+          const paidPartial = signal.aborted && deliveredText && !backupAnswer;
+          await finish(paidPartial ? "partial" : "failed", paidPartial);
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
           send({ error: "unavailable" });
         } finally {
@@ -890,7 +839,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       await job;
       if (open) { open = false; try { controller.close(); } catch { /* already closed */ } }
     },
-    cancel() { open = false; },
+    cancel() { open = false; abort.abort(); },
   });
   return new Response(stream, { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
 }

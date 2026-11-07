@@ -1,0 +1,226 @@
+{
+  "source": "cloudflare/cloudflare-docs src/content/workers-ai-models and src/content/catalog-models",
+  "commit": "de99d4117751ea2b22dfc23247f2128b521072e0",
+  "models": {
+    "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b": {
+      "contextWindow": 80000,
+      "maxOutput": null,
+      "sourceBlob": "c4006a17944638fd3e5853e5565f4eea365d26c0"
+    },
+    "@cf/deepseek-ai/deepseek-v4-flash-0731": {
+      "contextWindow": 1048576,
+      "maxOutput": null,
+      "sourceBlob": "c9af19d3c04e02541b57c2aac8bd00a54f41ff8d"
+    },
+    "@cf/deepseek-ai/deepseek-v4-pro-0813": {
+      "contextWindow": 1048576,
+      "maxOutput": null,
+      "sourceBlob": "da103eb8fe18e1f2c349fdfc080a6ba828f62c3d"
+    },
+    "@cf/google/gemma-4-26b-a4b-it": {
+      "contextWindow": 256000,
+      "maxOutput": null,
+      "sourceBlob": "e1c7c66a87ec3684099125a6518343d60eb76825"
+    },
+    "@cf/aisingapore/gemma-sea-lion-v4-27b-it": {
+      "contextWindow": 128000,
+      "maxOutput": null,
+      "sourceBlob": "d3243fdad3e4c60a51dec4328e4dfa38972a52b9"
+    },
+    "@cf/zai-org/glm-4.7-flash": {
+      "contextWindow": 131072,
+      "maxOutput": null,
+      "sourceBlob": "f6716f080149dbc3734cf0886d9054b7593665a5"
+    },
+    "@cf/zai-org/glm-5.2": {
+      "contextWindow": 262144,
+      "maxOutput": null,
+      "sourceBlob": "11140cdb87fd9de7aece314c0ba52e6ab2c845be"
+    },
+    "@cf/zai-org/glm-5.3-flash": {
+      "contextWindow": 1048576,
+      "maxOutput": null,
+      "sourceBlob": "dc57279d9d4ef7e23f83e3748ebdf77cab6eccae"
+    },
+    "@cf/zai-org/glm-5.3": {
+      "contextWindow": 1048576,
+      "maxOutput": null,
+      "sourceBlob": "3123ffe3fea02d0d61514f30050058523291259a"
+    },
+    "@cf/openai/gpt-oss-120b": {
+      "contextWindow": 128000,
+      "maxOutput": null,
+      "sourceBlob": "69c90e34505eccc16d54e5aacfd6fb144f338509"
+    },
+    "@cf/openai/gpt-oss-20b": {
+      "contextWindow": 128000,
+      "maxOutput": null,
+      "sourceBlob": "52fc9b4b2e7fa814eb2f6ef7880fc8c123cc75c7"
+    },
+    "@cf/ibm-granite/granite-4.0-h-micro": {
+      "contextWindow": 131000,
+      "maxOutput": null,
+      "sourceBlob": "93b8c250ee8685b8c1142055c0ca75fbf81efac7"
+    },
+    "@cf/moonshotai/kimi-k2.6": {
+      "contextWindow": 262144,
+      "maxOutput": null,
+      "sourceBlob": "73cd1d53aeed621a974e79615e5805091695fa1c"
+    },
+    "@cf/moonshotai/kimi-k2.7-code": {
+      "contextWindow": 262144,
+      "maxOutput": null,
+      "sourceBlob": "45e1e34c3e8100c3f559faa4fe5bd56382b09778"
+    },
+    "@cf/meta/llama-3.1-8b-instruct-fp8": {
+      "contextWindow": 32000,
+      "maxOutput": null,
+      "sourceBlob": "c9a5547e7a8cd943db968487504efd7eafc43431"
+    },
+    "@cf/meta/llama-3.2-11b-vision-instruct": {
+      "contextWindow": 128000,
+      "maxOutput": null,
+      "sourceBlob": "f6e7c103ae2956ed3b57b3ee3c4f50f7f100e385"
+    },
+    "@cf/meta/llama-3.2-1b-instruct": {
+      "contextWindow": 60000,
+      "maxOutput": null,
+      "sourceBlob": "1b46e87bcb2256cdc8b9c7f20ff210771a0a099a"
+    },
+    "@cf/meta/llama-3.2-3b-instruct": {
+      "contextWindow": 80000,
+      "maxOutput": null,
+      "sourceBlob": "0233da8fe793240d8bc938785aa51f8926e74810"
+    },
+    "@cf/meta/llama-3.3-70b-instruct-fp8-fast": {
+      "contextWindow": 24000,
+      "maxOutput": null,
+      "sourceBlob": "4aff3a0d98d9914324f72ac13f8ae7f7bc3be8fa"
+    },
+    "@cf/meta/llama-4-scout-17b-16e-instruct": {
+      "contextWindow": 131000,
+      "maxOutput": null,
+      "sourceBlob": "e000dec645490897d1beadffea06e6271e9fc2ea"
+    },
+    "@cf/mistralai/mistral-small-3.1-24b-instruct": {
+      "contextWindow": 128000,
+      "maxOutput": null,
+      "sourceBlob": "7b023d8bc5a00d748ab9d14c28693ff33dacbc03"
+    },
+    "@cf/nvidia/nemotron-3-120b-a12b": {
+      "contextWindow": 256000,
+      "maxOutput": null,
+      "sourceBlob": "04bb6fc382de05678887e5d8698fd029272c9a20"
+    },
+    "@cf/qwen/qwen2.5-coder-32b-instruct": {
+      "contextWindow": 32768,
+      "maxOutput": null,
+      "sourceBlob": "a9d1c49769a4166aa640e447e6a13717648a865f"
+    },
+    "@cf/qwen/qwen3-30b-a3b-fp8": {
+      "contextWindow": 32768,
+      "maxOutput": null,
+      "sourceBlob": "2182ea6cce275a44f05a6e1fd6f913b45a3ff2eb"
+    },
+    "@cf/qwen/qwen3.8-27b": {
+      "contextWindow": 262144,
+      "maxOutput": null,
+      "sourceBlob": "2083f0db08689ed1a23aee03a828ffaa5ef36345"
+    },
+    "@cf/qwen/qwq-32b": {
+      "contextWindow": 24000,
+      "maxOutput": null,
+      "sourceBlob": "49d2bba0cc041b059114cd84a72a509faa58ea04"
+    },
+    "@cf/deepseek-ai/deepseek-v4.1-flash-1017": {
+      "contextWindow": 1048576,
+      "maxOutput": null,
+      "sourceBlob": "2fbac4f4d5bd99f298a74fd0a5053584656c0fb9"
+    },
+    "@cf/daily-co/phonellm-mini-alpha-2": {
+      "contextWindow": 262140,
+      "maxOutput": null,
+      "sourceBlob": "f22cc853be0b96a820d3eb0f48cdd0fe4c09fbc2"
+    },
+    "alibaba/qwen3-max": {
+      "contextWindow": null,
+      "maxOutput": null,
+      "sourceBlob": "a06379d301b609cbbdfbe97d74f6b39c44218078"
+    },
+    "alibaba/qwen3.5-397b-a17b": {
+      "contextWindow": null,
+      "maxOutput": null,
+      "sourceBlob": "041fe88cccd2e3ecb4968fefe5de3c80b8788f8a"
+    },
+    "alibaba/qwen3.7-max": {
+      "contextWindow": null,
+      "maxOutput": null,
+      "sourceBlob": "251aaf7de56c20f0ad072f653f3825dac5eb56a5"
+    },
+    "alibaba/qwen3.7-plus": {
+      "contextWindow": null,
+      "maxOutput": null,
+      "sourceBlob": "ba5fae9f36e9b5b374c5c6b81b92233af67889b4"
+    },
+    "alibaba/qwen3.8-max": {
+      "contextWindow": null,
+      "maxOutput": null,
+      "sourceBlob": "be37a0f6ce02e42e96c9f4aed995e96b63f1e2a0"
+    },
+    "deepseek/deepseek-v4-pro": {
+      "contextWindow": 131072,
+      "maxOutput": null,
+      "sourceBlob": "138670b8449f0171316b8f27221f52368be7c93b"
+    },
+    "thinkingmachines/inkling-256k": {
+      "contextWindow": 262144,
+      "maxOutput": null,
+      "sourceBlob": "86024c249d42065446a3fb0f8cbe06658f81f46e"
+    },
+    "thinkingmachines/inkling": {
+      "contextWindow": 64000,
+      "maxOutput": null,
+      "sourceBlob": "fc4ebd789a243dcd9f2804010df0d13c604e5242"
+    },
+    "unbiased/pareto": {
+      "contextWindow": null,
+      "maxOutput": null,
+      "sourceBlob": "54c33a5ac7f5c93e5936ac07dee8c7df96f975e2"
+    },
+    "xai/grok-4.20-0309-non-reasoning": {
+      "contextWindow": 2000000,
+      "maxOutput": null,
+      "sourceBlob": "a23f2e0adfec425a1526afc03ff7d9a28bc3cea6"
+    },
+    "xai/grok-4.20-0309-reasoning": {
+      "contextWindow": 2000000,
+      "maxOutput": null,
+      "sourceBlob": "d6b1cea3dc25020f5c00d7766c7d37c118b533d1"
+    },
+    "xai/grok-4.20-multi-agent-0309": {
+      "contextWindow": 2000000,
+      "maxOutput": null,
+      "sourceBlob": "50179a7f0191a8da2bfabfacd8fc733ea7caf081"
+    },
+    "xai/grok-4.3": {
+      "contextWindow": 1000000,
+      "maxOutput": null,
+      "sourceBlob": "8bdd0a64d5a68fa29af4fe92491e4d2404a5a344"
+    },
+    "xai/grok-4.5": {
+      "contextWindow": 500000,
+      "maxOutput": null,
+      "sourceBlob": "093ac6c90f895d06c09be70d08e74e4b8aaf4279"
+    },
+    "xai/grok-4.6": {
+      "contextWindow": 500000,
+      "maxOutput": null,
+      "sourceBlob": "82033ed2e3a0b161b27b09ab96b0bb9c5800d257"
+    },
+    "xai/grok-4.7": {
+      "contextWindow": 500000,
+      "maxOutput": null,
+      "sourceBlob": "8ba48bbe20e534a1306883c22dea375688ac2354"
+    }
+  }
+}

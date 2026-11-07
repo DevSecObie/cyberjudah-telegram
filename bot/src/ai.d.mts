@@ -22,6 +22,7 @@ export const RESEARCH: string;
 export const APP: string;
 export function splitFollowups(text: string): { answer: string; followups: string[] };
 export function normalizeHistory(turns: unknown, max?: number): Turn[];
+export function promptHistory(history?: Turn[]): Turn[];
 export function routeOf(question: string, history?: Turn[]): "light" | "deep";
 export function notInTheClasses<T extends Passage>(found: T[]): { answer: string; sources: (T & { n: number })[] };
 export function withReading(question: string, reading?: string | null): string;
