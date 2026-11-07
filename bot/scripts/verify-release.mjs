@@ -1,5 +1,12 @@
 import { pathToFileURL } from "node:url";
 import { signInitData } from "../src/initdata.mjs";
+import { citationReport, citationTokenCount } from "../src/citations.mjs";
+
+// A named verse is hydrated from the KJV library, even if Vectorize ranks short verses poorly.
+const SEARCH_CHECK_QUERY = "What does Genesis 1:1 say?";
+const knownVerse = passage => passage?.kind === "verse"
+  && passage.title === "Genesis 1:1 (KJV)" && passage.url === "/bible/genesis/1"
+  && typeof passage.text === "string" && passage.text.replace(/^1\s+/, "").trim() === "In the beginning God created the heaven and the earth.";
 
 /** A bounded live check: no messages, content writes or paid reader balance. */
 /**
@@ -12,7 +19,7 @@ import { signInitData } from "../src/initdata.mjs";
  * (bot/src/ai.ts SEARCH_ANSWER_DEADLINE_MS) and meters it before and after, so the check waits
  * longer than that: a slow meter is not a missing answer.
  */
-export async function verifyRelease({ url, token, expectedModel, verifySync = false, bibleStrongApp = false, fetcher = fetch, log = console.log, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000 }) {
+export async function verifyRelease({ url, token, expectedModel, verifySync = false, bibleStrongApp = false, fetcher = fetch, log = console.log, warn = console.warn, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000 }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
   const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
@@ -50,7 +57,7 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
     if (topic.resource?.kind !== "nave" || !topic.topic?.description || topic.topic?.normalizedName !== "faith" || topic.resource?.revision?.startsWith("cj-")) throw new Error("Bible Strong Nave: the original Faith topic is missing.");
     log("Bible Strong original Nave topic: available");
   }
-  const query = "/api/search/answer?q=Melchizedek";
+  const query = `/api/search/answer?q=${encodeURIComponent(SEARCH_CHECK_QUERY)}`;
   requireStatus(await get(query), 401, "Unsigned search");
   // Same synthetic reader as the existing live browser suite; no real reader is impersonated.
   const launch = await signInitData({ user: { id: 1, first_name: "Release check" }, auth_date: String(Math.floor(Date.now() / 1000)) }, token);
@@ -99,13 +106,28 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
     throw new Error(`Search answer: HTTP ${response.status} (${reason}). Check the gateway funding, allowance and provider configuration.`);
   }
   const answer = await response.json();
-  if (!answer.ok || answer.model !== expectedModel || answer.provider !== provider || !answer.answer?.trim() || !Array.isArray(answer.sources) || !answer.sources.length) {
-    throw new Error("Search answer: the configured provider did not return a cited library answer.");
+  const sources = Array.isArray(answer.sources) ? answer.sources : [];
+  const text = typeof answer.answer === "string" ? answer.answer : "";
+  const valid = citationReport(text, sources.map(source => source.n)).supported.length;
+  const diagnostics = answer.citation_diagnostics;
+  const safeCount = (n, fallback) => Number.isSafeInteger(n) && n >= 0 ? n : fallback;
+  // Only numeric counts and the expected model identifier: never log prompts, drafts or passages.
+  log(`Search answer diagnostics: ${JSON.stringify({ sources_returned: sources.length,
+    citation_tokens_found: safeCount(diagnostics?.citation_tokens_found, citationTokenCount(text)),
+    valid_ids: valid, retries: diagnostics?.retries === 1 ? 1 : 0, model: expectedModel })}`);
+  if (!answer.ok || answer.model !== expectedModel || answer.provider !== provider || !text.trim() || !Array.isArray(answer.sources)) {
+    throw new Error("Search answer: the configured provider returned an invalid library answer response.");
   }
   if (response.headers.get("cache-control") !== "private, no-store") throw new Error("Search answer: browser caching is not disabled.");
+  const honestMessage = ["I could not produce a cited answer from the library material I found.", "I could not find material answering this directly."].includes(text);
+  const uncited = answer.state === "no-cited-answer" && honestMessage && !sources.length && !citationTokenCount(text)
+    && answer.related?.label === "Related library passages" && Array.isArray(answer.related.passages)
+    && answer.related.passages.some(knownVerse);
+  if (answer.state ? !uncited : !valid) throw new Error("Search answer: neither a cited answer nor an honest uncited state with the known library verse was returned.");
   // Reusing a cached question after withdrawing consent must still be refused.
   if (external) { requireStatus(await get(query, headers), 428, "Withdrawn consent"); log("External provider consent: enforced after caching"); }
-  log(`Search answer: configured ${provider} provider verified, ${answer.sources.length} citations${Number.isFinite(answer.ms) ? `, ${Math.round(answer.ms / 1000)} s` : ""}`);
+  if (uncited) warn("Search answer: provider returned no cited answer; the known KJV verse is present as related library material. Citation quality needs attention.");
+  else log(`Search answer: configured ${provider} provider verified, ${valid} valid citations`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -113,6 +135,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const annotation = (level, message) => process.env.GITHUB_ACTIONS
     ? `::${level}::${String(message).replaceAll("%", "%25").replaceAll("\r", "%0D").replaceAll("\n", "%0A")}` : message;
   verifyRelease({ url: process.env.WORKER_URL, token: process.env.BOT_TOKEN, expectedModel: process.env.EXPECTED_SEARCH_MODEL, verifySync: process.env.VERIFY_ACCOUNT_SYNC === "true", bibleStrongApp: process.env.BIBLE_STRONG_WEB === "1",
-    allowPaused: process.env.ALLOW_FREE_PAUSED === "1", log: message => console.log(annotation("notice", message)) })
+    allowPaused: process.env.ALLOW_FREE_PAUSED === "1", log: message => console.log(annotation("notice", message)), warn: message => console.warn(annotation("warning", message)) })
     .catch(error => { console.error(annotation("error", error.message)); process.exitCode = 1; });
 }

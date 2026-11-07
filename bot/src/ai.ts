@@ -19,11 +19,11 @@ import { creditsConfig, hold, ownerOfUser, prepare, settle, typicalMc, wallet, t
 import { estimateMc, MC_USD, mcOfUsd, viaUnifiedBilling } from "../../shared/credits.mjs";
 import { freeSpend, makeSpend, type Spend } from "./spend";
 import { reserveFreeBudget, settleFreeBudget, type FreeReservation } from "./free-budget";
-import { researchOpen } from "./agent-open";
+import { ModelBudgetError, researchOpen } from "./agent-open";
 import { withAskSourcePictures } from "./ask-source-pictures";
 import { withAskBookLinks } from "./ask-source-links";
 import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
-import { citationReport } from "./citations.mjs";
+import { citationReport, citationTokenCount } from "./citations.mjs";
 import { autoModel } from "./ask-routing";
 export { freeSpendToday, freePaused } from "./free-budget";
 
@@ -337,8 +337,9 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   }
 }
 
+type CitationDiagnostics = { sources_returned: number; citation_tokens_found: number; valid_ids: number; retries: number; model: string };
 export type SearchAnswer =
-  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean }
+  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean; state?: "no-cited-answer"; related?: { label: "Related library passages"; passages: Passage[] }; citation_diagnostics?: CitationDiagnostics }
   | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
@@ -350,7 +351,7 @@ export function searchModel(env: Env): AskModel | null {
 }
 
 /**
- * One library-grounded call, funded by the owner's shared free-answer allowance. A configured
+ * A library-grounded answer with at most one citation retry, funded by the same free reservation. A configured
  * external provider requires consent before retrieval or metering. No reader balance is held,
  * and no tools or web searches are offered to the model. Admin searches share the daily limit.
  */
@@ -367,7 +368,7 @@ export class DeadlineError extends Error { constructor(ms: number) { super(`dead
 export function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new DeadlineError(ms)), ms); });
-  return Promise.race([work, late]).finally(() => clearTimeout(timer));
+  return Promise.race([work, late]).finally(() => { if (timer !== undefined) clearTimeout(timer); });
 }
 
 export async function answerSearch(env: Env, q: string, uid: number, consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS): Promise<SearchAnswer> {
@@ -379,7 +380,7 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
   if (!model.id.startsWith("@cf/") && !consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const started = await startMeterFor(env, uid, model, {}, true);
   if (!started.ok) return { ok: false, reason: started.body.error === "free-paused" ? "free-paused" : "unavailable" };
-  return boundedAnswer(env, model, started.meter, question, question, [], deadlineMs, t0);
+  return boundedAnswer(env, model, started.meter, question, question, [], deadlineMs, t0, undefined, undefined, undefined, true);
 }
 
 /**
@@ -567,10 +568,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
 }
 
 /**
- * One library-grounded answer under a free meter: the passages, one plain call to the model,
- * the sources it cited. Shared by search answers and the app's Ask.
+ * One library-grounded answer under a free meter. Search may retry a citation-less draft once;
+ * the app's existing plain/study paths keep their own behavior.
  */
-async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number, emit?: (event: AppStudyEvent) => void, appMode?: "app" | "study", traceId?: string): Promise<SearchAnswer> {
+async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number, emit?: (event: AppStudyEvent) => void, appMode?: "app" | "study", traceId?: string, requireSearchCitations = false): Promise<SearchAnswer> {
   const spend = meter.spend;
   emit?.({ status: `Searching the classes and library for “${searchText.slice(0, 160)}”` });
   // One clock for retrieval and the model: it starts when retrieval does.
@@ -596,6 +597,7 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     const coverage = assessCoverage(env, searchText, passages);
     if ((!passages.length || coverage.blocked) && !SMALL_TALK.test(question)) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
+      if (requireSearchCitations) return noCitedSearchAnswer(model, passages, "", 0, t0, true);
       const none = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       return markCoverageGap({ ok: true as const, answer: none.answer, sources: none.sources, unsupported_refs: [], followups: [], model: model.id, provider: model.provider, ms: Date.now() - t0 });
     }
@@ -603,25 +605,61 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     const prompt = buildPrompt(question, passages, history);
     const system = prompt.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
     const messages = prompt.filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system");
-    const left = deadlineAt - Date.now();
-    if (left <= 0) throw new DeadlineError(deadlineMs);
     const tModel = Date.now();
-    const ran = await withDeadline(researchOpen(env, { ...model, format: "plain" }, system, messages,
-      [], new Map(), async () => ({ content: "No tools are available." }), emit ?? (() => undefined), 1, spend, !!emit), left);
+    const write = async (retry = false) => {
+      const left = deadlineAt - Date.now();
+      if (left <= 0) throw new DeadlineError(deadlineMs);
+      // Retry the same fenced evidence, never the uncited draft or any new model-supplied instructions.
+      const instruction = retry
+        ? "Write a fresh answer using only the supplied library passages. Cite each supported claim using its source_n as [n], for example [1]. Use only IDs in that registry. If the passages do not answer the question, say so; do not guess."
+        : undefined;
+      return withDeadline(researchOpen(env, { ...model, format: "plain" }, system, messages,
+        [], new Map(), async () => ({ content: "No tools are available." }), emit ?? (() => undefined), 1, spend, !!emit, instruction), left);
+    };
+    const clean = async (text: string) => {
+      const { answer, followups } = splitFollowups(text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
+      return { answer: await checkedVerses(env, answer), followups };
+    };
+    let { answer, followups } = await clean((await write()).text);
+    let retries = 0;
+    const needsCitations = requireSearchCitations && !SMALL_TALK.test(question);
+    if (needsCitations && !sourcesOf(answer, passages).length && !spend.unreported && Date.now() < deadlineAt) {
+      try {
+        const ran = await write(true);
+        retries = 1;
+        ({ answer, followups } = await clean(ran.text));
+      } catch (e) {
+        // Insufficient remaining reservation is an honest uncited result; transport failures
+        // remain unavailable (503), so release checks never mistake an outage for grounding.
+        if (!(e instanceof ModelBudgetError)) throw e;
+      }
+    }
     // Where the time goes, for tuning: finding the passages, and the model writing the answer.
     console.log(JSON.stringify({ event: "search_answer_timing", retrieveMs, modelMs: Date.now() - tModel, totalMs: Date.now() - t0 }));
-    // A reasoning model's private working, if it ever comes back in the text, is not the answer.
-    const { answer: written, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
-    const answer = await checkedVerses(env, written);
+    if (needsCitations && !sourcesOf(answer, passages).length) {
+      await finishMeter(env, meter, "empty", Date.now() - t0);
+      return noCitedSearchAnswer(model, passages, answer, retries, t0);
+    }
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
-    return { ok: true, answer, sources: sourcesOf(answer, passages), ...citationMetadata(answer, passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    const sources = sourcesOf(answer, passages);
+    return { ok: true, answer, sources, ...citationMetadata(answer, passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0,
+      ...(requireSearchCitations ? { citation_diagnostics: searchCitationDiagnostics(model, answer, sources.length, retries) } : {}) };
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
     console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, retrieveMs, message: (e as Error).message?.slice(0, 160) }));
     // The same bounded message, for the monitoring record (ask-events.ts).
     return { ok: false, reason: "unavailable", detail: `${e instanceof DeadlineError ? "timeout" : "failed"}: ${(e as Error).message?.slice(0, 160) ?? ""}` };
   }
+}
+
+const searchCitationDiagnostics = (model: AskModel, draft: string, sourceCount: number, retries: number): CitationDiagnostics => ({
+  sources_returned: sourceCount, citation_tokens_found: citationTokenCount(draft), valid_ids: sourceCount, retries, model: model.id,
+});
+function noCitedSearchAnswer(model: AskModel, passages: Passage[], draft: string, retries: number, t0: number, gap = false): SearchAnswer {
+  return { ok: true, state: "no-cited-answer", answer: gap ? "I could not find material answering this directly." : "I could not produce a cited answer from the library material I found.",
+    sources: [], unsupported_refs: [], followups: [], related: { label: "Related library passages", passages: passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)).map(source => { const { n: _n, ...record } = source as Passage & { n?: number }; return record; }) },
+    citation_diagnostics: searchCitationDiagnostics(model, draft, 0, retries), model: model.id, provider: model.provider, ms: Date.now() - t0 };
 }
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
