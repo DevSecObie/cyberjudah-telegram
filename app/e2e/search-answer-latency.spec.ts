@@ -31,6 +31,7 @@ type Outcome = "answered" | "refused" | "timeout";
 type Row = { word: string; attempt: 1 | 2; outcome: Outcome; ms: number };
 
 live("the search answer's time from Enter to first visible content, each word twice", async ({ page }, testInfo) => {
+  // Each pair has its own named deadline, while the original call count/early stop stays intact.
   test.setTimeout(WORDS.length * 2 * (DEADLINE_MS + 15_000));
   await page.route("https://telegram.org/**", (r) => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   // This synthetic reader opts in before timing; waiting for human consent is not latency.
@@ -38,34 +39,36 @@ live("the search answer's time from Enter to first visible content, each word tw
   const rows: Row[] = [];
   let timeouts = 0;
   for (const word of WORDS) {
-    for (const attempt of [1, 2] as const) {
-      await page.goto(`/search${LAUNCH}`);
-      await page.fill("#q", word);
-      // Timed inside the page: the clock starts at the Enter keydown and stops when the AI answer
-      // block shows answer text (answered), or is taken down after it appeared (the Worker refused
-      // or failed; the block renders nothing then), or the deadline passes.
-      const watch = page.evaluate((deadline) => new Promise<{ outcome: Outcome; ms: number }>((resolve) => {
-        let t0 = 0, seen = false, settled = false;
-        const done = (outcome: Outcome) => { if (settled) return; settled = true; observer.disconnect(); resolve({ outcome, ms: Math.round(performance.now() - t0) }); };
-        const look = () => {
-          if (!t0) return;
-          const block = document.querySelector(".srch__ai");
-          if (block) { seen = true; if ((block.querySelector(".msg__text")?.textContent ?? "").trim()) done("answered"); }
-          else if (seen) done("refused");
-        };
-        const observer = new MutationObserver(look);
-        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-        document.addEventListener("keydown", (e) => {
-          if (e.key !== "Enter" || t0) return;
-          t0 = performance.now();
-          setTimeout(() => done("timeout"), deadline);
-        }, { capture: true, once: true });
-      }), DEADLINE_MS);
-      await page.press("#q", "Enter");
-      const r = await watch;
-      rows.push({ word, attempt, ...r });
-      if (r.outcome === "timeout" && ++timeouts >= 2) break;
-    }
+    await test.step(`Search timing: ${word}, cold and warm`, async () => {
+      for (const attempt of [1, 2] as const) {
+        await page.goto(`/search${LAUNCH}`);
+        await page.fill("#q", word);
+        // Timed inside the page: the clock starts at the Enter keydown and stops when the AI answer
+        // block shows answer text (answered), or is taken down after it appeared (the Worker refused
+        // or failed; the block renders nothing then), or the deadline passes.
+        const watch = page.evaluate((deadline) => new Promise<{ outcome: Outcome; ms: number }>((resolve) => {
+          let t0 = 0, seen = false, settled = false;
+          const done = (outcome: Outcome) => { if (settled) return; settled = true; observer.disconnect(); resolve({ outcome, ms: Math.round(performance.now() - t0) }); };
+          const look = () => {
+            if (!t0) return;
+            const block = document.querySelector(".srch__ai");
+            if (block) { seen = true; if ((block.querySelector(".msg__text")?.textContent ?? "").trim()) done("answered"); }
+            else if (seen) done("refused");
+          };
+          const observer = new MutationObserver(look);
+          observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+          document.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter" || t0) return;
+            t0 = performance.now();
+            setTimeout(() => done("timeout"), deadline);
+          }, { capture: true, once: true });
+        }), DEADLINE_MS);
+        await page.press("#q", "Enter");
+        const r = await watch;
+        rows.push({ word, attempt, ...r });
+        if (r.outcome === "timeout" && ++timeouts >= 2) break;
+      }
+    }, { timeout: 2 * (DEADLINE_MS + 15_000) });
     if (timeouts >= 2) break;
   }
   const table = rows.map((r) => `${r.word.padEnd(12)} ${r.attempt}  ${r.outcome.padEnd(9)} ${String(r.ms).padStart(6)} ms`).join("\n");
