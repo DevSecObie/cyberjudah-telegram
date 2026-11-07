@@ -1,0 +1,1 @@
+- Ask keeps a quotation's existing source citations while checking its exact King James wording. Plain answers get an explicit numbered-source format and a cited formatting example, while uncited answers still show the honest gap message.

@@ -145,7 +145,7 @@ export function referencesIn(question) {
 }
 
 /** The passages numbered for the model, the conversation so far, and the question. */
-export function buildPrompt(question, passages, history = []) {
+export function buildPrompt(question, passages, history = [], { plain = false } = {}) {
   const list = libraryData(passages);
   // Earlier answers are kept long enough that "the second point" or "that verse" still finds what it means.
   const turns = history.slice(-6).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content ?? "").slice(0, m.role === "assistant" ? 3000 : 1500) }));
@@ -153,10 +153,18 @@ export function buildPrompt(question, passages, history = []) {
     ? `Passages from the library for this question:\n\n${list}`
     : "No passages from the library were found for this question. If it is a greeting, a thank-you or a question about you, answer it briefly. Otherwise say plainly that the library has nothing on it yet and suggest a clearer way to ask; quote no Scripture and cite nothing.";
   return [
-    { role: "system", content: groundedSystem(SYSTEM) },
+    { role: "system", content: `${groundedSystem(SYSTEM)}${plain ? plainCitationGuide(passages) : ""}` },
     ...turns,
     { role: "user", content: `${material}\n\nQuestion: ${question}` },
   ];
+}
+
+/** Trusted format guidance contains host-assigned numeric IDs only, never source text or metadata. */
+function plainCitationGuide(passages) {
+  const ids = [...new Set(passages.map((source, index) => source.n ?? index + 1).filter(n => Number.isSafeInteger(n) && n > 0))];
+  if (!ids.length) return "";
+  const example = ids[0];
+  return `\n\nPlain answer citation format:\n${ids.map(n => `source_n=${n} -> [${n}]`).join("\n")}\nUse these registered [n] markers after each supported point, including a direct verse quotation. A Bible book/chapter/verse reference is not a numbered source citation.\nWorked formatting example (placeholders only, not teaching or evidence):\nA point supported by the supplied source. [${example}]\n> Exact KJV words copied from that source. **Its recorded Bible reference** [${example}]\nReplace those placeholder words only with material supported by the supplied library records. Keep the source's exact wording for Scripture and its recorded reference. Never copy the example as an answer, invent a source ID, or cite an unrelated passage. If the material does not answer the question, say so.\n`;
 }
 
 /** The citation numbers used in an answer, in order of first use, within the passages given. */
