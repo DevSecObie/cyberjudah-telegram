@@ -1,1 +1,2 @@
 - Telegram can send the class-book shelf's allowlisted public-domain Archive PDFs to the reader's chat, using the recorded PDF filename, bounded streaming for larger files and reusable Telegram file IDs.
+- Readers can send an app-made note or answer PDF to their own Telegram chat, with a 10 MB limit, PDF-header validation, safe filenames and per-person upload throttling.

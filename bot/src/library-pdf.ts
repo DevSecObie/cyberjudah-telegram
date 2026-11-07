@@ -1,6 +1,7 @@
 import { publicDomain } from "../../shared/library-pdf";
 import { pdfLinkOk, pdfSig } from "./pdf-link";
 import { mirrorKey, type Mirror } from "./library-mirror";
+import { pdfRequestBody, sendUploadedPdf, UploadError } from "./uploaded-pdf";
 
 export const TELEGRAM_PDF_LIMIT = 50 * 1024 * 1024;
 const TOO_LARGE = "This PDF is over Telegram’s 50 MB limit. Use Download the PDF instead.";
@@ -145,7 +146,7 @@ async function sendArchive(id: unknown, token: string, read: ReadJson, send: Sen
 }
 
 /** The viewer streams from the same allow-list as chat delivery: our own copy when we hold one, archive.org otherwise. */
-export async function libraryPdf(request: Request, token: string, read: ReadJson, send?: Send, fetcher: typeof fetch = fetch, mirror?: Mirror, cache?: FileCache): Promise<Response> {
+export async function libraryPdf(request: Request, token: string, read: ReadJson, send?: Send, fetcher: typeof fetch = fetch, mirror?: Mirror, cache?: FileCache, mayUpload?: () => Promise<boolean>): Promise<Response> {
   let archiveRequest = false;
   try {
     const url = new URL(request.url);
@@ -163,7 +164,8 @@ export async function libraryPdf(request: Request, token: string, read: ReadJson
       for (const key of ["content-length", "content-range", "accept-ranges", "etag", "last-modified"]) { const value = upstream.headers.get(key); if (value) headers.set(key, value); }
       return new Response(upstream.body, { status: upstream.status, headers });
     }
-    const body = await request.json().catch(() => null) as { slug?: unknown; item?: unknown; archive?: unknown; send?: boolean; printed?: number } | null;
+    const body = await pdfRequestBody(request) as { slug?: unknown; item?: unknown; archive?: unknown; upload?: unknown; send?: boolean; printed?: number } | null;
+    if (body && typeof body === "object" && "upload" in body) return await sendUploadedPdf(body, send, mayUpload);
     archiveRequest = !!body && typeof body === "object" && "archive" in body;
     if (!body || typeof body !== "object" || Object.keys(body).some(k => !["slug", "item", "archive", "send", "printed"].includes(k))) throw new PdfError(400, "Not a library PDF request.");
     if (archiveRequest) {
@@ -196,6 +198,7 @@ export async function libraryPdf(request: Request, token: string, read: ReadJson
     const signed = `${url.origin}${path}?exp=${exp}&sig=${await pdfSig(token, path, exp)}`;
     return Response.json({ ok: true, url: signed, file: `${doc.item}.pdf`, size: doc.size, page });
   } catch (error) {
+    if (error instanceof UploadError) return Response.json({ ok: false, sent: false, error: error.reason, message: error.message }, { status: error.status, headers: error.status === 429 ? { "retry-after": "60" } : {} });
     if (archiveRequest) {
       const reason = error instanceof PdfError ? error.reason === "too-large" ? "too-big" : error.status === 404 ? "no-pdf" : "unavailable" : "unavailable";
       return Response.json({ ok: false, sent: false, error: reason, message: error instanceof PdfError ? error.message : "The PDF could not be loaded just now. Try again in a moment." }, { status: error instanceof PdfError ? error.status : 502 });
