@@ -8,6 +8,11 @@ on:
 permissions:
   contents: read
 
+# Every run uses the same production test account, including dispatches from other branches.
+concurrency:
+  group: live-smoke-production
+  cancel-in-progress: false
+
 jobs:
   production:
     name: production (${{ matrix.shard }}/4)
