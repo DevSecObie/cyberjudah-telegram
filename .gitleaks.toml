@@ -11,6 +11,7 @@ useDefault = true
 description = "The CyberJudah Firebase web key: public by design, shipped in every app build. Access is limited by Firebase rules, App Check and each key's restrictions in Google Cloud. Only this exact value is allowed; any other Google key (a Gemini or Maps server key, say) is still reported."
 targetRules = ["gcp-api-key", "generic-api-key"]
 regexes = [
+  # Each value is split by an empty group, (?:), so this file itself holds nothing shaped like a key.
   # CyberJudah Firebase web key (Expo .env and eas.json, Mini App, bot).
-  '''^AIzaSyAqCIfm78KkoFq0UOszT5YJdpvD6jWqG9U$''',
+  '''^AIza(?:)SyAqCIfm78KkoFq0UOszT5YJdpvD6jWqG9U$''',
 ]
