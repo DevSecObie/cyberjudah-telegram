@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { build } from "esbuild";
+import { markCoverageGap } from "../src/grounding.mjs";
 
 const out = new URL("./.build/answer-cache.mjs", import.meta.url).pathname;
 await build({ entryPoints: [new URL("../src/answer-cache.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
@@ -18,7 +19,7 @@ test("the same first question, in any case or punctuation, has one key per model
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m2", "app", "v1"));
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "study", "v1"));
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v2"), "a new release never serves an old answer");
-  assert.match(a, /^ask_cache:conversation-20261107:v1:app:m1:[0-9a-f]{64}$/);
+  assert.match(a, /^ask_cache:grounding-20261107:v1:app:m1:[0-9a-f]{64}$/);
 });
 
 test("follow-ups and one-word questions are never cached", async () => {
@@ -28,6 +29,13 @@ test("follow-ups and one-word questions are never cached", async () => {
   await keepAnswer(env, null, { ok: true });
   assert.equal(env.SUBS.m.size, 0);
   assert.equal(await cachedAnswer(env, null), null);
+});
+
+test('a coverage gap with a related cited source is never cached', async () => {
+  const env = { SUBS: kv() };
+  const answer = markCoverageGap({ ok: true, answer: 'Existing honest gap [1].', sources: [{ n: 1 }] });
+  await keepAnswer(env, 'ask_cache:gap', { ...answer });
+  assert.equal(env.SUBS.m.size, 0);
 });
 
 test("a kept answer is served for a week, and a report on it removes it", async () => {

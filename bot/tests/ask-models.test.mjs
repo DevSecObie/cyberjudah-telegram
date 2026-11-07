@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { costFactor, countryOf, MODELS, modelOf, PROVIDER_COUNTRY, unitsFor } from "../../shared/ask-models.mjs";
 import { researchOpen } from "../src/agent-open.ts";
 import { claudeUnavailable } from "../src/providers.ts";
+import { groundedSystem, untrustedData } from "../src/grounding.mjs";
 
 test("the model list is Cloudflare's catalog: every model priced, spoken to in a known format, Claude with its own id", () => {
   assert.ok(MODELS.length >= 80, `${MODELS.length} models`);
@@ -59,7 +60,7 @@ test("chat completions: the model searches with the same tool, then answers; the
   assert.deepEqual(sent[0].options, { gateway: { id: "default", collectLog: false } }, "the reader's question is not logged");
   assert.equal(sent[0].model, "openai/gpt-5.1");
   assert.equal(sent[0].input.tools[0].function.name, "search_library");
-  assert.deepEqual(sent[1].input.messages.at(-1), { role: "tool", tool_call_id: "c1", content: "[1] Exodus 12:14" });
+  assert.deepEqual(sent[1].input.messages.at(-1), { role: "tool", tool_call_id: "c1", content: untrustedData({content:"[1] Exodus 12:14"}, "tool_output") });
 });
 
 test("Workers AI's own reply shape, and a tool input that does not fit the schema is refused without running the tool", async () => {
@@ -79,8 +80,8 @@ test("the Responses API: function calls are answered with their outputs, in orde
     { output: [{ type: "message", content: [{ type: "output_text", text: "The feasts [1]." }] }], usage: { input_tokens: 600, output_tokens: 10, input_tokens_details: { cached_tokens: 0 } }, status: "completed" },
   ]);
   assert.deepEqual(ran, [["search_library", { query: "feasts" }]]);
-  assert.equal(sent[0].input.instructions, "SYSTEM");
-  assert.deepEqual(sent[1].input.input.at(-1), { type: "function_call_output", call_id: "f1", output: "[1] Exodus 12:14" });
+  assert.equal(sent[0].input.instructions, groundedSystem("SYSTEM"));
+  assert.deepEqual(sent[1].input.input.at(-1), { type: "function_call_output", call_id: "f1", output: untrustedData({content:"[1] Exodus 12:14"}, "tool_output") });
   assert.equal(r.text, "The feasts [1].");
 });
 

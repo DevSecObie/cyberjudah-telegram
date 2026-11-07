@@ -1,0 +1,12 @@
+import type { Passage } from './ai.mjs';
+export const DATA_POLICY: string;
+export const SMALL_TALK: RegExp;
+export function groundedSystem(system: string): string;
+export function untrustedData(value: unknown, label?: string): string;
+export function libraryData(sources: (Passage & { n?: number })[]): string;
+export function recordRetrieval<T extends object>(source: T, mode: 'vector' | 'keyword' | 'tool', score?: number): T;
+export function hasControlText(text: unknown): boolean;
+export function coverageDecision(question: string, sources: { kind?: string; title?: string; text: string }[]): { enough: boolean; reason: string; usable: number; overlap?: number; cosine?: number | null };
+export function assessCoverage(env: { ASK_COVERAGE_MODE?: string }, question: string, sources: { kind?: string; title?: string; text: string }[]): ReturnType<typeof coverageDecision> & { blocked: boolean };
+export function markCoverageGap<T extends object>(value: T): T;
+export function isCoverageGap(value: unknown): boolean;

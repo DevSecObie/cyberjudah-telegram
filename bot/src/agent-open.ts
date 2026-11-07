@@ -5,6 +5,7 @@ import { checkInput } from "./assistant.mjs";
 import { unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import type { AgentEvent } from "./agent";
 import type { Spend } from "./spend";
+import { DATA_POLICY, groundedSystem, untrustedData } from "./grounding.mjs";
 
 const DEEPSEEK_V4 = /^@cf\/deepseek-ai\/deepseek-v4/;
 const GEMMA_4 = /^@cf\/google\/gemma-4/;
@@ -29,6 +30,8 @@ type ToolCall = { id: string; name: string; arguments: string };
 
 /** A failure from the model's side: shaped as an API connection error, so Ask's backup answers instead (providers.ts claudeUnavailable). */
 const unavailable = (e: unknown) => new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` });
+/** Distinguish a local budget refusal from a failed provider request. */
+export class ModelBudgetError extends Error {}
 
 export async function researchOpen(
   env: Env,
@@ -46,6 +49,7 @@ export async function researchOpen(
   /** think: false asks a reasoning model not to think first, for short mechanical steps such as a research plan. */
   options: { think?: boolean } = {},
 ): Promise<Result> {
+  if (!system.includes(DATA_POLICY)) system = groundedSystem(system);
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
   const call = async (input: unknown): Promise<Record<string, unknown>> => {
@@ -55,7 +59,7 @@ export async function researchOpen(
       // A budget refusal must not turn into an unmetered provider fallback.
       const tokens = new TextEncoder().encode(JSON.stringify(input)).length + 1024;
       const room = spend.outputTokensLeft(model, spend.inputUsd({ input_tokens: tokens }, model));
-      if (room < 64 || spend.unreported) throw new Error("The answer has used its reserved budget.");
+      if (room < 64 || spend.unreported) throw new ModelBudgetError("The answer has used its reserved budget.");
       input = { ...(input as Record<string, unknown>), max_tokens: Math.min(4096, model.maxOutput ?? 4096, room) };
     } else if ((model.format === "messages" || model.format === "responses") && spend?.budgetUsd != null) {
       // A paid answer is held to what was set aside for it, as Claude's is (agent.ts): each call may
@@ -83,11 +87,11 @@ export async function researchOpen(
   /** Runs one tool call: its input checked against the tool's schema first, as for Claude. */
   const tool = async (name: string, raw: unknown): Promise<string> => {
     let input: unknown = raw;
-    if (typeof raw === "string") { try { input = raw.trim() ? JSON.parse(raw) : {}; } catch { return JSON.stringify({ INVALID_JSON: raw.slice(0, 400) }); } }
+    if (typeof raw === "string") { try { input = raw.trim() ? JSON.parse(raw) : {}; } catch { return untrustedData({ INVALID_JSON: raw.slice(0, 400) }, "tool_output"); } }
     const why = checkInput(schemas.get(name) as never, input);
-    if (why) return JSON.stringify({ INVALID_INPUT: why });
-    try { return (await run(name, input as Record<string, unknown>)).content; }
-    catch (e) { return `That failed: ${(e as Error).message?.slice(0, 120)}`; }
+    if (why) return untrustedData({ INVALID_INPUT: why }, "tool_output");
+    try { return untrustedData(await run(name, input as Record<string, unknown>), "tool_output"); }
+    catch (e) { return untrustedData({ error: (e as Error).message?.slice(0, 120) }, "tool_output"); }
   };
   let units = 0, calls = 0;
   emit({ status: "Studying the question" });
