@@ -54,6 +54,8 @@ export type Env = {
   ASK_APP_ENABLED?: string;
   /** Coverage calibration: unset/"shadow" logs numeric decisions; only "enforce" gates answers. */
   ASK_COVERAGE_MODE?: string;
+  /** All admin model answers share this separately reserved UTC-day pool; default $10. */
+  ASK_ADMIN_DAILY_USD_CAP?: string;
   /** Routing (ai.mjs routeOf), when the reader has not chosen a model: the lighter Claude model for light questions, the stronger free model for deep ones. */
   CLAUDE_MODEL_LIGHT?: string; ASK_FREE_DEEP_MODEL?: string;
   /** The app's Ask engine: "agent" (default, as cyberjudah.io/app answers) or "study" (the study cards). */

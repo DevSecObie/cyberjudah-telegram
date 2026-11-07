@@ -13,6 +13,7 @@ import { saveReminder, timeLabel, timeZone, type Settings as ReminderSettings } 
 import { useContent } from "./Reminders";
 import { safeImages, safeLinks } from "@/lib/safe-links";
 import { fmtUsd, MC_PER_USD } from "@shared/credits.mjs";
+import { mergePassages } from "@shared/ask-stream.mjs";
 import { chosenModel, chooseModel } from "@/lib/ask-model";
 import { agree, consented } from "@/lib/ai-consent";
 import { spinnerLine } from "@/lib/spinner";
@@ -135,9 +136,10 @@ async function runQuestion(q: string, opts: AskOpts) {
     const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
     const handle = (l: string) => {
       if (!l.trim()) return;
-      let msg: { passages?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { charged_mc: number; balance?: Wallet; free?: boolean }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean };
+      let msg: { passages?: Source[]; passages_delta?: Source[]; delta?: string; done?: boolean; sources?: Source[]; error?: string; status?: string; reset?: boolean; answer?: string; followups?: string[]; usage?: { charged_mc: number; balance?: Wallet; free?: boolean }; action?: Action; actions?: Action[]; cut?: boolean; ping?: number; backup?: boolean };
       try { msg = JSON.parse(l); } catch { return; }
       if (msg.passages) patch((t) => ({ ...t, passages: msg.passages }));
+      if (msg.passages_delta) patch((t) => ({ ...t, passages: mergePassages(t.passages, msg.passages_delta!) }));
       // The research as it happens: each search, reading and look-up is a step under the answer's head.
       if (msg.status) patch((t) => ({ ...t, status: msg.status, steps: /^(Searching|Reading|Looking)/.test(msg.status!) ? [...(t.steps ?? []), msg.status!] : t.steps }));
       if (msg.action) patch((t) => ({ ...t, actions: [...(t.actions ?? []), msg.action!] }));
@@ -826,7 +828,7 @@ function Research({ steps, live, count }: { steps: string[]; live: boolean; coun
 /** Any HTML the model writes shows as text; ">" stays, since it only starts a quote in markdown. */
 const escapeHtml = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 /** The answer as text for the clipboard: the citation markers dropped. */
-const plain = (text: string) => text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i, "").replace(/\s*\[\d{1,2}(?:\s*,\s*\d{1,2})*\]/g, "").replace(/ +([.,;:!?])/g, "$1").trim();
+const plain = (text: string) => text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i, "").replace(/\s*\[\d+(?:\s*,\s*\d+)*\]/g, "").replace(/ +([.,;:!?])/g, "$1").trim();
 
 /**
  * The answer as formatted prose: the model's markdown (bold, lists, headings) rendered with
@@ -835,8 +837,8 @@ const plain = (text: string) => text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i,
  */
 export function answerHtml(text: string, sources: Source[]): string {
   const known = new Set(sources.map((s) => s.n));
-  const marked_ = escapeHtml(text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i, "").replace(/\s*\[\d{0,2}$/, ""))
-    .replace(/\s*\[(\d{1,2}(?:\s*,\s*\d{1,2})*)\]/g, (_m, list: string) => list.split(/\s*,\s*/).map((n) => (known.has(Number(n)) ? ` CJCITE${n}CJ` : "")).join(""));
+  const marked_ = escapeHtml(text.replace(/\n?[ \t]*\**Follow-ups:[\s\S]*$/i, "").replace(/\s*\[\d*$/, ""))
+    .replace(/\s*\[(\d+(?:\s*,\s*\d+)*)\]/g, (_m, list: string) => list.split(/\s*,\s*/).map((n) => (known.has(Number(n)) ? ` CJCITE${n}CJ` : "")).join(""));
   const html = safeImages(safeLinks(marked.parse(marked_, { gfm: true, breaks: false, async: false }) as string), assetUrl);
-  return html.replace(/ ?CJCITE(\d{1,2})CJ/g, (_m, n: string) => `<button type="button" class="cite" data-n="${n}" aria-label="Source ${n}">${n}</button>`);
+  return html.replace(/ ?CJCITE(\d+)CJ/g, (_m, n: string) => `<button type="button" class="cite" data-n="${n}" aria-label="Source ${n}">${n}</button>`);
 }

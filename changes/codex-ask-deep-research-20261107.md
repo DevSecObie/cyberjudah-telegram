@@ -1,0 +1,6 @@
+- Ask can open full class notes, follow class transcripts, search recordings and read published commentary and data before answering, with the same source citations and teaching rules.
+- Research models can use up to 25 calls within bounded output, time and spending allowances; free answers default to three rounds; linked admins default to Opus 5.5, with adaptive thinking and high effort where supported.
+- Telegram questions keep their full wording up to 4,000 characters; longer questions receive an explicit error instead of being silently shortened.
+- Answers name a recorded teacher only with quoted and cited source words, with teacher and date included on known video sources; unnamed classes stay unspecified.
+- Research progress sends only changed source previews; earlier chat context is bounded, and an exhausted backup allowance still returns available attributed excerpts without another AI call.
+- Cut answers and cancellations before any answer text are not charged; paid cancellations after streamed text charge only metered usage; admin answers and backups use a separate configurable daily budget.

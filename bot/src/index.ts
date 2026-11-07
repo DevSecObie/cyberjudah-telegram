@@ -279,7 +279,7 @@ app.post("/api/ask", async (c) => {
   const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
   const resourcePins = body?.resources === undefined ? undefined : ResourcePinsSchema.safeParse(body.resources);
   if (resourcePins && !resourcePins.success) return c.json({ error: "Invalid resource releases" }, 400);
-  const meterOpts = { resources: resourcePins?.data, request: typeof body?.request === "string" ? body.request : undefined, caps };
+  const meterOpts = { clientStreaming: Boolean(body?.stream), resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps };
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
@@ -289,9 +289,9 @@ app.post("/api/ask", async (c) => {
     const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
     return body?.stream ? response : askJson(response, String(body?.q ?? ""), start);
   }
-  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data);
+  const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
+  return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
 });
 // Native Ask authenticates every route itself with Firebase; Telegram linking stays optional.
 app.route("/api/app/ask", appAsk);

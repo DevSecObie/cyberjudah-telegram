@@ -2,25 +2,83 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { financialDb } from './helpers/financial-db.mjs';
+import { createHmac } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { modelOf } from '../../shared/ask-models.mjs';
 
 const out = new URL('./.build/ask-sources.mjs', import.meta.url).pathname;
 await build({
-  entryPoints: [new URL('../src/ai.ts', import.meta.url).pathname],
+  stdin: { contents: 'export * from "./src/ai.ts"; export { grantPayment, ownerOfUser, wallet } from "./src/credits.ts"; export { default as worker } from "./src/index.ts";', resolveDir: new URL('..', import.meta.url).pathname },
   bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error',
   plugins: [{ name: 'agent-fixture', setup(b) {
     b.onResolve({ filter: /approved-answers\.json$/ }, () => ({ path: 'approved-data', namespace: 'approved-fixture' }));
     b.onLoad({ filter: /.*/, namespace: 'approved-fixture' }, () => ({ loader: 'json', contents: JSON.stringify({ answers: [{ id: 'approved-fixture', questions: ['Owner approved fixture'], answer: 'The owner approved this fixture answer.', sources: [{ kind: 'web', title: 'Approved attachment', url: 'https://example.test/approved' }] }] }) }));
     b.onResolve({ filter: /^\.\/agent$/ }, () => ({ path: 'agent', namespace: 'fixture' }));
     b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ loader: 'js', contents: `
-      export async function runAgent(env, question, history, first, retrieve, emit) {
+      export async function runAgent(env, question, history, first, retrieve, emit, ctx, uid, model, spend, resources, rounds, cite, control) {
+        env.fixtureQuestion = question;
         emit({ status: 'Reading sources' });
+        if (env.fixtureCancelMode) {
+          spend.call({ input_tokens: 1000, output_tokens: 100 }, model);
+          if (['after', 'reset'].includes(env.fixtureCancelMode)) emit({ delta: 'A streamed fixture answer.' });
+          if (env.fixtureCancelMode === 'reset') emit({ reset: true });
+          env.fixtureStarted?.();
+          await new Promise((_resolve, reject) => control.signal.addEventListener('abort', () => reject(control.signal.reason), { once: true }));
+        }
         emit({ delta: env.fixtureAnswer });
         return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false };
       }
     ` }));
   } }],
 });
-const { ask, askStream, freeModel, answerApp, answerAppAgent } = await import(out);
+const { ask, askStream, freeModel, answerApp, answerAppAgent, grantPayment, ownerOfUser, wallet, worker } = await import(out);
+
+for (const mode of ['before', 'after', 'reset']) {
+  test(`paid cancellation ${mode} streamed answer text settles once with the proper charge`, async t => {
+    const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5');
+    Object.assign(env, { CLAUDE_MODEL: model.id, ANTHROPIC_API_KEY: 'fixture-only', AI: { run: async () => ({ data: [] }) }, fixtureCancelMode: mode });
+    const owner = await ownerOfUser(env, 77);
+    await grantPayment(env, owner, { charge: `cancel-${mode}`, kind: 'pack', stars: 10, mc: 2_000_000 });
+    const pending = [], ctx = { waitUntil: promise => pending.push(promise) };
+    const response = await askStream(env, 'Check cancellation charging', 77, ctx, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 2_000_000 } });
+    assert.equal(response.status, 200);
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let received = '';
+    while (mode === 'after' ? !received.includes('A streamed fixture answer.') : mode === 'reset' ? !received.includes('\"reset\":true') : !received.includes('Reading sources')) received += (await reader.read()).value;
+    await reader.cancel();
+    await Promise.all(pending);
+    const rows = sql.prepare('SELECT status, charged_mc, held_mc FROM credit_usage WHERE user_id = ?').all(owner);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].status, mode === 'after' ? 'partial' : 'failed');
+    assert.equal(rows[0].charged_mc > 0, mode === 'after');
+    assert.ok(rows[0].charged_mc <= rows[0].held_mc);
+    assert.equal((await wallet(env, owner)).total_mc, 2_000_000 - rows[0].charged_mc);
+  });
+}
+
+test('a misconfigured primary backup stays free when the reader cancels its text', async t => {
+  const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5');
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI: { run: async (id, _input, options) => {
+    if (id.includes('bge-m3')) return { data: [[1, 2]] };
+    return new ReadableStream({ start(controller) {
+      controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({ response: 'A free backup fixture answer.', usage: { prompt_tokens: 1000, completion_tokens: 10 } }) + '\n\n'));
+      options.signal.addEventListener('abort', () => controller.error(options.signal.reason), { once: true });
+    } });
+  } }, VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://example.test/recorded', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
+  const owner = await ownerOfUser(env, 77);
+  await grantPayment(env, owner, { charge: 'backup-cancel', kind: 'pack', stars: 10, mc: 2_000_000 });
+  const pending = [], response = await askStream(env, 'Read recorded material', 77, { waitUntil: promise => pending.push(promise) }, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 2_000_000 } });
+  assert.equal(response.status, 200);
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let text = '';
+  while (!text.includes('A free backup fixture answer.')) text += (await reader.read()).value;
+  await reader.cancel();
+  await Promise.all(pending);
+  const row = sql.prepare('SELECT status, charged_mc FROM credit_usage WHERE user_id = ?').get(owner);
+  assert.equal(row.status, 'failed');
+  assert.equal(row.charged_mc, 0);
+  assert.equal((await wallet(env, owner)).total_mc, 2_000_000);
+});
 
 test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async () => {
   const question = 'Owner approved fixture';
@@ -53,6 +111,41 @@ for (const stream of [false, true]) {
       assert.deepEqual(result.sources.map(source => source.n), ids);
       assert.deepEqual(result.unsupported_refs, unsupported);
     }
+  });
+}
+
+for (const stream of [false, true]) {
+  test(`recorded teacher/date reach ${stream ? 'NDJSON' : 'JSON'} video sources without guessing unnamed sources`, async t => {
+    const { env } = financialDb(t), model = freeModel(env);
+    const fetchBefore = globalThis.fetch, cachesBefore = globalThis.caches;
+    t.after(() => { globalThis.fetch = fetchBefore; globalThis.caches = cachesBefore; });
+    globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+    globalThis.fetch = async url => new URL(url).pathname === '/api/notes/index.json' ? Response.json([{ videoId: 'abcdefghijk', url: '/classes/2012/recorded', teacher: 'Deacon Eythan', date: '2012-07-14' }]) : new Response('', { status: 404 });
+    const sources = [{ kind: 'spoken', title: 'Recorded class', video: 'abcdefghijk', t: 65, url: '/classes/2012/recorded', text: 'Existing words.' }, { kind: 'spoken', title: 'Unnamed class', video: 'lmnopqrstuv', t: 0, url: '', text: 'Other existing words.' }];
+    Object.assign(env, { DATA_ORIGIN: `https://attribution-${stream}.data.test`, SITE_URL: 'https://cyberjudah.test', CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Recorded points [1, 2].', fixtureSources: sources });
+    const result = stream ? (await (await askStream(env, 'Explain those recorded points', 77, undefined, [], undefined, false, model.id, [model.provider])).text()).trim().split('\n').map(JSON.parse).find(event => event.done) : await ask(env, 'Explain those recorded points', 77, undefined, [], [model.provider]);
+    assert.equal(result.sources[0].teacher, 'Deacon Eythan');
+    assert.equal(result.sources[0].date, '2012-07-14');
+    assert.equal(result.sources[1].teacher, undefined);
+    assert.equal(result.sources[1].date, undefined);
+    assert.equal(result.sources[0].text, sources[0].text);
+    assert.equal(sources[0].teacher, undefined, 'the original passage is not mutated');
+  });
+
+  test(`${stream ? 'NDJSON' : 'JSON'} Ask keeps a long question intact and rejects oversize input before research`, async t => {
+    const { env } = financialDb(t), model = freeModel(env);
+    Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'An answer.', fixtureSources: [] });
+    const question = `Explain this question ${'with its full context '.repeat(30)}`.trim();
+    const invoke = q => stream ? askStream(env, q, 77, undefined, [], undefined, false, model.id, [model.provider]) : ask(env, q, 77, undefined, [], [model.provider]);
+    const result = await invoke(question);
+    if (stream) await result.text();
+    else assert.equal(result.q, question);
+    assert.equal(env.fixtureQuestion, question);
+    env.fixtureQuestion = null;
+    const refused = await invoke('a'.repeat(4001));
+    if (stream) { assert.equal(refused.status, 400); assert.equal((await refused.json()).error, 'too-long'); }
+    else assert.deepEqual(refused, { ok: false, reason: 'too-long' });
+    assert.equal(env.fixtureQuestion, null);
   });
 }
 
@@ -121,3 +214,25 @@ for (const stream of [false, true]) {
     assert.deepEqual(result.sources, [{ ...passage, n: 1, excerpt: passage.text, image: 'https://cyberjudah.io/api/img/people/moses-exo-2-10-256.webp', image_alt: '' }]);
   });
 }
+
+
+test('non-stream Ask forwards cancellation and never charges for internally buffered deltas', async t => {
+  assert.match(readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8'), /"compatibility_flags":\s*\[[^\]]*"enable_request_signal"/);
+  const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5');
+  let started;
+  const ready = new Promise(resolve => { started = resolve; });
+  Object.assign(env, { CLAUDE_MODEL: model.id, ANTHROPIC_API_KEY: 'fixture-only', AI: { run: async () => ({ data: [] }) }, fixtureCancelMode: 'after', fixtureStarted: started });
+  const owner = await ownerOfUser(env, 77);
+  await grantPayment(env, owner, { charge: 'nonstream-cancel', kind: 'pack', stars: 10, mc: 2_000_000 });
+  const params = { user: JSON.stringify({ id: 77, first_name: 'Fixture' }), auth_date: String(Math.floor(Date.now()/1000)) };
+  const check = Object.keys(params).sort().map(key => `${key}=${params[key]}`).join('\n');
+  const secret = createHmac('sha256', 'WebAppData').update(env.BOT_TOKEN).digest();
+  const hash = createHmac('sha256', secret).update(check).digest('hex');
+  const controller = new AbortController(), pending = [];
+  const response = worker.fetch(new Request('https://example.test/api/ask', { method: 'POST', headers: { authorization: `tma ${new URLSearchParams({ ...params, hash })}`, 'content-type': 'application/json' }, body: JSON.stringify({ q: 'Read recorded material', model: model.id, consent: [model.provider], caps: { [model.id]: 2_000_000 } }), signal: controller.signal }), env, { waitUntil: promise => pending.push(promise) });
+  await ready; controller.abort();
+  assert.equal((await response).status, 503);
+  await Promise.all(pending);
+  const row = sql.prepare('SELECT charged_mc FROM credit_usage WHERE user_id = ?').get(owner);
+  assert.equal(row.charged_mc, 0);
+});
