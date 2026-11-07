@@ -13,7 +13,7 @@ import { open, pid, seal } from "./privacy.mjs";
 export type SavedSource = { n: number; kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string };
 /** A change the assistant proposed, which only the reader can carry out (see assistant.mjs). `state` is set when the reader acts on it. */
 export type SavedAction = { id: string; kind: "reminder"; summary: string; settings: Record<string, unknown>; state?: "applied" | "cancelled" };
-export type SavedTurn = { role: "user" | "assistant"; content: string; sources?: SavedSource[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean };
+export type SavedTurn = { role: "user" | "assistant"; content: string; sources?: SavedSource[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean; request?: string; answer_id?: string; model?: string };
 export type Chat = { id: string; title: string; created: string; updated: string; turns: SavedTurn[] };
 export type ChatSummary = { id: string; title: string; updated: string; count: number };
 
@@ -90,15 +90,16 @@ export async function getChat(env: Env, uid: number, id: string): Promise<Chat |
  * `replaceLast` is a retry: the same question asked again replaces its earlier exchange instead
  * of repeating it.
  */
-export async function saveExchange(env: Env, uid: number, id: string, question: string, answer: { content: string; sources?: (SavedSource & { text?: string })[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean }, replaceLast = false): Promise<void> {
+export async function saveExchange(env: Env, uid: number, id: string, question: string, answer: { content: string; sources?: (SavedSource & { text?: string })[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean; request?: string; answer_id?: string; model?: string }, replaceLast = false): Promise<void> {
   if (!CHAT_ID.test(id) || !answer.content.trim()) return;
   const owner = await pid(env, uid);
   if (await env.SUBS.get(goneKey(owner, id))) return;
   const now = new Date().toISOString();
   const chat: Chat = (await getChat(env, uid, id)) ?? { id, title: titleOf(question), created: now, updated: now, turns: [] };
+  if (answer.request && chat.turns.some(turn => turn.role === "assistant" && turn.request === answer.request)) return;
   const n = chat.turns.length;
   if (replaceLast && n >= 2 && chat.turns[n - 2].role === "user" && chat.turns[n - 2].content.trim() === question.trim()) chat.turns.splice(n - 2, 2);
-  chat.turns.push({ role: "user", content: question }, { role: "assistant", content: answer.content, sources: (answer.sources ?? []).map(slim), followups: answer.followups ?? [], steps: answer.steps ?? [], ...(answer.actions?.length ? { actions: answer.actions } : {}), ...(answer.cut ? { cut: true } : {}) });
+  chat.turns.push({ role: "user", content: question }, { role: "assistant", content: answer.content, sources: (answer.sources ?? []).map(slim), followups: answer.followups ?? [], steps: answer.steps ?? [], ...(answer.actions?.length ? { actions: answer.actions } : {}), ...(answer.cut ? { cut: true } : {}), ...(answer.request ? { request: answer.request, answer_id: answer.answer_id, model: answer.model } : {}) });
   chat.turns = chat.turns.slice(-MAX_TURNS);
   chat.updated = now;
   await put(env, owner, chatKey(owner, id), chat);

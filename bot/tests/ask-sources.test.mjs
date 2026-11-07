@@ -80,11 +80,12 @@ test('a misconfigured primary backup stays free when the reader cancels its text
   assert.equal((await wallet(env, owner)).total_mc, 2_000_000);
 });
 
-test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async () => {
+test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async t => {
+  const { env } = financialDb(t);
   const question = 'Owner approved fixture';
   const json = await answerApp({}, question, 'owner');
   const agent = await answerAppAgent({}, question, 'owner');
-  const stream = (await (await askStream({}, question, 77)).text()).trim().split('\n').map(JSON.parse).find(event => event.done);
+  const stream = (await (await askStream(env, question, 77, undefined, [])).text()).trim().split('\n').map(JSON.parse).find(event => event.done);
   for (const result of [json, agent, stream]) {
     assert.equal(result.sources.length, 1);
     assert.equal(result.sources[0].title, 'Approved attachment');
@@ -171,8 +172,9 @@ for (const stream of [false, true]) {
       assert.equal(response.status, 200);
       assert.match(response.headers.get('content-type'), /application\/x-ndjson/);
       const events = (await response.text()).trim().split('\n').map(JSON.parse);
-      assert.deepEqual(events[0], { status: 'Reading sources' });
-      assert.deepEqual(events[1], { delta: env.fixtureAnswer });
+      assert.ok(events[0].request && events[0].answer_id);
+      assert.deepEqual(events.find(event => event.status), { status: 'Reading sources' });
+      assert.deepEqual(events.find(event => event.delta), { delta: env.fixtureAnswer });
       result = events.find(event => event.done);
       assert.ok(result);
     } else {

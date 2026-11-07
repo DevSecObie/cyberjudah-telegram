@@ -165,7 +165,12 @@ for (const stream of [true,false]) {
     assert.equal(usage.model, chosen);
     assert.ok(usage.charged_mc > 1_000, 'retrieval is included in the charge');
     assert.equal((await api.wallet(env, owner)).total_mc, 200_000 - usage.charged_mc);
-    assert.equal((await request(env, body)).status, 409, 'a replay cannot hold or settle again');
+    const replay = await request(env, body);
+    assert.equal(replay.status, 200, 'a replay recovers the original answer without new work');
+    const replayed = stream ? (await events(replay)).find(e => e.done) : await replay.json();
+    assert.equal(replayed.answer_id, answer.answer_id);
+    assert.equal(replayed.answer, answer.answer);
+    assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM credit_usage').get().n, 1);
     assert.equal(env.calls.length, 1);
   });
 

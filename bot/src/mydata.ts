@@ -11,6 +11,7 @@ import { open, pid, seal } from "./privacy.mjs";
 import type { NoteRequest } from "./requests";
 import { deleteSub, sentKeyOf } from "./subscribe";
 import { deleteAccountSyncMarks, exportAccountSyncMarks } from "./firestore-admin";
+import { deleteAskRequests, exportAskRequests } from "./ask-requests";
 
 /**
  * A reader's rights over what CyberJudah keeps about them (docs/PRIVACY.md; Telegram's Standard
@@ -24,6 +25,7 @@ export type MyData = {
   generated: string;
   note: string;
   savedChats: unknown[];
+  askRequests: unknown[];
   readingReminder: unknown;
   dailyVerse: { hour: number; tzOffsetMinutes: number; timeZone?: string; lastSentLocalDate?: string } | null;
   ask: unknown;
@@ -65,6 +67,7 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
     note: "Everything CyberJudah keeps about you, including an optional personal-study cloud backup. Reader highlights, notes, bookmarks and reading history stay on your device and in Telegram's storage, unless account sync is on (then highlights, notes, bookmarks and studies are also kept in Google Firebase and listed under accountSync).",
     personalStudyBackup: await readStudyBackup(env, uid),
     savedChats: chats,
+    askRequests: await exportAskRequests(env, uid),
     readingReminder: rec ? publicView(rec) : null,
     dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz, ...(sub.zone ? { timeZone: sub.zone } : {}), ...(lastSent ? { lastSentLocalDate: lastSent } : {}) } : null,
     ask: await billingRecord(env, uid),
@@ -79,6 +82,7 @@ export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   const me = await pid(env, uid);
   await deleteStudyBackup(env, uid);
+  await deleteAskRequests(env, uid);
   const savedChats = await deleteAllChats(env, uid);
   const readingReminder = await forgetReminder(env, uid);
   const subKey = `sub:${me}`;

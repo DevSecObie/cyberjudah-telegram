@@ -36,6 +36,7 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Record | Where | Holds | Kept | Deleted by |
 |---|---|---|---|---|
 | Saved Ask chats | KV `chats:<pid>`, `chat:<pid>:<id>`, sealed | Questions, answers, source links | 180 days from last use (`CHAT_TTL`) | The reader (one chat, or all), Delete my data |
+| Ask request recovery | D1 `ask_requests` (owner = pid), answer payload sealed | Opaque request/answer IDs, keyed input fingerprint, model, outcome, encrypted complete or interrupted answer and charge; no raw Telegram ID | 180 days from admission, pruned hourly | Delete my data; deleting a saved chat also removes its recovery records; included in Download my data |
 | Answer in progress | KV `chatpending:<pid>:<id>`, sealed | The question | 10 minutes | Itself |
 | Reading reminder | KV `remind:tg:<pid>` / `remind:dev:<id>`, sealed; readable metadata: on, hour, minute, zone, channels, pause date | Time, zone, chat ID or push subscriptions, plan position, the ids of browsers linked to a Telegram record (`devices`, up to 20) | Until deleted (Settings → Reading reminders → Delete my reading reminder) or Delete my data; turning it off (Settings, `/stop`, the Stop button) keeps the record so it can be turned back on; a browser not linked to Telegram 180 days unused | Settings → Reading reminders → Delete my reading reminder, Delete my data (both also remove the `remdev:` credentials of linked browsers) |
 | Push lookup | KV `pushep:<sha256(endpoint)>` | The reminder's ID | 180 days | With the reminder |

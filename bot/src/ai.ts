@@ -29,6 +29,7 @@ import { withAskBookLinks } from "./ask-source-links";
 import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
 import { citationReport, citationTokenCount } from "./citations.mjs";
 import { autoModel } from "./ask-routing";
+import { ASK_REQUEST_ID, claimAskRequest, findAskRequest, legacyAskRequest, publicAskRequest, releaseAskRequest, requestIdentity, saveAskRequest, startAskRequest, type AskRequest, type RequestResult } from "./ask-requests";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -716,45 +717,112 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
+  if (opts.request !== undefined && !ASK_REQUEST_ID.test(opts.request)) return reply(400, { error: "invalid-request" });
+  const request = opts.request ?? crypto.randomUUID();
+  const replay = (saved: AskRequest) => saved.state === "completed" && saved.done
+    ? new Response(line({ request, answer_id: saved.answer_id, model: saved.model, replay: true }) + line(saved.done) + (saved.usage ? line({ usage: saved.usage }) : ""), { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } })
+    : reply(409, { error: saved.state === "running" ? "request-running" : "request-used", request, answer_id: saved.answer_id, state: saved.state, recover: `/api/ask/requests/${request}` });
+  // Bind one ID to one generation input. Consent/cost prompts can change permissions, never the question.
+  let identity: Awaited<ReturnType<typeof requestIdentity>>;
+  try {
+    identity = await requestIdentity(env, userId, request, [question, history, modelId ?? null, chatId ?? null, replaceLast, opts.resources ?? null]);
+    const saved = await findAskRequest(env, identity.owner, request);
+    if (saved) return saved.fingerprint === identity.fingerprint ? replay(await publicAskRequest(env, saved)) : reply(409, { error: "request-conflict", request });
+    if (await legacyAskRequest(env, identity.owner, request)) return reply(409, { error: "request-used", request });
+  } catch { return reply(503, { error: "unavailable" }); }
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, history.length, userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
-  if (!consent.includes(model.provider)) return reply(428, { error: "consent", provider: model.provider, model: model.name, ...(countryOf(model.provider) ? { country: countryOf(model.provider) } : {}) });
+  if (!approved && !consent.includes(model.provider)) return reply(428, { error: "consent", provider: model.provider, model: model.name, ...(countryOf(model.provider) ? { country: countryOf(model.provider) } : {}) });
+  let claim: Awaited<ReturnType<typeof claimAskRequest>>["row"];
+  try {
+    const claimed = await claimAskRequest(env, identity, model.id, chatId);
+    if (!claimed.created) return claimed.row.fingerprint === identity.fingerprint ? replay(await publicAskRequest(env, claimed.row)) : reply(409, { error: "request-conflict", request });
+    claim = claimed.row;
+    if (approved) {
+      const done = { done: true, request, answer_id: claim.answer_id, model: model.id, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true };
+      await saveAskRequest(env, claim, "completed", { done, settlement: "settled", usage: { charged_mc: 0, free: true } });
+      return new Response(line({ delta: approved.answer }) + line(done) + line({ usage: { charged_mc: 0, free: true } }), { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
+    }
+  } catch { return reply(503, { error: "unavailable" }); }
   // The balance: held before anything is spent, settled once at the end with what the answer
   // actually cost (finishMeter). A disconnect stops further research; accounting still
   // settles once under waitUntil. Too little for this model: Ask says so and offers the free model and a top-up.
   // A routed light answer may cost up to what the reader accepted for their default model, which is dearer.
   const fallbackCap = light ? opts.caps?.[modelOf(undefined, defaultModelId(env, userId)).id] : undefined;
-  const started = await begin(env, userId, model, fallbackCap && !opts.caps?.[model.id] ? { ...opts, caps: { ...opts.caps, [model.id]: fallbackCap } } : opts);
-  if (!started.ok) return reply(started.status, started.body);
+  const meterOpts = { ...opts, request: claim.meter_request, ...(fallbackCap && !opts.caps?.[model.id] ? { caps: { ...opts.caps, [model.id]: fallbackCap } } : {}) };
+  let started: Awaited<ReturnType<typeof begin>>;
+  try { started = await begin(env, userId, model, meterOpts); }
+  catch { await saveAskRequest(env, claim, "failed", { error: "unavailable", settlement: "pending" }).catch(() => undefined); return reply(503, { error: "unavailable", request }); }
+  if (!started.ok) {
+    await releaseAskRequest(env, claim);
+    return reply(started.status, started.body);
+  }
   const meter = started.meter;
+  try { await startAskRequest(env, claim, meter?.reservation?.request); }
+  catch { if (meter) await finishMeter(env, meter, "failed"); return reply(503, { error: "unavailable", request }); }
   const spend = meter?.spend ?? freeSpend();
   const encoder = new TextEncoder();
   // The reader can leave at any moment (Stop, another screen, the app closed). From then on
   // the shared signal stops provider work and further tools. Accounting still completes under
   // waitUntil, so already incurred costs are recorded and a failed answer is not charged.
-  let open = true, deliveredText = false, backupAnswer = false;
-  let settled = false;
+  let open = true, deliveredText = false, backupAnswer = false, partial = "";
+  let settlement: ReturnType<typeof finishMeter> | undefined;
   const finish = async (status: Parameters<typeof finishMeter>[2], chargePartial = false) => {
-    if (settled || !meter) return null;
-    settled = true;
-    return finishMeter(env, meter, status, undefined, chargePartial);
+    if (!meter) return null;
+    return settlement ??= finishMeter(env, meter, status, undefined, chargePartial);
   };
   // While it is being answered, the conversation says so, for a refresh or another device to wait on.
   if (chatId) await markPending(env, userId, chatId, question).catch(() => undefined);
   const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
+    start(controller) {
+      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) { deliveredText = false; partial = ""; } if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string") { partial += o.delta; if (o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } } catch { open = false; abort.abort(); } };
+      send({ request, answer_id: claim.answer_id, model: model.id });
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
+      let checkpoint: Promise<unknown> = Promise.resolve(), checkpointBusy = false, checkpointText = "";
+      const checkpointTimer = setInterval(() => {
+        if (checkpointBusy || partial === checkpointText) return;
+        checkpointBusy = true; checkpointText = partial;
+        checkpoint = saveAskRequest(env, claim, "running", { partial, settlement: "pending" })
+          .catch(() => undefined).finally(() => { checkpointBusy = false; });
+      }, 5000);
+      let outcome: RequestResult | undefined;
+      const usageOf = (used: Awaited<ReturnType<typeof finishMeter>>) => used ? { charged_mc: used.charged_mc, balance: used.balance } : !meter || meter.free ? { charged_mc: 0, free: true } : undefined;
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
       const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false) => {
         if (!chatId) return;
-        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, request, answer_id: claim.answer_id, model: model.id }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+      };
+      const complete = async (packet: Record<string, unknown>, status: Parameters<typeof finishMeter>[2], steps: string[] = [], actions: SavedAction[] = []) => {
+        clearInterval(checkpointTimer); await checkpoint;
+        const done = { ...packet, done: true, request, answer_id: claim.answer_id, model: model.id };
+        const prepared: RequestResult = { done, settlement: "pending" };
+        // Save the whole answer before charging or claiming completion on the wire.
+        await saveAskRequest(env, claim, "completed", prepared);
+        outcome = prepared;
+        const used = await finish(status);
+        const usage = usageOf(used);
+        outcome = { done, ...(usage ? { usage } : {}), settlement: usage ? "settled" : "pending" };
+        await saveAskRequest(env, claim, "completed", outcome);
+        await keep(String(packet.answer), packet.sources as unknown[], packet.followups as string[], steps, actions, packet.cut === true);
+        send(done); if (usage) send({ usage });
+      };
+      const fail = async (status: Parameters<typeof finishMeter>[2], error: string, chargePartial = false) => {
+        clearInterval(checkpointTimer); await checkpoint;
+        const state = signal.aborted ? "interrupted" : "failed";
+        const prepared: RequestResult = { error, ...(partial ? { partial } : {}), settlement: "pending" };
+        // A partial answer may be charged under #548 only once it is durable too.
+        let saved = false;
+        try { await saveAskRequest(env, claim, state, prepared); saved = true; } catch { /* storage failure: refund the reader */ }
+        const used = await finish(saved ? status : "failed", saved && chargePartial);
+        const usage = usageOf(used);
+        outcome = { ...prepared, ...(usage ? { usage } : {}), settlement: usage ? "settled" : "pending" };
+        await saveAskRequest(env, claim, state, outcome).catch(() => undefined);
+        send({ error, request, answer_id: claim.answer_id, state }); if (usage) send({ usage });
       };
       const job = (async () => {
         try {
@@ -782,16 +850,10 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const { text, passages, actions, cut, refused, grounded } = ran;
               const { answer, followups } = splitFollowups(text);
               // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer, not charged.
-              if (refused && !answer.trim()) { await finish("refused"); send({ error: "refused" }); return; }
-              if (!answer.trim()) { await finish("empty"); send({ error: "empty" }); return; }
-              const used = await finish(cut ? "partial" : grounded === false ? "empty" : "ok");
+              if (refused && !answer.trim()) { await fail("refused", "refused"); return; }
+              if (!answer.trim()) { await fail("empty", "empty"); return; }
               const sources = await askSourcesOf(env, answer, passages);
-              // Saved first: whatever happens to the connection after this, the answer is kept.
-              await keep(answer, sources, followups, steps, actions, cut);
-              send({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) });
-              // What the answer cost, and the balance after it; the free model and admins pay nothing.
-              if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
-              else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });
+              await complete({ answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) }, cut ? "partial" : grounded === false ? "empty" : "ok", steps, actions);
               return;
             }
           }
@@ -800,44 +862,42 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
           // rather than that the library has nothing (which only the research could tell).
-          if (!passages.length && backup) { send({ error: "busy" }); return; }
+          if (!passages.length && backup) { await fail("backup", "busy"); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
-            await finish("empty");
-            await keep(answer, [], []);
-            send({ delta: answer }); send({ done: true, answer, followups: [], sources: [], unsupported_refs: [] }); return;
+            send({ delta: answer }); await complete({ answer, followups: [], sources: [], unsupported_refs: [] }, "empty"); return;
           }
           if (assessCoverage(env, retrievalText(question, history), passages).blocked) {
             const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
             const sources = await askSourcesOf(env, gap.answer, gap.sources);
-            await finish("empty"); await keep(gap.answer, sources, []);
-            send({ reset: true }); send({ delta: gap.answer }); send({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
+            send({ reset: true }); send({ delta: gap.answer }); await complete({ answer: gap.answer, followups: [], sources, unsupported_refs: [] }, "empty"); return;
           }
           let answer = "";
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal)) { answer += piece; send({ delta: piece }); }
           const { answer: clean, followups } = splitFollowups(answer);
-          if (!clean.trim()) { send({ error: "empty" }); return; }
+          if (!clean.trim()) { await fail("empty", "empty"); return; }
           const sources = await askSourcesOf(env, clean, passages);
-          await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
-          await finish("backup");
-          send({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
+          await complete({ answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) }, "backup");
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;
-          await finish(paidPartial ? "partial" : "failed", paidPartial);
+          if (!outcome?.done) await fail(paidPartial ? "partial" : "failed", "unavailable", paidPartial);
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
-          send({ error: "unavailable" });
+          if (outcome?.done) send({ error: "unavailable", request, answer_id: claim.answer_id });
         } finally {
           // Whatever way it ended, the hold is settled once: an answer that got no further is not charged.
-          await finish("failed");
+          await finish("failed").catch(() => undefined);
           clearInterval(beat);
+          clearInterval(checkpointTimer);
           if (chatId) await clearPending(env, userId, chatId).catch(() => undefined);
         }
       })();
-      ctx?.waitUntil(job);
-      await job;
-      if (open) { open = false; try { controller.close(); } catch { /* already closed */ } }
+      const finished = job.finally(() => {
+        if (open) { open = false; try { controller.close(); } catch { /* already closed */ } }
+      });
+      ctx?.waitUntil(finished);
+      void finished.catch(() => undefined);
     },
     cancel() { open = false; abort.abort(); },
   });

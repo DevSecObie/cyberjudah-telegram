@@ -7,6 +7,7 @@ import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
 import { sweepFreeBudget } from "./free-budget";
 import { sweepAskEvents } from "./ask-events";
+import { ASK_REQUEST_ID, deleteAskRequests, recoverAskRequest, sweepAskRequests } from "./ask-requests";
 import { CmsError, CONTENT_REPO } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
@@ -106,6 +107,7 @@ const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 app.use("/api/*", async (c, next) => {
   // JSON only: no MIME sniffing on anything the API serves.
   c.header("x-content-type-options", "nosniff");
+  if (c.req.path.startsWith("/api/ask/requests/")) c.header("cache-control", "no-store");
   // The frames' geometry is public like the sheets themselves: the library's build reads it to place frames in the notes.
   // A note's PDF is fetched by Telegram's downloader, which carries no launch data: its link is signed instead.
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
@@ -135,7 +137,7 @@ app.use("/api/*", async (c, next) => {
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
     const allowed = (c.req.method === "POST" && ["/api/ask", "/api/report"].includes(c.req.path)) ||
       (c.req.method === "GET" && /^\/api\/(?:search|teachings|live|recent|taught|transcript|visuals)(?:\/|$)/.test(c.req.path)) ||
-      (c.req.method === "GET" && ["/api/ask/account", "/api/ask/history", "/api/me", "/api/privacy/export"].includes(c.req.path)) ||
+      (c.req.method === "GET" && (["/api/ask/account", "/api/ask/history", "/api/me", "/api/privacy/export"].includes(c.req.path) || /^\/api\/ask\/requests\/[a-z0-9_-]{8,64}$/i.test(c.req.path))) ||
       (/^\/api\/chats(?:\/[a-zA-Z0-9_-]+(?:\/actions\/[a-zA-Z0-9_-]+)?)?$/.test(c.req.path)) ||
       c.req.path.startsWith("/api/study-backup") || (c.req.method === "POST" && c.req.path === "/api/privacy/delete");
     if (!allowed) return c.json({ error: "telegram_sign_in_required" }, 403);
@@ -284,7 +286,7 @@ app.post("/api/ask", async (c) => {
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = normalizeHistory(body?.history, 8);
-  if (body?.stream || typeof body?.model === "string") {
+  if (body?.stream || typeof body?.model === "string" || typeof body?.request === "string") {
     const start = Date.now();
     const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
     return body?.stream ? response : askJson(response, String(body?.q ?? ""), start);
@@ -292,6 +294,16 @@ app.post("/api/ask", async (c) => {
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
   return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
+});
+app.get("/api/ask/requests/:request", async c => {
+  c.header("cache-control", "no-store");
+  const request = c.req.param("request");
+  if (!ASK_REQUEST_ID.test(request)) return c.json({ ok: false, error: "invalid-request" }, 400);
+  try {
+    const saved = await recoverAskRequest(c.env, c.get("tma").user!.id, request);
+    if (!saved) return c.json({ ok: false, error: "not-found" }, 404);
+    return c.json({ ok: true, ...saved });
+  } catch { return c.json({ ok: false, error: "unavailable" }, 503); }
 });
 // Native Ask authenticates every route itself with Firebase; Telegram linking stays optional.
 app.route("/api/app/ask", appAsk);
@@ -486,7 +498,9 @@ app.post("/api/chats/:id/actions/:action", async (c) => {
   return c.json({ ok }, ok ? 200 : 404);
 });
 app.delete("/api/chats/:id", async (c) => {
-  const ok = await deleteChat(c.env, c.get("tma").user!.id, c.req.param("id"));
+  const uid = c.get("tma").user!.id, id = c.req.param("id");
+  const ok = await deleteChat(c.env, uid, id);
+  if (ok) await deleteAskRequests(c.env, uid, id);
   return c.json({ ok }, ok ? 200 : 400);
 });
 app.get("/api/similar", async (c) => {
@@ -691,6 +705,7 @@ export default {
     ctx.waitUntil(sweepWebhookUpdates(env).catch((e) => console.error(JSON.stringify({ event: "webhook_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepFreeBudget(env).catch((e) => console.error(JSON.stringify({ event: "free_budget_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepAskEvents(env).catch((e) => console.error(JSON.stringify({ event: "ask_events_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
+    ctx.waitUntil(sweepAskRequests(env).catch(() => console.error(JSON.stringify({ event: "ask_requests_sweep_failed" }))));
     // Yesterday's quota rows are swept here, never on the request path (ai.ts).
     ctx.waitUntil(sweepRateCounts(env).catch((e) => console.error(JSON.stringify({ event: "sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Records still filed under Telegram IDs move to pseudonymous IDs (docs/PRIVACY.md), a bounded amount each hour.
