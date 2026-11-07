@@ -18,7 +18,7 @@
 const SECTIONS = new Set([
   "plan", "resources", "doctrine",
   "about", "api", "ask", "bible", "captains", "cases", "classes", "concordance", "dictionary", "downloads",
-  "encyclopedia", "glossary", "history", "law", "lexicon", "people", "person", "precepts", "privacy", "search", "settings", "shows", "study", "tags", "teachings", "terms", "timeline", "topics", "truth-shall-make-you-free",
+  "encyclopedia", "giving-the-sense", "glossary", "history", "law", "lexicon", "people", "person", "precepts", "privacy", "search", "settings", "shows", "study", "tags", "teachings", "terms", "timeline", "topics", "truth-shall-make-you-free",
 ]);
 
 const SAFE = /^[A-Za-z0-9_-]{1,512}$/;
@@ -108,6 +108,7 @@ export function toAppPath(href) {
   }
   if (["classes", "captains", "history", "study", "encyclopedia"].includes(top) && parts.length > 1) return `/note${url.pathname}${h}`;
   if (top === "truth-shall-make-you-free") return "/classes?feed=truth";
+  if (top === "giving-the-sense") return "/classes?feed=sense";
   if (top === "shows") return parts.length === 2 ? `/classes?feed=shows&show=${parts[1]}` : "/classes?feed=shows";
   if (top === "captains" || top === "history") return `/classes?feed=${top}`;
   if (top === "teachings") return `/search?mode=said${q.replace("?", "&")}`;

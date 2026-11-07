@@ -34,6 +34,33 @@ Valid references are positive, canonical, safe integer IDs in that answer's actu
 
 Clients may display a source warning from this field. They must not invent a source for an invalid reference. Existing `answer`, source fields, events, auth and consent remain in place. The answer-cache revision changes so old fallback sources are not reused.
 
+## Search answer recovery and release check
+
+`GET /api/search/answer` makes at most two model calls: an initial answer and one citation retry when no valid source ID is cited. Both use the same retrieved records, free-spend reservation, provider, consent and 55-second deadline. The retry adds a fixed system reminder to use the supplied `source_n` values as `[n]`; it does not include the uncited draft. It starts only when usage is known, time remains and the original budget covers its input plus at least 64 output tokens. No new reservation, fallback provider or research loop is started. Both calls are metered, including an answer that remains uncited. Greetings retain their existing citation exemption.
+
+When the retry is still uncited (or cannot fit the remaining budget/time), the response is HTTP 200 with this shape:
+
+```json
+{
+  "ok": true,
+  "state": "no-cited-answer",
+  "answer": "I could not produce a cited answer from the library material I found.",
+  "sources": [],
+  "unsupported_refs": [],
+  "followups": [],
+  "related": { "label": "Related library passages", "passages": [] },
+  "citation_diagnostics": { "sources_returned": 0, "citation_tokens_found": 0, "valid_ids": 0, "retries": 1, "model": "configured-model-id" }
+}
+```
+
+The response also retains `model`, `provider` and `ms`. `related.passages` contains the existing retrieved records with no citation `n`; its label distinguishes related material from cited support. The uncited draft and its follow-ups are discarded. Empty or enforced-thin retrieval uses the same state without a model call, with the message “I could not find material answering this directly.” Neither state is edge-cached; only answers with valid cited sources enter the new `library-answer-v3-grounded` namespace, partitioned by shadow/enforce mode. Existing clients can display the honest `answer` safely even if they do not yet render `related`.
+
+Successful search answers expose the same `citation_diagnostics` object: final-draft numeric reference token count (including invalid or repeated IDs), unique valid ID/source count, actual citation retry count (0 or 1), and model identifier. These are membership diagnostics, not semantic entailment scores. Provider failures and in-flight timeouts still return HTTP 503, rather than being disguised as an honest-uncited result.
+
+The release check asks “What does Genesis 1:1 say?”, whose named verse is hydrated directly from the public KJV library. A matching configured provider and at least one valid citation pass. An honest-uncited response **warns** only if its separately labelled related material includes the exact Genesis 1:1 library record and text. This threshold tests route, retrieval and response-contract health; a warning still signals a model citation-quality problem. Missing related material, malformed responses, missing routes and any 404 fail. One transport retry remains for a 503 or request timeout; a second failure fails, and other 5xx statuses fail immediately. It does not retry an honest-uncited HTTP 200.
+
+Release diagnostics log only source/token/valid-ID counts, retry count and the expected model identifier, never prompts, answers, passages, launch data or person IDs. Offline tests reproduce zero-source model output through the real Search handler and verifier, as well as citation recovery, shared budget/deadline, unknown usage, discarded drafts, uncached gaps and transport failures. No live inference is needed for these tests.
+
 ## Recorded evaluation
 
 `npm run eval:grounding --workspace bot` unit-tests the evaluator against 50 fixture-built answers to realistic public-library questions, recorded retrieval and explicit claim/evidence annotations. Normal `npm test` runs it in CI with no network, inference or paid calls. The runner reports claim alignment, uncited-claim rate and answers with uncited claims. Regression tests replace a correct citation with another **existing but wrong** source, remove citations and append unreviewed prose; each must fail.

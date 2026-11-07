@@ -24,7 +24,7 @@ searchAnswers.get("/", async (c) => {
 
   // Version and model isolate cached answers from old releases and configuration changes.
   const key = new URL(c.req.url);
-  key.search = new URLSearchParams({ q, model: model.id, version: "library-answer-v2" }).toString();
+  key.search = new URLSearchParams({ q, model: model.id, version: "library-answer-v3-grounded", coverage: c.env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow" }).toString();
   const cache = caches.default;
   const hit = await cache.match(key.toString()).catch(() => undefined);
   if (hit) return new Response(hit.body, { headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
@@ -36,6 +36,6 @@ searchAnswers.get("/", async (c) => {
   if (!r.ok) return c.json({ ok: false, error: r.reason }, r.reason === "too-short" ? 400 : r.reason === "consent" ? 428 : r.reason === "free-paused" ? 429 : 503);
   const res = c.json(r);
   const cached = new Response(JSON.stringify(r), { headers: { "content-type": "application/json", "cache-control": "public, max-age=120" } });
-  c.executionCtx.waitUntil(cache.put(key.toString(), cached).catch(() => undefined));
+  if (!r.state && r.sources.length) c.executionCtx.waitUntil(cache.put(key.toString(), cached).catch(() => undefined));
   return res;
 });

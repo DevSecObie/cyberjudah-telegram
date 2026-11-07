@@ -110,6 +110,16 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
 10. **Roll back** if a check fails: see below. The search index is not part of a rollback;
     the next deploy or the nightly `refresh-search` reloads it.
 
+**Production search concurrency:** the deploy job and nightly `refresh-search` share the
+`production-search-write` concurrency group with `cancel-in-progress: false`, covering the entire
+index load and table swap. Any future workflow that loads production search must take the same
+lock. Staging uses a separate database. Main pushes, nightly maintenance and manual dispatch have
+separate workflow queues; long embeds have their own `production-embedding` group and do not hold
+the production-write lock. GitHub keeps only one pending run/job per group and a newer pending
+one can supersede it, even with cancellation disabled. Check cancelled pending deployments and
+rerun current main if its release is still needed; this is not a FIFO queue or a guarantee that
+every submitted run executes. Never start a parallel production `load-search.mjs` by hand.
+
 ## Rollback
 
 No rebuilds. The `rollback` workflow (`Actions → rollback → Run workflow`) repoints the

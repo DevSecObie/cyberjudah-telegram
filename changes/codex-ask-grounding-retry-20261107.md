@@ -1,0 +1,1 @@
+- Search retries an answer once when it has no valid library citations. If it still cannot cite the material, it shows an honest message instead of the uncited draft and returns related passages separately. Release checks distinguish that state from an unavailable route or provider, with counts-only diagnostics.
