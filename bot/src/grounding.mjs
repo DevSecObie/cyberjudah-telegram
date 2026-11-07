@@ -24,7 +24,7 @@ export function recordRetrieval(source, mode, score) {
 
 const CONTROL = /<\|(?:im_start|im_end|start_header_id|end_header_id)|\[\/?INST\]|<\/?(?:system|assistant|developer)>/i;
 export const hasControlText = text => CONTROL.test(String(text ?? ''));
-export const SMALL_TALK = /^\s*(?:hi|hello|hey|shalom|good (?:morning|afternoon|evening)|thanks?(?: you)?|thank you(?: so much)?|ok(?:ay)?|got it|who are you|what are you|what can you do|how do(?:es)? (?:this|you) work|help)[\s!.?,]*(?:how are you[\s!.?,]*|\S{0,40})$/i;
+export const SMALL_TALK = /^\s*(?:hi|hello|hey|shalom|good (?:morning|afternoon|evening)|thanks?(?: you)?|thank you(?: so much)?|ok(?:ay)?|got it|who are you|what are you|what can you do|how do(?:es)? (?:this|you) work|help)\b[\s!.?,]*(?:how are you[\s!.?,]*|\S{0,40})$/i;
 const STOP = new Set('the a an and or of in on at to for by with from is are was were be been being it its this that these those i me my we our you your he she they them his her their what which who whom why how when where does do did can could would should say says said tell explain teach teaches taught mean means meaning bible scripture scriptures class classes library please about according'.split(' '));
 const stem = word => word.length > 4 && word.endsWith('ies') ? word.slice(0, -3) + 'y' : word.length > 4 && /(?:ches|shes|xes|zes|sses)$/.test(word) ? word.slice(0, -2) : word.length > 3 && !word.endsWith('ss') ? word.replace(/s$/, '') : word;
 const words = text => [...String(text ?? '').toLowerCase().matchAll(/[\p{L}\p{N}]+/gu)].map(match => match[0]);

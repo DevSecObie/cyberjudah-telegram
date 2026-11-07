@@ -49,4 +49,4 @@ npm run eval:grounding --workspace bot
 
 The fixed data policy adds prompt tokens per model call. The cache-revision change makes older answers miss until they expire (up to seven days), so inference spend can rise during that period. Shadow calibration also adds numeric logs, with no inference.
 
-No new binding, secret, schema, external service or Cloudflare write is required. Merging changes `bot/src` and therefore enters the repository's Ask Worker production deployment path; the owner controls that release. This PR is separate from the depth and automatic-model-routing PRs and must be reconciled with them before release.
+No new binding, secret, schema, external service or Cloudflare write is required. Merging changes `bot/src` and therefore enters the repository's Ask Worker production deployment path; the owner controls that release. This PR is rebased onto automatic model routing (#547). The separate depth PR (#548) retains this data boundary and citation contract when integrating its reading tools.

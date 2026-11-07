@@ -108,7 +108,10 @@ test('coverage defaults to shadow and logs only numbers and fixed reason labels,
   assert.equal(assessCoverage({ ASK_COVERAGE_MODE: 'enforce' }, 'private question', []).blocked, true);
   assert.ok(logs.every(log => log.event === 'ask_coverage' && !JSON.stringify(log).includes('private')));
   for (const text of ['ok', 'got it', 'good afternoon', 'Shalom, how are you?', 'thank you brother', 'hi there']) assert.equal(SMALL_TALK.test(text), true, text);
-  assert.equal(SMALL_TALK.test('Shalom, explain the law of inheritance'), false);
+  for (const text of ['Hittites', 'Hivites?', 'history', 'helpers', 'Shalom, explain the law of inheritance']) {
+    assert.equal(SMALL_TALK.test(text), false, text);
+    assert.equal(coverageDecision(text, []).enough, false, text);
+  }
   const source = { kind: 'note', title: 'Recorded material', text: 'The judge and prophecy are mentioned in this sufficiently long recorded library passage.' };
   assert.equal(coverageDecision('Explain judges and prophecies', [source]).overlap, 1);
   const result = markCoverageGap({ answer: 'existing gap' });
