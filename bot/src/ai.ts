@@ -30,6 +30,8 @@ import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCovera
 import { citationReport, citationTokenCount } from "./citations.mjs";
 import { autoModel } from "./ask-routing";
 import { ASK_REQUEST_ID, claimAskRequest, findAskRequest, legacyAskRequest, publicAskRequest, releaseAskRequest, requestIdentity, saveAskRequest, startAskRequest, type AskRequest, type RequestResult } from "./ask-requests";
+import { approvedSources as approvedOutsideHosts } from "./source-policy";
+import { recordedMoment, retrievedSourceUrl } from "./retrieved-source-url";
 import { issueAnswerReceipt } from "./feedback";
 export { freeSpendToday, freePaused } from "./free-budget";
 
@@ -49,9 +51,11 @@ export async function embed(env: Env, texts: string[], signal?: AbortSignal): Pr
   return out;
 }
 
-const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Passage & { score: number } => {
+const passageOf = (m: { metadata?: Record<string, unknown>; score: number }, hosts: string[]): (Passage & { score: number }) | null => {
   const md = (m.metadata ?? {}) as Record<string, string | number>;
-  return { kind: String(md.kind ?? ""), title: String(md.title ?? ""), url: String(md.url ?? ""), sub: String(md.sub ?? ""), video: md.video ? String(md.video) : undefined, t: md.t !== undefined ? Number(md.t) : undefined, date: md.date ? String(md.date) : undefined, text: String(md.text ?? ""), score: m.score };
+  const url = retrievedSourceUrl(md, hosts);
+  if (!url) return null;
+  return { kind: String(md.kind ?? ""), title: String(md.title ?? ""), url, sub: String(md.sub ?? ""), video: md.video ? String(md.video) : undefined, t: recordedMoment(md.t), date: md.date ? String(md.date) : undefined, text: String(md.text ?? ""), score: m.score };
 };
 
 /**
@@ -59,17 +63,22 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
  * keyword matches from the library search, together, reranked by whether they answer it.
  */
 export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend, signal?: AbortSignal): Promise<(Passage & { score: number })[]> {
-  const [vectorRes, keywordRes] = await Promise.all([
+  const [vectorRes, keywordRes, hosts] = await Promise.all([
     // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
     // so a question is still answered (and Claude can still research) rather than failing whole.
     embed(env, [text], signal).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] }))
       .catch((e: Error) => { console.error(JSON.stringify({ event: "retrieve_vector_failed", message: e.message?.slice(0, 120) })); return { matches: [] as VectorizeMatches["matches"] }; }),
     runSearch(env.DB, text, undefined, 3, true).catch(() => null),
+    approvedOutsideHosts(env).catch(() => []),
   ]);
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
   const said = vectorRes.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
-  const close = dedupeMatches(said).map(m => recordRetrieval(passageOf(m), "vector", m.score));
-  const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).map((h) => recordRetrieval({ kind: h.kind, title: h.title, url: h.url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")) : [];
+  // Omit unlinkable evidence before assigning any citation IDs, never after registration.
+  const close = dedupeMatches(said).flatMap(m => { const passage = passageOf(m, hosts); return passage ? [recordRetrieval(passage, "vector", m.score)] : []; });
+  const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).flatMap((h) => {
+    const url = retrievedSourceUrl(h, hosts);
+    return url ? [recordRetrieval({ kind: h.kind, title: h.title, url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")] : [];
+  }) : [];
   const seen = new Set(close.map((p) => `${p.kind}|${p.url}|${p.sub ?? ""}`));
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
   // What this search cost: the question embedded, one vector query, and what the reranker read.
