@@ -78,6 +78,9 @@ export function startParamTarget(param) {
   // The app's reader and note screens are the site's Bible chapter and note pages.
   if (parts[0] === "note" && isSection(parts[1])) parts.shift();
   if (parts[0] === "read") parts[0] = "bible";
+  // Only a plain watch_<id> keeps the id's case (above); any other way to a video (note_watch_,
+  // a stray "_") has lowercased it, which names a different video: open nothing.
+  if (parts[0] === "watch") return "/";
   if (!isSection(parts[0])) parts.unshift("bible");
   if (parts[0] === "bible" && parts.length === 4 && /^\d+$/.test(parts[2]) && VERSES.test(parts[3])) {
     const v = parts[3].replace(/x/g, ",");
