@@ -12,6 +12,7 @@ import type { NoteRequest } from "./requests";
 import { deleteSub, sentKeyOf } from "./subscribe";
 import { deleteAccountSyncMarks, exportAccountSyncMarks } from "./firestore-admin";
 import { deleteAskRequests, exportAskRequests } from "./ask-requests";
+import { deleteFeedback, exportFeedback } from "./feedback";
 
 /**
  * A reader's rights over what CyberJudah keeps about them (docs/PRIVACY.md; Telegram's Standard
@@ -36,6 +37,7 @@ export type MyData = {
    * keeps in Firestore under users/tg_<id>, with each note's or study's revision history. null when this
    * Worker has no Firestore access configured (production sync stays off until it does). */
   accountSync: Record<string, unknown[]> | null;
+  askFeedback: Awaited<ReturnType<typeof exportFeedback>>;
 };
 
 async function noteRequestsOf(env: Env, uid: number): Promise<{ video: string; r: NoteRequest; meta: unknown }[]> {
@@ -74,6 +76,7 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
     askTopupReminder: await getTopupReminder(env, uid),
     classNoteRequests: (await noteRequestsOf(env, uid)).map((x) => x.video),
     accountSync: await exportAccountSyncMarks(env, uid),
+    askFeedback: await exportFeedback(env, uid),
   };
 }
 
@@ -81,8 +84,9 @@ export type Deleted = { savedChats: number; readingReminder: boolean; dailyVerse
 
 export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   const me = await pid(env, uid);
-  await deleteStudyBackup(env, uid);
   await deleteAskRequests(env, uid);
+  await deleteFeedback(env, uid);
+  await deleteStudyBackup(env, uid);
   const savedChats = await deleteAllChats(env, uid);
   const readingReminder = await forgetReminder(env, uid);
   const subKey = `sub:${me}`;

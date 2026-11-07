@@ -30,6 +30,7 @@ import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCovera
 import { citationReport, citationTokenCount } from "./citations.mjs";
 import { autoModel } from "./ask-routing";
 import { ASK_REQUEST_ID, claimAskRequest, findAskRequest, legacyAskRequest, publicAskRequest, releaseAskRequest, requestIdentity, saveAskRequest, startAskRequest, type AskRequest, type RequestResult } from "./ask-requests";
+import { issueAnswerReceipt } from "./feedback";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -745,6 +746,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     if (approved) {
       const done = { done: true, request, answer_id: claim.answer_id, model: model.id, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true };
       await saveAskRequest(env, claim, "completed", { done, settlement: "settled", usage: { charged_mc: 0, free: true } });
+      await issueAnswerReceipt(env, userId, done.sources, Date.now(), claim.answer_id);
       return new Response(line({ delta: approved.answer }) + line(done) + line({ usage: { charged_mc: 0, free: true } }), { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
     }
   } catch { return reply(503, { error: "unavailable" }); }
@@ -804,6 +806,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         // Save the whole answer before charging or claiming completion on the wire.
         await saveAskRequest(env, claim, "completed", prepared);
         outcome = prepared;
+        await issueAnswerReceipt(env, userId, packet.sources as { n?: number }[], Date.now(), claim.answer_id);
         const used = await finish(status);
         const usage = usageOf(used);
         outcome = { done, ...(usage ? { usage } : {}), settlement: usage ? "settled" : "pending" };

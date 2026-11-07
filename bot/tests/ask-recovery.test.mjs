@@ -6,9 +6,14 @@ import { signInitData } from '../src/initdata.mjs';
 
 const out = new URL('./.build/ask-recovery.mjs', import.meta.url).pathname;
 await build({
-  stdin: { contents: 'export {default as worker} from "./src/index"; export * from "./src/ai"; export * from "./src/credits"; export * from "./src/ask-requests"; export * from "./src/chats";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' },
+  stdin: { contents: 'export {default as worker} from "./src/index"; export * from "./src/ai"; export * from "./src/credits"; export * from "./src/ask-requests"; export * from "./src/chats"; export * from "./src/feedback"; export { deleteData } from "./src/mydata";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' },
   bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error',
   plugins: [{ name: 'offline-answer', setup(b) {
+    b.onResolve({filter:/^\.\/approved-answers$/}, () => ({path:'approved',namespace:'approved-fixture'}));
+    b.onLoad({filter:/.*/,namespace:'approved-fixture'}, () => ({loader:'js',contents:`
+      export const approvedFor = q => q === 'Approved fixture question?' ? {answer:'Original fixture words [1].'} : null;
+      export const approvedSources = () => [{n:1,kind:'web',title:'Existing source',url:'https://example.test/source',text:''}];
+    `}));
     b.onResolve({filter:/^\.\/agent$/}, () => ({path:'agent',namespace:'fixture'}));
     b.onLoad({filter:/.*/,namespace:'fixture'}, () => ({loader:'js',contents:`
       export async function runAgent(env,q,history,first,retrieve,emit,ctx,uid,model,spend,resources,rounds,tools,options) {
@@ -63,6 +68,11 @@ test('paid answer is recoverable and same-ID replays preserve sources, IDs and o
   const first=await events(await req(f,body({chat:'fixturechat'})));
   const done=first.find(e=>e.done), usage=first.find(e=>e.usage).usage;
   assert.equal(done.request,'recovery-fixture-1'); assert.ok(done.answer_id); assert.equal(done.model,MODEL);
+  assert.equal(first[0].answer_id,done.answer_id,'acknowledgement and feedback retain the recovery ID');
+  const receipt=f.sql.prepare('SELECT * FROM ask_answer_receipts WHERE id = ?').get(done.answer_id);
+  assert.deepEqual(JSON.parse(receipt.source_ns),[1]);
+  assert.equal((await req(f,{answer_id:done.answer_id,rating:'up',source_n:1},{path:'/api/feedback'})).status,200);
+  assert.equal((await req(f,{answer_id:done.answer_id,rating:'up'},{path:'/api/feedback',uid:88})).status,404);
   assert.equal(done.sources[0].excerpt,'Original fixture words.');
   const saved=await (await recover(f)).json();
   assert.equal(saved.state,'completed'); assert.equal(saved.settlement,'settled');
@@ -70,6 +80,8 @@ test('paid answer is recoverable and same-ID replays preserve sources, IDs and o
   const again=await events(await req(f,body({chat:'fixturechat',consent:[],caps:{}})));
   assert.equal(again[0].replay,true); assert.deepEqual(again.find(e=>e.done),done);
   assert.equal(f.env.calls.length,1);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_answer_receipts').get().n,1,'replay does not mint a new receipt');
+  assert.deepEqual(f.sql.prepare('SELECT * FROM ask_answer_receipts WHERE id = ?').get(done.answer_id),receipt,'replay does not renew expiry');
   assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM credit_usage').get().n,1);
   assert.equal((await api.wallet(f.env,owner)).total_mc,500_000-usage.charged_mc);
   const chat=await api.getChat(f.env,77,'fixturechat');
@@ -285,4 +297,74 @@ test('request-only JSON clients share the durable admission and replay path',asy
   const answer=await first.json(); assert.ok(answer.answer_id && answer.request);
   const again=await req(f,value); assert.equal(again.status,200);
   assert.equal((await again.json()).answer_id,answer.answer_id); assert.equal(f.env.calls.length,1);
+});
+
+test('optional feedback receipt storage cannot break a durable answer or mint on replay',async t=>{
+  const f=setup(t); await fund(f);
+  f.fail(/INSERT OR IGNORE INTO ask_answer_receipts/);
+  const lines=await events(await req(f,body()));
+  const done=lines.find(e=>e.done); assert.ok(done);
+  assert.equal(done.answer_id,lines[0].answer_id);
+  const saved=await (await recover(f)).json();
+  assert.equal(saved.state,'completed'); assert.equal(saved.settlement,'settled');
+  assert.equal(saved.done.answer_id,done.answer_id);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_answer_receipts').get().n,0);
+  assert.equal((await req(f,{answer_id:done.answer_id,rating:'up'},{path:'/api/feedback'})).status,404);
+  const replay=await events(await req(f,body()));
+  assert.equal(replay.find(e=>e.done).answer_id,done.answer_id);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_answer_receipts').get().n,0);
+  assert.equal(f.env.calls.length,1);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM credit_usage').get().n,1);
+});
+
+test('approved answers retain one recoverable feedback ID with no inference or charge',async t=>{
+  const f=setup(t);
+  const value=body({q:'Approved fixture question?',consent:[],caps:{}});
+  const done=(await events(await req(f,value))).find(e=>e.done);
+  assert.equal(done.approved,true);
+  const saved=await (await recover(f)).json();
+  assert.equal(saved.done.answer_id,done.answer_id); assert.equal(saved.state,'completed');
+  assert.deepEqual(saved.usage,{charged_mc:0,free:true});
+  assert.equal((await req(f,{answer_id:done.answer_id,rating:'up',source_n:1},{path:'/api/feedback'})).status,200);
+  const replay=await events(await req(f,value));
+  assert.equal(replay[0].replay,true); assert.equal(replay[0].answer_id,done.answer_id);
+  assert.equal(replay.find(e=>e.done).answer_id,done.answer_id);
+  assert.equal(f.env.calls.length,0);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM credit_usage').get().n,0);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_answer_receipts').get().n,1);
+});
+
+test('recovery receipts cannot be created for running, other-owner or removed requests',async t=>{
+  const f=setup(t); await fund(f);
+  const identity=await api.requestIdentity(f.env,77,'receipt-pending',[]);
+  const {row}=await api.claimAskRequest(f.env,identity,MODEL);
+  assert.equal(await api.issueAnswerReceipt(f.env,77,[],Date.now(),row.answer_id),undefined);
+  const done=(await events(await req(f,body()))).find(e=>e.done);
+  await api.deleteFeedback(f.env,77);
+  assert.equal(await api.issueAnswerReceipt(f.env,88,done.sources,Date.now(),done.answer_id),undefined);
+  await api.deleteAskRequests(f.env,77);
+  assert.equal(await api.issueAnswerReceipt(f.env,77,done.sources,Date.now(),done.answer_id),undefined);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_answer_receipts').get().n,0);
+});
+
+test('Delete my data closes recovery before feedback so a late receipt cannot restore deleted data',async t=>{
+  const f=setup(t); await fund(f);
+  const done=(await events(await req(f,body()))).find(e=>e.done);
+  const other=await api.issueAnswerReceipt(f.env,88,[]);
+  f.env.SUBS.list=async()=>({keys:[],list_complete:true});
+  const batch=f.env.DB.batch; let injected=false;
+  f.env.DB.batch=async statements=>{
+    const result=await batch(statements);
+    if(!injected){
+      injected=true;
+      // The first batch deletes feedback; try to write again before Delete my data continues.
+      assert.equal(await api.issueAnswerReceipt(f.env,77,done.sources,Date.now(),done.answer_id),undefined);
+    }
+    return result;
+  };
+  await api.deleteData(f.env,77);
+  assert.equal(injected,true);
+  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_requests').get().n,0);
+  const receipts=f.sql.prepare('SELECT id FROM ask_answer_receipts').all();
+  assert.deepEqual(receipts.map(r=>r.id),[other]);
 });

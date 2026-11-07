@@ -238,3 +238,25 @@ test('non-stream Ask forwards cancellation and never charges for internally buff
   const row = sql.prepare('SELECT charged_mc FROM credit_usage WHERE user_id = ?').get(owner);
   assert.equal(row.charged_mc, 0);
 });
+
+test('Mini App JSON and stream responses issue fresh owner-bound receipts for actual final citation IDs', async t => {
+  const { env, sql } = financialDb(t), model = freeModel(env);
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Recorded fixture words [100].', fixtureSources: [{ n: 100, kind: 'web', title: 'Recorded source', url: 'https://example.test/source', text: 'Existing source words.' }] });
+  const params = { user: JSON.stringify({ id: 77, first_name: 'Fixture' }), auth_date: String(Math.floor(Date.now()/1000)) };
+  const check = Object.keys(params).sort().map(key => `${key}=${params[key]}`).join('\n');
+  const secret = createHmac('sha256', 'WebAppData').update(env.BOT_TOKEN).digest();
+  const hash = createHmac('sha256', secret).update(check).digest('hex');
+  const ids = [];
+  for (const choice of [{}, { model: model.id }, { stream: true }]) {
+    const pending = [], response = await worker.fetch(new Request('https://example.test/api/ask', { method: 'POST', headers: { authorization: `tma ${new URLSearchParams({ ...params, hash })}`, 'content-type': 'application/json' }, body: JSON.stringify({ q: 'Check final citation receipts', consent: [model.provider], ...choice }) }), env, { waitUntil: promise => pending.push(promise) });
+    assert.equal(response.status, 200);
+    const result = choice.stream ? (await response.text()).trim().split('\n').map(JSON.parse).find(event => event.done) : await response.json();
+    assert.match(result.answer_id, /^[a-f0-9-]{36}$/);
+    assert.deepEqual(result.sources.map(source => source.n), [100]);
+    const receipt = sql.prepare('SELECT source_ns FROM ask_answer_receipts WHERE id = ?').get(result.answer_id);
+    assert.deepEqual(JSON.parse(receipt.source_ns), [100]);
+    ids.push(result.answer_id);
+    await Promise.all(pending);
+  }
+  assert.equal(new Set(ids).size, 3);
+});

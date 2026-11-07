@@ -8,6 +8,7 @@ import { sweepWebhookUpdates } from "./webhook-updates";
 import { sweepFreeBudget } from "./free-budget";
 import { sweepAskEvents } from "./ask-events";
 import { ASK_REQUEST_ID, deleteAskRequests, recoverAskRequest, sweepAskRequests } from "./ask-requests";
+import { issueAnswerReceipt, feedbackInput, parseFeedback, recordFeedback, sweepFeedback } from "./feedback";
 import { CmsError, CONTENT_REPO } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
@@ -30,6 +31,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { readSources, saveSources } from "./cms-sources";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { searchAnswers } from "./search-answer";
+import { semanticSearch } from "./semantic-search";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -135,7 +137,7 @@ app.use("/api/*", async (c, next) => {
   if (c.req.header("authorization")?.startsWith("Bearer ")) {
     // A linked Firebase login may read/spend its own Ask balance and manage its data.
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
-    const allowed = (c.req.method === "POST" && ["/api/ask", "/api/report"].includes(c.req.path)) ||
+    const allowed = (c.req.method === "POST" && ["/api/ask", "/api/report", "/api/feedback"].includes(c.req.path)) ||
       (c.req.method === "GET" && /^\/api\/(?:search|teachings|live|recent|taught|transcript|visuals)(?:\/|$)/.test(c.req.path)) ||
       (c.req.method === "GET" && (["/api/ask/account", "/api/ask/history", "/api/me", "/api/privacy/export"].includes(c.req.path) || /^\/api\/ask\/requests\/[a-z0-9_-]{8,64}$/i.test(c.req.path))) ||
       (/^\/api\/chats(?:\/[a-zA-Z0-9_-]+(?:\/actions\/[a-zA-Z0-9_-]+)?)?$/.test(c.req.path)) ||
@@ -252,6 +254,7 @@ app.route("/api", readerContent);
 
 // Library-only answers: provider consent, short edge cache, reader quota and owner funding.
 app.route("/api/search/answer", searchAnswers);
+app.route("/api/search/semantic", semanticSearch);
 
 // The frames of a recording (YouTube's storyboard): the levels, then the sheets by level and index.
 app.get("/api/frames/:video", async (c) => {
@@ -293,7 +296,18 @@ app.post("/api/ask", async (c) => {
   }
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
+  return c.json(res.ok ? { ...res, answer_id: await issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources) } : res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
+});
+app.post('/api/feedback', async c => {
+  c.header('cache-control', 'no-store');
+  const input = await feedbackInput(c.req.raw);
+  if (!input.ok) return c.json({ error: input.error }, input.status);
+  const body = parseFeedback(input.body);
+  if (!body) return c.json({ error: 'bad-request' }, 400);
+  try {
+    const status = await recordFeedback(c.env, c.get('tma').user!.id, body, c.req.header('cf-connecting-ip')?.slice(0, 45));
+    return status === 200 ? c.json({ ok: true }) : c.json({ error: status === 404 ? 'not-found' : status === 429 ? 'limit' : 'bad-source' }, status);
+  } catch { return c.json({ error: 'unavailable' }, 503); }
 });
 app.get("/api/ask/requests/:request", async c => {
   c.header("cache-control", "no-store");
@@ -706,6 +720,7 @@ export default {
     ctx.waitUntil(sweepFreeBudget(env).catch((e) => console.error(JSON.stringify({ event: "free_budget_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepAskEvents(env).catch((e) => console.error(JSON.stringify({ event: "ask_events_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepAskRequests(env).catch(() => console.error(JSON.stringify({ event: "ask_requests_sweep_failed" }))));
+    ctx.waitUntil(sweepFeedback(env).catch((e) => console.error(JSON.stringify({ event: 'ask_feedback_sweep_failed', message: (e as Error).message?.slice(0, 120) }))));
     // Yesterday's quota rows are swept here, never on the request path (ai.ts).
     ctx.waitUntil(sweepRateCounts(env).catch((e) => console.error(JSON.stringify({ event: "sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Records still filed under Telegram IDs move to pseudonymous IDs (docs/PRIVACY.md), a bounded amount each hour.

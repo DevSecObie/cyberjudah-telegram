@@ -1,1 +1,2 @@
 - Recover an Ask answer after a lost connection using its request ID, including saved partial text and the original charge. Retrying that ID returns its saved result without starting or charging for another answer.
+- Keep the same answer ID for feedback and recovery; replay preserves the original receipt, and deleting personal data prevents a late receipt from restoring it.
