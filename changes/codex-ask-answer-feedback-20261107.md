@@ -1,0 +1,1 @@
+- Mini App answers can be rated with feedback tied to the reader and the answer's own source numbers, without sending private chats or charging for feedback.
