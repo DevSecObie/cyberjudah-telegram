@@ -8,6 +8,8 @@ await build({
   entryPoints: [new URL('../src/ai.ts', import.meta.url).pathname],
   bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error',
   plugins: [{ name: 'agent-fixture', setup(b) {
+    b.onResolve({ filter: /approved-answers\.json$/ }, () => ({ path: 'approved-data', namespace: 'approved-fixture' }));
+    b.onLoad({ filter: /.*/, namespace: 'approved-fixture' }, () => ({ loader: 'json', contents: JSON.stringify({ answers: [{ id: 'approved-fixture', questions: ['Owner approved fixture'], answer: 'The owner approved this fixture answer.', sources: [{ kind: 'web', title: 'Approved attachment', url: 'https://example.test/approved' }] }] }) }));
     b.onResolve({ filter: /^\.\/agent$/ }, () => ({ path: 'agent', namespace: 'fixture' }));
     b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ loader: 'js', contents: `
       export async function runAgent(env, question, history, first, retrieve, emit) {
@@ -18,7 +20,41 @@ await build({
     ` }));
   } }],
 });
-const { ask, askStream, freeModel } = await import(out);
+const { ask, askStream, freeModel, answerApp, answerAppAgent } = await import(out);
+
+test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async () => {
+  const question = 'Owner approved fixture';
+  const json = await answerApp({}, question, 'owner');
+  const agent = await answerAppAgent({}, question, 'owner');
+  const stream = (await (await askStream({}, question, 77)).text()).trim().split('\n').map(JSON.parse).find(event => event.done);
+  for (const result of [json, agent, stream]) {
+    assert.equal(result.sources.length, 1);
+    assert.equal(result.sources[0].title, 'Approved attachment');
+    assert.deepEqual(result.unsupported_refs, []);
+  }
+});
+
+for (const stream of [false, true]) {
+  test(`${stream ? 'NDJSON' : 'JSON'} exposes unsupported refs and never attaches uncited first-four sources`, async t => {
+    const { env } = financialDb(t), model = freeModel(env);
+    Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureSources: [
+      { kind: 'web', title: 'First recorded source', url: 'https://example.test/first', text: 'Existing first source words.' },
+      { kind: 'web', title: 'Second recorded source', url: 'https://example.test/second', text: 'Existing second source words.' },
+    ] });
+    for (const [answer, ids, unsupported] of [
+      ['An answer with no citation.', [], []],
+      ['An unsupported answer [99].', [], ['[99]']],
+      ['Grouped evidence [2, 1, 2], invalid [0] and mixed [1, 99].', [2, 1], ['[0]', '[1, 99]']],
+    ]) {
+      env.fixtureAnswer = answer;
+      const result = stream
+        ? (await (await askStream(env, 'Check the recorded citations', 77, undefined, [], undefined, false, model.id, [model.provider])).text()).trim().split('\n').map(JSON.parse).find(event => event.done)
+        : await ask(env, 'Check the recorded citations', 77, undefined, [], [model.provider]);
+      assert.deepEqual(result.sources.map(source => source.n), ids);
+      assert.deepEqual(result.unsupported_refs, unsupported);
+    }
+  });
+}
 
 for (const stream of [false, true]) {
   test(`normal ${stream ? 'streamed' : 'one-piece'} Ask includes bounded excerpts with source attribution`, async t => {
