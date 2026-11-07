@@ -2,9 +2,10 @@ import { Api, GrammyError, InlineKeyboard } from "grammy";
 import type { Env, Sub } from "./env";
 import { todaysVerse, openButton } from "./bot";
 import { open } from "./privacy.mjs";
+import { offsetHour, subscriberHour } from "./subscribe";
 
 /** The subscriber's hour of the day for a UTC hour: tz is their offset in minutes (half-hour zones round down). */
-export const localHour = (utcHour: number, tz: number) => Math.floor((((utcHour * 60 + tz) % 1440) + 1440) % 1440 / 60);
+export const localHour = offsetHour;
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Telegram allows roughly 30 messages a second to distinct users; the broadcast stays under it. */
@@ -37,7 +38,6 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
   const key = slotKey(when);
   const saved = (await env.SUBS.get(key, "json")) as { cursor?: string; done?: boolean } | null;
   if (saved?.done) return;
-  const hour = when.getUTCHours();
   const verse = await todaysVerse(env);
   if (!verse.text) { console.error(JSON.stringify({ event: "daily_no_verse", slot: key })); return; }
   const api = new Api(env.BOT_TOKEN);
@@ -47,7 +47,8 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
   const send = async (name: string): Promise<"sent" | "dropped" | "skip"> => {
     // Sealed at rest (privacy.mjs); subscriptions from before sealing read as they are.
     const sub = await open<Sub>(env, name, await env.SUBS.get(name));
-    if (!sub || localHour(hour, sub.tz) !== sub.hour) return "skip";
+    // Their zone when the app sent one (right across daylight saving), else their fixed offset.
+    if (!sub || subscriberHour(sub, when) !== sub.hour) return "skip";
     const attempt = async (): Promise<void> => {
       await api.sendMessage(sub.chatId, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup });
     };
