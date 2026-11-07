@@ -22,6 +22,14 @@ type Block = { type: string; text?: string; content?: unknown; name?: string; to
 type Msg = { role: string; content: string | Block[] };
 export type ClaudeRequest = { messages: Msg[]; tools?: { name: string; eager_input_streaming?: boolean }[]; system?: { text: string; cache_control?: unknown }[]; cache_control?: unknown; stream?: boolean };
 
+const toolData = (value: unknown): string => {
+  if (typeof value !== "string") return JSON.stringify(value);
+  if (!value.startsWith("BEGIN_UNTRUSTED_")) return value;
+  const json = value.split("```json\n")[1]?.split("\n```")[0];
+  try { const data = JSON.parse(json); return typeof data.content === "string" ? data.content : JSON.stringify(data); }
+  catch { throw new Error("Invalid fenced tool data in local model fixture"); }
+};
+
 const textOf = (m: Msg) => (typeof m.content === "string" ? m.content : m.content.map((b) => b.text ?? "").join(""));
 let ids = 0;
 
@@ -32,7 +40,7 @@ export async function claude(req: ClaudeRequest, res: http.ServerResponse) {
   const results = typeof last.content === "string" ? [] : last.content.filter((b) => b.type === "tool_result");
   const out: { tools?: { name: string; input: unknown }[]; text?: string; stop: string } = (() => {
     if (results.length) {
-      const said = results.map((r) => (typeof r.content === "string" ? r.content : JSON.stringify(r.content))).join("\n");
+      const said = results.map((r) => toolData(r.content)).join("\n");
       const links = [...said.matchAll(/^(.*?): .*? Link: (\S+)$/gm)].map((m) => `- [${m[1].replace(/^(Person|Case study): /, "")}](${m[2]})`);
       if (/remind/i.test(question) && !/^How do I/i.test(question)) return { text: "I've put a card below to turn your reading reminder on at 6:30. It happens only when you tap Confirm.", stop: "end_turn" };
       const pics = [...said.matchAll(/Picture: (\/\S+)/g)].map((m) => `![A picture](${m[1]})`);
