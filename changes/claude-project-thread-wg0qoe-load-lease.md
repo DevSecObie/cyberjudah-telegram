@@ -1,0 +1,1 @@
+- Search index loads take a lease on their tables in D1 and wait for any load already writing them, so a scheduled load starting during a deploy's load no longer drops the deploy's spare tables (`no such table: search_docs_next`). A lease left by a crashed load expires after 10 minutes.
