@@ -135,8 +135,11 @@ export async function sweepRateCounts(env: Env, now = Date.now()): Promise<numbe
   const res = await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
     env.DB.prepare("DELETE FROM rate_counts WHERE key NOT LIKE ? AND key NOT LIKE ?").bind(`%:${day(0)}`, `%:${day(1)}`),
+    // Per-address Ask counters keep only a keyed hash (client-ip.ts askIpKey: "ask_ip:" + 64 hex +
+    // ":" + day, 82 characters); any older row holding a raw address goes at the next sweep.
+    env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE 'ask_ip:%' AND length(key) <> 82"),
   ]);
-  return Number((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0);
+  return [1, 2].reduce((n, i) => n + Number((res[i] as { meta?: { changes?: number } }).meta?.changes ?? 0), 0);
 }
 
 /** ASK_DAILY_LIMIT answers a day per person. */

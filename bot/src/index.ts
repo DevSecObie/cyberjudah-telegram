@@ -28,7 +28,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { semanticSearch } from "./semantic-search";
 import { normalizeHistory, VOICES } from "./ai.mjs";
@@ -75,11 +75,10 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
+import { takeAskIpQuota } from "./client-ip";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
-/** How the request proved who is asking: Telegram launch data (initData), the Telegram web login, or a linked Firebase login. */
-type AuthVia = "initdata" | "browser" | "firebase";
-type App = { Bindings: Env; Variables: { tma: InitData; auth: AuthVia } };
+type App = { Bindings: Env; Variables: { tma: InitData } };
 const app = new Hono<App>();
 // Bundled native readers have local webview origins, and the web app lives at web.cyberjudah.io.
 // No cookie credentials are allowed
@@ -147,7 +146,6 @@ app.use("/api/*", async (c, next) => {
       const account = await firebaseAccount(c.req.raw, c.env, c.req.path === "/api/privacy/delete");
       if (!account?.user) return c.json({ error: "telegram_link_required", reason: "link-required" }, 401);
       c.set("tma", { user: account.user, auth_date: account.identity.authTime, hash: "firebase-verified" });
-      c.set("auth", "firebase");
       return await next();
     } catch (error) { return c.json({ error: error instanceof IdentityError ? error.reason : "sign_in_unavailable" }, error instanceof IdentityError ? error.status : 503); }
   }
@@ -163,7 +161,6 @@ app.use("/api/*", async (c, next) => {
     return c.json({ error: "unauthorized", reason: stale ? "stale" : m ? "invalid" : "missing" }, 401);
   }
   c.set("tma", data);
-  c.set("auth", m ? "initdata" : "browser");
   await next();
 });
 
@@ -275,13 +272,10 @@ app.post("/api/frames/:video/warm", async (c) => {
 app.post("/api/ask", async (c) => {
   // A Sybil backstop: the per-account quota cannot see N Telegram accounts behind one IP.
   // Generous (ASK_IP_DAILY_LIMIT, 1000/day) so carrier NAT is never felt; keys are swept daily
-  // with the other quotas, and only the count is kept, never linked to a person.
-  // Not for Telegram launch data (initData): the Mini App asks through its own Worker, so every
-  // Mini App reader arrives from Cloudflare's address and would share one backstop. Those
-  // requests carry a Telegram user the bot token vouches for, held to ASK_DAILY_LIMIT and the
-  // dollar caps. Only the verified sign-in decides this, never a header the caller sends.
-  const ip = c.get("auth") === "initdata" ? undefined : c.req.header("cf-connecting-ip")?.slice(0, 45);
-  if (ip && !(await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000))))) {
+  // with the other quotas, and only a keyed hash of the address and a count are kept, never linked to a person.
+  // Through the Mini App's Worker every reader shares one Cloudflare address, so that Worker
+  // signs the reader's own address (client-ip.ts); unsigned requests count the connecting one.
+  if (!(await takeAskIpQuota(c.req.raw, c.env))) {
     return c.json({ error: "limit" }, 429);
   }
   const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
