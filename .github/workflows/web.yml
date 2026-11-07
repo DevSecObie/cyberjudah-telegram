@@ -60,6 +60,10 @@ jobs:
           # Only the app's public settings, for every later step's bundler process too.
           grep -E '^(EXPO_PUBLIC_[A-Z0-9_]+|APP_NAME)=' apps/expo/.env.cyberjudah.production.example | sed -E 's/^([A-Z0-9_]+)="?([^"]*)"?$/\1=\2/' >> "$GITHUB_ENV"
           echo NODE_ENV=production >> "$GITHUB_ENV"
+          # The web app reads its resource API from its own address: web/src/worker.js serves Bible
+          # chapters from files in this build and passes every other /bs request to cyberjudah.io's.
+          sed -i -E 's#^EXPO_PUBLIC_RESOURCE_API_URL=.*#EXPO_PUBLIC_RESOURCE_API_URL="https://web.cyberjudah.io/bs"#' apps/expo/.env.local
+          echo EXPO_PUBLIC_RESOURCE_API_URL=https://web.cyberjudah.io/bs >> "$GITHUB_ENV"
       - run: yarn workspace @bible-strong/expo typecheck
         working-directory: cyberjudah-app
       - name: Export the web app
@@ -71,7 +75,7 @@ jobs:
           set -euo pipefail
           node apps/expo/scripts/check-web-assets.mjs
           # The production servers must be in the bundle, and the profile must be CyberJudah's.
-          grep -rqF 'https://cyberjudah.io/bs' apps/expo/dist/_expo/static/js/web || { echo "::error::The export does not read cyberjudah.io/bs: the production settings were not applied."; exit 1; }
+          grep -rqF 'https://web.cyberjudah.io/bs' apps/expo/dist/_expo/static/js/web || { echo "::error::The export does not read web.cyberjudah.io/bs: the production settings were not applied."; exit 1; }
           grep -rqF 'cyberjudah-app.firebaseapp.com' apps/expo/dist/_expo/static/js/web || { echo "::error::The export does not use CyberJudah's Firebase project."; exit 1; }
       - name: Stage the files
         run: |
@@ -91,6 +95,9 @@ jobs:
           sed -i 's/^          //' web/dist/_headers
           cat web/dist/_headers
           echo "staged $(find web/dist -type f | wc -l) files"
+      - name: Add the Bible chapters
+        # Read from the live cyberjudah.io/bs API into this version's files (web/src/worker.js).
+        run: node .github/scripts/build-web-bible.mjs web/dist
       - name: Install wrangler
         # The app build set NODE_ENV=production for later steps; wrangler and the postinstall
         # patch step are devDependencies here, so this install is a development one.
