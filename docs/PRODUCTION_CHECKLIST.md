@@ -18,7 +18,7 @@ Production bot: `@CyberJudah_bot` (already live).
 
 Settings → Secrets and variables → Actions.
 
-Repository secrets (production deploys fail by name without the first four):
+Repository secrets (production deploys fail before replacing the Worker without Cloudflare credentials, BOT_TOKEN, WEBHOOK_SECRET and PRIVACY_KEY):
 
 | Secret | Used for |
 |---|---|
@@ -26,6 +26,7 @@ Repository secrets (production deploys fail by name without the first four):
 | `CLOUDFLARE_ACCOUNT_ID` | Same |
 | `BOT_TOKEN` | The production bot token (never commit it) |
 | `WEBHOOK_SECRET` | Any long random string; must match between Telegram and the worker |
+| `PRIVACY_KEY` | Required: the existing encryption and identity key for stored reader records. Preserve it; changing it makes existing records inaccessible |
 | `STAGING_BOT_TOKEN` | The staging bot's token |
 | `STAGING_WEBHOOK_SECRET` | A different long random string for staging |
 | `ANTHROPIC_API_KEY` | Optional: Ask CyberJudah answers with Claude when set, Llama 3.3 70B otherwise |
@@ -75,15 +76,19 @@ own KV namespace.
 
 ## 4. Billing decision
 
-`ASK_BILLING` is `"off"` in `wrangler.jsonc`: every answer is measured for
-`/api/admin/usage` and the old 100-a-day cap applies, but nothing charges. Before turning
-it on with a large audience:
+`ASK_BILLING` is `"on"` in both environments in `wrangler.jsonc`: paid models reserve
+and charge the reader's balance. The configured free model is owner-funded, with a
+per-answer limit and a shared daily funding cap. Confirm the actual deployed settings
+and account response before launch; a health response alone does not verify billing.
+Before a large audience uses paid models:
 
 - Re-check `ASK_USD_PER_STAR` against what a Star nets after Telegram's cut: top-ups add
   exactly that per Star (no margin), so if the payout moved, update it. The models' prices
   come from `shared/ask-models.json` (rebuild it when Cloudflare's catalog changes).
-- Run a paid end-to-end on staging: buy the $1 top-up, confirm the balance,
-  ask until it deducts, confirm the meter in the app matches.
+- First run the local credits end-to-end suite, which simulates Telegram payments and
+  model usage without money changing hands. A real paid staging or production check
+  requires the owner's explicit approval: buy the smallest intended top-up, confirm
+  the balance and deduction, and check the displayed cost and refund handling.
 - The billing balances live in D1 as of Sep 30 (atomic, version-checked updates;
   payments idempotent per Telegram charge id; usage totals in D1 too). The KV race is
   closed; leftover `acct:` keys are adopted on first sight.
