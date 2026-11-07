@@ -1,1 +1,1 @@
-- Timeline: new pictures for First Generation, Israel in Egypt, the Judges, the United Kingdom, the Divided Kingdom, Assyria and the Life of Christ, with Israelite men in full-length linen breeches and layered garments; the Early Church (193 to 330) card now shows Septimius Severus.
+- Timeline: new pictures for Noah & The Flood, Israel in Egypt, the Judges and the Divided Kingdom, with Israelite men in full-length linen breeches and layered garments; the Early Church (193 to 330) card now shows Septimius Severus.
