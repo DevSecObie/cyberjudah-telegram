@@ -1,0 +1,1 @@
+- Timeline: new pictures for Noah & The Flood, Israel in Egypt, the Judges and the Divided Kingdom, with Israelite men in full-length linen breeches and layered garments; the Early Church (193 to 330) card now shows Septimius Severus.
