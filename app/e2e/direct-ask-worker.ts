@@ -7,6 +7,7 @@ import type { AddressInfo } from "node:net";
 import { unstable_DevEnv, unstable_getMiniflareWorkerOptions } from "wrangler";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { STAND_IN } from "./stand-ins";
+import { loopbackRequestOptions } from "./direct-relay.mjs";
 
 /**
  * Wrangler 4.156's dev ProxyWorker uses compatibility date 2023-12-18 without
@@ -52,7 +53,7 @@ export async function directAskWorker() {
     // browser's actual disconnect as a TCP reset, including the JSON path with no response yet.
     // See https://github.com/cloudflare/workerd/issues/6832 (client teardown notes).
     relay = createServer((req, res) => {
-      const upstream = httpRequest(new URL(req.url!, target), { method: req.method, headers: req.headers, agent: false }, reply => {
+      const upstream = httpRequest(loopbackRequestOptions(target, req), reply => {
         res.writeHead(reply.statusCode!, reply.headers); reply.pipe(res);
       });
       upstream.on("error", () => res.destroy());
