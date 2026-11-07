@@ -40,11 +40,12 @@ export function parseSubscribe(body: unknown): SubscribeInput {
 export const offsetHour = (utcHour: number, tz: number) => Math.floor((((utcHour * 60 + tz) % 1440) + 1440) % 1440 / 60);
 
 const hours = new Map<string, Intl.DateTimeFormat>();
-/** The hour of the day at this moment in a zone. */
+/** The hour of the day (0-23) at this moment in a zone. Some runtimes ignore hourCycle "h23" and
+ *  give midnight as 24, so the hour is taken from its own part and kept under 24. */
 export function zoneHour(when: Date, zone: string): number {
   let f = hours.get(zone);
   if (!f) { f = new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", hourCycle: "h23" }); hours.set(zone, f); }
-  return Number(f.format(when));
+  return Number(f.formatToParts(when).find((p) => p.type === "hour")?.value) % 24;
 }
 
 /** The subscriber's local hour at this moment: from their zone when they have a valid one, else

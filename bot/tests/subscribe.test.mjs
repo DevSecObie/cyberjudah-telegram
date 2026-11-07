@@ -55,6 +55,19 @@ test("a zone follows daylight saving; an offset doesn't", () => {
   assert.equal(m.localHour(2, 330), 7);
 });
 
+test("a subscriber at local midnight is due at hour 0, even where Intl says 24", () => {
+  // 00:00 in Chicago is 06:00 UTC in January.
+  const at = new Date("2026-01-15T06:00:00Z");
+  assert.equal(m.subscriberHour({ tz: -360, zone: "America/Chicago" }, at), 0);
+  assert.equal(m.isDue({ on: true, hour: 0, tz: -360, zone: "America/Chicago" }, at), true);
+  // A runtime that ignores hourCycle "h23" and gives midnight as "24" (a zone not yet cached).
+  const real = Intl.DateTimeFormat.prototype.formatToParts;
+  Intl.DateTimeFormat.prototype.formatToParts = function (d) { return real.call(this, d).map((p) => (p.type === "hour" && p.value === "0" ? { ...p, value: "24" } : p)); };
+  try {
+    assert.equal(m.subscriberHour({ tz: 60, zone: "Europe/Berlin" }, new Date("2026-01-14T23:00:00Z")), 0);
+  } finally { Intl.DateTimeFormat.prototype.formatToParts = real; }
+});
+
 test("a stored zone that isn't valid falls back to the offset", () => {
   assert.equal(m.subscriberHour({ tz: 60, zone: "Not/AZone" }, new Date("2026-01-15T06:00:00Z")), 7);
 });
