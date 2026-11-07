@@ -58,3 +58,30 @@ for (const stream of [false, true]) {
     assert.ok(passages.every(passage => !('excerpt' in passage)), 'source passages are not mutated');
   });
 }
+
+for (const stream of [false, true]) {
+  test(`recorded book originals and exact scans reach normal ${stream ? 'NDJSON' : 'JSON'} sources`, async t => {
+    const { env } = financialDb(t);
+    const model = freeModel(env);
+    const passage = { kind: 'book', title: 'Recorded edition', text: 'Existing OCR words.', url: '/resources/josephus/pinned-release?key=page%2F1%2F45', original: 'https://archive.org/details/recorded-edition', scan: 'https://archive.org/download/recorded-edition/page/n45_w1200.jpg', pdf: { slug: 'josephus', item: 'recorded-volume' } };
+    Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'An answer [1].', fixtureSources: [passage] });
+    const result = stream
+      ? (await (await askStream(env, 'Read the recorded edition', 77, undefined, [], undefined, false, model.id, [model.provider])).text()).trim().split('\n').map(JSON.parse).find(event => event.done)
+      : await ask(env, 'Read the recorded edition', 77, undefined, [], [model.provider]);
+    assert.deepEqual(result.sources, [{ ...passage, url: 'https://cyberjudah.io/app/resources/josephus/pinned-release?key=page%2F1%2F45', n: 1, excerpt: passage.text }]);
+  });
+}
+
+for (const stream of [false, true]) {
+  test(`approved library images reach normal ${stream ? 'NDJSON' : 'JSON'} sources without changing their words`, async t => {
+    const { env } = financialDb(t);
+    const model = freeModel(env);
+    const passage = { kind: 'people', title: 'Moses', text: 'Existing source words.', url: '/person/moses-exo-2-10' };
+    Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, AUDIO: { head: async () => ({}) }, fixtureAnswer: 'An answer [1].', fixtureSources: [passage] });
+    const result = stream
+      ? (await (await askStream(env, 'Who was Moses?', 77, undefined, [], undefined, false, model.id, [model.provider])).text()).trim().split('\n').map(JSON.parse).find(event => event.done)
+      : await ask(env, 'Who was Moses?', 77, undefined, [], [model.provider]);
+    assert.equal(result.answer, env.fixtureAnswer);
+    assert.deepEqual(result.sources, [{ ...passage, n: 1, excerpt: passage.text, image: 'https://cyberjudah.io/api/img/people/moses-exo-2-10-256.webp', image_alt: '' }]);
+  });
+}

@@ -1,0 +1,4 @@
+- Telegram Ask sources can show the library's matching approved portraits, with no substitute picture when one is unavailable.
+- Book sources include their recorded original address and page image when available, and their CyberJudah reader links open under /app/resources/.
+- Public-domain book sources identify a held PDF when it can be sent through the existing Telegram PDF action.
+- Ask looks on israelunite.org first when discovering outside sources, after the app's own data and classes, with other approved sources as fallback.
