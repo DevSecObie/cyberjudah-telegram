@@ -36,6 +36,22 @@ test("share links round-trip", () => {
   assert.equal(sitePathOf("/read/john/3"), "/bible/john/3");
   assert.equal(sitePathOf("/note/classes/2026/x"), "/classes/2026/x");
   assert.equal(sitePathOf("/glossary"), "/glossary");
+  assert.equal(sitePathOf("/classes?feed=sense"), "/giving-the-sense");
+  assert.equal(sitePathOf("/classes?feed=truth"), "/truth-shall-make-you-free");
+  assert.equal(sitePathOf("/classes?feed=captains"), "/captains");
+  assert.equal(sitePathOf("/classes?feed=history"), "/history");
+  assert.equal(sitePathOf("/classes?feed=shows&show=patient-saints-radio"), "/shows/patient-saints-radio");
+  assert.equal(sitePathOf("/classes?feed=sabbath"), "/classes");
+  for (const f of ["constructor", "__proto__", "toString"]) assert.equal(sitePathOf(`/classes?feed=${f}`), "/classes");
+  assert.equal(sitePathOf("/bible?book=john"), "/bible/john");
+  assert.equal(sitePathOf("/bible?book=John"), "/bible/john");
+  assert.equal(sitePathOf("/bible?x=1#&book=john"), "/bible?x=1#&book=john");
+  assert.equal(sitePathOf(toAppPath("/bible/john")), "/bible/john");
+  assert.equal(sitePathOf("/read/john/3?v=16"), "/bible/john/3?v=16");
+  assert.equal(sitePathOf("/glossary#amalek"), "/glossary#amalek");
+  // Each site page toAppPath turns into a feed comes back to itself.
+  for (const p of ["/giving-the-sense", "/truth-shall-make-you-free", "/captains", "/history", "/shows", "/shows/patient-saints-radio"]) assert.equal(sitePathOf(toAppPath(p)), p);
+  assert.equal(sitePathOf("/classes"), "/classes");
   assert.equal(toAppPath("/glossary#amalek"), "/glossary#amalek");
   assert.equal(sitePathOf("/concordance/genesis"), "/concordance/genesis");
   assert.equal(toAppPath("/concordance/genesis#ch-3"), "/concordance/genesis#ch-3");

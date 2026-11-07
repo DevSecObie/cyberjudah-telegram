@@ -60,14 +60,17 @@ test('concurrent duplicate votes are idempotent and later changes update the sam
 test('per-person and IP limits admit no concurrent request above their caps', async t => {
   const { env, sql } = financialDb(t), now = Math.floor(Date.now()/60000)*60000;
   const id = await issueAnswerReceipt(env, 77, [], now);
-  const results = await Promise.all(Array.from({ length: 14 }, () => recordFeedback(env, 77, vote(id), 'fixture-ip', now)));
-  assert.equal(results.filter(status => status === 200).length, 10);
+  const results = await Promise.all(Array.from({ length: 34 }, () => recordFeedback(env, 77, vote(id), 'fixture-ip', now)));
+  assert.equal(results.filter(status => status === 200).length, 30);
   assert.equal(results.filter(status => status === 429).length, 4);
   assert.equal(await recordFeedback(env, 77, vote(id), 'fixture-ip', now + 60000), 200);
   const ipRow = sql.prepare("SELECT key FROM ask_feedback_limits WHERE key LIKE 'ip:%' ORDER BY expires_at DESC LIMIT 1").get();
-  sql.prepare('UPDATE ask_feedback_limits SET n = 600 WHERE key = ?').run(ipRow.key);
+  sql.prepare('UPDATE ask_feedback_limits SET n = 6000 WHERE key = ?').run(ipRow.key);
   const another = await issueAnswerReceipt(env, 88, [], now);
   assert.equal(await recordFeedback(env, 88, vote(another), 'fixture-ip', now + 60000), 429);
+  const personKeys = sql.prepare("SELECT count(*) AS n FROM ask_feedback_limits WHERE key LIKE 'person:%'").get().n;
+  assert.equal(personKeys, 2, 'IP rejection must not create a person counter for the second asker');
+  assert.equal(await recordFeedback(env, 88, vote(another), 'different-ip', now + 60000), 200);
 });
 
 test('feedback stores metadata only, exports to its owner, deletes and expires without affecting others', async t => {

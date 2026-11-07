@@ -79,7 +79,9 @@ export async function recordFeedback(env: Env, userId: number, body: Feedback, i
   await tables(env);
   const owner = await feedbackOwner(env, userId);
   const ipKey = await keyedHash(env, 'ask-feedback-ip', ip ?? `unknown:${owner}`);
-  if (!await rate(env, `person:${owner}`, 10, now) || !await rate(env, `ip:${ipKey}`, 600, now)) return 429;
+  // The Mini App proxy shares one egress IP: keep this a coarse network guard.
+  // Check it first so a rejected network does not spend a person's allowance.
+  if (!await rate(env, `ip:${ipKey}`, 6000, now) || !await rate(env, `person:${owner}`, 30, now)) return 429;
   const receipt = await env.DB.prepare('SELECT source_ns FROM ask_answer_receipts WHERE id = ? AND owner = ? AND expires_at > ?')
     .bind(body.answer_id, owner, now).first<{ source_ns: string }>();
   // Unknown, expired and someone else's receipt deliberately have the same response.

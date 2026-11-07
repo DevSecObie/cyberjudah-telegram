@@ -9,7 +9,7 @@ import { offlineSupported, removeBook, saveBook, saveNarration, savedBooks } fro
 import { narrationHint, narrationStatus, removeNarration, type NarrationStatus } from "@/lib/narration";
 import { recordingJson, type RecordingCredit } from "@/lib/recordings";
 import { useBackButton, useStored, useTheme } from "@/tg/hooks";
-import { alert, api, app, confirm, features, haptic, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
+import { alert, api, ApiError, app, confirm, features, haptic, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { collect, parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
@@ -21,6 +21,15 @@ import type { Font, Spacing } from "@/ui/theme";
 /** A setting's current value, iOS style: quiet text before the chevron. */
 export function Value({ children }: { children: string }) {
   return <span className="row__value">{children}<Icon name="chevron" size={16} /></span>;
+}
+
+/** The device's time zone ("America/Chicago") for the daily verse, so its hour follows daylight
+ *  saving; left out when the device gives none or an odd one (the bot then uses the offset). */
+function zoneField(): { zone?: string } {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return typeof zone === "string" && zone.length <= 64 && /^[A-Za-z][A-Za-z0-9_+\-/]*$/.test(zone) ? { zone } : {};
+  } catch { return {}; }
 }
 
 function Toggle({ on, onChange, title, sub, disabled }: { on: boolean; onChange: (v: boolean) => void; title: string; sub?: string; disabled?: boolean }) {
@@ -62,7 +71,17 @@ export function Settings() {
 
   const subscribe = async (on: boolean, h = hour) => {
     if (on && !(await requestWriteAccess())) { void alert("Telegram needs permission for the bot to message you. Try again and allow it."); return; }
-    try { const r = await api<{ subscribed: boolean }>("/api/subscribe", { method: "POST", json: { on, hour: h, tz: -new Date().getTimezoneOffset() } }); setDaily(r.subscribed); haptic(r.subscribed ? "success" : "tap"); }
+    const body = { on, hour: h, tz: -new Date().getTimezoneOffset() };
+    const post = (json: object) => api<{ subscribed: boolean }>("/api/subscribe", { method: "POST", json });
+    try {
+      // With the zone; only if the bot refuses that zone (400 "bad-zone": one its runtime doesn't
+      // know), again with the offset alone. Any other failure is shown, never retried without it.
+      const zoned = zoneField();
+      const r = zoned.zone
+        ? await post({ ...body, ...zoned }).catch((e: unknown) => { if (e instanceof ApiError && e.status === 400 && e.reason === "bad-zone") return post(body); throw e; })
+        : await post(body);
+      setDaily(r.subscribed); haptic(r.subscribed ? "success" : "tap");
+    }
     catch { void alert("Could not update the daily verse right now."); }
   };
   const pickHour = async () => {

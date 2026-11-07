@@ -41,6 +41,7 @@ export function Books() {
     <Screen title="Library" kicker="Books the classes read from">
       <Link to="/resources" className="bs-link">Offline study resources</Link>
       <Link to="/class-books" className="bs-link">Every book the classes bring up</Link>
+      <Link to="/class-wikipedia" className="bs-link">Wikipedia pages the classes read</Link>
       <div className="books__search">
         <SearchField id="book-q" value={q} onChange={setQ} onSubmit={() => { haptic("select"); setAsked(q.trim()); }} placeholder="Search inside the books" />
       </div>
