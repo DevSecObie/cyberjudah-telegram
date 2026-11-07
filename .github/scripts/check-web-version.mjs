@@ -1,5 +1,6 @@
 // Checks that a web app address serves the build in the given folder: the page names this build's
-// own entry script, and every script, stylesheet and preloaded font the page lists loads.
+// own entry script, every script, stylesheet and preloaded font the page lists loads, and its /bs
+// resource API answers.
 // Usage: node check-web-version.mjs <base url> <dist folder>
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -18,6 +19,13 @@ const check = async () => {
     if (!response.ok) return `${page} answered ${response.status}`
     if (!(await response.text()).includes(entry)) return `${page} is not this build (no ${entry})`
   }
+  // The resource API: a chapter from this version's files, and a request passed to cyberjudah.io.
+  const chapter = await fetch(`${origin}/bs/v1/bibles/chapters?versions=KJV&book=1&chapter=1`)
+  if (!chapter.ok) return `the Genesis 1 chapter answered ${chapter.status}`
+  if (!(await chapter.json()).chapters?.[0]?.verses?.length) return 'the Genesis 1 chapter has no verses'
+  const health = await fetch(`${origin}/bs/health`)
+  if (!health.ok) return `/bs/health answered ${health.status}`
+  await health.arrayBuffer()
   for (const file of new Set(files)) {
     const response = await fetch(origin + file)
     await response.arrayBuffer()
