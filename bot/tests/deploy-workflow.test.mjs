@@ -96,3 +96,21 @@ test("long embedding uses its own non-cancelling group outside the production-wr
   const root = workflow.slice(0, workflow.indexOf("\njobs:\n"));
   assert.match(root, /^concurrency:\n  group: .*github\.event_name == 'push' && 'production-deploy'.*github\.event_name == 'schedule' && 'production-maintenance'.*github\.event_name == 'workflow_dispatch' && 'production-dispatch'.*\n  cancel-in-progress: false$/m);
 });
+
+test("all live-account workflows share a non-cancelling whole-run lock across events and branches", () => {
+  const directory = new URL("../../.github/workflows/", import.meta.url);
+  const groups = [];
+  for (const file of fs.readdirSync(directory).filter(name => /\.ya?ml$/.test(name))) {
+    const text = fs.readFileSync(new URL(file, directory), "utf8");
+    if (!/^\s+RUN_LIVE_E2E: ["']?1["']?\s*$/m.test(text)) continue;
+    const root = text.slice(0, text.indexOf("\njobs:\n"));
+    // A literal root-level group covers the entire matrix, on any event or dispatched ref.
+    // Event/ref/matrix expressions or job-only locks would allow shared-account runs to overlap.
+    const lock = /^concurrency:\n  group: ([A-Za-z0-9_-]+)\n  cancel-in-progress: (true|false)\s*$/m.exec(root);
+    assert.ok(lock, `${file} needs a whole-workflow lock independent of branch, event and shard`);
+    assert.equal(lock[2], "false", `${file} must allow the active live run to finish`);
+    groups.push(lock[1].toLowerCase());
+  }
+  assert.ok(groups.length, "must find the production live-smoke workflow");
+  assert.equal(new Set(groups).size, 1, "every workflow using the shared live account must take the same lock");
+});
