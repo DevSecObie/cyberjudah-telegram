@@ -5,9 +5,22 @@
  * fewer, and taken out otherwise. Shared by the Worker (ai.ts) and the Ask test set (scripts/eval-ask.mjs).
  */
 import { parseReference } from "./refs.mjs";
+import { citationPattern } from "./citations.mjs";
 
-const QUOTE = /^>\s*(.+?)\s*\*\*([^*]{3,60}?)\*\*\.?\s*$/;
+const QUOTE = /^>\s*(.+?)\s*\*\*([^*]{3,60}?)\*\*(.*?)\s*$/;
 const norm = (s) => String(s).toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+
+/** Separate existing trailing numeric references from Bible words; membership is checked by citationReport. */
+function takeCitations(text) {
+  let end = text.length;
+  const refs = [];
+  for (const match of [...text.matchAll(citationPattern())].reverse()) {
+    if (text.slice(match.index + match[0].length, end).trim()) break;
+    refs.unshift(match[0]);
+    end = match.index;
+  }
+  return { body: text.slice(0, end).trimEnd(), refs };
+}
 
 /**
  * `{ text, checked, fixed, removed }` for an answer. `books` is books.json; `chapter(slug, ch)` gives
@@ -21,6 +34,10 @@ export async function guardVerses(answer, books, chapter) {
     const m = QUOTE.exec(line);
     const ref = m && books ? parseReference(m[2].replace(/\s*\(KJV\)\s*$/i, ""), books) : null;
     if (!m || !ref?.verse) { out.push(line); continue; }
+    const before = takeCitations(m[1]);
+    const after = takeCitations(m[3].trim().replace(/^\.\s*/, "").replace(/\.$/, ""));
+    // Only reference markers (and the existing optional full stop) may follow the bold reference.
+    if (after.body.trim()) { out.push(line); continue; }
     const c = await chapter(ref.slug, ref.chapter).catch(() => null);
     if (!c) { out.push(line); continue; }
     checked++;
@@ -28,12 +45,18 @@ export async function guardVerses(answer, books, chapter) {
     const verses = c.verses.filter((v) => v.verse >= from && v.verse <= to);
     const real = verses.map((v) => v.text).join(" ");
     // A quote may leave words out with an ellipsis: every piece must be in the verse, in order.
-    const pieces = m[1].replace(/^["“]|["”]$/g, "").split(/\.\.\.|…/).map(norm).filter(Boolean);
+    const pieces = before.body.replace(/^["“]|["”]$/g, "").split(/\.\.\.|…/).map(norm).filter(Boolean);
     const hay = norm(real);
     let at = 0;
     const ok = verses.length > 0 && pieces.join(" ").length >= 8 && pieces.every((p) => { const i = hay.indexOf(p, at); if (i < 0) return false; at = i + p.length; return true; });
     if (ok) { out.push(line); continue; }
-    if (verses.length && to - from < 3) { fixed++; out.push(`> ${real.trim()} **${ref.book} ${ref.chapter}:${from}${to > from ? `-${to}` : ""}**`); }
+    if (verses.length && to - from < 3) {
+      fixed++;
+      // Preserve exactly the supplied IDs, including invalid ones for the server's unsupported_refs
+      // diagnostic. Never invent, repair, renumber or attach a citation to a removed quotation.
+      const refs = [...before.refs, ...after.refs];
+      out.push(`> ${real.trim()} **${ref.book} ${ref.chapter}:${from}${to > from ? `-${to}` : ""}**${refs.length ? ` ${refs.join(" ")}` : ""}`);
+    }
     else removed++;
   }
   return { text: out.join("\n"), checked, fixed, removed };
