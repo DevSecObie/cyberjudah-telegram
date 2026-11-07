@@ -1,0 +1,1 @@
+- Keep source citations when Ask corrects a Scripture quotation, and check quotations with citations after the reference too.

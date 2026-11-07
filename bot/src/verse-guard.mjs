@@ -6,7 +6,10 @@
  */
 import { parseReference } from "./refs.mjs";
 
-const QUOTE = /^>\s*(.+?)\s*\*\*([^*]{3,60}?)\*\*\.?\s*$/;
+// Keep numeric citation tokens opaque, including invalid IDs: citationReport validates them
+// against the server registry later. They are annotations, not words of Scripture.
+const CITATION = String.raw`\[-?\d+(?:\.\d+)?(?:\s*,\s*-?\d+(?:\.\d+)?)*\]`;
+const QUOTE = new RegExp(String.raw`^>\s*(.+?)((?:\s*${CITATION})+[.,;:!?]?|)\s*\*\*([^*]{3,60}?)\*\*(\.?(?:\s*${CITATION})*\.?)\s*$`);
 const norm = (s) => String(s).toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 
 /**
@@ -19,7 +22,7 @@ export async function guardVerses(answer, books, chapter) {
   const out = [];
   for (const line of lines) {
     const m = QUOTE.exec(line);
-    const ref = m && books ? parseReference(m[2].replace(/\s*\(KJV\)\s*$/i, ""), books) : null;
+    const ref = m && books ? parseReference(m[3].replace(/\s*\(KJV\)\s*$/i, ""), books) : null;
     if (!m || !ref?.verse) { out.push(line); continue; }
     const c = await chapter(ref.slug, ref.chapter).catch(() => null);
     if (!c) { out.push(line); continue; }
@@ -33,7 +36,7 @@ export async function guardVerses(answer, books, chapter) {
     let at = 0;
     const ok = verses.length > 0 && pieces.join(" ").length >= 8 && pieces.every((p) => { const i = hay.indexOf(p, at); if (i < 0) return false; at = i + p.length; return true; });
     if (ok) { out.push(line); continue; }
-    if (verses.length && to - from < 3) { fixed++; out.push(`> ${real.trim()} **${ref.book} ${ref.chapter}:${from}${to > from ? `-${to}` : ""}**`); }
+    if (verses.length && to - from < 3) { fixed++; out.push(`> ${real.trim()}${m[2]} **${ref.book} ${ref.chapter}:${from}${to > from ? `-${to}` : ""}**${m[4]}`); }
     else removed++;
   }
   return { text: out.join("\n"), checked, fixed, removed };
