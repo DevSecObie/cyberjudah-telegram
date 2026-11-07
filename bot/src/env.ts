@@ -103,6 +103,8 @@ export type Env = {
   PUSH_TEST_ORIGIN?: string;
   /** Workers Rate Limiting binding for the reading-reminder endpoints (wrangler.jsonc "ratelimits"). */
   REMIND_LIMIT?: RateLimit;
+  /** Note/answer PDF uploads to the authenticated person's own chat: five per minute per edge. */
+  PDF_UPLOAD_LIMIT?: RateLimit;
   /** Public, read-only native library requests; 60 per IP per minute at each edge location. */
   READER_LIMIT?: RateLimit;
   /** Worker secret, set by the owner only: the key the private MCP server at /mcp asks for (mcp.ts). Unset, /mcp answers nothing. */
