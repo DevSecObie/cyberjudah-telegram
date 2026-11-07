@@ -7,18 +7,18 @@ import { financialDb } from './helpers/financial-db.mjs';
 const out = new URL('./.build/semantic-search.mjs', import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/semantic-search.ts"; export {default as worker} from "./src/index.ts";', resolveDir: new URL('..', import.meta.url).pathname }, outfile: out, bundle: true, format: 'esm', platform: 'node', packages: 'external', logLevel: 'error', plugins: [{ name: 'public-records', setup(b) {
   b.onResolve({ filter: /^\.\/data$/ }, args => args.importer.endsWith('/semantic-search.ts') ? { path: 'public-records', namespace: 'fixture' } : undefined);
-  b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ loader: 'js', contents: 'export async function dataJson(env,path) { env.reads.push(path); return env.records[path] ?? null; }' }));
+  b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ loader: 'js', contents: 'export async function dataJson(env,path) { env.reads.push(path); await env.beforeRead?.(path); if (env.failReads?.includes(path)) throw new Error("fixture read failed"); return env.records[path] ?? null; }' }));
 } }] });
 const { semanticOptions, semanticHits, SEMANTIC_MIN_SCORE, worker } = await import(out);
 const video = 'abcdefghijk';
 const opts = (q = 'recorded words', kinds) => semanticOptions(new URLSearchParams({ q, ...(kinds ? { kinds } : {}) }));
-const match = (kind, url, extra = {}, score = 0.9) => ({ id: `${kind}:${url}`, score, metadata: { kind, url, title: 'Recorded title', text: 'Original public recorded words, copied exactly from this test fixture.', ...extra } });
+const match = (kind, url, extra = {}, score = 0.9) => ({ id: `${kind}:${url}`, score, metadata: { kind, url, title: 'Recorded title', text: 'Original public recorded words copied exactly from this test fixture, with enough additional recorded words to represent a complete spoken chunk.', ...extra } });
 function fixture(t) {
   const { env, sql } = financialDb(t), calls = [], queries = [];
   Object.assign(env, { SITE_URL: 'https://cyberjudah.io', reads: [], records: {
     '/api/kjv/books.json': [{ book: 'John', slug: 'john', chapters: 21 }],
     '/api/kjv/john/11.json': { book: 'John', chapter: 11, translation: 'KJV', verses: [{ verse: 35, text: 'Jesus wept.' }] },
-    '/api/notes/index.json': [{ kind: 'class', title: 'Recorded title', url: '/classes/recorded', videoId: video, teacher: 'Recorded teacher', date: '2012-01-01' }],
+    '/api/notes/index.json': [{ kind: 'class', title: 'Recorded title', url: '/classes/recorded', videoId: video, teacher: 'Recorded teacher', date: '2012-01-01' }, { kind: 'study', title: 'Recorded study', url: '/study/recorded' }],
     '/api/laws/2A.json': { title: 'Recorded section', url: '/law/recorded/2a', entries: [{ id: '2A.1', text: 'Exact existing law entry.', citation: 'Recorded citation' }] },
     '/api/cases/index.json': { cases: [{ name: 'Recorded case', era: 'Recorded era', verdict: 'Recorded verdict', url: '/cases/recorded/case' }] },
     '/api/precepts/index.json': [{ title: 'Recorded precept', refs: 3, url: '/precepts/recorded' }],
@@ -71,9 +71,10 @@ test('missing verse records are omitted and conflicting teacher metadata never n
 
 test('results cap at thirty; a recorded video without a page URL keeps its real start time', async t => {
   const f = fixture(t);
+  f.env.records['/api/notes/index.json'].push(...Array.from({ length: 50 }, (_, i) => ({ kind: 'study', title: `Study ${i}`, url: `/study/recorded-${i}` })));
   f.env.matches = Array.from({ length: 50 }, (_, i) => match('study', `/study/recorded-${i}`));
   assert.equal((await semanticHits(f.env, semanticOptions(new URLSearchParams('q=words&limit=1000')), signal())).length, 30);
-  f.env.records['/api/notes/index.json'] = [];
+  f.env.records['/api/notes/index.json'] = [{ kind: 'class', title: 'Recorded title', videoId: video }];
   f.env.matches = [match('spoken', '', { video, t: 123.5 })];
   const hit = (await semanticHits(f.env, opts(), signal()))[0];
   assert.equal(hit.t, 123.5); assert.equal(hit.url, `https://www.youtube.com/watch?v=${video}&t=123s`); assert.equal(hit.teacher, '');
@@ -100,7 +101,10 @@ test('real HTTP auth precedes cache and inference; cache normalizes q and contai
   const f = fixture(t), values = cache(t); f.env.matches = [match('verse', '/bible/john/11#v35')];
   assert.equal((await get(f.env, 'recorded words', { authorization: '' })).status, 401); assert.equal(f.calls.length, 0);
   const first = await get(f.env); assert.equal(first.status, 200); assert.equal((await first.json())[0].text, 'Jesus wept.');
-  assert.equal((await get(f.env, '  REcorded   Words  ')).status, 200); assert.equal(f.calls.length, 1);
+  const cached = await get(f.env, '  REcorded   Words  ');
+  assert.equal(cached.status, 200); assert.equal(f.calls.length, 1);
+  assert.equal(cached.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(cached.headers.get('cache-control'), 'private, no-store');
   assert.equal((await get(f.env, 'recorded words', { authorization: '' })).status, 401);
   assert.equal(values.size, 1); assert.ok(![...values.keys()][0].includes('recorded'));
 });
@@ -133,4 +137,49 @@ test('IP rejection does not spend the person counter and the daily allowance is 
   f.sql.prepare("UPDATE rate_counts SET n = 200 WHERE key LIKE 'semantic_day:%'").run();
   assert.equal((await get(f.env, 'words')).status, 429);
   assert.equal(f.calls.length, 1);
+});
+
+
+test('short hydrated KJV verses stay; five-word spoken scraps and retracted pages do not', async t => {
+  const f = fixture(t);
+  f.env.matches = [match('verse', '/bible/john/11#v35'), match('spoken', '/classes/recorded', { video, t: 3, text: 'These are five spoken words.' }), match('study', '/study/retracted'), match('spoken', '/classes/retracted', { video, t: 15 })];
+  const hits = await semanticHits(f.env, opts(), signal());
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].text, 'Jesus wept.');
+  f.env.records['/api/notes/index.json'] = [];
+  f.env.matches = [match('spoken', '', { video, t: 15 })];
+  assert.deepEqual(await semanticHits(f.env, opts(), signal()), [], 'an unlisted video cannot revive a removed class');
+});
+
+test('tiny cosine rounding excess clamps to one while invalid scores are omitted', async t => {
+  const f = fixture(t);
+  f.env.matches = [match('verse', '/bible/john/11#v35', {}, 1 + 1e-8), match('study', '/study/recorded', {}, 1.1)];
+  const hits = await semanticHits(f.env, opts(), signal());
+  assert.equal(hits.length, 1); assert.equal(hits[0].score, 1);
+});
+
+test('individual failed hydration drops only its hits and never caches the partial response', async t => {
+  const f = fixture(t), values = cache(t);
+  f.env.matches = [match('verse', '/bible/john/11#v35'), match('case', '/cases/recorded/case')];
+  f.env.failReads = ['/api/cases/index.json'];
+  const first = await get(f.env);
+  assert.equal(first.status, 200); assert.deepEqual((await first.json()).map(hit => hit.kind), ['verse']);
+  assert.equal(values.size, 0);
+  f.env.failReads = [];
+  const recovered = await get(f.env);
+  assert.equal(recovered.status, 200); assert.equal((await recovered.json()).length, 2);
+  assert.equal(values.size, 1); assert.equal(f.calls.length, 2);
+});
+
+test('public hydration reads overlap, share memo entries, and never exceed the read bound', async t => {
+  const f = fixture(t); let active = 0, maximum = 0;
+  f.env.beforeRead = async () => { active++; maximum = Math.max(maximum, active); await new Promise(resolve => setTimeout(resolve, 5)); active--; };
+  f.env.matches = [match('verse', '/bible/john/11#v35'), match('study', '/study/recorded'), match('case', '/cases/recorded/case'), match('precept', '/precepts/recorded')];
+  assert.equal((await semanticHits(f.env, opts(), signal())).length, 4);
+  assert.ok(maximum > 1, 'reads run in parallel instead of waiting for each record');
+  assert.equal(new Set(f.env.reads).size, f.env.reads.length, 'concurrent reads use the same memo promise');
+  f.env.reads.length = 0;
+  f.env.matches = Array.from({ length: 50 }, (_, i) => match('verse', `/bible/john/${i + 1}#v1`));
+  await semanticHits(f.env, opts(), signal());
+  assert.ok(f.env.reads.length <= 32);
 });

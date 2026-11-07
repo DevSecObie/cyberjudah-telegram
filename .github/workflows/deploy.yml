@@ -18,6 +18,13 @@ on:
 permissions:
   contents: read
 
+# Keep long nightly/manual embedding out of the main-push queue. The production writers below
+# share a separate lock for the whole load/swap, regardless of which pipeline started them.
+# GitHub retains only one pending run per group; it may supersede an older pending run.
+concurrency:
+  group: ${{ github.event_name == 'push' && 'production-deploy' || github.event_name == 'schedule' && 'production-maintenance' || github.event_name == 'workflow_dispatch' && 'production-dispatch' || format('production-check-{0}', github.ref) }}
+  cancel-in-progress: false
+
 env:
   # Account sync stays off in production until the Firebase web API key is restricted
   # (docs/PRODUCTION_CHECKLIST.md §2), as docs/PRIVACY.md promises. Set to "true" once that is done.
@@ -48,6 +55,10 @@ jobs:
   deploy:
     needs: [check, release-browser-checks]
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Covers replacement, search staging/loading/swap, verification and automatic rollback.
+    concurrency:
+      group: production-search-write
+      cancel-in-progress: false
     # Attach required reviewers under Settings → Environments → production to gate
     # production deploys behind a human approval. Until then this is a label only.
     environment: production
@@ -337,6 +348,9 @@ jobs:
   refresh-search:
     # The library changes when the cyberjudah repo publishes; keep the search index fresh.
     if: github.event_name == 'schedule'
+    concurrency:
+      group: production-search-write
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: automation
     steps:
@@ -361,6 +375,10 @@ jobs:
     # After the deploy, so the index it fills exists.
     needs: deploy
     if: always() && needs.deploy.result != 'failure' && (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.embed))
+    # An embed can take hours, but never stages or swaps search_docs_next.
+    concurrency:
+      group: production-embedding
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment: automation
     timeout-minutes: 340

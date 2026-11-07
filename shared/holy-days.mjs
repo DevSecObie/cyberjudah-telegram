@@ -36,7 +36,8 @@ export function localDate(ms, tz) {
   return `${p.year}-${p.month}-${p.day}`;
 }
 /** The hour (0–23) at this moment in this zone. */
-export const localHour = (ms, tz) => Number(new Intl.DateTimeFormat("en-US", { timeZone: zoneOf(tz), hour: "numeric", hourCycle: "h23" }).format(new Date(ms)));
+// Some runtimes ignore hourCycle "h23" and give midnight as 24: the hour part, kept under 24.
+export const localHour = (ms, tz) => Number(new Intl.DateTimeFormat("en-US", { timeZone: zoneOf(tz), hour: "numeric", hourCycle: "h23" }).formatToParts(new Date(ms)).find((p) => p.type === "hour")?.value) % 24;
 const ymd = (date) => date.split("-").map(Number);
 export const addDays = (date, n) => { const [y, m, d] = ymd(date); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
 const weekday = (date) => { const [y, m, d] = ymd(date); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };

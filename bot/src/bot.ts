@@ -4,11 +4,12 @@ import { Bot, InlineKeyboard, InputFile, type Context } from "grammy";
 import type { InlineQueryResultArticle, UserFromGetMe } from "grammy/types";
 import { tellAdmins } from "./health";
 import type { Env, Exec, Sub } from "./env";
+import { deleteSub } from "./subscribe";
 import { books, chapter, openLink, verseLink, verseMessage, escapeHtml } from "./data";
 import { runSearch } from "./search";
 import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
-import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
+import { pathToStartParam, startParamTarget } from "../../shared/links.mjs";
 import { applyDonation, applyPayment, applyRefund, checkout, SUPPORT_STARS, supportPayloadOf } from "./billing";
 import { fmtUsd } from "../../shared/credits.mjs";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
@@ -90,8 +91,9 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
       return ctx.reply(ok ? "Your reading reminders will come to this chat. Change them in Settings → Reading reminders." : "That link has expired. Open Settings → Reading reminders and press Start the bot again.", { reply_markup: open(ctx, "settings_reminders", "Reading reminders") });
     }
     if (param) {
-      const path = startParamToPath(param);
-      const label = path === "/" ? "CyberJudah" : path.replace(/[?#].*$/, "").split("/").filter(Boolean).map((p) => p.replace(/-/g, " ")).join(" › ");
+      // The page it names (in the app, which has every screen the site has and more), for the label.
+      const path = startParamTarget(param);
+      const label = path === "/" ? "CyberJudah" : path.startsWith("/watch/") ? "Video" : path.replace(/[?#].*$/, "").split("/").filter(Boolean).map((p) => p.replace(/-/g, " ")).join(" › ");
       return ctx.reply(`Open <b>${escapeHtml(label)}</b> in CyberJudah:`, { parse_mode: "HTML", reply_markup: open(ctx, param, "Open") });
     }
     await ctx.reply(`Welcome, ${escapeHtml(ctx.from?.first_name ?? "friend")}.\n\n${HELP.replace(/@BOT/g, `@${bot.botInfo.username}`)}`, {
@@ -112,7 +114,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     const key = `sub:${await pid(env, ctx.from!.id)}`;
     const had = await env.SUBS.get(key);
     if (had) {
-      await env.SUBS.delete(key);
+      await deleteSub(env, key);
       return ctx.reply("The daily verse is off. Send /daily to turn it back on.");
     }
     // The bot cannot know the person's time zone: 08:00 UTC until the app sets their hour.

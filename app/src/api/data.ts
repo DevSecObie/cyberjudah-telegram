@@ -90,6 +90,8 @@ export type BookRead = { slug: string; title: string; vol: number; page: number;
 export type ClassBookMoment = { video: string; t: number; title: string; date: string | null; teacher: string; url: string | null; said: string };
 /** A book the classes bring up, and where to read it in full: our own library, a free public-domain scan, or archive.org lending. */
 export type ClassBook = { title: string; author: string; kind: string; shelf: string; recordings: number; first_year: number | null; last_year: number | null; status: "library" | "public-domain" | "borrow" | "none"; slug?: string; archive?: string; moments: ClassBookMoment[] };
+/** A Wikipedia page a class read on screen, and the moments it read it (data/library/class-wikipedia.json). */
+export type ClassWikiPage = { title: string; wiki: string; recordings: number; moments: ClassBookMoment[] };
 export type LibraryRow = { slug: string; title: string; subtitle: string; author: string; year: number; pages: number; volumes: number; chapters: number; figures: number; cover: string | null; reads: number; classes: number };
 /** A line of what the class said, from the recording's captions, at that second. */
 export type SaidLine = { t: number; text: string };
@@ -172,6 +174,7 @@ export const data = {
     return release ? resourceRecord<StrongsRow[]>("strongs", "index", release) : get<StrongsRow[]>("/api/strongs/index.json");
   },
   classBooks: () => get<ClassBook[]>("/api/library/class-books.json"),
+  classWikipedia: () => get<ClassWikiPage[]>("/api/library/class-wikipedia.json"),
   libraryBook: (slug: string) => get<LibraryBook>(`/api/library/${slug}/book.json`),
   libraryChapter: (slug: string, k: number) => get<LibraryChapter>(`/api/library/${slug}/chapter/${k}.json`),
   chapter: (slug: string, ch: number) => get<Chapter>(`/api/kjv/${slug}/${ch}.json`),

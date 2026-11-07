@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { bluegreenLoad, rollback, statements, toNext, batches, TEACHINGS } from "../scripts/bluegreen-load.mjs";
+import { bluegreenLoad, rollback, statements, toNext, batches, TEACHINGS, acquireLease, LEASE_MS } from "../scripts/bluegreen-load.mjs";
 import { d1Query } from "../scripts/d1-query.mjs";
 
 // The build's search.sql, in its shape (engine/build.mjs in DevSecObie/cyberjudah).
@@ -97,6 +97,35 @@ test("a load that fails its check leaves the live index untouched", async () => 
   assert.equal(db.prepare("SELECT text FROM search_docs").get().text, "god kept");
   await assert.rejects(bluegreenLoad(searchSql(["no match here"]), run), /0 hits/);
   assert.equal(db.prepare("SELECT text FROM search_docs").get().text, "god kept");
+});
+
+test("two loads at once take turns instead of dropping each other's spare tables", async () => {
+  const { db, run } = sqlite();
+  // Each D1 call yields, as a network call would, so the two loads interleave.
+  const slow = async (sql) => { await new Promise((r) => setImmediate(r)); return run(sql); };
+  const lease = { pollMs: 0, sleep: () => new Promise((r) => setImmediate(r)) };
+  const logs = [];
+  const [a, b] = await Promise.all([
+    bluegreenLoad(searchSql(["god a1", "a2", "a3", "a4"]), slow, { maxBytes: 200, lease }),
+    bluegreenLoad(searchSql(["god b1", "b2"]), slow, { maxBytes: 200, lease, log: (m) => logs.push(m) }),
+  ]);
+  assert.deepEqual([a.rows.search_docs, b.rows.search_docs], [4, 2]);
+  assert.ok(logs.some((m) => /waiting for it to finish/.test(m)), logs.join("\n"));
+  assert.equal(db.prepare("SELECT count(*) AS n FROM search_docs").get().n, 2);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM search_docs_prev").get().n, 4);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM load_locks").get().n, 0, "the lease is released");
+});
+
+test("a lease left by a crashed load expires; a live one makes the next load give up untouched", async () => {
+  const { db, run } = sqlite();
+  let t = 1_000_000;
+  const now = () => t;
+  await acquireLease(run, "search_docs", "crashed", { now });
+  await assert.rejects(bluegreenLoad(searchSql(["god x"]), run, { lease: { now, waitMs: 60_000, pollMs: 30_000, sleep: async (ms) => { t += ms; } } }), /still holds search_docs/);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name = 'search_docs'").get().n, 0);
+  t += LEASE_MS + 1;
+  await bluegreenLoad(searchSql(["god x"]), run, { lease: { now } });
+  assert.equal(db.prepare("SELECT text FROM search_docs").get().text, "god x");
 });
 
 test("the REST runner retries a passing D1 error and stops on a real one", async () => {

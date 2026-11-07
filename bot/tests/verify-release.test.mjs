@@ -4,11 +4,12 @@ import { verifyRelease } from "../scripts/verify-release.mjs";
 import { validateInitData } from "../src/initdata.mjs";
 import { MODELS } from "../../shared/ask-models.mjs";
 
-function fixture({ answerStatus = 200, sources = [{}], model = "google/test", expectedModel = "google/test", cachedConsent = false } = {}) {
+function fixture({ answerStatus = 200, sources = [{ n: 1 }], model = "google/test", expectedModel = "google/test", cachedConsent = false, answer = {} } = {}) {
   let answered = false, calls = 0;
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
   return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, verifySync: true, retryMs: 0, log() {}, async fetcher(url, { headers }) {
     const path = new URL(url).pathname;
+    if (path === "/api/search/answer") assert.equal(new URL(url).searchParams.get("q"), "What does Genesis 1:1 say?");
     if (path === "/api/health") return json({ ok: true });
     if (["/app/", "/app/read/genesis/1"].includes(path)) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
     if (path === "/bs/v1/dictionaries") return json({ dictionaries: [{ resource: { work: "easton-webster" } }] });
@@ -22,7 +23,7 @@ function fixture({ answerStatus = 200, sources = [{}], model = "google/test", ex
     if (path === "/api/recordings/catalog") return json({ chapters: [{}] });
     if (!expectedModel.startsWith("@cf/") && !headers["x-ai-consent"] && !(cachedConsent && answered)) return json({ provider: "Google" }, 428);
     calls++; answered = true;
-    return json({ ok: true, answer: "A cited answer [1]", sources, model, provider: MODELS.find(m => m.id === expectedModel)?.provider ?? "Google", error: "free-paused" }, answerStatus);
+    return json({ ok: true, answer: "A cited answer [1]", sources, model, provider: MODELS.find(m => m.id === expectedModel)?.provider ?? "Google", error: "free-paused", ...answer }, answerStatus);
   } } };
 }
 test("release verification signs a synthetic reader and makes only one consented provider request", async () => {
@@ -66,6 +67,42 @@ test("a single slow or unavailable answer is tried once more; two in a row fail"
   await assert.rejects(verifyRelease(flaky([503, 503]).options), /HTTP 503 \(unavailable\)/);
   // Any other failure is not retried.
   const f = flaky([500]); await assert.rejects(verifyRelease(f.options), /HTTP 500/); assert.equal(f.asked(), 1);
+  for (const plan of [[404], [503, 500], ["timeout", 404]]) {
+    const f = flaky(plan);
+    await assert.rejects(verifyRelease(f.options), /HTTP (404|500)/);
+    assert.equal(f.asked(), plan.length);
+  }
+});
+
+const relatedVerse = { kind: "verse", title: "Genesis 1:1 (KJV)", url: "/bible/genesis/1", text: "1 In the beginning God created the heaven and the earth." };
+test("honest uncited output warns only with separately labelled known library material", async () => {
+  const warnings = [], logs = [];
+  const answer = { state: "no-cited-answer", answer: "I could not produce a cited answer from the library material I found.",
+    related: { label: "Related library passages", passages: [relatedVerse] },
+    citation_diagnostics: { sources_returned: 0, citation_tokens_found: 2, valid_ids: 0, retries: 1 } };
+  const f = fixture({ sources: [], answer });
+  await verifyRelease({ ...f.options, log: line => logs.push(line), warn: line => warnings.push(line) });
+  assert.equal(f.count(), 1, "an honest uncited result is not a transport failure or another live call");
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /no cited answer/);
+  const counts = JSON.parse(logs.find(line => line.startsWith("Search answer diagnostics:")).split(": ")[1]);
+  assert.deepEqual(counts, { sources_returned: 0, citation_tokens_found: 2, valid_ids: 0, retries: 1, model: "google/test" });
+  assert.ok(!JSON.stringify(logs).includes(relatedVerse.text));
+  for (const patch of [
+    { related: undefined }, { related: { label: "Cited sources", passages: [relatedVerse] } },
+    { related: { label: "Related library passages", passages: [] } },
+    { related: { label: "Related library passages", passages: [{ ...relatedVerse, text: "Unrelated text." }] } },
+    { state: undefined }, { answer: "Unsupported assertion [99]." }, { answer: "Private uncited draft." }, { sources: [{ n: 1 }] },
+  ]) await assert.rejects(verifyRelease(fixture({ sources: [], answer: { ...answer, ...patch } }).options), /Search answer:/);
+});
+
+test("a source list alone is not a valid citation, and diagnostics never echo a draft", async () => {
+  for (const text of ["Private uncited draft.", "Private unsupported draft [99]."]) {
+    const logs = [];
+    await assert.rejects(verifyRelease({ ...fixture({ answer: { answer: text } }).options, log: line => logs.push(line) }), /Search answer:/);
+    assert.ok(!logs.some(line => line.includes("Private")));
+  }
+  await verifyRelease(fixture({ sources: [{ n: 2 }, { n: 7 }], answer: { answer: "Grouped references [2, 7]." } }).options);
 });
 test("the answer request has its own wait, longer than the other requests'", async () => {
   const id = "@cf/meta/llama-3.1-8b-instruct-fp8";

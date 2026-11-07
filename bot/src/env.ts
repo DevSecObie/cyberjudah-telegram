@@ -121,4 +121,7 @@ export type Env = {
 /** Only waitUntil is needed; Hono and workers-types disagree on the full ExecutionContext shape. */
 export type Exec = { waitUntil(p: Promise<unknown>): void };
 
-export type Sub = { chatId: number; hour: number; tz: number };
+/** A daily-verse subscriber: their chat, the local hour they chose, their offset in minutes east of UTC
+ *  (older apps) and, when the app sent one, their IANA time zone (it follows daylight saving). The
+ *  local date the verse was last sent is kept apart, under sentKeyOf (subscribe.ts). */
+export type Sub = { chatId: number; hour: number; tz: number; zone?: string };

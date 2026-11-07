@@ -50,6 +50,7 @@ import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundSt
 import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, usageDayCredits, wallet as creditWallet } from "./credits";
 import { getTopupReminder, sendTopupReminders, setTopupReminder } from "./topup-remind";
 import { mcOfUsd } from "../../shared/credits.mjs";
+import { deleteSub, parseSubscribe } from "./subscribe";
 import { givingPauseMessage, pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
@@ -571,17 +572,20 @@ app.post("/api/privacy/delete", async (c) => {
 
 app.post("/api/subscribe", async (c) => {
   const { user } = c.get("tma");
-  const body = await c.req.json<{ on?: boolean; hour?: number; tz?: number }>().catch(() => null);
-  if (!body) return c.json({ error: "bad-json" }, 400);
+  // on, hour (0–23), tz (minutes east of UTC) and zone (IANA) are checked: anything sent that
+  // isn't valid is a 400 rather than a quiet default (subscribe.ts).
+  const input = parseSubscribe(await c.req.json<unknown>().catch(() => null));
+  // reason as well as error: the app's ApiError reads `reason` (it retries without a refused zone).
+  if (!input.ok) return c.json({ error: input.error, reason: input.error }, 400);
   const key = `sub:${await pid(c.env, user!.id)}`;
-  if (!body.on) { await c.env.SUBS.delete(key); return c.json({ subscribed: false }); }
-  const hour = Number.isInteger(body.hour) && body.hour! >= 0 && body.hour! <= 23 ? body.hour! : 8;
-  const tz = Number.isInteger(body.tz) && Math.abs(body.tz!) <= 14 * 60 ? body.tz! : 0;
+  // Off: the subscription and the date the verse last went out are both deleted.
+  if (!input.on) { await deleteSub(c.env, key); return c.json({ subscribed: false }); }
+  const { hour, tz, zone } = input;
   // Private chat id equals the user id; the daily message goes there.
-  const sub: Sub = { chatId: user!.id, hour, tz };
+  const sub: Sub = { chatId: user!.id, hour, tz, ...(zone ? { zone } : {}) };
   // Sealed at rest (privacy.mjs): the chat ID is read only to send the verse.
   await c.env.SUBS.put(key, await seal(c.env, key, sub));
-  return c.json({ subscribed: true });
+  return c.json({ subscribed: true, hour, ...(zone ? { zone } : { tz }) });
 });
 
 // The donation presets, bounds, owner's link and pause state, public like the resource catalog.

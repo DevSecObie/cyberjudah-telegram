@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { financialDb } from "./helpers/financial-db.mjs";
 import { modelOf } from "../../shared/ask-models.mjs";
+import { verifyRelease } from "../scripts/verify-release.mjs";
 
 // ai.ts is bundled for Node first (as Workers bundles it).
 const out = new URL("./.build/search-ai.mjs", import.meta.url).pathname;
@@ -59,7 +60,9 @@ test("with nothing in the library it says so, on the default free model, and rep
     console.log = original;
   }
   assert.equal(r.ok, true);
-  assert.match(r.answer, /^I couldn't find enough library material/);
+  assert.equal(r.state, "no-cited-answer");
+  assert.equal(r.answer, "I could not find material answering this directly.");
+  assert.deepEqual(r.related, { label: "Related library passages", passages: [] });
   assert.deepEqual(r.sources, []);
   assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
   // CYB-296: the response reports its own server-side latency in ms.
@@ -113,6 +116,7 @@ function fixture(t, reply = { choices: [{ message: { content: "Melchizedek was k
     AI: { async run(model, input, options) {
       sent.push({ model, input, options });
       if (model.includes("bge-m3")) return { data: [[1, 2]] };
+      if (typeof reply === "function") return reply(model, input);
       if (reply instanceof Error) throw reply;
       return reply;
     } },
@@ -251,6 +255,7 @@ test("route checks consent even on a cached answer and separates models in the e
   assert.equal(first.status, 200);
   assert.equal(first.headers.get("cache-control"), "private, no-store");
   assert.equal(cache.size, 1);
+  assert.match([...cache.keys()][0], /version=library-answer-v4-cited-quotes/);
   const count = sent.length;
   const again = await request("Melchizedek", "Google");
   assert.equal(again.status, 200);
@@ -263,6 +268,177 @@ test("route checks consent even on a cached answer and separates models in the e
   assert.equal((await request("Melchizedek")).status, 200);
   assert.equal(cache.size, 2);
   assert.ok(sent.some(s => s.model.startsWith("@cf/meta/")));
+  const beforeEnforce = sent.length;
+  env.ASK_COVERAGE_MODE = "enforce";
+  assert.equal((await request("Melchizedek")).status, 200);
+  assert.ok(sent.length > beforeEnforce, "shadow cache entries cannot bypass enforcement");
+  assert.equal(cache.size, 3);
+});
+
+const modelReply = text => ({ choices: [{ message: { content: text } }], usage: { prompt_tokens: 800, completion_tokens: 80 } });
+
+function genesisFixture(t, draft) {
+  const f = fixture(t, { response: draft, usage: { prompt_tokens: 800, completion_tokens: 80 } });
+  delete f.env.SEARCH_AI_MODEL;
+  delete f.env.SEARCH_AI_FREE_ONLY;
+  f.env.DATA_ORIGIN = "https://data.test";
+  f.env.VEC.query = async () => ({ matches: [] });
+  const oldFetch = globalThis.fetch, oldCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async url => {
+    const path = new URL(url).pathname;
+    if (path === "/api/kjv/books.json") return Response.json([{ book: "Genesis", slug: "genesis", chapters: 50 }]);
+    if (path === "/api/kjv/genesis/1.json") return Response.json({ book: "Genesis", chapter: 1, verses: [{ verse: 1, text: "In the beginning God created the heaven and the earth." }] });
+    return new Response("", { status: 404 });
+  };
+  t.after(() => { globalThis.fetch = oldFetch; globalThis.caches = oldCaches; });
+  return f;
+}
+
+test("the exact Genesis 1:1 cited draft survives checkedVerses into valid citation diagnostics", async t => {
+  for (const draft of [
+    "> In the beginning God created the heaven and the earth. [1] **Genesis 1:1**",
+    "> In the beginning God created the heaven and the earth. **Genesis 1:1** [1]",
+  ]) {
+    await t.test(draft.endsWith("[1]") ? "after reference" : "before reference", async t => {
+      const { env, sent } = genesisFixture(t, draft);
+      const r = await answerSearch(env, "What does Genesis 1:1 say?", 7);
+      assert.equal(r.ok, true);
+      assert.equal(r.answer, draft);
+      assert.ok(r.citation_diagnostics.valid_ids >= 1);
+      assert.equal(r.citation_diagnostics.citation_tokens_found, 1);
+      assert.equal(r.citation_diagnostics.retries, 0);
+      assert.equal(r.sources[0].n, 1);
+      assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
+      const calls = sent.filter(s => s.model === r.model);
+      assert.equal(calls.length, 1, "a preserved citation needs no retry");
+      assert.match(calls[0].input.messages[0].content, /source_n=1 -> \[1\]/);
+      assert.match(calls[0].input.messages[0].content, /Worked formatting example/);
+    });
+  }
+});
+
+test("the plain citation guide reaches both real adapter calls; still-uncited output stays honest", async t => {
+  const { env, sent } = genesisFixture(t, "> In the beginning God created the heaven and the earth. **Genesis 1:1**");
+  const r = await answerSearch(env, "What does Genesis 1:1 say?", 7);
+  assert.equal(r.state, "no-cited-answer");
+  assert.deepEqual(r.sources, []);
+  const calls = sent.filter(s => s.model === r.model);
+  assert.equal(calls.length, 2);
+  for (const call of calls) {
+    assert.match(call.input.messages[0].content, /source_n=1 -> \[1\]/);
+    assert.match(call.input.messages[0].content, /Its recorded Bible reference\*\* \[1\]/);
+  }
+  assert.match(calls[1].input.messages[0].content, /Write a fresh answer/);
+});
+test("one citation retry repairs an uncited draft using the same evidence and reservation", async t => {
+  let n = 0;
+  const { env, sql, sent } = fixture(t, () => modelReply(++n === 1 ? "Private uncited draft." : "Melchizedek was king of Salem [1]."));
+  const r = await answerSearch(env, "Melchizedek", 7, ["Google"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.state, undefined);
+  assert.equal(r.sources.length, 1);
+  assert.deepEqual(r.citation_diagnostics, { sources_returned: 1, citation_tokens_found: 1, valid_ids: 1, retries: 1, model: GOOGLE });
+  const calls = sent.filter(s => s.model === GOOGLE);
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[0].input.messages.slice(1), calls[1].input.messages.slice(1));
+  assert.match(calls[1].input.messages[0].content, /source_n as \[n\]/);
+  assert.ok(!JSON.stringify(calls[1]).includes("Private uncited draft"));
+  assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM free_spend_holds").get().n, 1);
+  assert.ok(await freeSpendToday(env) > (1600 * 0.1 + 160 * 0.4) / 1e6, "both calls are metered");
+});
+
+test("two uncited or unsupported-only drafts return related material, never AI teaching or fake citations", async t => {
+  const { env, sent } = fixture(t, modelReply("Private unsupported teaching [99].\n\nFollow-ups: Invent more?"));
+  const { request, cache } = routeFixture(t, env);
+  const response = await request("Melchizedek", "Google"), r = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(r.state, "no-cited-answer");
+  assert.deepEqual(r.sources, []);
+  assert.deepEqual(r.followups, []);
+  assert.deepEqual(r.unsupported_refs, []);
+  assert.equal(r.related.label, "Related library passages");
+  assert.equal(r.related.passages[0].title, "Genesis 14:18");
+  assert.ok(r.related.passages.every(p => !("n" in p)));
+  assert.ok(!JSON.stringify(r).includes("Private unsupported teaching"));
+  assert.deepEqual(r.citation_diagnostics, { sources_returned: 0, citation_tokens_found: 1, valid_ids: 0, retries: 1, model: GOOGLE });
+  assert.equal(cache.size, 0);
+  assert.equal(sent.filter(s => s.model === GOOGLE).length, 2);
+  await request("Melchizedek", "Google");
+  assert.equal(sent.filter(s => s.model === GOOGLE).length, 4, "uncited responses are not cached");
+});
+
+test("unknown usage or an exhausted reservation prevents a citation retry", async t => {
+  for (const reply of [
+    { choices: [{ message: { content: "Private uncited draft." } }] },
+    { ...modelReply("Private uncited draft."), usage: { prompt_tokens: 800, completion_tokens: 4000 } },
+  ]) {
+    const { env, sent } = fixture(t, reply);
+    env.ASK_FREE_MAX_USD = "0.002";
+    const r = await answerSearch(env, "Melchizedek", 7, ["Google"]);
+    assert.equal(r.state, "no-cited-answer");
+    assert.equal(r.citation_diagnostics.retries, 0);
+    assert.equal(sent.filter(s => s.model === GOOGLE).length, 1);
+  }
+});
+
+test("citation recovery shares the original deadline; greetings do not need invented citations", async t => {
+  const now = Date.now();
+  const first = fixture(t, () => { t.mock.method(Date, "now", () => now + 56_000); return modelReply("Uncited draft."); });
+  const r = await answerSearch(first.env, "Melchizedek", 7, ["Google"]);
+  assert.equal(r.state, "no-cited-answer");
+  assert.equal(first.sent.filter(s => s.model === GOOGLE).length, 1);
+  t.mock.restoreAll();
+  const second = fixture(t, modelReply("Hello!"));
+  const hello = await answerSearch(second.env, "hi there", 7, ["Google"]);
+  assert.equal(hello.answer, "Hello!");
+  assert.equal(hello.state, undefined);
+  assert.equal(second.sent.filter(s => s.model === GOOGLE).length, 1);
+});
+
+test("provider failure during the citation retry stays HTTP 503, not an honest-uncited success", async t => {
+  let n = 0;
+  const { env, sent } = fixture(t, () => { if (++n === 2) throw new Error("Gateway unavailable"); return modelReply("Uncited draft."); });
+  const { request, cache } = routeFixture(t, env);
+  const response = await request("Melchizedek", "Google");
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { ok: false, error: "unavailable" });
+  assert.equal(sent.filter(s => s.model === GOOGLE).length, 2);
+  assert.equal(cache.size, 0);
+});
+
+test("recorded zero-source output traverses Search and the release gate without a live model", async t => {
+  const { env, sent } = fixture(t, modelReply("Private uncited draft."));
+  const { request, cache } = routeFixture(t, env);
+  env.DATA_ORIGIN = "https://data.test";
+  env.VEC.query = async () => ({ matches: [] });
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    const path = new URL(url).pathname;
+    if (path === "/api/kjv/books.json") return Response.json([{ book: "Genesis", slug: "genesis", chapters: 50 }]);
+    if (path === "/api/kjv/genesis/1.json") return Response.json({ book: "Genesis", chapter: 1, verses: [{ verse: 1, text: "In the beginning God created the heaven and the earth." }] });
+    return new Response("", { status: 404 });
+  };
+  t.after(() => { globalThis.fetch = realFetch; });
+  const logs = [], warnings = [];
+  await verifyRelease({ url: "https://app.invalid", token: "test-token", expectedModel: GOOGLE, retryMs: 0,
+    log: line => logs.push(line), warn: line => warnings.push(line), fetcher: async (url, { headers }) => {
+      const { pathname, searchParams } = new URL(url);
+      if (pathname === "/api/health") return Response.json({ ok: true });
+      if (pathname.startsWith("/app/")) return new Response('<div id="root"></div>', { headers: { "content-type": "text/html" } });
+      if (pathname === "/api/resources/catalog") return Response.json({ resources: [] });
+      if (pathname === "/api/recordings/catalog") return Response.json({ chapters: [] });
+      if (pathname === "/api/search/answer") {
+        if (!headers.authorization) return Response.json({}, { status: 401 });
+        return request(searchParams.get("q"), headers["x-ai-consent"] ?? "");
+      }
+      assert.fail(`Unexpected offline request ${pathname}`);
+    } });
+  assert.equal(sent.filter(s => s.model === GOOGLE).length, 2);
+  assert.equal(warnings.length, 1);
+  assert.ok(!JSON.stringify([...logs, ...warnings]).includes("Private uncited draft"));
+  assert.match(logs.find(line => line.startsWith("Search answer diagnostics:")), /"sources_returned":0,"citation_tokens_found":0,"valid_ids":0,"retries":1/);
+  assert.ok(![...cache.keys()].some(key => key.includes("/api/search/answer")));
 });
 
 test("route refuses unauthenticated readers", async t => {

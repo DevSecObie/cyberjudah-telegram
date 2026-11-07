@@ -32,6 +32,8 @@ type ToolCall = { id: string; name: string; arguments: string };
 
 /** A failure from the model's side: shaped as an API connection error, so Ask's backup answers instead (providers.ts claudeUnavailable). */
 const unavailable = (e: unknown) => new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` });
+/** Distinguish a local budget refusal from a failed provider request. */
+export class ModelBudgetError extends Error {}
 
 export async function researchOpen(
   env: Env,
@@ -65,7 +67,7 @@ export async function researchOpen(
       // Bound every wire format by its reserved budget, including paid chat completions.
       const tokens = new TextEncoder().encode(JSON.stringify(input)).length + 1024;
       const room = spend.outputTokensLeft(model, spend.inputUsd({ input_tokens: tokens }, model));
-      if (room < 64 || spend.unreported) throw new Error("The answer has used its reserved budget.");
+      if (room < 64 || spend.unreported) throw new ModelBudgetError("The answer has used its reserved budget.");
       outputLimit = outputLimit === null ? room : Math.min(outputLimit, room);
     }
     if (outputLimit !== null && outputLimit < 64) throw new Error("This model's context window is full. Use a model with a larger context window.");

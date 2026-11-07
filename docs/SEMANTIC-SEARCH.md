@@ -13,8 +13,8 @@ one embedding and one vector query. There is no model-generated text, new teachi
 
 Scripture coordinates select the public library chapter and its full exact KJV verse, including
 short verses and the Apocrypha. Class hits include spoken, Captains and History chunks, their
-recorded start in seconds, and a verbatim excerpt up to 500 characters. Each recording keeps its
-best-scoring moment. Teacher/date come only from published metadata; conflicting recorded names
+recorded start in seconds, and a verbatim excerpt up to 500 characters. Spoken chunks shorter than 20 words are omitted; this filter never excludes a short hydrated verse. Each recording keeps its
+best-scoring moment. Class and study pages must still be listed in the public notes index; a URL-less class needs a recorded video in that index. Teacher/date come only from published metadata; conflicting recorded names
 remain unnamed. Law entries, case metadata and precept counts hydrate from their existing public
 records. Only keyword-Hit fields are returned, never arbitrary vector metadata or private chats.
 
@@ -35,7 +35,7 @@ It reports hits only and never claims full coverage.
 The keyword search remains available and the Mini App already tolerates backend outages.
 
 An unavailable embedding/index or a deadline returns `503 {"error":"semantic-unavailable"}`.
-Missing or invalid individual public records are omitted; no replacement wording is invented.
+Missing or failed individual public records are omitted while other hits remain available; no replacement wording is invented. Those partial responses are not cached. Hydration reads run in bounded parallel batches with shared memoization. Tiny cosine rounding excess (up to 0.000001 above one) is clamped to one; larger invalid scores are dropped.
 
 The prerequisite read-only audit found approximately 2.62 million vectors, 1,024 dimensions and
 cosine distance, against 2,633,121 raw pipeline inputs. Stable-ID deduplication explains the small
