@@ -2,9 +2,7 @@ import { Api, GrammyError, InlineKeyboard } from "grammy";
 import type { Env, Sub } from "./env";
 import { todaysVerse, openButton } from "./bot";
 import { open } from "./privacy.mjs";
-
-/** The subscriber's hour of the day for a UTC hour: tz is their offset in minutes (half-hour zones round down). */
-export const localHour = (utcHour: number, tz: number) => Math.floor((((utcHour * 60 + tz) % 1440) + 1440) % 1440 / 60);
+import { deleteSub, isDueHour, SENT_TTL, sentKeyOf, subscriberDate } from "./subscribe";
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Telegram allows roughly 30 messages a second to distinct users; the broadcast stays under it. */
@@ -33,11 +31,21 @@ export async function sendDaily(env: Env, now = new Date()): Promise<Counts> {
   return out;
 }
 
+/** Notes the local date the verse went out, in its own key: the subscription is never rewritten. */
+async function markSent(env: Env, name: string, date: string): Promise<void> {
+  const key = sentKeyOf(name);
+  if (!key) return;
+  try {
+    await env.SUBS.put(key, date, { expirationTtl: SENT_TTL });
+  } catch (e) {
+    console.error(JSON.stringify({ event: "daily_mark_failed", message: e instanceof Error ? e.message : String(e) }));
+  }
+}
+
 async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
   const key = slotKey(when);
   const saved = (await env.SUBS.get(key, "json")) as { cursor?: string; done?: boolean } | null;
   if (saved?.done) return;
-  const hour = when.getUTCHours();
   const verse = await todaysVerse(env);
   if (!verse.text) { console.error(JSON.stringify({ event: "daily_no_verse", slot: key })); return; }
   const api = new Api(env.BOT_TOKEN);
@@ -47,20 +55,27 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
   const send = async (name: string): Promise<"sent" | "dropped" | "skip"> => {
     // Sealed at rest (privacy.mjs); subscriptions from before sealing read as they are.
     const sub = await open<Sub>(env, name, await env.SUBS.get(name));
-    if (!sub || localHour(hour, sub.tz) !== sub.hour) return "skip";
+    // Their hour in their zone when the app sent one (right across daylight saving), else at their
+    // fixed offset; and not twice on one local date (the night clocks fall back).
+    if (!sub || !isDueHour(sub, when)) return "skip";
+    // The sent date is read only at the subscriber's hour (one read a day, not one an hour).
+    const date = subscriberDate(sub, when);
+    const sentKey = sentKeyOf(name);
+    if (sentKey && (await env.SUBS.get(sentKey)) === date) return "skip";
     const attempt = async (): Promise<void> => {
       await api.sendMessage(sub.chatId, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup });
+      await markSent(env, name, date);
     };
     try {
       await attempt();
       return "sent";
     } catch (e) {
-      if (e instanceof GrammyError && e.error_code === 403) { await env.SUBS.delete(name); return "dropped"; }
+      if (e instanceof GrammyError && e.error_code === 403) { await deleteSub(env, name); return "dropped"; }
       if (e instanceof GrammyError && e.error_code === 429) {
         const wait = Math.min(60, Number((e as { parameters?: { retry_after?: number } }).parameters?.retry_after ?? 1));
         await sleep(wait * 1000);
         try { await attempt(); return "sent"; } catch (e2) {
-          if (e2 instanceof GrammyError && e2.error_code === 403) { await env.SUBS.delete(name); return "dropped"; }
+          if (e2 instanceof GrammyError && e2.error_code === 403) { await deleteSub(env, name); return "dropped"; }
           throw e2;
         }
       }
