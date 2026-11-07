@@ -7,11 +7,12 @@ import { resolveResourcePins, approvedEditionUrl, resourcePages } from '../../sr
 import { MORE_RUN } from '../../src/ask-tools.ts';
 import type { Env } from '../../src/env.ts';
 
-async function setup() {
+async function setup(withBookMetadata = true) {
   const files = new Map<string, Uint8Array>(), old: Record<string, string> = {}, current = [];
   for (const id of APPROVED_RESOURCE_IDS) for (const version of ['old', 'new']) {
-    const records = id === 'strongs' ? [{ key: 'entry/H430', data: { number: 'H430', language: 'Hebrew', lemma: 'fixture', xlit: 'fixture', def: `${version} synthetic definition` } }, { key: 'index', data: [{ n: 'H430', lemma: 'fixture', xlit: 'fixture', def: `${version} synthetic definition`, count: 1 }] }] : [{ key: 'search/israel', data: { keys: ['page/1/1'], total: 1 } }, { key: 'page/1/1', data: { title: `${id} edition`, text: `${version} synthetic Israel page. `.repeat(5), scan: 'https://example.invalid/scan', volume: 1, page: 1 } }];
+    const records: { key: string; data: unknown }[] = id === 'strongs' ? [{ key: 'entry/H430', data: { number: 'H430', language: 'Hebrew', lemma: 'fixture', xlit: 'fixture', def: `${version} synthetic definition` } }, { key: 'index', data: [{ n: 'H430', lemma: 'fixture', xlit: 'fixture', def: `${version} synthetic definition`, count: 1 }] }] : [{ key: 'search/israel', data: { keys: ['page/1/1'], total: 1 } }, { key: 'page/1/1', data: { title: `${id} edition`, text: `${version} synthetic Israel page. `.repeat(5), scan: 'https://example.invalid/page-1.jpg', volume: 1, page: 1 } }];
     if (id !== 'strongs') {
+      if (withBookMetadata) records.push({ key: 'book', data: { slug: id, license: 'Public domain.', source: `https://example.invalid/library-book/${id}/${version}`, items: [{ id: `recorded-${id}-${version}` }] } });
       records[0].data = { keys: ['page/1/1', 'page/1/2', 'page/1/3'], total: 3 };
       records.push({ key: 'search/kingdom', data: { keys: ['page/1/2', 'page/1/3', 'page/1/4'], total: 9 } }, { key: 'search/captivity', data: { keys: ['page/1/4'], total: 1 } });
       for (const page of [2, 3, 4]) records.push({ key: `page/1/${page}`, data: { title: `${id} edition`, text: `${version} synthetic page ${page}`, scan: 'https://example.invalid/scan', volume: 1, page } });
@@ -41,12 +42,33 @@ test('Strong’s tool, HTTP reader and installed client snapshot use the same ol
 test('all three book tools cite the same approved pinned page that the app endpoint returns', async () => {
   const { env, old } = await setup();
   for (const id of APPROVED_RESOURCE_IDS.filter((id) => id !== 'strongs')) {
-    const citations: { url: string; text: string }[] = [];
+    const citations: { url: string; text: string; original?: string; scan?: string }[] = [];
     const result = await MORE_RUN.outside_source(env, { resource: id, query: 'israel' }, undefined, () => {}, line, (p) => { citations.push(p); return { n: citations.length, fresh: true }; }, old);
     const page = await readResourceRecord(env, id, 'page/1/1', old[id]!);
     assert.ok(result.content.includes((page!.data as { text: string }).text.trim()));
     assert.ok(citations[0].url.includes(old[id]!)); assert.doesNotMatch(result.content, /new synthetic/);
+    const book = await readResourceRecord(env, id, 'book', old[id]!);
+    assert.equal(citations[0].original, (book!.data as { source: string }).source, 'the original address is copied from the same pinned library book metadata');
+    assert.equal(citations[0].scan, (page!.data as { scan: string }).scan, 'the exact recorded page image is retained without guessing a viewer conversion');
   }
+});
+test('a missing original book record falls back to the recorded page scan without guessing', async () => {
+  const { env, old } = await setup(false);
+  const sources: { original?: string; scan?: string }[] = [];
+  const result = await MORE_RUN.outside_source(env, { resource: 'josephus', key: 'page/1/1' }, undefined, () => {}, line, source => { sources.push(source); return { n: sources.length, fresh: true }; }, old);
+  assert.ok(!result.error);
+  assert.equal(sources[0].original, 'https://example.invalid/page-1.jpg');
+  assert.equal(sources[0].scan, 'https://example.invalid/page-1.jpg');
+});
+test('the book tool offers only the held public-domain PDF for the selected pinned volume', async () => {
+  const { env, old } = await setup();
+  const keys: string[] = [];
+  env.LIBRARY = { head: async (key: string) => { keys.push(key); return { size: 1000 }; } } as unknown as NonNullable<Env['LIBRARY']>;
+  const sources: { pdf?: { slug: string; item: string } }[] = [];
+  const result = await MORE_RUN.outside_source(env, { resource: 'josephus', query: 'israel' }, undefined, () => {}, line, source => { sources.push(source); return { n: sources.length, fresh: true }; }, old);
+  assert.ok(!result.error);
+  assert.deepEqual(sources.map(source => source.pdf), Array(3).fill({ slug: 'josephus', item: 'recorded-josephus-old' }));
+  assert.deepEqual(keys, ['library/recorded-josephus-old.pdf'], 'one availability read per cited volume');
 });
 test('unapproved releases never substitute the current release or fetch an outside edition', async () => {
   const { env, old } = await setup(); const pins = { ...old, josephus: 'missing' };

@@ -6,6 +6,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { Env, Exec } from "./env";
 import type { Passage } from "./ai.mjs";
 import { dataJson } from "./data";
+import { bookScanUrl, librarySourcePdf, originalBookUrl, type SourceBook } from "./ask-source-links";
 import { captionAt, formatVerseStudy, snippetWanted, type Concordance, type Xref } from "./verse-study";
 import { loadTranscript } from "./teachings";
 import { all as easton, lookup as eastonLookup } from "./dictionary";
@@ -283,9 +284,15 @@ const outsideSource: Tool = async (env, input, _ctx, emit, _line, add, resources
     emit({ status: `Reading ${requested.replaceAll("-", " ")}` });
     try {
       const rows = await resourcePages(env, resources, id, str(input.query, 120), str(input.key, 100) || edition?.key);
+      const book = rows.length ? await pinnedRecord<SourceBook>(env, resources, id, 'book').catch(() => null) : null;
+      const pdfs = new Map(await Promise.all([...new Set(rows.map(row => row.data.volume))]
+        .map(async volume => [volume, await librarySourcePdf(env, book, volume)] as const)));
       const lines = rows.map(({ key, data }) => {
         const text = excerpt(data.text, str(input.query, 120), 2600), url = resourceLink(id, release, key);
-        const citation = add({ kind: "book", title: data.title, url, sub: `Original edition · OCR · ${release}`, text: text.slice(0, 1400) });
+        const original = originalBookUrl(book?.source) ?? originalBookUrl(data.scan);
+        const scan = bookScanUrl(data.scan);
+        const pdf = pdfs.get(data.volume);
+        const citation = add({ kind: "book", title: data.title, url, sub: `Original edition · OCR · ${release}`, text: text.slice(0, 1400), ...(original ? { original } : {}), ...(scan ? { scan } : {}), ...(pdf ? { pdf } : {}) });
         return `${citation ? `[${citation.n}] ` : ""}${data.title} (${url})\n${text}`;
       });
       return { content: lines.length ? `${lines.join("\n\n")}\nOriginal-edition OCR may contain errors. Search is limited to candidate pages; use a returned page key for a specific page. Check the scan before relying on dates, names or verse numbers. These sources never overrule Scripture or the classes.` : "No candidate pages found in this selected edition. This bounded search is not an exhaustive finding." };

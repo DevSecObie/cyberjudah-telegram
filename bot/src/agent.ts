@@ -106,6 +106,7 @@ export async function runAgent(
   spend: Spend = freeSpend(),
   requestedResources?: ResourcePins,
   maxRounds = MAX_ROUNDS,
+  citeAppSources = false,
 ): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean }> {
   // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
   const resourcePins = await resolveResourcePins(env, requestedResources);
@@ -122,7 +123,12 @@ export async function runAgent(
   };
   for (const p of first) add(p);
   const actions: SavedAction[] = [];
-  const line = (name: string, what: string, path: string) => `${name}: ${what} Link: ${path}`;
+  const line = (name: string, what: string, path: string) => {
+    const kind = /^\/person\/[a-z0-9-]+$/.test(path) ? 'people' : /^\/timeline\/event\/[a-z0-9-]+$/.test(path) ? 'timeline' : undefined;
+    // Telegram picture cards refer to the exact tool text already supplied, without new claims.
+    const source = citeAppSources && kind ? add({ kind, title: name, text: what, url: path }) : null;
+    return `${source ? `[${source.n}] ` : ''}${name}: ${what} Link: ${path}`;
+  };
   if (passages.length) emit({ passages: [...passages] });
 
   const run = async (name: string, input: Record<string, unknown>): Promise<{ content: string; error?: boolean }> => {

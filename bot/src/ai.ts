@@ -20,6 +20,8 @@ import { estimateMc, MC_USD, mcOfUsd, viaUnifiedBilling } from "../../shared/cre
 import { freeSpend, makeSpend, type Spend } from "./spend";
 import { reserveFreeBudget, settleFreeBudget, type FreeReservation } from "./free-budget";
 import { researchOpen } from "./agent-open";
+import { withAskSourcePictures } from "./ask-source-pictures";
+import { withAskBookLinks } from "./ask-source-links";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -313,16 +315,16 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   try {
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
-      const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources);
+      const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources, undefined, true);
       const answer = await checkedVerses(env, splitFollowups(text).answer);
       if (meter) await finishMeter(env, meter, answer.trim() ? "ok" : "empty");
-      return { ok: true, q: question, answer, sources: askSourcesOf(answer, passages), ms: Date.now() - t0 };
+      return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ms: Date.now() - t0 };
     }
     if (meter) await finishMeter(env, meter, "backup");
     const passages = first;
     if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], ms: Date.now() - t0 };
     const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history)));
-    return { ok: true, q: question, answer, sources: askSourcesOf(answer, passages), ms: Date.now() - t0 };
+    return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ms: Date.now() - t0 };
   } catch (e) {
     // An answer that failed is not charged: the hold goes back.
     if (meter) await finishMeter(env, meter, "failed");
@@ -709,8 +711,8 @@ const sourcesOf = (answer: string, passages: Passage[]) => {
 };
 
 // Telegram clients can show credited source text without opening an outside site.
-const askSourcesOf = (answer: string, passages: Passage[]) => sourcesOf(answer, passages)
-  .map(source => ({ ...source, excerpt: source.text.slice(0, 1000) }));
+const askSourcesOf = (env: Env, answer: string, passages: Passage[]) => withAskSourcePictures(env, withAskBookLinks(sourcesOf(answer, passages)
+  .map(source => ({ ...source, excerpt: source.text.slice(0, 1000) }))));
 
 /**
  * The same, streamed: one JSON line with the passages first, then a line per piece of the
@@ -728,7 +730,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return reply(400, { error: "too-short" });
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: approvedSources(approved), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(approvedSources(approved))), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
@@ -774,7 +776,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds); }
+            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds, true); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.
@@ -793,7 +795,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               if (refused && !answer.trim()) { await finish("refused"); send({ error: "refused" }); return; }
               if (!answer.trim()) { await finish("empty"); send({ error: "empty" }); return; }
               const used = await finish("ok");
-              const sources = askSourcesOf(answer, passages);
+              const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
               send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}) });
@@ -818,7 +820,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), backup)) { answer += piece; send({ delta: piece }); }
           const { answer: clean, followups } = splitFollowups(answer);
           if (!clean.trim()) { send({ error: "empty" }); return; }
-          const sources = askSourcesOf(clean, passages);
+          const sources = await askSourcesOf(env, clean, passages);
           await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
           await finish("backup");
