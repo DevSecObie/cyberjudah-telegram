@@ -2,8 +2,8 @@
 # Reviewed by Data Security on 2026-11-07 against the full history. Add a line only for a value that
 # is not a secret, one that is already revoked, or someone else's credential in old history that only
 # its owner can revoke; say which in a comment. A CyberJudah secret is revoked and replaced, never
-# listed here. Pull requests are scanned with this file as it is on their base branch, so a new line
-# here must merge on its own first.
+# listed here. Every scan reads this file as it is on the default branch, so a new line
+# here must merge into the default branch on its own first.
 
 # SHA-256 checksums of the public CC0 ambient audio files, used to verify the downloads.
 182aaf78b800f8c4c0501a6336ca1f63973b8abd:bot/scripts/audio/prepare-ambient.py:generic-api-key:10
