@@ -1,7 +1,7 @@
 import test from "node:test";
 import fs from "node:fs";
 import assert from "node:assert/strict";
-import { APP_SECTIONS, SITE_ROUTES, launchPath, pathToStartParam, siteServes, startParamTarget, startParamToPath } from "../../shared/links.mjs";
+import { APP_SECTIONS, SITE_ROUTES, isSection, launchPath, pathToStartParam, siteServes, startParamTarget, startParamToPath } from "../../shared/links.mjs";
 
 // The website's routes, copied from the cyberjudah repo's router (site/src/routes, a149538d). Kept
 // apart from SITE_ROUTES on purpose: a route added to links.mjs that the site lacks fails here.
@@ -141,4 +141,17 @@ test("a video link keeps its id; reader and note links name the site page", () =
   assert.equal(startParamToPath("note_classes_2026_x"), "/classes/2026/x");
   assert.equal(launchPath("note_classes_2026_x"), "/note/classes/2026/x");
   assert.equal(launchPath("note"), "/note");
+});
+
+test("isSection names every section and no Bible book", () => {
+  for (const k of KINDS) assert.ok(isSection(k), k);
+  assert.ok(isSection("Bookmarks"));
+  for (const b of ["john", "genesis", "psalms"]) assert.equal(isSection(b), false, b);
+  for (const x of ["", undefined, null, 3]) assert.equal(isSection(x), false);
+});
+
+test("note_ unwraps before read_, and reader shares keep their verses", () => {
+  assert.equal(startParamToPath("note_read_john_3"), "/bible/john/3");
+  assert.equal(pathToStartParam("/read/john/3", "16"), "read_john_3_16");
+  assert.equal(launchPath(pathToStartParam("/read/john/3", "16")), "/read/john/3?v=16");
 });

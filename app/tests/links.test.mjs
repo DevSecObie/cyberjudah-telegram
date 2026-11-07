@@ -42,6 +42,7 @@ test("share links round-trip", () => {
   assert.equal(sitePathOf("/classes?feed=history"), "/history");
   assert.equal(sitePathOf("/classes?feed=shows&show=patient-saints-radio"), "/shows/patient-saints-radio");
   assert.equal(sitePathOf("/classes?feed=sabbath"), "/classes");
+  for (const f of ["constructor", "__proto__", "toString"]) assert.equal(sitePathOf(`/classes?feed=${f}`), "/classes");
   assert.equal(sitePathOf("/bible?book=john"), "/bible/john");
   assert.equal(sitePathOf("/bible?book=John"), "/bible/john");
   assert.equal(sitePathOf("/bible?x=1#&book=john"), "/bible?x=1#&book=john");
