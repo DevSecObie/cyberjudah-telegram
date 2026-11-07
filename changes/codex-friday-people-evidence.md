@@ -1,0 +1,2 @@
+- People profiles now show priestly courses (and a course's members), titles and textual variants, each with its evidence label, verses and sources, kept apart from the family graph. Ask reads the same evidence when it looks a person up, and now counts a person's verses instead of listing them.
+- A family graph stays underneath a profile opened over it instead of covering the new person's details.
