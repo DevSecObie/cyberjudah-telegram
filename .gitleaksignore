@@ -1,0 +1,20 @@
+# Findings Gitleaks may ignore, by fingerprint (commit:file:rule:line). No secret values are stored here.
+# Reviewed by Data Security on 2026-11-07 against the full history. Add a line only for a value that
+# is not a secret, one that is already revoked, or someone else's credential in old history that only
+# its owner can revoke; say which in a comment. A CyberJudah secret is revoked and replaced, never
+# listed here. Pull requests are scanned with this file as it is on their base branch, so a new line
+# here must merge on its own first.
+
+# SHA-256 checksums of the public CC0 ambient audio files, used to verify the downloads.
+182aaf78b800f8c4c0501a6336ca1f63973b8abd:bot/scripts/audio/prepare-ambient.py:generic-api-key:10
+4b1cd45236f09ad3e93551b33901436991c28080:bot/scripts/audio/prepare-ambient.py:generic-api-key:10
+bde38329e6c2f495bf2ec5a078fcf83ae4f13daf:bot/scripts/audio/prepare-ambient.py:generic-api-key:10
+
+# Test vector derived from a fixed test key (bytes 1..32) in a unit test; not a real password.
+cfd5aae51dc5127bc05a93b9437b8b5053381ca7:strong/apps/expo/modules/bible-strong-archive/android/src/test/java/expo/modules/biblestrongarchive/ArchivePasswordTest.kt:generic-api-key:17
+
+# Asset tokens inside design files copied from Bible Strong (strong/apps/expo/design); not credentials.
+79ff8ae12449c6e2a0551c660e368f8fe5103ee9:strong/apps/expo/design/bible-strong-desktop-tabs.pen:generic-api-key:3063
+79ff8ae12449c6e2a0551c660e368f8fe5103ee9:strong/apps/expo/design/onboarding.pen:generic-api-key:19567
+872159bbc20b08d6b51b3ade2fd7edc237134f55:strong/apps/expo/design/bible-strong-desktop-tabs.pen:generic-api-key:3063
+872159bbc20b08d6b51b3ade2fd7edc237134f55:strong/apps/expo/design/onboarding.pen:generic-api-key:19567
