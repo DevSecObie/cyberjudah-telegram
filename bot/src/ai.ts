@@ -602,7 +602,7 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
       return markCoverageGap({ ok: true as const, answer: none.answer, sources: none.sources, unsupported_refs: [], followups: [], model: model.id, provider: model.provider, ms: Date.now() - t0 });
     }
     // Use the plain adapter even for chat models: one bounded answer, never a research loop.
-    const prompt = buildPrompt(question, passages, history);
+    const prompt = buildPrompt(question, passages, history, { plain: true });
     const system = prompt.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
     const messages = prompt.filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system");
     const tModel = Date.now();
