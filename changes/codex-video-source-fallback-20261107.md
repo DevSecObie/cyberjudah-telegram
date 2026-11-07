@@ -1,0 +1,1 @@
+- Older caption sources now open the recorded YouTube video at its recorded moment when their link is missing. Unsafe or unlinkable retrieval results are omitted before citation numbering; no re-embedding is needed.

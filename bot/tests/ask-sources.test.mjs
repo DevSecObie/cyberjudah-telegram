@@ -64,7 +64,7 @@ test('a misconfigured primary backup stays free when the reader cancels its text
       controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({ response: 'A free backup fixture answer.', usage: { prompt_tokens: 1000, completion_tokens: 10 } }) + '\n\n'));
       options.signal.addEventListener('abort', () => controller.error(options.signal.reason), { once: true });
     } });
-  } }, VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://example.test/recorded', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
+  } }, VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://cyberjudah.io/recorded-fixture', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
   const owner = await ownerOfUser(env, 77);
   await grantPayment(env, owner, { charge: 'backup-cancel', kind: 'pack', stars: 10, mc: 2_000_000 });
   const pending = [], response = await askStream(env, 'Read recorded material', 77, { waitUntil: promise => pending.push(promise) }, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 2_000_000 } });
