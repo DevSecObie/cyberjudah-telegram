@@ -8,7 +8,7 @@ import { books, chapter, openLink, verseLink, verseMessage, escapeHtml } from ".
 import { runSearch } from "./search";
 import { parseReference } from "./refs.mjs";
 import { verseOfDay } from "./verse-of-day.mjs";
-import { pathToStartParam, startParamTarget } from "../../shared/links.mjs";
+import { pathToStartParam, startParamToPath } from "../../shared/links.mjs";
 import { applyDonation, applyPayment, applyRefund, checkout, SUPPORT_STARS, supportPayloadOf } from "./billing";
 import { fmtUsd } from "../../shared/credits.mjs";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
@@ -90,8 +90,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
       return ctx.reply(ok ? "Your reading reminders will come to this chat. Change them in Settings → Reading reminders." : "That link has expired. Open Settings → Reading reminders and press Start the bot again.", { reply_markup: open(ctx, "settings_reminders", "Reading reminders") });
     }
     if (param) {
-      // The page it names (in the app, which has every screen the site has and more), for the label.
-      const path = startParamTarget(param);
+      const path = startParamToPath(param);
       const label = path === "/" ? "CyberJudah" : path.replace(/[?#].*$/, "").split("/").filter(Boolean).map((p) => p.replace(/-/g, " ")).join(" › ");
       return ctx.reply(`Open <b>${escapeHtml(label)}</b> in CyberJudah:`, { parse_mode: "HTML", reply_markup: open(ctx, param, "Open") });
     }

@@ -1,7 +1,4 @@
-export const SITE_ROUTES: string[];
-export function siteServes(path: string): boolean;
-export function startParamTarget(param: unknown): string;
-export function startParamToPath(param: unknown): string | null;
+export function startParamToPath(param: unknown): string;
 export function pathToStartParam(pathname: string, verses?: string): string;
 export function appLink(appUrl: string, siteUrl: string, pathname: string, verses?: string): string;
 export function toAppPath(href: string): string | null;
