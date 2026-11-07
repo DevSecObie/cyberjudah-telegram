@@ -15,6 +15,10 @@
  *   4. the previous copy stays as <table>_prev for an instant rollback (`rollback()`), and is
  *      dropped at the start of the next load.
  *
+ * Two loads of the same tables at once would drop each other's <table>_next (a scheduled run
+ * starting while a deploy's load is half done), so a load first takes a lease on its tables in
+ * the database (load_locks), renews it while it writes, and waits while another load holds it.
+ *
  * `run(sql)` executes SQL (one or more statements, run as one transaction) and resolves to an
  * array with one `{ results: [...] }` per statement, like D1's REST /query. The loaders pass the
  * REST API (d1-query.mjs); the tests pass node:sqlite.
@@ -72,6 +76,37 @@ export function batches(list, maxBytes) {
 
 const first = (res) => res?.[0]?.results?.[0] ?? {};
 
+/** How long a lease lasts unless renewed (a load that dies frees its tables after this). */
+export const LEASE_MS = 10 * 60_000;
+
+/**
+ * Takes the lease named `name` for `holder`, waiting up to `waitMs` while another load holds it.
+ * A lease past its expiry is free to take, so a crashed load never blocks the next one for long.
+ */
+export async function acquireLease(run, name, holder, { waitMs = 45 * 60_000, pollMs = 15_000, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now, log = () => {} } = {}) {
+  await run("CREATE TABLE IF NOT EXISTS load_locks(name TEXT PRIMARY KEY, holder TEXT NOT NULL, expires INTEGER NOT NULL);");
+  const start = now();
+  for (let said = false; ; said = true) {
+    const t = now();
+    await run(`INSERT INTO load_locks(name, holder, expires) VALUES('${name}', '${holder}', ${t + LEASE_MS}) ON CONFLICT(name) DO UPDATE SET holder = excluded.holder, expires = excluded.expires WHERE load_locks.expires < ${t} OR load_locks.holder = excluded.holder;`);
+    const row = first(await run(`SELECT holder, expires FROM load_locks WHERE name = '${name}'`));
+    if (row.holder === holder) return;
+    if (now() - start >= waitMs) throw new Error(`another load (${row.holder}) still holds ${name} after ${Math.round(waitMs / 60_000)} min; the live tables are unchanged`);
+    if (!said) log(`another load (${row.holder}) is writing ${name}; waiting for it to finish`);
+    await sleep(pollMs);
+  }
+}
+
+/** Extends the lease; throws if this load no longer holds it (so it never switches tables it lost). */
+export async function renewLease(run, name, holder, now = Date.now) {
+  await run(`UPDATE load_locks SET expires = ${now() + LEASE_MS} WHERE name = '${name}' AND holder = '${holder}';`);
+  if (first(await run(`SELECT holder FROM load_locks WHERE name = '${name}'`)).holder !== holder) throw new Error(`lost the lease on ${name} to another load; the live tables are unchanged`);
+}
+
+export async function releaseLease(run, name, holder) {
+  await run(`DELETE FROM load_locks WHERE name = '${name}' AND holder = '${holder}';`);
+}
+
 async function exists(run, table) {
   return Boolean(first(await run(`SELECT count(*) AS n FROM sqlite_master WHERE type = 'table' AND name = '${table}'`)).n);
 }
@@ -85,19 +120,31 @@ async function expectedRows(run, list, tables) {
 }
 
 /**
- * Loads `sql` into the spare tables, checks them and switches readers over.
+ * Loads `sql` into the spare tables, checks them and switches readers over, holding the lease on
+ * the tables throughout.
  * Resolves to { rows } on success; throws (leaving the live tables untouched) if the spare copy
  * fails its check.
  */
-export async function bluegreenLoad(sql, run, { tables = SEARCH.tables, probe = SEARCH.probe, maxBytes = 250_000, log = () => {} } = {}) {
+export async function bluegreenLoad(sql, run, { tables = SEARCH.tables, probe = SEARCH.probe, maxBytes = 250_000, log = () => {}, lease = {} } = {}) {
   const tag = `b${Date.now().toString(36)}`;
+  const holder = `${process.env.GITHUB_RUN_ID ? `run ${process.env.GITHUB_RUN_ID}` : "load"} ${tag}${Math.random().toString(36).slice(2, 6)}`;
+  const lock = tables[0];
+  await acquireLease(run, lock, holder, { log, ...lease });
+  try {
+    return await loadHeld(sql, run, { tables, probe, maxBytes, log, tag, renew: () => renewLease(run, lock, holder, lease.now) });
+  } finally {
+    await releaseLease(run, lock, holder).catch(() => {});
+  }
+}
+
+async function loadHeld(sql, run, { tables, probe, maxBytes, log, tag, renew }) {
   const list = statements(sql, tables).map((s) => toNext(s, tables, tag));
   await run(tables.map((t) => `DROP TABLE IF EXISTS ${t}_next;`).join("\n"));
   const groups = batches(list, maxBytes);
   log(`loading ${list.length} statements into ${tables.map((t) => `${t}_next`).join(", ")} in ${groups.length} batches`);
   for (let i = 0; i < groups.length; i++) {
     await run(groups[i].join("\n"));
-    if ((i + 1) % 50 === 0) log(`  ${i + 1}/${groups.length} batches`);
+    if ((i + 1) % 50 === 0) { log(`  ${i + 1}/${groups.length} batches`); await renew(); }
   }
   // The check: each table holds exactly the rows the file wrote, and a word search finds some.
   const want = await expectedRows(run, list, tables);
@@ -111,6 +158,7 @@ export async function bluegreenLoad(sql, run, { tables = SEARCH.tables, probe = 
   if (!hits) throw new Error(`the new ${tables[0]} failed its check (0 hits for "${probe}"); the live tables are unchanged`);
   log(`checked: ${Object.entries(rows).map(([t, n]) => `${t} ${n} rows`).join(", ")}; search works`);
   // Switch in one transaction: live -> _prev, next -> live.
+  await renew();
   const swap = [];
   for (const t of tables) swap.push(`DROP TABLE IF EXISTS ${t}_prev;`);
   for (const t of tables) if (await exists(run, t)) swap.push(`ALTER TABLE ${t} RENAME TO ${t}_prev;`);

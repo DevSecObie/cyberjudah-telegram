@@ -1,0 +1,1 @@
+- Library: "Wikipedia pages the classes read". Each page opens inside the app at /class-wikipedia/<page>: the class moments that read it, played in place, and Wikipedia's own page in a frame below them, with Wikipedia's license named. Data from /api/library/class-wikipedia.json.
