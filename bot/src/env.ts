@@ -52,8 +52,6 @@ export type Env = {
   ASK_EMBED_USD_PER_MTOK?: string; ASK_RERANK_USD_PER_MTOK?: string; ASK_VECTOR_USD_PER_MDIMS?: string;
   /** Set to off to stop native Ask inference without affecting reading or saved chats. */
   ASK_APP_ENABLED?: string;
-  /** Coverage calibration: unset/"shadow" logs numeric decisions; only "enforce" gates answers. */
-  ASK_COVERAGE_MODE?: string;
   /** Routing (ai.mjs routeOf), when the reader has not chosen a model: the lighter Claude model for light questions, the stronger free model for deep ones. */
   CLAUDE_MODEL_LIGHT?: string; ASK_FREE_DEEP_MODEL?: string;
   /** The app's Ask engine: "agent" (default, as cyberjudah.io/app answers) or "study" (the study cards). */

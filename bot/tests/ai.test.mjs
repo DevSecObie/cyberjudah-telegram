@@ -14,9 +14,8 @@ test("records have stable ids from what they are, not where they sit", () => {
 test("the prompt numbers the passages and the citations read back in order of use", () => {
   const msgs = buildPrompt("What is the Passover?", [{ kind: "class", title: "A", url: "/a", text: "one" }, { kind: "spoken", title: "B", url: "", video: "v", t: 30, text: "two" }]);
   assert.equal(msgs[0].role, "system");
-  const data = JSON.parse(msgs[1].content.split("```json\n")[1].split("\n```")[0]);
-  assert.deepEqual(data.map(p => [p.source_n, p.title, p.text]), [[1,"A","one"],[2,"B","two"]]);
-  assert.equal(data[1].t, 30);
+  assert.ok(msgs[1].content.includes("[1] A\none"));
+  assert.ok(msgs[1].content.includes("[2] B (spoken at 30s)\ntwo"));
   const withHistory = buildPrompt("and the feast?", [{ kind: "class", title: "A", url: "/a", text: "one" }], [{ role: "user", content: "What is the Passover?" }, { role: "assistant", content: "It is kept because…" }]);
   assert.equal(withHistory.length, 4);
   assert.equal(withHistory[1].role, "user");
@@ -94,10 +93,7 @@ test("the answer contract keeps the classes' language, the evidence rule, and co
 
 test("a passage's teacher is shown to the model, and a Bishop's or Deacon's relevant teaching makes the cut first", () => {
   const [, user] = buildPrompt("Why keep the Passover?", [{ kind: "spoken", title: "Passover", url: "", video: "v", t: 5, teacher: "Bishop Nathanyel", text: "one" }]);
-  const data = JSON.parse(user.content.split("```json\n")[1].split("\n```")[0]);
-  assert.equal(data[0].teacher, "Bishop Nathanyel");
-  assert.equal(data[0].source_n, 1);
-  assert.equal(data[0].t, 5);
+  assert.match(user.content, /\[1\] Passover \(taught by Bishop Nathanyel\) \(spoken at 5s\)/);
   const text = "The Passover is kept as a memorial of deliverance from bondage, and the congregation observes it according to the law.";
   const captain = { kind: "spoken", title: "A", url: "", teacher: "Captain Ashan-El", text, score: 0.70 };
   const bishop = { kind: "spoken", title: "B", url: "", teacher: "Bishop Nathanyel", text, score: 0.66 };

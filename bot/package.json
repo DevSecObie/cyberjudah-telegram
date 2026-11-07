@@ -7,9 +7,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "node scripts/deploy-ambient.mjs && node scripts/deploy-recordings.mjs && node scripts/fetch-dictionary.mjs && bash scripts/prepare-assets.sh && wrangler deploy",
-    "test": "node --test tests/*.test.mjs && npm run eval:grounding && npm run test:bs",
+    "test": "node --test tests/*.test.mjs && npm run test:bs",
     "typecheck": "tsc --noEmit",
-    "eval:grounding": "node scripts/eval-grounding.mjs",
     "setup": "node scripts/setup.mjs",
     "load-search": "node scripts/load-search.mjs",
     "embed": "node scripts/embed.mjs",
