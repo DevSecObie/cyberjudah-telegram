@@ -1,4 +1,5 @@
-import { approvedSources } from "./source-policy";
+import { approvedSources, isApproved } from "./source-policy";
+import { preferredOutsidePages } from "./preferred-outside-source";
 import { APPROVED_RESOURCE_IDS, type ResourcePins } from "../../shared/resources";
 import { pinnedRecord, resourceLink, resourcePages, approvedEditionUrl } from "./resource-tools";
 import type Anthropic from "@anthropic-ai/sdk";
@@ -48,7 +49,7 @@ export const MORE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: "outside_source",
-    description: "To read the approved Josephus (Whiston 1905), Jewish Encyclopedia (1901–1906) or Smith’s (1889), give resource and query (or a page key returned by this tool). The server selects the same release as the reader. Otherwise read an approved outside source: only the sites on the owner's whitelist (such as israelunite.org, Wikipedia, archive.org, Project Gutenberg, the Library of Congress). Give a query to search Wikipedia, or the address of a page on an approved site. Use it only after the app's own data and the classes, for history, places and people the app does not cover yet (the Apocrypha's people among them). Outside sources inform the history; they never overrule the Scripture or the classes. Cite what you use by its number.",
+    description: "To read the approved Josephus (Whiston 1905), Jewish Encyclopedia (1901–1906) or Smith’s (1889), give resource and query (or a page key returned by this tool). The server selects the same release as the reader. Otherwise read an approved outside source: only the sites on the owner's whitelist (such as israelunite.org, Wikipedia, archive.org, Project Gutenberg, the Library of Congress). Give a query to search israelunite.org first (Wikipedia only if no readable match), or the address of a page on an approved site. Use it only after the app's own data and the classes, for history, places and people the app does not cover yet (the Apocrypha's people among them). Outside sources inform the history; they never overrule the Scripture or the classes. Cite what you use by its number.",
     input_schema: { type: "object", properties: { resource: { type: "string", enum: [...APPROVED_RESOURCE_IDS], description: "Approved bundled edition; never supply a release." }, key: { type: "string", description: "Optional page/volume/image key from an earlier result." }, query: { type: "string", description: "What to look up in the selected edition, or on Wikipedia without resource." }, url: { type: "string", description: "Optional: the https address of a page on an approved site." } }, required: [] },
   },
   {
@@ -258,8 +259,7 @@ export const MORE_RUN: Record<string, Tool> = { look_up_word: lookUpWord, person
  * PUT /api/admin/ask-sources), or this starting list. A site is allowed with its subdomains; only
  * https, only GET, and the page is read as text, never run.
  */
-export { DEFAULT_SOURCES, HOST, approvedSources } from "./source-policy";
-export const isApproved = (host: string, list: string[]) => list.some((d) => host === d || host.endsWith(`.${d}`));
+export { DEFAULT_SOURCES, HOST, approvedSources, isApproved } from "./source-policy";
 
 const ENT: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", mdash: "—", ndash: "–", rsquo: "’", lsquo: "‘", rdquo: "”", ldquo: "“" };
 const textOf = (html: string) => html.replace(/<(script|style|noscript|svg|nav|footer|header)\b[\s\S]*?<\/\1>/gi, " ").replace(/<br\s*\/?>|<\/(p|div|li|h[1-6]|tr)>/gi, "\n").replace(/<[^>]+>/g, " ").replace(/&(#\d+|#x[0-9a-f]+|\w+);/gi, (m, e: string) => (e[0] === "#" ? String.fromCodePoint(e[1] === "x" || e[1] === "X" ? parseInt(e.slice(2), 16) : +e.slice(1)) : ENT[e.toLowerCase()] ?? m)).replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n\n").trim();
@@ -318,16 +318,25 @@ const outsideSource: Tool = async (env, input, _ctx, emit, _line, add, resources
     cite(textOf(title), final.toString(), final.hostname, excerpt(textOf(body), query, 2600));
   } else {
     if (!query) return { content: "Give a query or an address.", error: true };
-    if (!isApproved("en.wikipedia.org", list)) return { content: `Wikipedia is not on the approved list. Give the address of a page on: ${list.join(", ")}.`, error: true };
-    emit({ status: `Looking up “${query}” in approved sources` });
-    const api = (p: string) => fetch(`https://en.wikipedia.org/w/api.php?format=json&formatversion=2&${p}`, { headers: { "user-agent": "CyberJudah/1.0 (+https://cyberjudah.io)" }, signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<Record<string, any> | null>;
-    const found = await api(`action=query&list=search&srlimit=2&srsearch=${encodeURIComponent(query)}`);
-    const titles: string[] = (found?.query?.search ?? []).map((x: { title: string }) => x.title);
-    if (!titles.length) return { content: `Nothing on Wikipedia for “${query}”.` };
-    const pages = await api(`action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles=${encodeURIComponent(titles.join("|"))}`);
-    for (const p of pages?.query?.pages ?? []) {
-      if (!p.extract) continue;
-      cite(`${p.title} (Wikipedia)`, `https://en.wikipedia.org/wiki/${encodeURIComponent(String(p.title).replace(/ /g, "_"))}`, "en.wikipedia.org", excerpt(p.extract, query, 2400));
+    if (isApproved('israelunite.org', list)) {
+      emit({ status: `Looking up “${query}” on israelunite.org` });
+      for (const page of await preferredOutsidePages(query, list)) {
+        const text = excerpt(textOf(page.html), query, 2400);
+        if (text.trim()) cite(textOf(page.title), page.url, page.host, text);
+      }
+    }
+    if (!lines.length) {
+      if (!isApproved("en.wikipedia.org", list)) return { content: `Wikipedia is not on the approved list. Give the address of a page on: ${list.join(", ")}.`, error: true };
+      emit({ status: `Looking up “${query}” in approved sources` });
+      const api = (p: string) => fetch(`https://en.wikipedia.org/w/api.php?format=json&formatversion=2&${p}`, { headers: { "user-agent": "CyberJudah/1.0 (+https://cyberjudah.io)" }, signal: AbortSignal.timeout(8000) }).then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<Record<string, any> | null>;
+      const found = await api(`action=query&list=search&srlimit=2&srsearch=${encodeURIComponent(query)}`);
+      const titles: string[] = (found?.query?.search ?? []).map((x: { title: string }) => x.title);
+      if (!titles.length) return { content: `Nothing on Wikipedia for “${query}”.` };
+      const pages = await api(`action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles=${encodeURIComponent(titles.join("|"))}`);
+      for (const p of pages?.query?.pages ?? []) {
+        if (!p.extract) continue;
+        cite(`${p.title} (Wikipedia)`, `https://en.wikipedia.org/wiki/${encodeURIComponent(String(p.title).replace(/ /g, "_"))}`, "en.wikipedia.org", excerpt(p.extract, query, 2400));
+      }
     }
   }
   return { content: lines.length ? `${lines.join("\n\n")}\n\nThese are outside sources: use them for history and facts, cite them by number, and never set them above the Scripture or the classes.` : "Nothing found in the approved sources." };
