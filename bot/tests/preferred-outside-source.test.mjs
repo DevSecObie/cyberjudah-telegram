@@ -32,8 +32,8 @@ test('IUIC discovery returns published article text and credit before any Wikipe
   const { result, sources, events } = await run(['israelunite.org', 'wikipedia.org'], { query: 'recorded question' });
   assert.equal(requests.length, 2);
   assert.deepEqual(sources, [{ kind: 'web', title: 'Recorded page', url: row.url, sub: 'israelunite.org', text: article }]);
-  assert.ok(result.content.includes(article) && result.content.includes('israelunite.org'));
-  assert.ok(events[0].status.includes('israelunite.org'));
+  assert.ok(result.content.includes(article));
+  assert.equal(events[0].status, 'Looking up “recorded question” on israelunite.org');
   assert.match(RESEARCH, /preferring israelunite\.org before other approved outside sites/);
   assert.match(RESEARCH, /never invent new doctrine/);
 });
