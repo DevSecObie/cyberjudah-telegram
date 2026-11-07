@@ -1,0 +1,1 @@
+- web.cyberjudah.io serves each KJV chapter (and its Strong's layer) as a file built into the deployed version, read from Cloudflare's edge. The web app reads its resource API at web.cyberjudah.io/bs; every other request there is passed to cyberjudah.io/bs over a service binding. The deploy checks a chapter and the passed-through API on the new version before switching.

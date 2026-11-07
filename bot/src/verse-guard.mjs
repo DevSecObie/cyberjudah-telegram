@@ -34,7 +34,8 @@ export async function guardVerses(answer, books, chapter) {
     const m = QUOTE.exec(line);
     const ref = m && books ? parseReference(m[2].replace(/\s*\(KJV\)\s*$/i, ""), books) : null;
     if (!m || !ref?.verse) { out.push(line); continue; }
-    const before = takeCitations(m[1]);
+    // Sentence punctuation after an annotation is not a quoted Bible word or part of its ID.
+    const before = takeCitations(m[1].replace(/(\])[.,;:!?]\s*$/, "$1"));
     const after = takeCitations(m[3].trim().replace(/^\.\s*/, "").replace(/\.$/, ""));
     // Only reference markers (and the existing optional full stop) may follow the bold reference.
     if (after.body.trim()) { out.push(line); continue; }

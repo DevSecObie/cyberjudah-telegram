@@ -1,0 +1,1 @@
+- Signed-in readers can search the existing library by meaning alongside keyword search, with exact KJV text, recorded class moments and credited public metadata, without generated answers.

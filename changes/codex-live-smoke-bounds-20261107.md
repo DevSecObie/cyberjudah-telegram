@@ -1,0 +1,1 @@
+- The nightly production smoke checks run in four serialized shards with bounded Search timing steps and explicit timeout summaries, so the full suite can finish without overlapping changes to its shared test account.

@@ -54,6 +54,19 @@ test("a cited misquote is checked and repaired without inventing or laundering i
   assert.deepEqual(citationReport(plain.text, [1]).supported, [], "uncited quotes never gain fabricated citations");
 });
 
+test("before-reference punctuation preserves existing citation IDs during exact and corrected quotes", async () => {
+  const real = chapters["exodus/12"].verses[0].text;
+  for (const marker of ["[1].", "[2] [105].", "[01]."]) {
+    const quote = words => `> ${words} ${marker} **Exodus 12:14**`;
+    const exact = await guardVerses(quote(real), books, chapter);
+    assert.equal(exact.text, quote(real));
+    assert.deepEqual([exact.checked, exact.fixed, exact.removed], [1, 0, 0]);
+    const corrected = await guardVerses(quote("Incorrect wording."), books, chapter);
+    assert.equal(corrected.fixed, 1);
+    assert.deepEqual(citationReport(corrected.text, [1, 2, 105]), citationReport(marker, [1, 2, 105]));
+  }
+});
+
 test("the Ask test set is well formed: unique ids, a question each, and no approved answer invented for the owner", async () => {
   const { readFileSync } = await import("node:fs");
   const { questions } = JSON.parse(readFileSync(new URL("../evals/ask-questions.json", import.meta.url), "utf8"));
