@@ -76,6 +76,21 @@ test('a failed send, or no admins yet, keeps no key, so the next run tries again
   assert.equal(retried.sent.length, 1);
 });
 
+test('the marker is written only after an admin is reached, so a failing KV delete cannot lose the alert', async () => {
+  const { env, kv } = fixture();
+  const writes = [];
+  const put = env.SUBS.put;
+  env.SUBS.put = async (k, v, o) => { writes.push(k); return put(k, v, o); };
+  env.SUBS.delete = async () => { throw new Error('KV delete down'); };
+  await m.reserveFreeBudget(env, 'a', 0.9, NOW);
+  assert.equal((await withTelegram(() => m.alertFreeBudget(env, NOW), env, { fail: true })).result, 0);
+  assert.deepEqual(writes, [], 'nothing written when no admin was reached');
+  const retried = await withTelegram(() => m.alertFreeBudget(env, NOW + 15 * 60_000), env);
+  assert.equal(retried.sent.length, 1, 'the next run still sends');
+  assert.deepEqual(writes, ['alert:free_budget:2026-11-07']);
+  assert.ok(kv.has('alert:free_budget:2026-11-07'));
+});
+
 test('each UTC day alerts on its own; a crossing just before midnight is reported just after; a cap of 0 never alerts', async () => {
   const { env } = fixture();
   await m.reserveFreeBudget(env, 'a', 0.9, NOW);

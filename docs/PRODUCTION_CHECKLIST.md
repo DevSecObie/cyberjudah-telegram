@@ -125,6 +125,7 @@ The code is built for it, but know the levers:
 - **Free-answer budget:** once a UTC day, the quarter-hour cron messages `ADMIN_IDS` when free
   answers (settled plus still reserved) reach 80% of `ASK_FREE_DAILY_USD_CAP`, with both
   amounts, before free answers pause at the cap (`free-budget.ts` `alertFreeBudget`). It has its
-  own KV key (`alert:free_budget:<day>`, two days), apart from the health state. If no admin was
+  own KV key (`alert:free_budget:<day>`, two days, written only once an admin has the message),
+  apart from the health state. If no admin was
   reached (a failed send, or no `ADMIN_IDS`), it tries again a quarter hour later. A crossing in
   the last quarter hour of a UTC day is reported just after midnight.

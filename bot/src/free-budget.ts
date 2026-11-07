@@ -40,8 +40,8 @@ const ALERT_EVERY_MS = 15 * 60_000;
 /**
  * Tell the admins, once per UTC day, when free answers near the day's cap, before readers meet
  * "free-paused". From the quarter-hour cron. Its own KV key, not the health state, so it neither
- * masks nor is masked by an outage. The key is kept only when at least one admin was reached, so a
- * failed send, or no ADMIN_IDS yet, is tried again next time. A cap of 0 means free answers are
+ * masks nor is masked by an outage. The key is written only after at least one admin was reached,
+ * so a failed send, or no ADMIN_IDS yet, is tried again next time. A cap of 0 means free answers are
  * off on purpose. Returns how many alerts were sent.
  */
 export async function alertFreeBudget(env: Env, now = Date.now()): Promise<number> {
@@ -54,17 +54,15 @@ export async function alertFreeBudget(env: Env, now = Date.now()): Promise<numbe
       if (capMicro <= 0 || used < Math.ceil(capMicro * FREE_BUDGET_ALERT_SHARE)) continue;
       const day = dayOf(at), key = `alert:free_budget:${day}`;
       if (await env.SUBS.get(key)) continue;
-      await env.SUBS.put(key, new Date(now).toISOString(), { expirationTtl: 2 * 86400 });
       const usd = (m: number) => `$${(m / 1e6).toFixed(2)}`;
-      let reached = 0;
-      try {
-        // Loaded here, not at the top, so this module stays importable without the Telegram client.
-        const { tellAdmins } = await import("./health");
-        reached = await tellAdmins(env, `Ask CyberJudah: free answers have used ${usd(used)} of the ${usd(capMicro)} budget for ${day} (${Math.round((used / capMicro) * 100)}%): ${usd(settled)} spent, ${usd(held)} reserved for answers in flight. At the cap, free answers pause until 00:00 UTC (ASK_FREE_DAILY_USD_CAP).\n\n${new Date(now).toISOString()}`);
-      } finally {
-        if (!reached) await env.SUBS.delete(key).catch(() => {});
-      }
-      if (reached) sent++;
+      // Loaded here, not at the top, so this module stays importable without the Telegram client.
+      const { tellAdmins } = await import("./health");
+      const reached = await tellAdmins(env, `Ask CyberJudah: free answers have used ${usd(used)} of the ${usd(capMicro)} budget for ${day} (${Math.round((used / capMicro) * 100)}%): ${usd(settled)} spent, ${usd(held)} reserved for answers in flight. At the cap, free answers pause until 00:00 UTC (ASK_FREE_DAILY_USD_CAP).\n\n${new Date(now).toISOString()}`);
+      if (!reached) continue;
+      // The marker is written only once an admin has the message, so there is nothing to undo
+      // when a send fails. Two overlapping runs could both send; for an admin alert that is harmless.
+      await env.SUBS.put(key, new Date(now).toISOString(), { expirationTtl: 2 * 86400 });
+      sent++;
     } catch (e) {
       console.error(JSON.stringify({ event: "free_budget_alert_failed", message: String((e as Error)?.message ?? e).slice(0, 160) }));
     }
