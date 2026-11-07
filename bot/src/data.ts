@@ -28,7 +28,8 @@ export const chapter = (env: Env, slug: string, ch: number, ctx?: Exec) => dataJ
 /** Where a link to a page (or a start param) should send a person: the Mini App when it exists, else the site. */
 export function openLink(env: Env, startapp: string): string {
   if (env.APP_URL) return startapp ? `${env.APP_URL}?startapp=${startapp}` : env.APP_URL;
-  const path = startParamToPath(startapp);
+  // A page the website doesn't have (the app's people, timeline, ...) opens the site's home.
+  const path = startParamToPath(startapp) ?? "/";
   return `${env.SITE_URL}${path === "/" ? "" : path}`;
 }
 
