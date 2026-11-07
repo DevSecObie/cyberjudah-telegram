@@ -6,7 +6,7 @@ import { approvedFor, approvedSources } from "./approved-answers";
 import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, answerCandidates, buildPrompt, citations, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
@@ -22,6 +22,8 @@ import { reserveFreeBudget, settleFreeBudget, type FreeReservation } from "./fre
 import { researchOpen } from "./agent-open";
 import { withAskSourcePictures } from "./ask-source-pictures";
 import { withAskBookLinks } from "./ask-source-links";
+import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
+import { citationReport } from "./citations.mjs";
 import { autoModel } from "./ask-routing";
 export { freeSpendToday, freePaused } from "./free-budget";
 
@@ -59,8 +61,8 @@ export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend)
   ]);
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
   const said = vectorRes.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
-  const close = dedupeMatches(said).map(passageOf);
-  const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).map((h) => ({ kind: h.kind, title: h.title, url: h.url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 })) : [];
+  const close = dedupeMatches(said).map(m => recordRetrieval(passageOf(m), "vector", m.score));
+  const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).map((h) => recordRetrieval({ kind: h.kind, title: h.title, url: h.url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")) : [];
   const seen = new Set(close.map((p) => `${p.kind}|${p.url}|${p.sub ?? ""}`));
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
   // What this search cost: the question embedded, one vector query, and what the reranker read.
@@ -115,7 +117,7 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
   } catch { return passages.slice(0, topK); }
 }
 
-export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; ms: number } | { ok: false; reason: string };
+export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number } | { ok: false; reason: string };
 /** Ask answers a day per person (ASK_DAILY_LIMIT; a hundred when unset). */
 export function askLimit(env: Env): number {
   const n = Number(env.ASK_DAILY_LIMIT);
@@ -316,16 +318,17 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   try {
     const first = answerCandidates(question, await retrieve(env, retrievalText(question, history), 12, spend), 8);
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
-      const { text, passages } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources, undefined, true);
+      const { text, passages, grounded } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend), () => undefined, ctx, undefined, model, spend, resources, undefined, true);
       const answer = await checkedVerses(env, splitFollowups(text).answer);
-      if (meter) await finishMeter(env, meter, answer.trim() ? "ok" : "empty");
-      return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ms: Date.now() - t0 };
+      if (meter) await finishMeter(env, meter, grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
+      return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
     }
     if (meter) await finishMeter(env, meter, "backup");
     const passages = first;
-    if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], ms: Date.now() - t0 };
+    if (assessCoverage(env, retrievalText(question, history), passages).blocked && passages.length) { const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`))); return { ok: true, q: question, answer: gap.answer, sources: await askSourcesOf(env, gap.answer, gap.sources), unsupported_refs: [], ms: Date.now() - t0 }; }
+    if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], unsupported_refs: [], ms: Date.now() - t0 };
     const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history)));
-    return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ms: Date.now() - t0 };
+    return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
     // An answer that failed is not charged: the hold goes back.
     if (meter) await finishMeter(env, meter, "failed");
@@ -335,7 +338,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 }
 
 export type SearchAnswer =
-  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; ui?: string; teachingFound?: boolean }
+  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean }
   | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
@@ -430,7 +433,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (question.length < 2) return { ok: false, reason: "too-short" };
   // An answer the owner approved for this very question: given at once, with no model and no cost.
   const approved = approvedFor(question, history);
-  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
+  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
   // With no choice, a deep question (routeOf) goes to the stronger free model when one is configured
   // (ASK_FREE_DEEP_MODEL) and approved; everything else to the fast default.
   const deep = !options.model && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? appAskModels(env).find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
@@ -440,7 +443,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   // The same first question, already answered this week by this model and mode: given at once (answer-cache.ts).
   const mode = options.study ? "study" : "app";
-  const key = await cacheKey(question, history, model.id, mode, APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `${mode}:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
   if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
@@ -454,7 +457,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const meter: Meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: 1 };
   const result = await boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, mode, options.traceId);
   // Only an answer that found and cited teaching is kept; "nothing found" is always asked again.
-  if (result.ok && result.sources.length) await keepAnswer(env, key, result, options.traceId);
+  if (result.ok && result.sources.length && !isCoverageGap(result)) await keepAnswer(env, key, result, options.traceId);
   return result;
 }
 
@@ -475,7 +478,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const approved = approvedFor(question, history);
-  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
+  if (approved) return { ok: true, answer: approved.answer, sources: approvedSources(approved), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
   const models = appAskModels(env, options.adminId, true);
   const paid = models.filter((m) => m.format === "anthropic");
   const adminClaude = !!options.adminId && isAdmin(env, options.adminId) && paid.length > 0;
@@ -486,7 +489,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const model = options.model ? models.find(m => m.id === options.model) : deep ?? readerDefault ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
   if (!model) return { ok: false, reason: "model-unavailable" };
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
-  const key = await cacheKey(question, history, model.id, "agent", APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `agent:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
   let meter: Meter;
@@ -551,10 +554,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
       return answerAppAgent(env, q, account, history, consent, { ...options, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
     }
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
-    await finishMeter(env, meter, "ok", Date.now() - t0);
-    const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    await finishMeter(env, meter, ran.grounded === false ? "empty" : "ok", Date.now() - t0);
+    const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
-    if (result.ok && result.sources.length && !ran.cut) await keepAnswer(env, key, result, options.traceId);
+    if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false) await keepAnswer(env, key, result, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
@@ -586,14 +589,15 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
       // disconnects. A racing timeout must not settle while inference is still spending.
       const result = await answerAppStudy(env, question, history, passages, model, spend, emit ?? (() => undefined), deadlineAt, traceId);
       await finishMeter(env, meter, "ok", Date.now() - t0);
-      return { ok: true, ...result, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+      return { ok: true, ...result, ...citationMetadata(result.answer, result.sources), model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }
     // Nothing found: a greeting or a thank-you is still answered, in a sentence; a real question is
     // told so plainly, with no model call, rather than answered from the model's own memory.
-    if (!passages.length && !SMALL_TALK.test(question)) {
+    const coverage = assessCoverage(env, searchText, passages);
+    if ((!passages.length || coverage.blocked) && !SMALL_TALK.test(question)) {
       await finishMeter(env, meter, "empty", Date.now() - t0);
-      const none = notInTheClasses(found);
-      return { ok: true, answer: none.answer, sources: none.sources, followups: [], model: model.id, provider: model.provider, ms: Date.now() - t0 };
+      const none = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
+      return markCoverageGap({ ok: true as const, answer: none.answer, sources: none.sources, unsupported_refs: [], followups: [], model: model.id, provider: model.provider, ms: Date.now() - t0 });
     }
     // Use the plain adapter even for chat models: one bounded answer, never a research loop.
     const prompt = buildPrompt(question, passages, history);
@@ -611,7 +615,7 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     const answer = await checkedVerses(env, written);
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
-    return { ok: true, answer, sources: passages.length ? sourcesOf(answer, passages) : [], followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    return { ok: true, answer, sources: sourcesOf(answer, passages), ...citationMetadata(answer, passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
     console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, retrieveMs, message: (e as Error).message?.slice(0, 160) }));
@@ -684,9 +688,6 @@ async function checkedVerses(env: Env, answer: string): Promise<string> {
   } catch { return answer; }
 }
 
-/** A greeting, a thank-you or a question about Ask itself: answered even when the library has no passages for it. */
-const SMALL_TALK = /^\s*(hi|hello|hey|shalom|good (morning|afternoon|evening)|thanks?( you)?|thank you( so much)?|ok(ay)?|got it|who are you|what are you|what can you do|how do(es)? (this|you) work)\b[\s!.?,]*\S{0,40}$/i;
-
 /** The exact King James text of the verses a question names (at most three references, twelve verses each). */
 async function versesNamed(env: Env, question: string): Promise<Passage[]> {
   const named = referencesIn(question);
@@ -706,10 +707,12 @@ async function versesNamed(env: Env, question: string): Promise<Passage[]> {
   return out;
 }
 
+const citationStateOf = (answer: string, passages: Passage[]) => citationReport(answer, passages.map((source, index) => (source as Passage & { n?: number }).n ?? index + 1));
 const sourcesOf = (answer: string, passages: Passage[]) => {
-  const used = citations(answer, passages.length);
-  return (used.length ? used : passages.slice(0, 4).map((_, i) => i + 1)).map((n) => ({ ...passages[n - 1], n }));
+  const registry = new Map(passages.map((source, index) => [(source as Passage & { n?: number }).n ?? index + 1, source]));
+  return citationStateOf(answer, passages).supported.map(n => ({ ...registry.get(n)!, n }));
 };
+const citationMetadata = (answer: string, passages: Passage[]) => ({ unsupported_refs: citationStateOf(answer, passages).unsupported_refs });
 
 // Telegram clients can show credited source text without opening an outside site.
 const askSourcesOf = (env: Env, answer: string, passages: Passage[]) => withAskSourcePictures(env, withAskBookLinks(sourcesOf(answer, passages)
@@ -731,7 +734,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return reply(400, { error: "too-short" });
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(approvedSources(approved))), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(approvedSources(approved))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, history.length, userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
@@ -791,16 +794,16 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               backup = true;
             }
             if (ran) {
-              const { text, passages, actions, cut, refused } = ran;
+              const { text, passages, actions, cut, refused, grounded } = ran;
               const { answer, followups } = splitFollowups(text);
               // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer, not charged.
               if (refused && !answer.trim()) { await finish("refused"); send({ error: "refused" }); return; }
               if (!answer.trim()) { await finish("empty"); send({ error: "empty" }); return; }
-              const used = await finish("ok");
+              const used = await finish(grounded === false ? "empty" : "ok");
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
-              send({ done: true, answer, followups, sources, actions, ...(cut ? { cut: true } : {}) });
+              send({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) });
               // What the answer cost, and the balance after it; the free model and admins pay nothing.
               if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
               else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });
@@ -816,7 +819,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             const answer = "The search did not find enough reliable material in the library to answer that question.";
             await finish("empty");
             await keep(answer, [], []);
-            send({ delta: answer }); send({ done: true, answer, followups: [], sources: [] }); return;
+            send({ delta: answer }); send({ done: true, answer, followups: [], sources: [], unsupported_refs: [] }); return;
+          }
+          if (assessCoverage(env, retrievalText(question, history), passages).blocked) {
+            const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
+            const sources = await askSourcesOf(env, gap.answer, gap.sources);
+            await finish("empty"); await keep(gap.answer, sources, []);
+            send({ reset: true }); send({ delta: gap.answer }); send({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
           }
           let answer = "";
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), backup)) { answer += piece; send({ delta: piece }); }
@@ -826,7 +835,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
           await finish("backup");
-          send({ done: true, answer: clean, followups, sources, ...(backup ? { backup: true } : {}) });
+          send({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           await finish("failed");

@@ -25,5 +25,5 @@ export async function askJson(response: Response, q: string, start: number): Pro
   } finally { reader.releaseLock(); }
   if (error || !done) return json({ ok: false, reason: error ?? "unavailable" }, 503);
   const { done: _, ...answer } = done;
-  return json({ ok: true, q: q.trim().slice(0, 400), ...answer, ...(usage ? { usage } : {}), ms: Date.now() - start });
+  return json({ ok: true, q: q.trim(), ...answer, ...(usage ? { usage } : {}), ms: Date.now() - start });
 }

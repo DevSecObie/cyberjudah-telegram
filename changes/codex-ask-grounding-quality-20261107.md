@@ -1,0 +1,2 @@
+- Ask keeps retrieved text inside a labeled data boundary and records thin-evidence checks for calibration; the owner can enable honest gap responses for those checks.
+- Ask accepts grouped citations, reports unsupported numeric references, and attaches generated-answer sources only when the answer actually cites them.
