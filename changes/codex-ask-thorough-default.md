@@ -1,0 +1,1 @@
+- Make Ask answers thorough by default, including supported context for quick facts, while keeping the same models, output limits, spend caps and strict source grounding.

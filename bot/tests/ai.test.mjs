@@ -118,6 +118,16 @@ test("the answer contract keeps the classes' language, the evidence rule, and co
   assert.doesNotMatch(SYSTEM, /Do not quote the captions/);
 });
 
+test("thorough answers include supported context for quick facts without adding unsupported teaching", () => {
+  assert.match(SYSTEM, /Be thorough by default/);
+  assert.match(SYSTEM, /Even a quick fact should include its supported context/);
+  assert.match(SYSTEM, /attaching numbered \[n\] citations to every added point/);
+  assert.match(SYSTEM, /state that evidence limit plainly rather than supplying your own teaching or general knowledge/);
+  assert.match(SYSTEM, /Do not stop at an arbitrary word count, pad the answer or repeat points/);
+  assert.doesNotMatch(SYSTEM, /Be brief for a quick fact/);
+  assert.match(SYSTEM, /A greeting, a thank-you or a question about what you can do needs no passages: answer it in a sentence or two/);
+});
+
 test("a passage's teacher is shown to the model, and a Bishop's or Deacon's relevant teaching makes the cut first", () => {
   const [, user] = buildPrompt("Why keep the Passover?", [{ kind: "spoken", title: "Passover", url: "", video: "v", t: 5, teacher: "Bishop Nathanyel", text: "one" }]);
   const data = JSON.parse(user.content.split("```json\n")[1].split("\n```")[0]);
