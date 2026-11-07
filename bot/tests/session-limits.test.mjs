@@ -24,6 +24,17 @@ test("one person past 60 a minute is stopped, and the per-person key never holds
   assert.ok(env.FIREBASE_UID_LIMIT.keys.every(k => !k.includes("busy")));
 });
 
+test("behind the Mini App relay, each signed reader address has its own sign-in backstop", async () => {
+  const { createHmac } = await import("node:crypto");
+  const env = { PRIVACY_KEY: "k".repeat(32), MINIAPP_CLIENT_IP_KEY: "relay-key", FIREBASE_SESSION_LIMIT: limiter(1) };
+  const signed = (uid, ip) => { const ts = Math.floor(Date.now() / 1000); const r = request(uid, "203.0.113.9"); r.headers.set("x-cj-client-ip", ip); r.headers.set("x-cj-client-ts", String(ts)); r.headers.set("x-cj-client-sig", createHmac("sha256", "relay-key").update(`${ip}|${ts}|GET|/api/app/ask`).digest("hex")); return r; };
+  await appReader(signed("a", "198.51.100.1"), env);
+  await appReader(signed("b", "198.51.100.2"), env);
+  await appReader(request("c", "203.0.113.9"), env);
+  await assert.rejects(appReader(request("d", "203.0.113.9"), env), e => e.status === 429, "unsigned requests share the relay's backstop");
+  assert.equal(new Set(env.FIREBASE_SESSION_LIMIT.keys).size, 3);
+});
+
 test("the per-address backstop still applies, and a missing per-person limiter is not an error", async () => {
   const env = { PRIVACY_KEY: "k".repeat(32), FIREBASE_SESSION_LIMIT: limiter(2) };
   await appReader(request("a"), env); await appReader(request("b"), env);

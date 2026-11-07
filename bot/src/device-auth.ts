@@ -2,6 +2,7 @@ import { bodyLimit } from "hono/body-limit";
 import { Hono } from "hono";
 import type { Env } from "./env";
 import { keyedHash } from "./privacy.mjs";
+import { clientIpKey } from "./client-ip";
 import { IdentityError, linkedTelegram, verifyFirebaseIdentity } from "./account-links";
 import { mintFirebaseToken } from "./firebase-auth";
 
@@ -17,7 +18,7 @@ deviceAuth.use("*", bodyLimit({ maxSize: 1024, onError: c => c.json({ error: "in
 deviceAuth.use("*", async (c, next) => {
   c.header("cache-control", "no-store"); c.header("referrer-policy", "no-referrer");
   if (!c.env.FIREBASE_AUTH_LIMIT || !c.env.PRIVACY_KEY || !c.env.FIREBASE_SERVICE_ACCOUNT) return c.json({ error: "firebase_sign_in_unavailable" }, 503);
-  const key = await keyedHash(c.env, "device-signin-ip", c.req.header("cf-connecting-ip") ?? "unknown");
+  const key = await clientIpKey(c.req.raw, c.env, "device-signin-ip");
   if (!(await c.env.FIREBASE_AUTH_LIMIT.limit({ key })).success) return c.json({ error: "sign_in_rate_limited" }, 429);
   if (Number(c.req.header("content-length") ?? 0) > 1024) return c.json({ error: "invalid_sign_in_request" }, 400);
   try { await schema(c.env); await next(); }

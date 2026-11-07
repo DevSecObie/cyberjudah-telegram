@@ -1,3 +1,4 @@
+import { clientIpKey } from "./client-ip";
 import { Hono } from "hono";
 import type { Env, Exec } from "./env";
 import { runSearch } from "./search";
@@ -82,10 +83,9 @@ publicReader.use("*", async (c, next) => {
   if (c.req.url.length > 2048) return c.json({ ok: false, reason: "request-too-long" }, 414);
   if (!c.env.READER_LIMIT) return c.json({ ok: false, reason: "unavailable" }, 503, { "retry-after": "60" });
   try {
-    // Cloudflare supplies this header. The limiter keeps a digest, never an account association.
-    const ip = (c.req.header("cf-connecting-ip") ?? "unknown").slice(0, 45);
-    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`reader:${ip}`));
-    const key = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
+    // The reader's address (signed by the Mini App's Worker when relayed, client-ip.ts), under a
+    // keyed hash (privacy.mjs): never the address, never an account association.
+    const key = await clientIpKey(c.req.raw, c.env, "reader-ip");
     if (!(await c.env.READER_LIMIT.limit({ key })).success) return c.json({ ok: false, reason: "rate-limited" }, 429, { "retry-after": "60" });
   } catch { return c.json({ ok: false, reason: "unavailable" }, 503, { "retry-after": "60" }); }
   await next();
