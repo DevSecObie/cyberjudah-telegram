@@ -77,8 +77,20 @@ export function subscriberDate(sub: Pick<Sub, "tz" | "zone">, when: Date): strin
   return `${p.year}-${p.month}-${p.day}`;
 }
 
-/** Is it the subscriber's chosen hour where they are. */
-export const isDueHour = (sub: Pick<Sub, "tz" | "zone" | "hour">, when: Date) => subscriberHour(sub, when) === sub.hour;
+/** Is it the subscriber's chosen hour where they are. The night clocks spring forward, a chosen
+ *  hour that doesn't exist that day is due at the first hour after it. */
+export function isDueHour(sub: Pick<Sub, "tz" | "zone" | "hour">, when: Date): boolean {
+  const hour = subscriberHour(sub, when);
+  if (hour === sub.hour) return true;
+  // Only an hour or two past the chosen one can follow a skipped hour; the rest need no second look.
+  const past = (hour - sub.hour + 24) % 24;
+  if (past < 1 || past > 2) return false;
+  const before = subscriberHour(sub, new Date(when.getTime() - 3_600_000));
+  // An hour ago it was `before`; more than one hour on means the hours between were skipped.
+  const gap = (hour - before + 24) % 24;
+  for (let k = 1; k < gap; k++) if ((before + k) % 24 === sub.hour) return true;
+  return false;
+}
 
 /** Is the verse due for this subscriber now: their chosen hour where they are, and not already sent
  *  on this local date (`sent`, from sentKeyOf; the night clocks fall back, an hour happens twice). */

@@ -137,6 +137,35 @@ test("the night clocks fall back, a repeated hour sends the verse once", async (
   assert.equal(m.subscriberDate({ tz: -300 }, new Date("2026-11-01T03:00:00Z")), "2026-10-31");
 });
 
+test("the night clocks spring forward, a skipped hour is due at the next hour that exists", () => {
+  // Chicago, 2026-03-08: at 08:00 UTC the clock goes from 01:59 to 03:00, so 02:00 never happens.
+  const sub = { chatId: 1, hour: 2, tz: -360, zone: "America/Chicago" };
+  assert.equal(m.isDue(sub, new Date("2026-03-08T07:00:00Z")), false); // 01:00
+  assert.equal(m.isDue(sub, new Date("2026-03-08T08:00:00Z")), true); // 03:00, the first hour after 02:00
+  assert.equal(m.isDue(sub, new Date("2026-03-08T08:00:00Z"), "2026-03-08"), false);
+  // A 03:00 subscriber is due at 03:00 as usual.
+  assert.equal(m.isDue({ ...sub, hour: 3 }, new Date("2026-03-08T08:00:00Z")), true);
+  // The next day 02:00 exists again.
+  assert.equal(m.isDue(sub, new Date("2026-03-09T07:00:00Z")), true);
+  assert.equal(m.isDue(sub, new Date("2026-03-09T08:00:00Z")), false);
+  // The fall-back night repeats an hour; no other hour becomes due.
+  for (const hour of [0, 2, 3, 5, 12, 23]) assert.equal(m.isDue({ ...sub, hour }, new Date("2026-11-01T07:00:00Z")), false, String(hour));
+  // An offset-only subscriber has no skipped hours.
+  assert.equal(m.isDue({ chatId: 1, hour: 2, tz: -360 }, new Date("2026-03-08T09:00:00Z")), false);
+});
+
+test("changing the hour leaves the date the verse was last sent", async () => {
+  await subscribe({ on: true, hour: 7, tz: -360, zone: "America/Chicago" });
+  const [name] = [...kv.keys()].filter((k) => k.startsWith("sub:"));
+  kv.set(m.sentKeyOf(name), "2026-11-07");
+  await subscribe({ on: true, hour: 20, tz: -360, zone: "America/Chicago" });
+  assert.equal(kv.get(m.sentKeyOf(name)), "2026-11-07");
+  // So the new hour, later the same local day, doesn't send a second verse.
+  assert.equal(m.isDue(await stored(), new Date("2026-11-08T02:00:00Z"), kv.get(m.sentKeyOf(name))), false);
+  await subscribe({ on: false });
+  kv.delete(m.sentKeyOf(name));
+});
+
 test("sendDaily sends once across the fall-back night and notes the local date beside the subscription", async () => {
   const store = new Map(), ttls = new Map();
   const daily = {
