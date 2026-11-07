@@ -9,6 +9,7 @@ import { forgetReminder, loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { open, pid, seal } from "./privacy.mjs";
 import type { NoteRequest } from "./requests";
+import { deleteSub, sentKeyOf } from "./subscribe";
 import { deleteAccountSyncMarks, exportAccountSyncMarks } from "./firestore-admin";
 
 /**
@@ -24,7 +25,7 @@ export type MyData = {
   note: string;
   savedChats: unknown[];
   readingReminder: unknown;
-  dailyVerse: { hour: number; tzOffsetMinutes: number } | null;
+  dailyVerse: { hour: number; tzOffsetMinutes: number; timeZone?: string; lastSentLocalDate?: string } | null;
   ask: unknown;
   askTopupReminder: unknown;
   classNoteRequests: string[];
@@ -56,14 +57,16 @@ export async function exportData(env: Env, uid: number): Promise<MyData> {
   for (const c of await listChats(env, uid)) { const chat = await getChat(env, uid, c.id); if (chat) chats.push(chat); }
   const rec = await loadReminder(env, await tgRid(env, uid));
   const subKey = `sub:${await pid(env, uid)}`;
-  const sub = await open<{ hour: number; tz: number }>(env, subKey, await env.SUBS.get(subKey));
+  const sentKey = sentKeyOf(subKey);
+  const [sealed, lastSent] = await Promise.all([env.SUBS.get(subKey), sentKey ? env.SUBS.get(sentKey) : null]);
+  const sub = await open<{ hour: number; tz: number; zone?: string }>(env, subKey, sealed);
   return {
     generated: new Date().toISOString(),
     note: "Everything CyberJudah keeps about you, including an optional personal-study cloud backup. Reader highlights, notes, bookmarks and reading history stay on your device and in Telegram's storage, unless account sync is on (then highlights, notes, bookmarks and studies are also kept in Google Firebase and listed under accountSync).",
     personalStudyBackup: await readStudyBackup(env, uid),
     savedChats: chats,
     readingReminder: rec ? publicView(rec) : null,
-    dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz } : null,
+    dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz, ...(sub.zone ? { timeZone: sub.zone } : {}), ...(lastSent ? { lastSentLocalDate: lastSent } : {}) } : null,
     ask: await billingRecord(env, uid),
     askTopupReminder: await getTopupReminder(env, uid),
     classNoteRequests: (await noteRequestsOf(env, uid)).map((x) => x.video),
@@ -80,7 +83,7 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   const readingReminder = await forgetReminder(env, uid);
   const subKey = `sub:${me}`;
   const dailyVerse = !!(await env.SUBS.get(subKey));
-  await env.SUBS.delete(subKey);
+  await deleteSub(env, subKey);
   const reqs = await noteRequestsOf(env, uid);
   for (const { video, r, meta } of reqs) {
     const users = r.users.filter((u) => u !== me && u !== uid);
