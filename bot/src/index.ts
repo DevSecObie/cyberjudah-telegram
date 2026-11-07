@@ -49,7 +49,7 @@ import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundSt
 import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, typicalMc, usageDayCredits, wallet as creditWallet } from "./credits";
 import { getTopupReminder, sendTopupReminders, setTopupReminder } from "./topup-remind";
 import { estimateMc, mcOfUsd } from "../../shared/credits.mjs";
-import { parseSubscribe } from "./subscribe";
+import { parseSubscribe, sentKeyOf } from "./subscribe";
 import { givingPauseMessage, pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
@@ -577,7 +577,8 @@ app.post("/api/subscribe", async (c) => {
   const input = parseSubscribe(await c.req.json<unknown>().catch(() => null));
   if (!input.ok) return c.json({ error: input.error }, 400);
   const key = `sub:${await pid(c.env, user!.id)}`;
-  if (!input.on) { await c.env.SUBS.delete(key); return c.json({ subscribed: false }); }
+  // Off: the subscription and the date the verse last went out are both deleted.
+  if (!input.on) { await c.env.SUBS.delete(key); await c.env.SUBS.delete(sentKeyOf(key)); return c.json({ subscribed: false }); }
   const { hour, tz, zone } = input;
   // Private chat id equals the user id; the daily message goes there.
   const sub: Sub = { chatId: user!.id, hour, tz, ...(zone ? { zone } : {}) };

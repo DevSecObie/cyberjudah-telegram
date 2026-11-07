@@ -35,8 +35,10 @@ test("parseSubscribe refuses what isn't valid instead of defaulting it", () => {
   const bad = (body, error) => assert.deepEqual(m.parseSubscribe(body), { ok: false, error }, JSON.stringify(body));
   for (const body of [null, [], "on", 5]) bad(body, "bad-json");
   bad({ on: "yes" }, "bad-on");
-  for (const hour of [-1, 24, 7.5, "7", null, Number.NaN]) bad({ on: true, hour }, "bad-hour");
-  for (const tz of [841, -841, 30.5, "60", null]) bad({ on: true, hour: 7, tz }, "bad-tz");
+  for (const hour of [-1, 24, 7.5, "7", Number.NaN]) bad({ on: true, hour }, "bad-hour");
+  for (const tz of [841, -841, 30.5, "60"]) bad({ on: true, hour: 7, tz }, "bad-tz");
+  // null is absent, as the older handler treated it: the default.
+  assert.deepEqual(m.parseSubscribe({ on: true, hour: null, tz: null }), { ok: true, on: true, hour: 8, tz: 0 });
   for (const zone of ["Mars/Olympus", "", "America/Chicago ", "../etc", "EST5EDT\n", 5, {}, "x".repeat(65)]) bad({ on: true, hour: 7, zone }, "bad-zone");
 });
 
@@ -108,9 +110,13 @@ test("POST /api/subscribe stores the zone and answers 400 for bad input", async 
   // A refused request leaves the subscription as it was.
   assert.deepEqual(await stored(), { chatId: 4242, hour: 6, tz: 60 });
 
+  const [name] = [...kv.keys()].filter((k) => k.startsWith("sub:"));
+  kv.set(m.sentKeyOf(name), "2026-11-07");
   r = await subscribe({ on: false });
   assert.deepEqual(await r.json(), { subscribed: false });
   assert.equal(await stored(), null);
+  // Turning it off also deletes the date it last went out.
+  assert.equal(kv.has(m.sentKeyOf(name)), false);
 });
 
 test("the night clocks fall back, a repeated hour sends the verse once", async () => {
@@ -146,7 +152,11 @@ test("sendDaily sends once across the fall-back night and notes the local date b
   globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
   globalThis.fetch = async (input, init) => {
     const url = String(input instanceof Request ? input.url : input);
-    if (url.includes("/sendMessage")) { sent.push(JSON.parse(init?.body ?? "{}")); return Response.json({ ok: true, result: { message_id: sent.length } }); }
+    if (url.includes("/sendMessage")) {
+      const msg = JSON.parse(init?.body ?? "{}");
+      if (msg.chat_id === 88) return Response.json({ ok: false, error_code: 403, description: "Forbidden: bot was blocked by the user" }, { status: 403 });
+      sent.push(msg); return Response.json({ ok: true, result: { message_id: sent.length } });
+    }
     if (url.startsWith("https://data.invalid/api/kjv/")) return Response.json({ verses: Array.from({ length: 200 }, (_, i) => ({ verse: i + 1, text: `Verse ${i + 1}` })) });
     return new Response("not found", { status: 404 });
   };
@@ -169,6 +179,12 @@ test("sendDaily sends once across the fall-back night and notes the local date b
     await sendDaily(daily, new Date("2026-11-03T07:00:00Z"));
     assert.equal(store.has(name), false);
     assert.equal(sent.length, 2);
+    // A person who blocked the bot is dropped, with the date the verse last went out.
+    store.set("sub:blocked", await m.seal(daily, "sub:blocked", { chatId: 88, hour: 1, tz: -360, zone: "America/Chicago" }));
+    store.set("sent:blocked", "2026-11-02");
+    await sendDaily(daily, new Date("2026-11-04T07:00:00Z"));
+    assert.equal(store.has("sub:blocked"), false);
+    assert.equal(store.has("sent:blocked"), false);
   } finally {
     globalThis.fetch = realFetch; globalThis.caches = realCaches;
   }

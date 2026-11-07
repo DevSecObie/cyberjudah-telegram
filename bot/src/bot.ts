@@ -4,6 +4,7 @@ import { Bot, InlineKeyboard, InputFile, type Context } from "grammy";
 import type { InlineQueryResultArticle, UserFromGetMe } from "grammy/types";
 import { tellAdmins } from "./health";
 import type { Env, Exec, Sub } from "./env";
+import { sentKeyOf } from "./subscribe";
 import { books, chapter, openLink, verseLink, verseMessage, escapeHtml } from "./data";
 import { runSearch } from "./search";
 import { parseReference } from "./refs.mjs";
@@ -113,6 +114,7 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     const had = await env.SUBS.get(key);
     if (had) {
       await env.SUBS.delete(key);
+      await env.SUBS.delete(sentKeyOf(key));
       return ctx.reply("The daily verse is off. Send /daily to turn it back on.");
     }
     // The bot cannot know the person's time zone: 08:00 UTC until the app sets their hour.

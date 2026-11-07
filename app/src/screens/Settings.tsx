@@ -9,7 +9,7 @@ import { offlineSupported, removeBook, saveBook, saveNarration, savedBooks } fro
 import { narrationHint, narrationStatus, removeNarration, type NarrationStatus } from "@/lib/narration";
 import { recordingJson, type RecordingCredit } from "@/lib/recordings";
 import { useBackButton, useStored, useTheme } from "@/tg/hooks";
-import { alert, api, app, confirm, features, haptic, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
+import { alert, api, ApiError, app, confirm, features, haptic, platform, requestWriteAccess, setFullscreen, lockPortrait } from "@/tg/sdk";
 import { secure } from "@/tg/store";
 import { collect, parseBackup, restore, sendBackup } from "@/lib/backup";
 import { useSheet } from "@/ui/sheet";
@@ -74,9 +74,12 @@ export function Settings() {
     const body = { on, hour: h, tz: -new Date().getTimezoneOffset() };
     const post = (json: object) => api<{ subscribed: boolean }>("/api/subscribe", { method: "POST", json });
     try {
-      // With the zone; if the bot refuses it (a zone its runtime doesn't know), the offset alone.
+      // With the zone; only if the bot refuses the request (400: a zone its runtime doesn't know),
+      // again with the offset alone. Any other failure is shown, never retried without the zone.
       const zoned = zoneField();
-      const r = zoned.zone ? await post({ ...body, ...zoned }).catch(() => post(body)) : await post(body);
+      const r = zoned.zone
+        ? await post({ ...body, ...zoned }).catch((e: unknown) => { if (e instanceof ApiError && e.status === 400) return post(body); throw e; })
+        : await post(body);
       setDaily(r.subscribed); haptic(r.subscribed ? "success" : "tap");
     }
     catch { void alert("Could not update the daily verse right now."); }

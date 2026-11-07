@@ -7,19 +7,21 @@ import type { Sub } from "./env";
 export const DEFAULT_HOUR = 8;
 const MAX_OFFSET = 14 * 60;
 
-const zoneChecks = new Map<string, boolean>();
+const zoneChecks = new Map<string, true>();
+/** A formatter per zone, bounded like the zone checks. */
+const keep = (cache: Map<string, Intl.DateTimeFormat>, zone: string, f: Intl.DateTimeFormat) => { if (cache.size >= 1000) cache.clear(); cache.set(zone, f); return f; };
 /** The zone as sent when Intl knows it as a time zone ("America/Chicago", "Asia/Kolkata"), or null.
  *  Kept as sent: Intl's own spelling can be an older name ("Asia/Calcutta"). Each answer is kept,
  *  since the hourly send asks for every subscriber. (shared/holy-days.mjs zoneOf is not reused:
  *  it accepts only its own short list of zones and falls back to a default.) */
 export function validZone(v: unknown): string | null {
   if (typeof v !== "string" || v.length < 1 || v.length > 64 || !/^[A-Za-z][A-Za-z0-9_+\-/]*$/.test(v)) return null;
-  let ok = zoneChecks.get(v);
-  if (ok === undefined) {
-    try { new Intl.DateTimeFormat("en-US", { timeZone: v }); ok = true; } catch { ok = false; }
-    if (zoneChecks.size < 1000) zoneChecks.set(v, ok);
-  }
-  return ok ? v : null;
+  if (zoneChecks.has(v)) return v;
+  try { new Intl.DateTimeFormat("en-US", { timeZone: v }); } catch { return null; }
+  // Only zones Intl accepts are kept (a refused name is never cached), and the cache is bounded.
+  if (zoneChecks.size >= 1000) zoneChecks.clear();
+  zoneChecks.set(v, true);
+  return v;
 }
 
 export type SubscribeInput =
@@ -34,9 +36,10 @@ export function parseSubscribe(body: unknown): SubscribeInput {
   const b = body as Record<string, unknown>;
   if (b.on !== undefined && typeof b.on !== "boolean") return { ok: false, error: "bad-on" };
   if (!b.on) return { ok: true, on: false };
-  const hour = b.hour === undefined ? DEFAULT_HOUR : b.hour;
+  // Absent or null: the default, as before. A value that's there must be valid.
+  const hour = b.hour === undefined || b.hour === null ? DEFAULT_HOUR : b.hour;
   if (!(typeof hour === "number" && Number.isInteger(hour) && hour >= 0 && hour <= 23)) return { ok: false, error: "bad-hour" };
-  const tz = b.tz === undefined ? 0 : b.tz;
+  const tz = b.tz === undefined || b.tz === null ? 0 : b.tz;
   if (!(typeof tz === "number" && Number.isInteger(tz) && Math.abs(tz) <= MAX_OFFSET)) return { ok: false, error: "bad-tz" };
   if (b.zone === undefined || b.zone === null) return { ok: true, on: true, hour, tz };
   const zone = validZone(b.zone);
@@ -52,7 +55,7 @@ const hours = new Map<string, Intl.DateTimeFormat>();
  *  give midnight as 24, so the hour is taken from its own part and kept under 24. */
 export function zoneHour(when: Date, zone: string): number {
   let f = hours.get(zone);
-  if (!f) { f = new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", hourCycle: "h23" }); hours.set(zone, f); }
+  if (!f) f = keep(hours, zone, new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "numeric", hourCycle: "h23" }));
   return Number(f.formatToParts(when).find((p) => p.type === "hour")?.value) % 24;
 }
 
@@ -69,7 +72,7 @@ export function subscriberDate(sub: Pick<Sub, "tz" | "zone">, when: Date): strin
   const zone = sub.zone ? validZone(sub.zone) : null;
   if (!zone) return new Date(when.getTime() + sub.tz * 60000).toISOString().slice(0, 10);
   let f = days.get(zone);
-  if (!f) { f = new Intl.DateTimeFormat("en-US", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }); days.set(zone, f); }
+  if (!f) f = keep(days, zone, new Intl.DateTimeFormat("en-US", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }));
   const p = Object.fromEntries(f.formatToParts(when).map((x) => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day}`;
 }
