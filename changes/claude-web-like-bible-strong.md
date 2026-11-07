@@ -1,0 +1,1 @@
+- web.cyberjudah.io: deploys the app export built the way Bible Strong builds its web app (one plain bundle, every screen loaded up front).

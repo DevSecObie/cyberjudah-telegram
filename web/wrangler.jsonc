@@ -1,8 +1,10 @@
-// The CyberJudah web app: the iPhone app's web export (DevSecObie/cyberjudah-app), static files
-// only. It reads cyberjudah.io's API like the store app does. Deployed by .github/workflows/web.yml.
+// The CyberJudah web app: the iPhone app's web export (DevSecObie/cyberjudah-app), plus its
+// resource API at /bs (src/worker.js): Bible chapters are files built into each version, the rest
+// is answered by the Telegram Worker. Deployed by .github/workflows/web.yml.
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "cyberjudah-web",
+  "main": "src/worker.js",
   "compatibility_date": "2026-09-16",
   "workers_dev": false,
   // Each uploaded version gets its own workers.dev address, where web.yml checks it before the
@@ -10,7 +12,11 @@
   "preview_urls": true,
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Only /bs reaches the script first; every other path is a static file as before.
+    "run_worker_first": ["/bs/*"]
   },
+  "services": [{ "binding": "BS", "service": "cyberjudah-telegram" }],
   "routes": [{ "pattern": "web.cyberjudah.io", "custom_domain": true }]
 }

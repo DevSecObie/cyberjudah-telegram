@@ -29,6 +29,9 @@ import { withAskBookLinks } from "./ask-source-links";
 import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
 import { citationReport, citationTokenCount } from "./citations.mjs";
 import { autoModel } from "./ask-routing";
+import { approvedSources as approvedOutsideHosts } from "./source-policy";
+import { recordedMoment, retrievedSourceUrl } from "./retrieved-source-url";
+import { issueAnswerReceipt } from "./feedback";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -47,9 +50,11 @@ export async function embed(env: Env, texts: string[], signal?: AbortSignal): Pr
   return out;
 }
 
-const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Passage & { score: number } => {
+const passageOf = (m: { metadata?: Record<string, unknown>; score: number }, hosts: string[]): (Passage & { score: number }) | null => {
   const md = (m.metadata ?? {}) as Record<string, string | number>;
-  return { kind: String(md.kind ?? ""), title: String(md.title ?? ""), url: String(md.url ?? ""), sub: String(md.sub ?? ""), video: md.video ? String(md.video) : undefined, t: md.t !== undefined ? Number(md.t) : undefined, date: md.date ? String(md.date) : undefined, text: String(md.text ?? ""), score: m.score };
+  const url = retrievedSourceUrl(md, hosts);
+  if (!url) return null;
+  return { kind: String(md.kind ?? ""), title: String(md.title ?? ""), url, sub: String(md.sub ?? ""), video: md.video ? String(md.video) : undefined, t: recordedMoment(md.t), date: md.date ? String(md.date) : undefined, text: String(md.text ?? ""), score: m.score };
 };
 
 /**
@@ -57,17 +62,22 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }): Pa
  * keyword matches from the library search, together, reranked by whether they answer it.
  */
 export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend, signal?: AbortSignal): Promise<(Passage & { score: number })[]> {
-  const [vectorRes, keywordRes] = await Promise.all([
+  const [vectorRes, keywordRes, hosts] = await Promise.all([
     // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
     // so a question is still answered (and Claude can still research) rather than failing whole.
     embed(env, [text], signal).then(([vector]) => (vector ? env.VEC.query(vector, { topK: 20, returnMetadata: "all" }) : { matches: [] as VectorizeMatches["matches"] }))
       .catch((e: Error) => { console.error(JSON.stringify({ event: "retrieve_vector_failed", message: e.message?.slice(0, 120) })); return { matches: [] as VectorizeMatches["matches"] }; }),
     runSearch(env.DB, text, undefined, 3, true).catch(() => null),
+    approvedOutsideHosts(env).catch(() => []),
   ]);
   // A passage must say something: scraps of captions ("do", "yeah so") sit close to every question.
   const said = vectorRes.matches.filter((m) => String((m.metadata as Record<string, unknown> | undefined)?.text ?? "").split(/\s+/).length >= 20);
-  const close = dedupeMatches(said).map(m => recordRetrieval(passageOf(m), "vector", m.score));
-  const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).map((h) => recordRetrieval({ kind: h.kind, title: h.title, url: h.url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")) : [];
+  // Omit unlinkable evidence before assigning any citation IDs, never after registration.
+  const close = dedupeMatches(said).flatMap(m => { const passage = passageOf(m, hosts); return passage ? [recordRetrieval(passage, "vector", m.score)] : []; });
+  const keyed: (Passage & { score: number })[] = keywordRes?.ok ? keywordRes.hits.filter((h) => h.text && h.text.split(/\s+/).length >= 20).flatMap((h) => {
+    const url = retrievedSourceUrl(h, hosts);
+    return url ? [recordRetrieval({ kind: h.kind, title: h.title, url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")] : [];
+  }) : [];
   const seen = new Set(close.map((p) => `${p.kind}|${p.url}|${p.sub ?? ""}`));
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
   // What this search cost: the question embedded, one vector query, and what the reranker read.
@@ -718,7 +728,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return reply(400, { error: "too-short" });
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, history.length, userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
@@ -749,6 +759,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
+      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => send({ ...value, answer_id: await issueAnswerReceipt(env, userId, value.sources) });
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
@@ -788,7 +799,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
-              send({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) });
+              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) });
               // What the answer cost, and the balance after it; the free model and admins pay nothing.
               if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
               else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });
@@ -805,13 +816,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             const answer = "The search did not find enough reliable material in the library to answer that question.";
             await finish("empty");
             await keep(answer, [], []);
-            send({ delta: answer }); send({ done: true, answer, followups: [], sources: [], unsupported_refs: [] }); return;
+            send({ delta: answer }); await done({ done: true, answer, followups: [], sources: [], unsupported_refs: [] }); return;
           }
           if (assessCoverage(env, retrievalText(question, history), passages).blocked) {
             const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
             const sources = await askSourcesOf(env, gap.answer, gap.sources);
             await finish("empty"); await keep(gap.answer, sources, []);
-            send({ reset: true }); send({ delta: gap.answer }); send({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
+            send({ reset: true }); send({ delta: gap.answer }); await done({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
           }
           let answer = "";
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal)) { answer += piece; send({ delta: piece }); }
@@ -821,7 +832,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
           await finish("backup");
-          send({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
+          await done({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;

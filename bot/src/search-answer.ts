@@ -24,7 +24,7 @@ searchAnswers.get("/", async (c) => {
 
   // Version and model isolate cached answers from old releases and configuration changes.
   const key = new URL(c.req.url);
-  key.search = new URLSearchParams({ q, model: model.id, version: "library-answer-v4-cited-quotes", coverage: c.env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow" }).toString();
+  key.search = new URLSearchParams({ q, model: model.id, version: "library-answer-v4-cited-quotes-source-links", coverage: c.env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow" }).toString();
   const cache = caches.default;
   const hit = await cache.match(key.toString()).catch(() => undefined);
   if (hit) return new Response(hit.body, { headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
