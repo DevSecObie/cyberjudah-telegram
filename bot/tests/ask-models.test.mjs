@@ -4,6 +4,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { costFactor, countryOf, MODELS, modelOf, PROVIDER_COUNTRY, unitsFor } from "../../shared/ask-models.mjs";
 import { researchOpen } from "../src/agent-open.ts";
 import { claudeUnavailable } from "../src/providers.ts";
+import { makeSpend } from "../src/spend.ts";
 import { groundedSystem, untrustedData } from "../src/grounding.mjs";
 
 test("the model list is Cloudflare's catalog: every model priced, spoken to in a known format, Claude with its own id", () => {
@@ -36,6 +37,24 @@ test("an answer is charged at its own model's price, whatever way the provider r
 
 const TOOLS = [{ name: "search_library", description: "Search.", input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } }];
 const SCHEMAS = new Map(TOOLS.map((t) => [t.name, t.input_schema]));
+
+test('paid GPT chat completions use the supported completion-token field within the held budget', async () => {
+  const model = modelOf('openai/gpt-5.1'), spend = makeSpend({ budgetUsd: 0.01 });
+  const { env, sent } = binding([{ choices: [{ message: { content: 'Existing answer.' }, finish_reason: 'stop' }], usage: { prompt_tokens: 100, completion_tokens: 20 } }]);
+  const result = await researchOpen(env, model, 'Use the sources.', [{ role: 'user', content: 'Existing question' }], TOOLS, SCHEMAS, async () => ({ content: 'Existing source' }), () => {}, 25, spend);
+  assert.equal(result.text, 'Existing answer.');
+  assert.equal(sent[0].input.max_tokens, undefined);
+  assert.ok(sent[0].input.max_completion_tokens >= 64);
+  assert.ok(sent[0].input.max_completion_tokens * model.output / 1e6 <= 0.01);
+  assert.ok(spend.total() <= 0.01);
+});
+
+test('unreported paid chat usage cannot fund a second unbounded research call', async () => {
+  const model = modelOf('openai/gpt-5.1'), spend = makeSpend({ budgetUsd: 0.01 });
+  const { env, sent } = binding([{ choices: [{ message: { content: '', tool_calls: [{ id: 'one', type: 'function', function: { name: 'search_library', arguments: '{"query":"recorded material"}' } }] }, finish_reason: 'tool_calls' }] }]);
+  await assert.rejects(researchOpen(env, model, 'Use the sources.', [{ role: 'user', content: 'Existing question' }], TOOLS, SCHEMAS, async () => ({ content: 'Existing source' }), () => {}, 25, spend), /reserved budget/);
+  assert.equal(sent.length, 1);
+});
 /** A stand-in for Cloudflare's AI binding: answers each request in turn, and keeps what it was sent. */
 function binding(replies) {
   const sent = [];
@@ -57,7 +76,8 @@ test("chat completions: the model searches with the same tool, then answers; the
   assert.equal(r.text, "Keep it for ever [1].");
   assert.equal(r.calls, 2);
   assert.equal(r.units, unitsFor({ prompt_tokens: 1000, completion_tokens: 20 }, modelOf("openai/gpt-5.1")) + unitsFor({ prompt_tokens: 1200, completion_tokens: 30 }, modelOf("openai/gpt-5.1")));
-  assert.deepEqual(sent[0].options, { gateway: { id: "default", collectLog: false } }, "the reader's question is not logged");
+  assert.deepEqual(sent[0].options.gateway, { id: "default", collectLog: false }, "the reader's question is not logged");
+  assert.ok(sent[0].options.signal instanceof AbortSignal);
   assert.equal(sent[0].model, "openai/gpt-5.1");
   assert.equal(sent[0].input.tools[0].function.name, "search_library");
   assert.deepEqual(sent[1].input.messages.at(-1), { role: "tool", tool_call_id: "c1", content: untrustedData({content:"[1] Exodus 12:14"}, "tool_output") });
@@ -70,7 +90,7 @@ test("Workers AI's own reply shape, and a tool input that does not fit the schem
   ]);
   assert.equal(ran.length, 0);
   assert.match(sent[1].input.messages.at(-1).content, /INVALID_INPUT/);
-  assert.equal(sent[0].input.max_tokens, 4096, "Cloudflare-hosted models are told how long they may write");
+  assert.ok(sent[0].input.max_tokens > 4096 && sent[0].input.max_tokens <= 1048576, "the published model context, rather than a blanket 4096 ceiling, bounds output");
   assert.equal(r.text, "An answer.");
 });
 

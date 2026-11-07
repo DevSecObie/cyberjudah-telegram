@@ -13,6 +13,7 @@ await build({
     b.onResolve({ filter: /^\.\/agent$/ }, () => ({ path: 'agent', namespace: 'fixture' }));
     b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ loader: 'js', contents: `
       export async function runAgent(env, question, history, first, retrieve, emit) {
+        env.fixtureQuestion = question;
         emit({ status: 'Reading sources' });
         emit({ delta: env.fixtureAnswer });
         return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false };
@@ -53,6 +54,41 @@ for (const stream of [false, true]) {
       assert.deepEqual(result.sources.map(source => source.n), ids);
       assert.deepEqual(result.unsupported_refs, unsupported);
     }
+  });
+}
+
+for (const stream of [false, true]) {
+  test(`recorded teacher/date reach ${stream ? 'NDJSON' : 'JSON'} video sources without guessing unnamed sources`, async t => {
+    const { env } = financialDb(t), model = freeModel(env);
+    const fetchBefore = globalThis.fetch, cachesBefore = globalThis.caches;
+    t.after(() => { globalThis.fetch = fetchBefore; globalThis.caches = cachesBefore; });
+    globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+    globalThis.fetch = async url => new URL(url).pathname === '/api/notes/index.json' ? Response.json([{ videoId: 'abcdefghijk', url: '/classes/2012/recorded', teacher: 'Deacon Eythan', date: '2012-07-14' }]) : new Response('', { status: 404 });
+    const sources = [{ kind: 'spoken', title: 'Recorded class', video: 'abcdefghijk', t: 65, url: '/classes/2012/recorded', text: 'Existing words.' }, { kind: 'spoken', title: 'Unnamed class', video: 'lmnopqrstuv', t: 0, url: '', text: 'Other existing words.' }];
+    Object.assign(env, { DATA_ORIGIN: `https://attribution-${stream}.data.test`, SITE_URL: 'https://cyberjudah.test', CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Recorded points [1, 2].', fixtureSources: sources });
+    const result = stream ? (await (await askStream(env, 'Explain those recorded points', 77, undefined, [], undefined, false, model.id, [model.provider])).text()).trim().split('\n').map(JSON.parse).find(event => event.done) : await ask(env, 'Explain those recorded points', 77, undefined, [], [model.provider]);
+    assert.equal(result.sources[0].teacher, 'Deacon Eythan');
+    assert.equal(result.sources[0].date, '2012-07-14');
+    assert.equal(result.sources[1].teacher, undefined);
+    assert.equal(result.sources[1].date, undefined);
+    assert.equal(result.sources[0].text, sources[0].text);
+    assert.equal(sources[0].teacher, undefined, 'the original passage is not mutated');
+  });
+
+  test(`${stream ? 'NDJSON' : 'JSON'} Ask keeps a long question intact and rejects oversize input before research`, async t => {
+    const { env } = financialDb(t), model = freeModel(env);
+    Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'An answer.', fixtureSources: [] });
+    const question = `Explain this question ${'with its full context '.repeat(30)}`.trim();
+    const invoke = q => stream ? askStream(env, q, 77, undefined, [], undefined, false, model.id, [model.provider]) : ask(env, q, 77, undefined, [], [model.provider]);
+    const result = await invoke(question);
+    if (stream) await result.text();
+    else assert.equal(result.q, question);
+    assert.equal(env.fixtureQuestion, question);
+    env.fixtureQuestion = null;
+    const refused = await invoke('a'.repeat(4001));
+    if (stream) { assert.equal(refused.status, 400); assert.equal((await refused.json()).error, 'too-long'); }
+    else assert.deepEqual(refused, { ok: false, reason: 'too-long' });
+    assert.equal(env.fixtureQuestion, null);
   });
 }
 

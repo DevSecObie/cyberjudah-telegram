@@ -2,6 +2,19 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { answerCandidates, buildPrompt, chunkRecord, citations, dedupeMatches, docRecord, hash, SYSTEM } from "../src/ai.mjs";
 
+test('prompt history has bounded prior messages, while source material and the new question stay intact', () => {
+  const history = Array.from({ length: 12 }, (_, index) => ({ role: index % 2 ? 'assistant' : 'user', content: `Opening ${index}. ${'x'.repeat(10000)} Ending ${index}.` }));
+  const text = 'Existing source words. '.repeat(2000), question = 'q'.repeat(4000);
+  const prompt = buildPrompt(question, [{ kind: 'note', title: 'Source', url: '/source', text }], history);
+  assert.equal(prompt.length, 10, 'system, eight previous messages, current question');
+  assert.ok(prompt.slice(1, -1).every(turn => turn.content.length === (turn.role === 'user' ? 3000 : 1500)));
+  assert.match(prompt[1].content, /^Opening 4\./);
+  assert.match(prompt[1].content, /Earlier message shortened for context/);
+  assert.match(prompt[1].content, /Ending 4\.$/);
+  assert.ok(prompt.at(-1).content.includes(text));
+  assert.ok(prompt.at(-1).content.endsWith(question));
+});
+
 test("records have stable ids from what they are, not where they sit", () => {
   const a = docRecord({ kind: "class", title: "Passover", url: "/classes/x", sub: "In Closing", text: "t1" });
   const b = docRecord({ kind: "class", title: "Passover", url: "/classes/x", sub: "In Closing", text: "t2" });

@@ -6,7 +6,7 @@ import { books, chapter, dataJson } from "./data";
 import { claude } from "./providers";
 import type { Env, Exec } from "./env";
 import { MORE_RUN, MORE_TOOLS } from "./ask-tools";
-import { answerCandidates, APP, normalizeHistory, RESEARCH, SYSTEM, retrievalText, notInTheClasses, type Passage, type Turn } from "./ai.mjs";
+import { answerCandidates, APP, promptHistory, RESEARCH, SYSTEM, retrievalText, notInTheClasses, type Passage, type Turn } from "./ai.mjs";
 import { checkInput, describeReminder, findCases, findChats, findFeatures, findPeople, proposeReminder } from "./assistant.mjs";
 import { FEATURES } from "../../shared/app-features.mjs";
 import { listChats, type SavedAction } from "./chats";
@@ -16,6 +16,10 @@ import { parseReference } from "./refs.mjs";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
 import { freeSpend, type Spend } from "./spend";
+import { DEEP_TOOLS, readForAsk } from "./ask-readers";
+import { claudeThinking } from "./model-capacity.mjs";
+import { MAX_RESEARCH_ROUNDS, MAX_CLAUDE_OUTPUT, MAX_RESEARCH_SOURCES, researchRounds, researchSignal, type ResearchControl } from "./research-policy.mjs";
+import { classAttributor } from "./class-attribution";
 import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlText } from "./grounding.mjs";
 
 /**
@@ -26,10 +30,8 @@ import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlT
  * [n] citations map to one list of sources.
  */
 export type Numbered = Passage & { n: number };
-export type AgentEvent = { status: string } | { passages: Numbered[] } | { delta: string } | { reset: true } | { action: SavedAction };
+export type AgentEvent = { status: string } | { passages: Numbered[] } | { passages_delta: Numbered[] } | { delta: string } | { reset: true } | { action: SavedAction };
 
-const MAX_ROUNDS = 6;
-const MAX_SOURCES = 48;
 const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 
 const TOOL_DEFS: Anthropic.Tool[] = [
@@ -80,6 +82,7 @@ const TOOL_DEFS: Anthropic.Tool[] = [
     input_schema: { type: "object", properties: { reference: { type: "string", description: "Book, chapter and optional verse or range." } }, required: ["reference"] },
   },
   ...MORE_TOOLS,
+  ...DEEP_TOOLS,
 ];
 
 /**
@@ -91,7 +94,8 @@ const TOOLS: Anthropic.Tool[] = TOOL_DEFS.map((t) => ({ ...t, eager_input_stream
 const SCHEMAS = new Map(TOOL_DEFS.map((t) => [t.name, t.input_schema]));
 
 const keyOf = (p: Passage) => (p.video ? `v|${p.video}|${Math.round((p.t ?? 0) / 90)}` : `${p.kind}|${p.url}|${p.sub ?? ""}`);
-const listed = (p: Numbered) => `[${p.n}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.date ? ` (${p.date})` : ""}${p.teacher ? ` (taught by ${p.teacher})` : ""}\n${p.text}`;
+const sourceLabel = (p: Numbered) => `[${p.n}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.date ? ` (${p.date})` : ""}${p.teacher ? ` (taught by ${p.teacher})` : ""}`;
+const listed = (p: Numbered) => `${sourceLabel(p)}\n${p.text}`;
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 export async function runAgent(
@@ -106,20 +110,38 @@ export async function runAgent(
   model: AskModel = modelOf(env.CLAUDE_MODEL || CLAUDE_DEFAULT),
   spend: Spend = freeSpend(),
   requestedResources?: ResourcePins,
-  maxRounds = MAX_ROUNDS,
+  maxRounds = MAX_RESEARCH_ROUNDS,
   citeAppSources = false,
+  control: ResearchControl = {},
 ): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean }> {
+  maxRounds = researchRounds(maxRounds);
+  const signal = researchSignal(control.signal, control.deadlineAt);
+  signal.throwIfAborted();
   // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
   const resourcePins = await resolveResourcePins(env, requestedResources);
   const client = await claude(env);
+  const attribute = await classAttributor(env);
   const passages: Numbered[] = [];
   const seen = new Map<string, number>();
-  const add = (p: Passage): { n: number; fresh: boolean } | null => {
+  const dirty = new Set<number>(), sent = new Map<number, string>();
+  const publishPassages = (initial = false) => {
+    const changed: Numbered[] = [];
+    for (const n of dirty) {
+      // The model retains full readings; phones need only a source preview while researching.
+      const preview = { ...passages[n - 1], text: passages[n - 1].text.slice(0, 1000) };
+      const packet = JSON.stringify(preview);
+      if (sent.get(n) !== packet) { changed.push(preview); sent.set(n, packet); }
+    }
+    dirty.clear();
+    if (changed.length) emit(initial ? { passages: changed } : { passages_delta: changed });
+  };
+  const add = (source: Passage): { n: number; fresh: boolean } | null => {
+    const p = attribute(source);
     const k = keyOf(p);
     if (seen.has(k)) return { n: seen.get(k)!, fresh: false };
-    if (passages.length >= MAX_SOURCES) return null;
+    if (passages.length >= MAX_RESEARCH_SOURCES) return null;
     const n = passages.length + 1;
-    passages.push({ ...p, n }); seen.set(k, n);
+    passages.push({ ...p, n }); seen.set(k, n); dirty.add(n);
     return { n, fresh: true };
   };
   for (const p of first) add(p);
@@ -130,7 +152,7 @@ export async function runAgent(
     const source = citeAppSources && kind ? add({ kind, title: name, text: what, url: path }) : null;
     return `${source ? `[${source.n}] ` : ''}${name}: ${what} Link: ${path}`;
   };
-  if (passages.length) emit({ passages: [...passages] });
+  publishPassages(true);
 
   const run = async (name: string, input: Record<string, unknown>): Promise<{ content: string; error?: boolean }> => {
     if (name === "search_library") {
@@ -140,7 +162,7 @@ export async function runAgent(
       const found = answerCandidates(query, await retrieve(query, 10), 6);
       const lines: string[] = [];
       for (const p of found) { const a = add(p); if (a) lines.push(a.fresh ? listed(passages[a.n - 1]) : `[${a.n}] ${p.title} (already given above)`); }
-      emit({ passages: [...passages] });
+      publishPassages();
       return { content: lines.length ? lines.join("\n\n") : "Nothing more in the library for that. Try other words." };
     }
     if (name === "read_scripture") {
@@ -157,7 +179,7 @@ export async function runAgent(
       const label = ref.verse ? `${ref.book} ${ref.chapter}:${from}${to > from ? `-${to}` : ""}` : `${ref.book} ${ref.chapter}${to < c.verses.length ? `:1-${to}` : ""}`;
       const text = verses.map((v) => `${v.verse} ${v.text}`).join("\n");
       const a = add({ kind: "verse", title: label, url: `/bible/${ref.slug}/${ref.chapter}`, sub: "", text: text.slice(0, 1400) });
-      emit({ passages: [...passages] });
+      publishPassages();
       return { content: `${a ? `[${a.n}] ` : ""}${label} (KJV)\n${text}` };
     }
     if (name === "app_help") {
@@ -202,10 +224,25 @@ export async function runAgent(
       emit({ action });
       return { content: `A card now sits under your answer: "${p.summary}" with Confirm and Cancel. Nothing has changed: it happens only if they tap Confirm. Do not say it is done.` };
     }
+    if (DEEP_TOOLS.some(tool => tool.name === name)) {
+      emit({ status: name === "search_classes" ? `Searching classes for “${str(input.query, 200)}”` : `Reading ${str(input.path ?? input.reference ?? input.video, 200)}` });
+      const reading = await readForAsk(name, input, env, ctx);
+      if (!reading) return { content: "That reading tool is unavailable.", error: true };
+      const labels: string[] = [];
+      for (const source of reading.sources ?? []) {
+        const added = add(source);
+        if (!added) continue;
+        // A full reading can extend an already cited search snippet without renumbering it.
+        if (!added.fresh && source.text.length > passages[added.n - 1].text.length) { passages[added.n - 1] = { ...passages[added.n - 1], ...attribute(source), n: added.n }; dirty.add(added.n); }
+        labels.push(sourceLabel(passages[added.n - 1]));
+      }
+      publishPassages();
+      return { content: `${labels.length ? `Sources for this reading: ${labels.join("; ")}\n\n` : ""}${reading.content.map(block => block.text).join("\n")}`, ...(reading.isError ? { error: true } : {}) };
+    }
     const more = MORE_RUN[name];
     if (more) {
       const r = await more(env, input, ctx, emit, line, add, resourcePins);
-      emit({ passages: [...passages] });
+      publishPassages();
       return r;
     }
     return { content: `No tool named ${name}.`, error: true };
@@ -217,6 +254,7 @@ export async function runAgent(
   const appTools = new Set(["app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change"]);
   const toolEvidence: { kind: string; title: string; text: string }[] = [];
   const runWithEvidence = async (name: string, input: Record<string, unknown>) => {
+    signal.throwIfAborted();
     const before = passages.length;
     try {
       const result = await run(name, input);
@@ -232,6 +270,7 @@ export async function runAgent(
     return coverage;
   };
   const modelEmit = (event: AgentEvent) => {
+    if (signal.aborted) return;
     // A thin-evidence answer must not flash ungrounded prose before the final gap result.
     if ('delta' in event && evidence().blocked) return;
     emit(event);
@@ -245,14 +284,14 @@ export async function runAgent(
     return { ...result, passages, actions, grounded: true };
   };
   const messages: Anthropic.MessageParam[] = [
-    ...normalizeHistory(history, 6).map((m) => ({ role: m.role as "assistant" | "user", content: String(m.content).slice(0, 3000) })),
+    ...promptHistory(history).map((m) => ({ role: m.role as "assistant" | "user", content: m.content })),
     { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${libraryData(passages)}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
   ];
 
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
-    const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend);
+    const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, { signal });
     return finish(r);
   }
 
@@ -270,7 +309,11 @@ export async function runAgent(
   // measured input plus the bytes added since (a token is never shorter than a byte), plus framing.
   const bytesOf = () => new TextEncoder().encode(JSON.stringify({ system, tools: TOOLS, messages })).length;
   let knownTokens = 0, bytesAtKnown = 0, bytesThisCall = 0;
-  for (let round = 0; round < maxRounds; round++) {
+  let attempts = 0;
+  for (let round = 0; round < maxRounds && attempts < maxRounds; round++) {
+    signal.throwIfAborted();
+    // Without usage, another round cannot be proven to fit the money already reserved.
+    if (spend.budgetUsd != null && spend.unreported) { cut = true; break; }
     // The request's budget (what was held from the balance for it): past 70% of it the research stops and the
     // answer is written, in no more words than what is left pays for.
     let inputUsd = 0;
@@ -278,8 +321,8 @@ export async function runAgent(
       const bytes = bytesOf();
       let tokens: number;
       if (round === 0) {
-        try { tokens = (await client.messages.countTokens({ model: model.native ?? model.id, system, tools: TOOLS, messages })).input_tokens + 64; }
-        catch { tokens = bytes + 1024; }
+        try { tokens = (await client.messages.countTokens({ model: model.native ?? model.id, system, tools: TOOLS, messages }, { signal })).input_tokens + 64; }
+        catch { signal.throwIfAborted(); tokens = bytes + 1024; }
       } else tokens = knownTokens + Math.max(0, bytes - bytesAtKnown) + 256;
       bytesThisCall = bytes;
       inputUsd = spend.inputUsd({ input_tokens: 0, cache_creation_input_tokens: tokens }, model);
@@ -291,23 +334,24 @@ export async function runAgent(
     const last = round === maxRounds - 1 || spend.over(0.7) || room < 1024;
     if (round === 0) emit({ status: "Studying the question" });
     let said = "";
+    attempts++;
     const stream = client.messages.stream({
       // The reader's chosen Claude model (shared/ask-models.mjs), with adaptive thinking and an
       // effort level only where the model takes them.
       model: model.native ?? model.id,
-      max_tokens: Math.min(12000, model.maxOutput ?? 12000, room),
-      ...(model.thinking ? { thinking: { type: "adaptive" as const } } : {}),
-      ...(model.effort ? { output_config: { effort: "high" as const } } : {}),
+      max_tokens: Math.min(MAX_CLAUDE_OUTPUT, model.maxOutput ?? MAX_CLAUDE_OUTPUT, room),
+      ...claudeThinking(model),
       cache_control: { type: "ephemeral" },
       system,
       tools: TOOLS,
       ...(last ? { tool_choice: { type: "none" as const } } : {}),
       messages,
-    });
+    }, { signal });
     stream.on("text", (d) => { said += d; modelEmit({ delta: d }); });
     let message: Anthropic.Message;
     try { message = await stream.finalMessage(); badJson = 0; }
     catch (e) {
+      signal.throwIfAborted();
       // A tool input that could not be parsed at all (eager streaming): the round is asked
       // again, twice at most. API errors (rate limits, overload, auth) are not retried here.
       if (e instanceof Anthropic.APIError || badJson++ >= 2) throw e;
@@ -317,7 +361,7 @@ export async function runAgent(
     }
     units += unitsFor(message.usage, model); calls++;
     spend.call(message.usage, model);
-    { const u = message.usage as unknown as Record<string, number | null | undefined>; knownTokens = (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0); bytesAtKnown = bytesThisCall; }
+    { const u = (message.usage ?? {}) as unknown as Record<string, number | null | undefined>; knownTokens = (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0); bytesAtKnown = bytesThisCall; }
     const uses = message.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     // A refusal can cut a tool request off mid-input: no tool of that turn is run.
     if (message.stop_reason === "refusal") { text = said; refused = true; break; }

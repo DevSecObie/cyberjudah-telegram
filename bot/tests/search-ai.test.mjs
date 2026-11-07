@@ -4,11 +4,12 @@ import { build } from "esbuild";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { financialDb } from "./helpers/financial-db.mjs";
+import { modelOf } from "../../shared/ask-models.mjs";
 
 // ai.ts is bundled for Node first (as Workers bundles it).
 const out = new URL("./.build/search-ai.mjs", import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/ai.ts"; export * from "./src/credits.ts"; export { searchAnswers } from "./src/search-answer.ts"; export { reserveFreeBudget } from "./src/free-budget.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { reserveFreeBudget, answerApp, answerAppAgent, appAskModels, answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet } = await import(out);
+const { reserveFreeBudget, answerApp, answerAppAgent, appAskModels, answerSearch, withDeadline, DeadlineError, freeSpendToday, searchModel, startMeter, searchAnswers, ownerOfUser, grantPayment, wallet, finishMeter } = await import(out);
 
 /** A D1 close enough for the meter and spend tables, backed by real SQLite. */
 const d1 = () => {
@@ -165,8 +166,10 @@ test("search routes one bounded call through the gateway, cites the library and 
   assert.ok(JSON.stringify(calls[0].input.messages).includes("Genesis 14:18"));
   assert.ok(JSON.stringify(calls[0].input.messages).includes("source_n"));
   assert.equal(calls[0].input.tools, undefined);
-  assert.ok(calls[0].input.max_tokens >= 64 && calls[0].input.max_tokens <= 4096);
-  assert.deepEqual(calls[0].options, { gateway: { id: "default", collectLog: false } });
+  const reservedUsd = sql.prepare('SELECT reserved_micro FROM free_spend_holds').get().reserved_micro / 1e6;
+  assert.ok(calls[0].input.max_tokens >= 64 && calls[0].input.max_tokens * modelOf(GOOGLE).output / 1e6 <= reservedUsd, 'the output allowance fits the reserved budget');
+  assert.deepEqual(calls[0].options.gateway, { id: "default", collectLog: false });
+  assert.ok(calls[0].options.signal instanceof AbortSignal);
   assert.equal((await wallet(env, owner)).total_mc, 130_000);
   assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM credit_usage").get().n, 0);
   const spend = await freeSpendToday(env);
@@ -379,7 +382,7 @@ test("passages are tagged with the teacher the published class notes name, and o
   const realFetch = globalThis.fetch, realCaches = globalThis.caches;
   globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
   globalThis.fetch = async (url) => new URL(url).pathname === "/api/notes/index.json"
-    ? Response.json([{ url: "/classes/2026/passover", videoId: "abc123def45", teacher: "Deacon Isaac" }, { url: "/classes/x", videoId: "zzz", teacher: "" }])
+    ? Response.json([{ url: "/classes/2026/passover", videoId: "abc123def45", teacher: "Deacon Isaac", date: "2026-04-01" }, { url: "/classes/x", videoId: "zzz", teacher: "" }])
     : new Response("", { status: 404 });
   t.after(() => { globalThis.fetch = realFetch; globalThis.caches = realCaches; });
   const tagged = await withTeachers({ DATA_ORIGIN: "https://data.test" }, [
@@ -388,6 +391,25 @@ test("passages are tagged with the teacher the published class notes name, and o
     { kind: "class", title: "C", url: "/classes/x", video: "zzz", text: "z" },
   ]);
   assert.deepEqual(tagged.map((p) => p.teacher), ["Deacon Isaac", "Deacon Isaac", undefined]);
+  assert.deepEqual(tagged.map((p) => p.date), ["2026-04-01", "2026-04-01", undefined]);
+});
+
+test('class attribution isolates data origins, declines conflicting names and does not borrow external page paths', async t => {
+  const { withTeachers } = await import(out);
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  t.after(() => { globalThis.fetch = realFetch; globalThis.caches = realCaches; });
+  globalThis.caches = { default: { match: async () => undefined, put: async () => undefined } };
+  globalThis.fetch = async url => Response.json(new URL(url).hostname === 'first-records.test'
+    ? [{ videoId: 'abcdefghijk', url: '/classes/recorded', teacher: 'Recorded First', date: '2012-01-01' }, { videoId: 'lmnopqrstuv', teacher: 'Recorded A' }, { videoId: 'lmnopqrstuv', teacher: 'Recorded B' }]
+    : [{ videoId: 'abcdefghijk', url: '/classes/recorded', teacher: 'Recorded Second', date: '2026-01-01' }]);
+  const source = { kind: 'spoken', title: 'A title is not a teacher record', url: '', video: 'abcdefghijk', text: 'Existing words.' };
+  const first = { DATA_ORIGIN: 'https://first-records.test', SITE_URL: 'https://cyberjudah.test' };
+  const second = { DATA_ORIGIN: 'https://second-records.test', SITE_URL: first.SITE_URL };
+  assert.equal((await withTeachers(first, [source]))[0].teacher, 'Recorded First');
+  assert.equal((await withTeachers(second, [source]))[0].teacher, 'Recorded Second');
+  assert.equal((await withTeachers(first, [{ ...source, video: 'lmnopqrstuv' }]))[0].teacher, undefined);
+  assert.equal((await withTeachers(first, [{ ...source, video: undefined, url: 'https://outside.test/classes/recorded' }]))[0].teacher, undefined);
+  assert.equal((await withTeachers(first, [{ ...source, video: undefined, url: 'https://cyberjudah.test/classes/recorded' }]))[0].teacher, 'Recorded First');
 });
 
 test("a deep app question goes to the stronger free model when one is configured; a light one stays on the fast default", async () => {
@@ -469,4 +491,30 @@ test("past Claude's own daily cap a reader is answered by the free model, on the
   const b = await answerAppAgent(bare, "Why do we keep the feast?", "acct-d", [], [...AGREED, "Anthropic"]);
   assert.equal(b.ok, true, JSON.stringify(b));
   assert.ok(appAskModels(bare, undefined, true).some((m) => m.id === b.model && m.format !== "anthropic"), b.model);
+});
+
+
+test('admin model answers stop before inference when the separate daily pool is disabled', async t => {
+  const { env } = financialDb(t);
+  env.ASK_ADMIN_DAILY_USD_CAP = '0';
+  const result = await startMeter(env, 100000002, modelOf('claude-opus-5-5'));
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 429);
+  assert.equal(result.body.error, 'free-paused');
+});
+
+test('a cut answer records its cost but returns the entire reader hold', async t => {
+  const { env, sql } = financialDb(t);
+  const owner = await ownerOfUser(env, 7);
+  await grantPayment(env, owner, { charge: 'partial-fixture', kind: 'pack', stars: 10, mc: 1_000_000 });
+  const model = modelOf(GOOGLE);
+  const started = await startMeter(env, 7, model, { maxMc: 100_000 });
+  assert.equal(started.ok, true);
+  started.meter.spend.call({ input_tokens: 100, output_tokens: 10 }, model);
+  const settled = await finishMeter(env, started.meter, 'partial');
+  assert.equal(settled.charged_mc, 0);
+  assert.equal((await wallet(env, owner)).total_mc, 1_000_000);
+  const row = sql.prepare('SELECT status, cost_usd FROM credit_usage WHERE request_id = ?').get(started.meter.request);
+  assert.equal(row.status, 'partial');
+  assert.ok(row.cost_usd > 0);
 });

@@ -68,6 +68,23 @@ const answer = (page: Page) => page.locator(".msg--ai").last();
 const modelCalls = async (request: APIRequestContext, since: number) => ((await (await request.get(`${STAND_IN}/__log`)).json()) as Logged[]).filter((e) => e.at >= since && e.path === "/anthropic/v1/messages").map((e) => e.body as ClaudeRequest);
 const reminderOf = async (request: APIRequestContext, n: number) => (await request.get("/api/reminders?tz=UTC", { headers: { authorization: `tma ${initData(n)}` } })).json();
 
+test('incremental source previews retain earlier citations and replace an updated reading', async ({ page }) => {
+  await setup(page);
+  const first = { n: 1, kind: 'note', title: 'First source', url: '/first', text: 'Short preview.' };
+  const next = { n: 100, kind: 'note', title: 'Later source', url: '/later', text: 'Later preview.' };
+  const text = 'Recorded material [1] and [100].';
+  const packets = [{ passages: [first] }, { status: 'Reading the recorded sources' }, { passages_delta: [next] }, { passages_delta: [{ ...first, text: 'Expanded preview.' }] }, { delta: text }, { done: true, answer: text, sources: [] }];
+  await page.route('**/api/ask', route => route.fulfill({ contentType: 'application/x-ndjson', body: packets.map(packet => JSON.stringify(packet)).join('\n') + '\n' }));
+  await page.goto(`/ask${launch(98)}`);
+  await ask(page, 'Read the recorded sources');
+  await expect(answer(page).getByRole('button', { name: 'Source 1', exact: true })).toBeVisible();
+  await expect(answer(page).getByRole('button', { name: 'Source 100', exact: true })).toBeVisible();
+  await expect(answer(page).locator('.research')).toContainText('2 sources');
+  const shown = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!).turns.at(-1).passages, `cj:ask:${RUN + 98}`);
+  expect(shown.map((source: { n: number }) => source.n)).toEqual([1, 100]);
+  expect(shown[0].text).toBe('Expanded preview.');
+});
+
 test("an app question is answered from the app's own list of screens, with a link that opens in place", async ({ page, request }) => {
   await setup(page);
   const t0 = Date.now();
@@ -84,7 +101,7 @@ test("an app question is answered from the app's own list of screens, with a lin
     expect(c.system?.[0].cache_control).toEqual({ type: "ephemeral" });
     expect(c.cache_control).toEqual({ type: "ephemeral" });
     expect(c.tools?.every((t) => t.eager_input_streaming === true)).toBe(true);
-    expect(c.tools?.map((t) => t.name)).toEqual(["search_library", "app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change", "read_scripture", "look_up_word", "person", "verse_study", "law", "precepts", "outside_source", "timeline"]);
+    expect(c.tools?.map((t) => t.name)).toEqual(["search_library", "app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change", "read_scripture", "look_up_word", "person", "verse_study", "law", "precepts", "outside_source", "timeline", "search_classes", "read_note", "read_transcript", "commentary", "read_data"]);
   }
   // The tool result the model was given is the Worker's own feature list.
   const result = JSON.stringify(calls[1].messages.at(-1));
@@ -180,7 +197,7 @@ test("a refusal is said plainly and is not shown as an answer", async ({ page })
   await expect(answer(page)).toContainText("CyberJudah can't answer that one. Ask about the Scripture, the teachings or the app.");
 });
 
-test("leaving mid-answer: the server finishes and saves it, and the app waits for it and shows it", async ({ page }) => {
+test("leaving mid-answer stops research, refunds the hold and lets the reader retry", async ({ page, request }) => {
   test.setTimeout(90_000);
   await setup(page);
   await page.goto(`/ask${launch(8)}`);
@@ -201,10 +218,11 @@ test("leaving mid-answer: the server finishes and saves it, and the app waits fo
   }).toBe("Answer this slowly");
   // The app is closed and opened again mid-answer.
   await page.reload();
-  await expect(answer(page)).toContainText("Still answering");
-  await shot(page, "4-still-answering");
-  await expect(answer(page)).toContainText("A short answer to: Answer this slowly", { timeout: 30_000 });
-  await expect(answer(page)).not.toContainText("interrupted");
+  await expect(answer(page)).toContainText("This answer was interrupted before it was saved. Try again.", { timeout: 30_000 });
+  await expect(answer(page)).not.toContainText("A short answer to: Answer this slowly");
+  const usage = await (await request.get('/api/ask/history', { headers: { authorization: `tma ${initData(8)}` } })).json();
+  expect(usage.items.filter((item: { charged_mc: number }) => item.charged_mc > 0)).toHaveLength(0);
+  await shot(page, "4-interrupted-retry");
 });
 
 test("the conversation is kept per account on this device", async ({ page }) => {
