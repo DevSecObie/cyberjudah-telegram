@@ -117,7 +117,7 @@ test("a paid request runs once across simultaneous deliveries and completed repl
   const after = await books(20);
   const replay = await send({ ...body, q: `Different question ${requestId}` });
   expect(replay.status()).toBe(409);
-  expect((await replay.json()).error).toBe('request-used');
+  expect((await replay.json()).error).toBe('request-conflict');
   expect(await books(20)).toEqual(after);
   expect(after.lots).toBe(after.ledger);
   const log = await (await request.get(`${STAND_IN}/__log`)).json() as Logged[];
