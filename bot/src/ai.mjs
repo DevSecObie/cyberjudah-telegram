@@ -1,3 +1,6 @@
+import { groundedSystem, libraryData } from "./grounding.mjs";
+import { citationReport } from "./citations.mjs";
+
 /**
  * The parts of the AI features that need no bindings: how a passage becomes a vector's
  * record, how the answering prompt is built, and how an answer's citations are read back.
@@ -143,14 +146,14 @@ export function referencesIn(question) {
 
 /** The passages numbered for the model, the conversation so far, and the question. */
 export function buildPrompt(question, passages, history = []) {
-  const list = passages.map((p, i) => `[${i + 1}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.date ? ` (${p.date})` : ""}${p.teacher ? ` (taught by ${p.teacher})` : ""}${p.video ? ` (spoken at ${Math.round(p.t ?? 0)}s)` : ""}\n${p.text}`).join("\n\n");
+  const list = libraryData(passages);
   // Earlier answers are kept long enough that "the second point" or "that verse" still finds what it means.
   const turns = history.slice(-6).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content ?? "").slice(0, m.role === "assistant" ? 3000 : 1500) }));
   const material = passages.length
     ? `Passages from the library for this question:\n\n${list}`
     : "No passages from the library were found for this question. If it is a greeting, a thank-you or a question about you, answer it briefly. Otherwise say plainly that the library has nothing on it yet and suggest a clearer way to ask; quote no Scripture and cite nothing.";
   return [
-    { role: "system", content: SYSTEM },
+    { role: "system", content: groundedSystem(SYSTEM) },
     ...turns,
     { role: "user", content: `${material}\n\nQuestion: ${question}` },
   ];
@@ -158,9 +161,7 @@ export function buildPrompt(question, passages, history = []) {
 
 /** The citation numbers used in an answer, in order of first use, within the passages given. */
 export function citations(answer, count) {
-  const out = [];
-  for (const m of answer.matchAll(/\[(\d{1,2})(?:\s*,\s*(\d{1,2}))*\]/g)) for (const n of m[0].match(/\d{1,2}/g) ?? []) { const i = Number(n); if (i >= 1 && i <= count && !out.includes(i)) out.push(i); }
-  return out;
+  return citationReport(answer, count).supported;
 }
 
 /** Hits from the index, one per page or recording moment, the best score kept. */

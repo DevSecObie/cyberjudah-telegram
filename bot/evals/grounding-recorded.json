@@ -1,0 +1,1586 @@
+{
+  "version": 1,
+  "provenance": {
+    "source": "public CyberJudah library.sqlite",
+    "sha256": "99526e7806d61ac2ff38658d85d7ea502ac49aca356de7239fbe64811da39124",
+    "method": "Extractive public-source snapshots; no private conversations and no generated teaching. Non-extractive claim annotations require reviewer approval."
+  },
+  "cases": [
+    {
+      "id": "recorded-01",
+      "question": "What does Exodus 20:8 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Exodus 20:8",
+          "url": "/bible/exodus/20#v8",
+          "text": "Remember the sabbath day, to keep it holy.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Exodus 20:12",
+          "url": "/bible/exodus/20#v12",
+          "text": "Honour thy father and thy mother: that thy days may be long upon the land which the Lord thy God giveth thee.",
+          "n": 2
+        }
+      ],
+      "answer": "> Remember the sabbath day, to keep it holy. [1]",
+      "claims": [
+        {
+          "text": "Remember the sabbath day, to keep it holy.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Remember the sabbath day, to keep it holy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-02",
+      "question": "What does Exodus 20:12 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Deuteronomy 6:5",
+          "url": "/bible/deuteronomy/6#v5",
+          "text": "And thou shalt love the Lord thy God with all thine heart, and with all thy soul, and with all thy might.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Exodus 20:12",
+          "url": "/bible/exodus/20#v12",
+          "text": "Honour thy father and thy mother: that thy days may be long upon the land which the Lord thy God giveth thee.",
+          "n": 2
+        }
+      ],
+      "answer": "> Honour thy father and thy mother: that thy days may be long upon the land which the Lord thy God giveth thee. [2]",
+      "claims": [
+        {
+          "text": "Honour thy father and thy mother: that thy days may be long upon the land which the Lord thy God giveth thee.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Honour thy father and thy mother: that thy days may be long upon the land which the Lord thy God giveth thee."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-03",
+      "question": "What does Deuteronomy 6:5 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Deuteronomy 6:5",
+          "url": "/bible/deuteronomy/6#v5",
+          "text": "And thou shalt love the Lord thy God with all thine heart, and with all thy soul, and with all thy might.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Deuteronomy 10:12",
+          "url": "/bible/deuteronomy/10#v12",
+          "text": "And now, Israel, what doth the Lord thy God require of thee, but to fear the Lord thy God, to walk in all his ways, and to love him, and to serve the Lord thy God with all thy heart and with all thy soul,",
+          "n": 2
+        }
+      ],
+      "answer": "> And thou shalt love the Lord thy God with all thine heart, and with all thy soul, and with all thy might. [1]",
+      "claims": [
+        {
+          "text": "And thou shalt love the Lord thy God with all thine heart, and with all thy soul, and with all thy might.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "And thou shalt love the Lord thy God with all thine heart, and with all thy soul, and with all thy might."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-04",
+      "question": "What does Deuteronomy 10:12 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Psalms 119:105",
+          "url": "/bible/psalms/119#v105",
+          "text": "Thy word is a lamp unto my feet, and a light unto my path.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Deuteronomy 10:12",
+          "url": "/bible/deuteronomy/10#v12",
+          "text": "And now, Israel, what doth the Lord thy God require of thee, but to fear the Lord thy God, to walk in all his ways, and to love him, and to serve the Lord thy God with all thy heart and with all thy soul,",
+          "n": 2
+        }
+      ],
+      "answer": "> And now, Israel, what doth the Lord thy God require of thee, but to fear the Lord thy God, to walk in all his ways, and to love him, and to serve the Lord thy God with all thy heart and with all thy soul, [2]",
+      "claims": [
+        {
+          "text": "And now, Israel, what doth the Lord thy God require of thee, but to fear the Lord thy God, to walk in all his ways, and to love him, and to serve the Lord thy God with all thy heart and with all thy soul,",
+          "support": [
+            {
+              "n": 2,
+              "quote": "And now, Israel, what doth the Lord thy God require of thee, but to fear the Lord thy God, to walk in all his ways, and to love him, and to serve the Lord thy God with all thy heart and with all thy soul,"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-05",
+      "question": "What does Psalms 119:105 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Psalms 119:105",
+          "url": "/bible/psalms/119#v105",
+          "text": "Thy word is a lamp unto my feet, and a light unto my path.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Psalms 119:11",
+          "url": "/bible/psalms/119#v11",
+          "text": "Thy word have I hid in mine heart, that I might not sin against thee.",
+          "n": 2
+        }
+      ],
+      "answer": "> Thy word is a lamp unto my feet, and a light unto my path. [1]",
+      "claims": [
+        {
+          "text": "Thy word is a lamp unto my feet, and a light unto my path.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Thy word is a lamp unto my feet, and a light unto my path."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-06",
+      "question": "What does Psalms 119:11 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Proverbs 4:7",
+          "url": "/bible/proverbs/4#v7",
+          "text": "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Psalms 119:11",
+          "url": "/bible/psalms/119#v11",
+          "text": "Thy word have I hid in mine heart, that I might not sin against thee.",
+          "n": 2
+        }
+      ],
+      "answer": "> Thy word have I hid in mine heart, that I might not sin against thee. [2]",
+      "claims": [
+        {
+          "text": "Thy word have I hid in mine heart, that I might not sin against thee.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Thy word have I hid in mine heart, that I might not sin against thee."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-07",
+      "question": "What does Proverbs 4:7 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Proverbs 4:7",
+          "url": "/bible/proverbs/4#v7",
+          "text": "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Proverbs 3:5",
+          "url": "/bible/proverbs/3#v5",
+          "text": "Trust in the Lord with all thine heart; and lean not unto thine own understanding.",
+          "n": 2
+        }
+      ],
+      "answer": "> Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding. [1]",
+      "claims": [
+        {
+          "text": "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-08",
+      "question": "What does Proverbs 3:5 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Micah 6:8",
+          "url": "/bible/micah/6#v8",
+          "text": "He hath shewed thee, O man, what is good; and what doth the Lord require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Proverbs 3:5",
+          "url": "/bible/proverbs/3#v5",
+          "text": "Trust in the Lord with all thine heart; and lean not unto thine own understanding.",
+          "n": 2
+        }
+      ],
+      "answer": "> Trust in the Lord with all thine heart; and lean not unto thine own understanding. [2]",
+      "claims": [
+        {
+          "text": "Trust in the Lord with all thine heart; and lean not unto thine own understanding.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Trust in the Lord with all thine heart; and lean not unto thine own understanding."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-09",
+      "question": "What does Micah 6:8 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Micah 6:8",
+          "url": "/bible/micah/6#v8",
+          "text": "He hath shewed thee, O man, what is good; and what doth the Lord require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Isaiah 1:18",
+          "url": "/bible/isaiah/1#v18",
+          "text": "Come now, and let us reason together, saith the Lord: though your sins be as scarlet, they shall be as white as snow; though they be red like crimson, they shall be as wool.",
+          "n": 2
+        }
+      ],
+      "answer": "> He hath shewed thee, O man, what is good; and what doth the Lord require of thee, but to do justly, and to love mercy, and to walk humbly with thy God? [1]",
+      "claims": [
+        {
+          "text": "He hath shewed thee, O man, what is good; and what doth the Lord require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?",
+          "support": [
+            {
+              "n": 1,
+              "quote": "He hath shewed thee, O man, what is good; and what doth the Lord require of thee, but to do justly, and to love mercy, and to walk humbly with thy God?"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-10",
+      "question": "What does Isaiah 1:18 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Matthew 5:17",
+          "url": "/bible/matthew/5#v17",
+          "text": "Think not that I am come to destroy the law, or the prophets: I am not come to destroy, but to fulfil.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Isaiah 1:18",
+          "url": "/bible/isaiah/1#v18",
+          "text": "Come now, and let us reason together, saith the Lord: though your sins be as scarlet, they shall be as white as snow; though they be red like crimson, they shall be as wool.",
+          "n": 2
+        }
+      ],
+      "answer": "> Come now, and let us reason together, saith the Lord: though your sins be as scarlet, they shall be as white as snow; though they be red like crimson, they shall be as wool. [2]",
+      "claims": [
+        {
+          "text": "Come now, and let us reason together, saith the Lord: though your sins be as scarlet, they shall be as white as snow; though they be red like crimson, they shall be as wool.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Come now, and let us reason together, saith the Lord: though your sins be as scarlet, they shall be as white as snow; though they be red like crimson, they shall be as wool."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-11",
+      "question": "What does Matthew 5:17 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Matthew 5:17",
+          "url": "/bible/matthew/5#v17",
+          "text": "Think not that I am come to destroy the law, or the prophets: I am not come to destroy, but to fulfil.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "John 8:32",
+          "url": "/bible/john/8#v32",
+          "text": "And ye shall know the truth, and the truth shall make you free.",
+          "n": 2
+        }
+      ],
+      "answer": "> Think not that I am come to destroy the law, or the prophets: I am not come to destroy, but to fulfil. [1]",
+      "claims": [
+        {
+          "text": "Think not that I am come to destroy the law, or the prophets: I am not come to destroy, but to fulfil.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Think not that I am come to destroy the law, or the prophets: I am not come to destroy, but to fulfil."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-12",
+      "question": "What does John 8:32 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "John 11:35",
+          "url": "/bible/john/11#v35",
+          "text": "Jesus wept.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "John 8:32",
+          "url": "/bible/john/8#v32",
+          "text": "And ye shall know the truth, and the truth shall make you free.",
+          "n": 2
+        }
+      ],
+      "answer": "> And ye shall know the truth, and the truth shall make you free. [2]",
+      "claims": [
+        {
+          "text": "And ye shall know the truth, and the truth shall make you free.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "And ye shall know the truth, and the truth shall make you free."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-13",
+      "question": "What does John 11:35 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "John 11:35",
+          "url": "/bible/john/11#v35",
+          "text": "Jesus wept.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "John 14:15",
+          "url": "/bible/john/14#v15",
+          "text": "If ye love me, keep my commandments.",
+          "n": 2
+        }
+      ],
+      "answer": "> Jesus wept. [1]",
+      "claims": [
+        {
+          "text": "Jesus wept.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Jesus wept."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-14",
+      "question": "What does John 14:15 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "2 Timothy 2:15",
+          "url": "/bible/2-timothy/2#v15",
+          "text": "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "John 14:15",
+          "url": "/bible/john/14#v15",
+          "text": "If ye love me, keep my commandments.",
+          "n": 2
+        }
+      ],
+      "answer": "> If ye love me, keep my commandments. [2]",
+      "claims": [
+        {
+          "text": "If ye love me, keep my commandments.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "If ye love me, keep my commandments."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-15",
+      "question": "What does 2 Timothy 2:15 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "2 Timothy 2:15",
+          "url": "/bible/2-timothy/2#v15",
+          "text": "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "James 1:22",
+          "url": "/bible/james/1#v22",
+          "text": "But be ye doers of the word, and not hearers only, deceiving your own selves.",
+          "n": 2
+        }
+      ],
+      "answer": "> Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth. [1]",
+      "claims": [
+        {
+          "text": "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Study to shew thyself approved unto God, a workman that needeth not to be ashamed, rightly dividing the word of truth."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-16",
+      "question": "What does James 1:22 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Joshua 1:8",
+          "url": "/bible/joshua/1#v8",
+          "text": "This book of the law shall not depart out of thy mouth; but thou shalt meditate therein day and night, that thou mayest observe to do according to all that is written therein: for then thou shalt make thy way prosperous, and then thou shalt have good success.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "James 1:22",
+          "url": "/bible/james/1#v22",
+          "text": "But be ye doers of the word, and not hearers only, deceiving your own selves.",
+          "n": 2
+        }
+      ],
+      "answer": "> But be ye doers of the word, and not hearers only, deceiving your own selves. [2]",
+      "claims": [
+        {
+          "text": "But be ye doers of the word, and not hearers only, deceiving your own selves.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "But be ye doers of the word, and not hearers only, deceiving your own selves."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-17",
+      "question": "What does Joshua 1:8 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Joshua 1:8",
+          "url": "/bible/joshua/1#v8",
+          "text": "This book of the law shall not depart out of thy mouth; but thou shalt meditate therein day and night, that thou mayest observe to do according to all that is written therein: for then thou shalt make thy way prosperous, and then thou shalt have good success.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Sirach 1:1",
+          "url": "/bible/sirach/1#v1",
+          "text": "All wisdom cometh from the Lord, and is with him for ever.",
+          "n": 2
+        }
+      ],
+      "answer": "> This book of the law shall not depart out of thy mouth; but thou shalt meditate therein day and night, that thou mayest observe to do according to all that is written therein: for then thou shalt make thy way prosperous, and then thou shalt have good success. [1]",
+      "claims": [
+        {
+          "text": "This book of the law shall not depart out of thy mouth; but thou shalt meditate therein day and night, that thou mayest observe to do according to all that is written therein: for then thou shalt make thy way prosperous, and then thou shalt have good success.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "This book of the law shall not depart out of thy mouth; but thou shalt meditate therein day and night, that thou mayest observe to do according to all that is written therein: for then thou shalt make thy way prosperous, and then thou shalt have good success."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-18",
+      "question": "What does Sirach 1:1 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Wisdom of Solomon 1:1",
+          "url": "/bible/wisdom-of-solomon/1#v1",
+          "text": "Love righteousness, ye that be judges of the earth: think of the Lord with a good (heart,) and in simplicity of heart seek him.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Sirach 1:1",
+          "url": "/bible/sirach/1#v1",
+          "text": "All wisdom cometh from the Lord, and is with him for ever.",
+          "n": 2
+        }
+      ],
+      "answer": "> All wisdom cometh from the Lord, and is with him for ever. [2]",
+      "claims": [
+        {
+          "text": "All wisdom cometh from the Lord, and is with him for ever.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "All wisdom cometh from the Lord, and is with him for ever."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-19",
+      "question": "What does Wisdom of Solomon 1:1 say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Wisdom of Solomon 1:1",
+          "url": "/bible/wisdom-of-solomon/1#v1",
+          "text": "Love righteousness, ye that be judges of the earth: think of the Lord with a good (heart,) and in simplicity of heart seek him.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "1 Maccabees 2:50",
+          "url": "/bible/1-maccabees/2#v50",
+          "text": "Now therefore, my sons, be ye zealous for the law, and give your lives for the covenant of your fathers.",
+          "n": 2
+        }
+      ],
+      "answer": "> Love righteousness, ye that be judges of the earth: think of the Lord with a good (heart,) and in simplicity of heart seek him. [1]",
+      "claims": [
+        {
+          "text": "Love righteousness, ye that be judges of the earth: think of the Lord with a good (heart,) and in simplicity of heart seek him.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Love righteousness, ye that be judges of the earth: think of the Lord with a good (heart,) and in simplicity of heart seek him."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-20",
+      "question": "What does 1 Maccabees 2:50 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.1 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.1",
+          "text": "I am the LORD your God, you shall have no other gods besides me.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "1 Maccabees 2:50",
+          "url": "/bible/1-maccabees/2#v50",
+          "text": "Now therefore, my sons, be ye zealous for the law, and give your lives for the covenant of your fathers.",
+          "n": 2
+        }
+      ],
+      "answer": "> Now therefore, my sons, be ye zealous for the law, and give your lives for the covenant of your fathers. [2]",
+      "claims": [
+        {
+          "text": "Now therefore, my sons, be ye zealous for the law, and give your lives for the covenant of your fathers.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Now therefore, my sons, be ye zealous for the law, and give your lives for the covenant of your fathers."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-21",
+      "question": "What does library law 1A.1 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.1 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.1",
+          "text": "I am the LORD your God, you shall have no other gods besides me.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.2 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.2",
+          "text": "You shall not make for yourself any carved image, or any likeness of anything; you shall not bow down to them nor serve them.",
+          "n": 2
+        }
+      ],
+      "answer": "> I am the LORD your God, you shall have no other gods besides me. [1]",
+      "claims": [
+        {
+          "text": "I am the LORD your God, you shall have no other gods besides me.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "I am the LORD your God, you shall have no other gods besides me."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-22",
+      "question": "What does library law 1A.2 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.3 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.3",
+          "text": "You shall not take the name of the LORD your God in vain.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.2 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.2",
+          "text": "You shall not make for yourself any carved image, or any likeness of anything; you shall not bow down to them nor serve them.",
+          "n": 2
+        }
+      ],
+      "answer": "> You shall not make for yourself any carved image, or any likeness of anything; you shall not bow down to them nor serve them. [2]",
+      "claims": [
+        {
+          "text": "You shall not make for yourself any carved image, or any likeness of anything; you shall not bow down to them nor serve them.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "You shall not make for yourself any carved image, or any likeness of anything; you shall not bow down to them nor serve them."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-23",
+      "question": "What does library law 1A.3 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.3 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.3",
+          "text": "You shall not take the name of the LORD your God in vain.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.4 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.4",
+          "text": "Observe the Sabbath day, to keep it holy.",
+          "n": 2
+        }
+      ],
+      "answer": "> You shall not take the name of the LORD your God in vain. [1]",
+      "claims": [
+        {
+          "text": "You shall not take the name of the LORD your God in vain.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "You shall not take the name of the LORD your God in vain."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-24",
+      "question": "What does library law 1A.4 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.5 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.5",
+          "text": "Honor your father and your mother.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.4 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.4",
+          "text": "Observe the Sabbath day, to keep it holy.",
+          "n": 2
+        }
+      ],
+      "answer": "> Observe the Sabbath day, to keep it holy. [2]",
+      "claims": [
+        {
+          "text": "Observe the Sabbath day, to keep it holy.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Observe the Sabbath day, to keep it holy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-25",
+      "question": "What does library law 1A.5 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.5 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.5",
+          "text": "Honor your father and your mother.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.6 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.6",
+          "text": "You shall not murder.",
+          "n": 2
+        }
+      ],
+      "answer": "> Honor your father and your mother. [1]",
+      "claims": [
+        {
+          "text": "Honor your father and your mother.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Honor your father and your mother."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-26",
+      "question": "What does library law 1A.6 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.7 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.7",
+          "text": "You shall not commit adultery.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.6 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.6",
+          "text": "You shall not murder.",
+          "n": 2
+        }
+      ],
+      "answer": "> You shall not murder. [2]",
+      "claims": [
+        {
+          "text": "You shall not murder.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "You shall not murder."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-27",
+      "question": "What does library law 1A.7 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.7 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.7",
+          "text": "You shall not commit adultery.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.8 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.8",
+          "text": "You shall not steal.",
+          "n": 2
+        }
+      ],
+      "answer": "> You shall not commit adultery. [1]",
+      "claims": [
+        {
+          "text": "You shall not commit adultery.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "You shall not commit adultery."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-28",
+      "question": "What does library law 1A.8 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.9 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.9",
+          "text": "You shall not bear false witness.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.8 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.8",
+          "text": "You shall not steal.",
+          "n": 2
+        }
+      ],
+      "answer": "> You shall not steal. [2]",
+      "claims": [
+        {
+          "text": "You shall not steal.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "You shall not steal."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-29",
+      "question": "What does library law 1A.9 say?",
+      "retrieval": [
+        {
+          "kind": "law",
+          "title": "1A.9 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.9",
+          "text": "You shall not bear false witness.",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.10 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.10",
+          "text": "You shall not covet anything that is your neighbor's.",
+          "n": 2
+        }
+      ],
+      "answer": "> You shall not bear false witness. [1]",
+      "claims": [
+        {
+          "text": "You shall not bear false witness.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "You shall not bear false witness."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-30",
+      "question": "What does library law 1A.10 say?",
+      "retrieval": [
+        {
+          "kind": "note",
+          "title": "SABBATH MORNING CLASS: If Thou Come to Serve the Lord",
+          "url": "/classes/2021/2021-05-15-sabbath-morning-class-if-thou-come-to-serve-the-lord",
+          "text": "You come out thinking you are about to go to the Sabbath and your car is gone, and you have got the kids with you, and now you are about to lose your job because you have no way to get to work. - All this stuff happens, but this is where your faith comes in.",
+          "teacher": "Captain Pallu",
+          "date": "2021-05-15",
+          "n": 1
+        },
+        {
+          "kind": "law",
+          "title": "1A.10 · Ten Commandments",
+          "url": "/law/01-the-ten-commandments/1a#1A.10",
+          "text": "You shall not covet anything that is your neighbor's.",
+          "n": 2
+        }
+      ],
+      "answer": "> You shall not covet anything that is your neighbor's. [2]",
+      "claims": [
+        {
+          "text": "You shall not covet anything that is your neighbor's.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "You shall not covet anything that is your neighbor's."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-31",
+      "question": "What does the recorded note say about sabbath?",
+      "retrieval": [
+        {
+          "kind": "note",
+          "title": "SABBATH MORNING CLASS: If Thou Come to Serve the Lord",
+          "url": "/classes/2021/2021-05-15-sabbath-morning-class-if-thou-come-to-serve-the-lord",
+          "text": "You come out thinking you are about to go to the Sabbath and your car is gone, and you have got the kids with you, and now you are about to lose your job because you have no way to get to work. - All this stuff happens, but this is where your faith comes in.",
+          "teacher": "Captain Pallu",
+          "date": "2021-05-15",
+          "n": 1
+        },
+        {
+          "kind": "note",
+          "title": "The Power Hour: Passover Commentary, Removing the Leaven",
+          "url": "/classes/2022/2022-04-06-the-power-hour-passover-commentary-removing-the-leaven",
+          "text": "The Power Hour · 2022-04-06 · Deacon Yoshua Opens Luke 12 · Luke 17 · Hos 1 · Mal 4 · Titus 3 · Sir 44 · Num 27 · Acts 8 · Heb 12 · Matt 12 · Josh 1 · 1 Thess 5 · Num 14 · 2 Kgs 2 · Heb 13 · Phil 2 Introduction 9:59 The Power Hour from IUIC Phoenix after Passover 2022, the first show since its host was raised from captain to deacon, with an officer and Soldier Eric.",
+          "teacher": "Deacon Yoshua",
+          "date": "2022-04-06",
+          "n": 2
+        }
+      ],
+      "answer": "> You come out thinking you are about to go to the Sabbath and your car is gone, and you have got the kids with you, and now you are about to lose your job because you have no way to get to work. - All this stuff happens, but this is where your faith comes in. [1]",
+      "claims": [
+        {
+          "text": "You come out thinking you are about to go to the Sabbath and your car is gone, and you have got the kids with you, and now you are about to lose your job because you have no way to get to work. - All this stuff happens, but this is where your faith comes in.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "You come out thinking you are about to go to the Sabbath and your car is gone, and you have got the kids with you, and now you are about to lose your job because you have no way to get to work. - All this stuff happens, but this is where your faith comes in."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-32",
+      "question": "What does the recorded note say about passover?",
+      "retrieval": [
+        {
+          "kind": "note",
+          "title": "Mind Control & The Power Of Prayer",
+          "url": "/classes/2025/2025-11-22-mind-control-the-power-of-prayer",
+          "text": "IUIC in the ClassRoom · 2025-11-22 Opens 1 Cor 10 · Rev 12 · Job 9 · 2 Cor 11 · Gal 1 · Ps 64 · Rev 1 · Deut 28 · Ezek 34 · Isa 56 · Jer 23 · Isa 28 · Luke 21 · Heb 2 · Ezek 22 · 1 Cor 15 · and 17 more below Introduction 12:59 A class on mind control and the power of prayer: we think we have free will, but every decision we make has been filtered through something or somebody, and a man is either doing the work of the Lord or the work of Satan.",
+          "teacher": "Captain Hananiah",
+          "date": "2025-11-22",
+          "n": 1
+        },
+        {
+          "kind": "note",
+          "title": "The Power Hour: Passover Commentary, Removing the Leaven",
+          "url": "/classes/2022/2022-04-06-the-power-hour-passover-commentary-removing-the-leaven",
+          "text": "The Power Hour · 2022-04-06 · Deacon Yoshua Opens Luke 12 · Luke 17 · Hos 1 · Mal 4 · Titus 3 · Sir 44 · Num 27 · Acts 8 · Heb 12 · Matt 12 · Josh 1 · 1 Thess 5 · Num 14 · 2 Kgs 2 · Heb 13 · Phil 2 Introduction 9:59 The Power Hour from IUIC Phoenix after Passover 2022, the first show since its host was raised from captain to deacon, with an officer and Soldier Eric.",
+          "teacher": "Deacon Yoshua",
+          "date": "2022-04-06",
+          "n": 2
+        }
+      ],
+      "answer": "> The Power Hour · 2022-04-06 · Deacon Yoshua Opens Luke 12 · Luke 17 · Hos 1 · Mal 4 · Titus 3 · Sir 44 · Num 27 · Acts 8 · Heb 12 · Matt 12 · Josh 1 · 1 Thess 5 · Num 14 · 2 Kgs 2 · Heb 13 · Phil 2 Introduction 9:59 The Power Hour from IUIC Phoenix after Passover 2022, the first show since its host was raised from captain to deacon, with an officer and Soldier Eric. [2]",
+      "claims": [
+        {
+          "text": "The Power Hour · 2022-04-06 · Deacon Yoshua Opens Luke 12 · Luke 17 · Hos 1 · Mal 4 · Titus 3 · Sir 44 · Num 27 · Acts 8 · Heb 12 · Matt 12 · Josh 1 · 1 Thess 5 · Num 14 · 2 Kgs 2 · Heb 13 · Phil 2 Introduction 9:59 The Power Hour from IUIC Phoenix after Passover 2022, the first show since its host was raised from captain to deacon, with an officer and Soldier Eric.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "The Power Hour · 2022-04-06 · Deacon Yoshua Opens Luke 12 · Luke 17 · Hos 1 · Mal 4 · Titus 3 · Sir 44 · Num 27 · Acts 8 · Heb 12 · Matt 12 · Josh 1 · 1 Thess 5 · Num 14 · 2 Kgs 2 · Heb 13 · Phil 2 Introduction 9:59 The Power Hour from IUIC Phoenix after Passover 2022, the first show since its host was raised from captain to deacon, with an officer and Soldier Eric."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-33",
+      "question": "What does the recorded note say about prayer?",
+      "retrieval": [
+        {
+          "kind": "note",
+          "title": "Mind Control & The Power Of Prayer",
+          "url": "/classes/2025/2025-11-22-mind-control-the-power-of-prayer",
+          "text": "IUIC in the ClassRoom · 2025-11-22 Opens 1 Cor 10 · Rev 12 · Job 9 · 2 Cor 11 · Gal 1 · Ps 64 · Rev 1 · Deut 28 · Ezek 34 · Isa 56 · Jer 23 · Isa 28 · Luke 21 · Heb 2 · Ezek 22 · 1 Cor 15 · and 17 more below Introduction 12:59 A class on mind control and the power of prayer: we think we have free will, but every decision we make has been filtered through something or somebody, and a man is either doing the work of the Lord or the work of Satan.",
+          "teacher": "Captain Hananiah",
+          "date": "2025-11-22",
+          "n": 1
+        },
+        {
+          "kind": "note",
+          "title": "The Three Trials of Faith",
+          "url": "/classes/2012/2012-10-24-the-three-trials-of-faith",
+          "text": "The Truth Shall Make You Free · 2012-10-24 · Bishop Nathanyel, with Deacon Asaph Opens John 8 · Luke 4 · Sir 2 · 1 Pet 4 · Lev 19 · 1 Cor 10 · James 1 · Rom 5 · Sir 1 · Job 1 · Rom 7 · Matt 19 · 1 Cor 7 · Eph 5 · Sir 25 · Sir 26 · and 4 more below Introduction 1:00 Today's topic is three trials of faith.",
+          "teacher": "Bishop Nathanyel",
+          "date": "2012-10-24",
+          "n": 2
+        }
+      ],
+      "answer": "> IUIC in the ClassRoom · 2025-11-22 Opens 1 Cor 10 · Rev 12 · Job 9 · 2 Cor 11 · Gal 1 · Ps 64 · Rev 1 · Deut 28 · Ezek 34 · Isa 56 · Jer 23 · Isa 28 · Luke 21 · Heb 2 · Ezek 22 · 1 Cor 15 · and 17 more below Introduction 12:59 A class on mind control and the power of prayer: we think we have free will, but every decision we make has been filtered through something or somebody, and a man is either  [1]",
+      "claims": [
+        {
+          "text": "IUIC in the ClassRoom · 2025-11-22 Opens 1 Cor 10 · Rev 12 · Job 9 · 2 Cor 11 · Gal 1 · Ps 64 · Rev 1 · Deut 28 · Ezek 34 · Isa 56 · Jer 23 · Isa 28 · Luke 21 · Heb 2 · Ezek 22 · 1 Cor 15 · and 17 more below Introduction 12:59 A class on mind control and the power of prayer: we think we have free will, but every decision we make has been filtered through something or somebody, and a man is either ",
+          "support": [
+            {
+              "n": 1,
+              "quote": "IUIC in the ClassRoom · 2025-11-22 Opens 1 Cor 10 · Rev 12 · Job 9 · 2 Cor 11 · Gal 1 · Ps 64 · Rev 1 · Deut 28 · Ezek 34 · Isa 56 · Jer 23 · Isa 28 · Luke 21 · Heb 2 · Ezek 22 · 1 Cor 15 · and 17 more below Introduction 12:59 A class on mind control and the power of prayer: we think we have free will, but every decision we make has been filtered through something or somebody, and a man is either "
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-34",
+      "question": "What does the recorded note say about faith?",
+      "retrieval": [
+        {
+          "kind": "note",
+          "title": "War & the Pain of Repentance",
+          "url": "/classes/2026/2026-03-01-war-the-pain-of-repentance",
+          "text": "IUIC in the ClassRoom · 2026-03-01 Opens Jer 51 · Hab 2 · Lam 4 · Ezek 28 · Rev 18 · 1 Tim 6 · 2 Tim 1 · 2 Tim 4 · Isa 26 Introduction 17:28 War and the pain of repentance.",
+          "teacher": "Bishop Nathanyel",
+          "date": "2026-03-01",
+          "n": 1
+        },
+        {
+          "kind": "note",
+          "title": "The Three Trials of Faith",
+          "url": "/classes/2012/2012-10-24-the-three-trials-of-faith",
+          "text": "The Truth Shall Make You Free · 2012-10-24 · Bishop Nathanyel, with Deacon Asaph Opens John 8 · Luke 4 · Sir 2 · 1 Pet 4 · Lev 19 · 1 Cor 10 · James 1 · Rom 5 · Sir 1 · Job 1 · Rom 7 · Matt 19 · 1 Cor 7 · Eph 5 · Sir 25 · Sir 26 · and 4 more below Introduction 1:00 Today's topic is three trials of faith.",
+          "teacher": "Bishop Nathanyel",
+          "date": "2012-10-24",
+          "n": 2
+        }
+      ],
+      "answer": "> The Truth Shall Make You Free · 2012-10-24 · Bishop Nathanyel, with Deacon Asaph Opens John 8 · Luke 4 · Sir 2 · 1 Pet 4 · Lev 19 · 1 Cor 10 · James 1 · Rom 5 · Sir 1 · Job 1 · Rom 7 · Matt 19 · 1 Cor 7 · Eph 5 · Sir 25 · Sir 26 · and 4 more below Introduction 1:00 Today's topic is three trials of faith. [2]",
+      "claims": [
+        {
+          "text": "The Truth Shall Make You Free · 2012-10-24 · Bishop Nathanyel, with Deacon Asaph Opens John 8 · Luke 4 · Sir 2 · 1 Pet 4 · Lev 19 · 1 Cor 10 · James 1 · Rom 5 · Sir 1 · Job 1 · Rom 7 · Matt 19 · 1 Cor 7 · Eph 5 · Sir 25 · Sir 26 · and 4 more below Introduction 1:00 Today's topic is three trials of faith.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "The Truth Shall Make You Free · 2012-10-24 · Bishop Nathanyel, with Deacon Asaph Opens John 8 · Luke 4 · Sir 2 · 1 Pet 4 · Lev 19 · 1 Cor 10 · James 1 · Rom 5 · Sir 1 · Job 1 · Rom 7 · Matt 19 · 1 Cor 7 · Eph 5 · Sir 25 · Sir 26 · and 4 more below Introduction 1:00 Today's topic is three trials of faith."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-35",
+      "question": "What does the recorded note say about repentance?",
+      "retrieval": [
+        {
+          "kind": "note",
+          "title": "War & the Pain of Repentance",
+          "url": "/classes/2026/2026-03-01-war-the-pain-of-repentance",
+          "text": "IUIC in the ClassRoom · 2026-03-01 Opens Jer 51 · Hab 2 · Lam 4 · Ezek 28 · Rev 18 · 1 Tim 6 · 2 Tim 1 · 2 Tim 4 · Isa 26 Introduction 17:28 War and the pain of repentance.",
+          "teacher": "Bishop Nathanyel",
+          "date": "2026-03-01",
+          "n": 1
+        },
+        {
+          "kind": "note",
+          "title": "Genesis 50: The Burial of Jacob and the Forgiveness of Joseph",
+          "url": "/study/genesis/50",
+          "text": "They sent a messenger pleading forgiveness and fell down before his face: Behold, we be thy servants. - Joseph wept and answered, Fear not: for am I in the place of God?",
+          "n": 2
+        }
+      ],
+      "answer": "> IUIC in the ClassRoom · 2026-03-01 Opens Jer 51 · Hab 2 · Lam 4 · Ezek 28 · Rev 18 · 1 Tim 6 · 2 Tim 1 · 2 Tim 4 · Isa 26 Introduction 17:28 War and the pain of repentance. [1]",
+      "claims": [
+        {
+          "text": "IUIC in the ClassRoom · 2026-03-01 Opens Jer 51 · Hab 2 · Lam 4 · Ezek 28 · Rev 18 · 1 Tim 6 · 2 Tim 1 · 2 Tim 4 · Isa 26 Introduction 17:28 War and the pain of repentance.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "IUIC in the ClassRoom · 2026-03-01 Opens Jer 51 · Hab 2 · Lam 4 · Ezek 28 · Rev 18 · 1 Tim 6 · 2 Tim 1 · 2 Tim 4 · Isa 26 Introduction 17:28 War and the pain of repentance."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-36",
+      "question": "What does the recorded note say about forgiveness?",
+      "retrieval": [
+        {
+          "kind": "note",
+          "title": "1 John 2: The Antichrist and Keeping His Commandments",
+          "url": "/study/1-john/2",
+          "text": "By this shall all men know that ye are my disciples, if ye have love one to another.” Christ said it to the disciples, and John repeated it in his epistle. - Mark 12:28-31 28 And one of the scribes came, and having heard them reasoning together, and perceiving that he had answered them well, asked him, Which is the first commandment of all? 29 And Jesus answered him, The first of all the commandments is, Hear, O Israel; The Lord our God is one Lord: 30 And thou shalt love the Lord thy God with all thy heart, and with all thy soul, and with all thy mind, and with all thy strength: this is the first commandment. 31 And the second is like, namely this, Thou shalt love thy neighbour as thyself.",
+          "n": 1
+        },
+        {
+          "kind": "note",
+          "title": "Genesis 50: The Burial of Jacob and the Forgiveness of Joseph",
+          "url": "/study/genesis/50",
+          "text": "They sent a messenger pleading forgiveness and fell down before his face: Behold, we be thy servants. - Joseph wept and answered, Fear not: for am I in the place of God?",
+          "n": 2
+        }
+      ],
+      "answer": "> They sent a messenger pleading forgiveness and fell down before his face: Behold, we be thy servants. - Joseph wept and answered, Fear not: for am I in the place of God? [2]",
+      "claims": [
+        {
+          "text": "They sent a messenger pleading forgiveness and fell down before his face: Behold, we be thy servants. - Joseph wept and answered, Fear not: for am I in the place of God?",
+          "support": [
+            {
+              "n": 2,
+              "quote": "They sent a messenger pleading forgiveness and fell down before his face: Behold, we be thy servants. - Joseph wept and answered, Fear not: for am I in the place of God?"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-37",
+      "question": "What does the recorded note say about commandments?",
+      "retrieval": [
+        {
+          "kind": "note",
+          "title": "1 John 2: The Antichrist and Keeping His Commandments",
+          "url": "/study/1-john/2",
+          "text": "By this shall all men know that ye are my disciples, if ye have love one to another.” Christ said it to the disciples, and John repeated it in his epistle. - Mark 12:28-31 28 And one of the scribes came, and having heard them reasoning together, and perceiving that he had answered them well, asked him, Which is the first commandment of all? 29 And Jesus answered him, The first of all the commandments is, Hear, O Israel; The Lord our God is one Lord: 30 And thou shalt love the Lord thy God with all thy heart, and with all thy soul, and with all thy mind, and with all thy strength: this is the first commandment. 31 And the second is like, namely this, Thou shalt love thy neighbour as thyself.",
+          "n": 1
+        },
+        {
+          "kind": "note",
+          "title": "Character & Integrity: The Hidden Strength Behind Wisdom",
+          "url": "/classes/2026/2026-05-23-character-integrity-the-hidden-strength-behind-wisdom",
+          "text": "Scriptures Opened Wisdom of Solomon 1:3-8 1:05 3 For froward thoughts separate from God: and his power, when it is tried, reproveth the unwise. 4 For into a malicious soul wisdom shall not enter; nor dwell in the body that is subject unto sin. 5 For the holy spirit of discipline will flee deceit, and remove from thoughts that are without understanding, and will not abide when unrighteousness cometh in. 6 For wisdom is a loving spirit; and will not acquit a blasphemer of his words: for God is witness of his reins, and a true beholder of his heart, and a hearer of his tongue. 7 For the Spirit of the Lord filleth the world: and that which containeth all things hath knowledge of the voice. 8 Therefore he that speaketh unrighteous things cannot be hid: neither shall vengeance, when it punisheth, pass by him. - A froward thought means it is your worldly thought.",
+          "teacher": "Captain Pallu",
+          "date": "2026-05-23",
+          "n": 2
+        }
+      ],
+      "answer": "> By this shall all men know that ye are my disciples, if ye have love one to another.” Christ said it to the disciples, and John repeated it in his epistle. - Mark 12:28-31 28 And one of the scribes came, and having heard them reasoning together, and perceiving that he had answered them well, asked him, Which is the first commandment of all? 29 And Jesus answered him, The first of all the commandme [1]",
+      "claims": [
+        {
+          "text": "By this shall all men know that ye are my disciples, if ye have love one to another.” Christ said it to the disciples, and John repeated it in his epistle. - Mark 12:28-31 28 And one of the scribes came, and having heard them reasoning together, and perceiving that he had answered them well, asked him, Which is the first commandment of all? 29 And Jesus answered him, The first of all the commandme",
+          "support": [
+            {
+              "n": 1,
+              "quote": "By this shall all men know that ye are my disciples, if ye have love one to another.” Christ said it to the disciples, and John repeated it in his epistle. - Mark 12:28-31 28 And one of the scribes came, and having heard them reasoning together, and perceiving that he had answered them well, asked him, Which is the first commandment of all? 29 And Jesus answered him, The first of all the commandme"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-38",
+      "question": "What does the recorded note say about wisdom?",
+      "retrieval": [
+        {
+          "kind": "case",
+          "title": "Adam and Eve",
+          "url": "/cases/01-primeval/adam-and-eve",
+          "text": "Adam was the chosen of the Most High, formed of the dust of the ground and given the breath of life, which is the commandments (Genesis 2:7). The serpent is Satan, who taught Eve doctrine, that she would not die, and played on her envy, the desire to be equal (Genesis 3:1-5; Wisdom of Solomon 2:24). The fruit she ate was the lie, and she taught her husband what the serpent had taught her (Genesis 3:6). Their nakedness was sin, and the sin was idolatry (Genesis 3:7; Exodus 32:25). The Lord covered them with the first sacrifice and drove them out of the garden (Genesis 3:21-24).",
+          "n": 1
+        },
+        {
+          "kind": "note",
+          "title": "Character & Integrity: The Hidden Strength Behind Wisdom",
+          "url": "/classes/2026/2026-05-23-character-integrity-the-hidden-strength-behind-wisdom",
+          "text": "Scriptures Opened Wisdom of Solomon 1:3-8 1:05 3 For froward thoughts separate from God: and his power, when it is tried, reproveth the unwise. 4 For into a malicious soul wisdom shall not enter; nor dwell in the body that is subject unto sin. 5 For the holy spirit of discipline will flee deceit, and remove from thoughts that are without understanding, and will not abide when unrighteousness cometh in. 6 For wisdom is a loving spirit; and will not acquit a blasphemer of his words: for God is witness of his reins, and a true beholder of his heart, and a hearer of his tongue. 7 For the Spirit of the Lord filleth the world: and that which containeth all things hath knowledge of the voice. 8 Therefore he that speaketh unrighteous things cannot be hid: neither shall vengeance, when it punisheth, pass by him. - A froward thought means it is your worldly thought.",
+          "teacher": "Captain Pallu",
+          "date": "2026-05-23",
+          "n": 2
+        }
+      ],
+      "answer": "> Scriptures Opened Wisdom of Solomon 1:3-8 1:05 3 For froward thoughts separate from God: and his power, when it is tried, reproveth the unwise. 4 For into a malicious soul wisdom shall not enter; nor dwell in the body that is subject unto sin. 5 For the holy spirit of discipline will flee deceit, and remove from thoughts that are without understanding, and will not abide when unrighteousness comet [2]",
+      "claims": [
+        {
+          "text": "Scriptures Opened Wisdom of Solomon 1:3-8 1:05 3 For froward thoughts separate from God: and his power, when it is tried, reproveth the unwise. 4 For into a malicious soul wisdom shall not enter; nor dwell in the body that is subject unto sin. 5 For the holy spirit of discipline will flee deceit, and remove from thoughts that are without understanding, and will not abide when unrighteousness comet",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Scriptures Opened Wisdom of Solomon 1:3-8 1:05 3 For froward thoughts separate from God: and his power, when it is tried, reproveth the unwise. 4 For into a malicious soul wisdom shall not enter; nor dwell in the body that is subject unto sin. 5 For the holy spirit of discipline will flee deceit, and remove from thoughts that are without understanding, and will not abide when unrighteousness comet"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-39",
+      "question": "What does the library record about Adam and Eve?",
+      "retrieval": [
+        {
+          "kind": "case",
+          "title": "Adam and Eve",
+          "url": "/cases/01-primeval/adam-and-eve",
+          "text": "Adam was the chosen of the Most High, formed of the dust of the ground and given the breath of life, which is the commandments (Genesis 2:7). The serpent is Satan, who taught Eve doctrine, that she would not die, and played on her envy, the desire to be equal (Genesis 3:1-5; Wisdom of Solomon 2:24). The fruit she ate was the lie, and she taught her husband what the serpent had taught her (Genesis 3:6). Their nakedness was sin, and the sin was idolatry (Genesis 3:7; Exodus 32:25). The Lord covered them with the first sacrifice and drove them out of the garden (Genesis 3:21-24).",
+          "n": 1
+        },
+        {
+          "kind": "case",
+          "title": "Abel",
+          "url": "/cases/01-primeval/abel",
+          "text": "Abel was a keeper of sheep and Cain a tiller of the ground, and with them comes the birth of trade and of religion (Genesis 4:1-2). Abel brought of the firstlings of his flock and of the fat thereof, in accordance with the sacrifice ordained when the Lord made coats of skins, and the Lord had respect unto him (Genesis 4:4; Genesis 3:21). Abel was a prophet, and when Cain talked with him he was trying to get Cain to repent; Cain slew him (Genesis 4:8; Matthew 23:35). His righteousness still speaks, though he is dead (Hebrews 11:4).",
+          "n": 2
+        }
+      ],
+      "answer": "> Adam was the chosen of the Most High, formed of the dust of the ground and given the breath of life, which is the commandments (Genesis 2:7). [1]",
+      "claims": [
+        {
+          "text": "Adam was the chosen of the Most High, formed of the dust of the ground and given the breath of life, which is the commandments (Genesis 2:7).",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Adam was the chosen of the Most High, formed of the dust of the ground and given the breath of life, which is the commandments (Genesis 2:7)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-40",
+      "question": "What does the library record about Abel?",
+      "retrieval": [
+        {
+          "kind": "case",
+          "title": "Cain",
+          "url": "/cases/01-primeval/cain",
+          "text": "Cain was the firstborn of Adam and Eve after they were cast out of the garden, a tiller of the ground and a man of the field (Genesis 4:1-2). He knew the Most High required animal sacrifice, and in process of time he brought fruit of the ground (Genesis 4:3-5). He lured his brother out to the field under the guise of brotherhood and slew him, then lied to the Lord and took no accountability (Genesis 4:8-9). Cursed from the earth and marked, he looked different, for the melanin was gone.",
+          "n": 1
+        },
+        {
+          "kind": "case",
+          "title": "Abel",
+          "url": "/cases/01-primeval/abel",
+          "text": "Abel was a keeper of sheep and Cain a tiller of the ground, and with them comes the birth of trade and of religion (Genesis 4:1-2). Abel brought of the firstlings of his flock and of the fat thereof, in accordance with the sacrifice ordained when the Lord made coats of skins, and the Lord had respect unto him (Genesis 4:4; Genesis 3:21). Abel was a prophet, and when Cain talked with him he was trying to get Cain to repent; Cain slew him (Genesis 4:8; Matthew 23:35). His righteousness still speaks, though he is dead (Hebrews 11:4).",
+          "n": 2
+        }
+      ],
+      "answer": "> Abel was a keeper of sheep and Cain a tiller of the ground, and with them comes the birth of trade and of religion (Genesis 4:1-2). [2]",
+      "claims": [
+        {
+          "text": "Abel was a keeper of sheep and Cain a tiller of the ground, and with them comes the birth of trade and of religion (Genesis 4:1-2).",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Abel was a keeper of sheep and Cain a tiller of the ground, and with them comes the birth of trade and of religion (Genesis 4:1-2)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-41",
+      "question": "What does the library record about Cain?",
+      "retrieval": [
+        {
+          "kind": "case",
+          "title": "Cain",
+          "url": "/cases/01-primeval/cain",
+          "text": "Cain was the firstborn of Adam and Eve after they were cast out of the garden, a tiller of the ground and a man of the field (Genesis 4:1-2). He knew the Most High required animal sacrifice, and in process of time he brought fruit of the ground (Genesis 4:3-5). He lured his brother out to the field under the guise of brotherhood and slew him, then lied to the Lord and took no accountability (Genesis 4:8-9). Cursed from the earth and marked, he looked different, for the melanin was gone.",
+          "n": 1
+        },
+        {
+          "kind": "case",
+          "title": "Lamech",
+          "url": "/cases/01-primeval/lamech",
+          "text": "Lamech of Cain’s line took two wives, the first time scripture records a man taking multiple wives, and it was the sons of the wicked who did it (Genesis 4:19). His sons held the trades of that line: cattle and produce, music, and weapons (Genesis 4:20-22). He killed a young man with a weapon his own son made, and boasted of seventy and sevenfold, complete vengeance (Genesis 4:23-24). He knew the commandment against killing was in force in his day. No sentence on him is recorded.",
+          "n": 2
+        }
+      ],
+      "answer": "> Cain was the firstborn of Adam and Eve after they were cast out of the garden, a tiller of the ground and a man of the field (Genesis 4:1-2). [1]",
+      "claims": [
+        {
+          "text": "Cain was the firstborn of Adam and Eve after they were cast out of the garden, a tiller of the ground and a man of the field (Genesis 4:1-2).",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Cain was the firstborn of Adam and Eve after they were cast out of the garden, a tiller of the ground and a man of the field (Genesis 4:1-2)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-42",
+      "question": "What does the library record about Lamech?",
+      "retrieval": [
+        {
+          "kind": "case",
+          "title": "Enoch",
+          "url": "/cases/01-primeval/enoch",
+          "text": "Enoch was the seventh from Adam in the line of the sons of God, traced from Seth to Noah (Genesis 5:18-24; Jude 1:14). He walked with God, which means he was a commandment keeper, and in his time he prophesied of the destruction to come (Jude 1:14-15). He was an example of repentance, and the Most High took him up, as he took Elijah, so that he did not taste death (Ecclesiasticus 44:16; Genesis 5:24).",
+          "n": 1
+        },
+        {
+          "kind": "case",
+          "title": "Lamech",
+          "url": "/cases/01-primeval/lamech",
+          "text": "Lamech of Cain’s line took two wives, the first time scripture records a man taking multiple wives, and it was the sons of the wicked who did it (Genesis 4:19). His sons held the trades of that line: cattle and produce, music, and weapons (Genesis 4:20-22). He killed a young man with a weapon his own son made, and boasted of seventy and sevenfold, complete vengeance (Genesis 4:23-24). He knew the commandment against killing was in force in his day. No sentence on him is recorded.",
+          "n": 2
+        }
+      ],
+      "answer": "> Lamech of Cain’s line took two wives, the first time scripture records a man taking multiple wives, and it was the sons of the wicked who did it (Genesis 4:19). [2]",
+      "claims": [
+        {
+          "text": "Lamech of Cain’s line took two wives, the first time scripture records a man taking multiple wives, and it was the sons of the wicked who did it (Genesis 4:19).",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Lamech of Cain’s line took two wives, the first time scripture records a man taking multiple wives, and it was the sons of the wicked who did it (Genesis 4:19)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-43",
+      "question": "What does the library record about Enoch?",
+      "retrieval": [
+        {
+          "kind": "case",
+          "title": "Enoch",
+          "url": "/cases/01-primeval/enoch",
+          "text": "Enoch was the seventh from Adam in the line of the sons of God, traced from Seth to Noah (Genesis 5:18-24; Jude 1:14). He walked with God, which means he was a commandment keeper, and in his time he prophesied of the destruction to come (Jude 1:14-15). He was an example of repentance, and the Most High took him up, as he took Elijah, so that he did not taste death (Ecclesiasticus 44:16; Genesis 5:24).",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Titus 1:16",
+          "url": "/precepts/abomination",
+          "text": "They profess that they know God; but in works they deny him, being abominable, and disobedient, and unto every good work reprobate.",
+          "n": 2
+        }
+      ],
+      "answer": "> Enoch was the seventh from Adam in the line of the sons of God, traced from Seth to Noah (Genesis 5:18-24; Jude 1:14). [1]",
+      "claims": [
+        {
+          "text": "Enoch was the seventh from Adam in the line of the sons of God, traced from Seth to Noah (Genesis 5:18-24; Jude 1:14).",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Enoch was the seventh from Adam in the line of the sons of God, traced from Seth to Noah (Genesis 5:18-24; Jude 1:14)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-44",
+      "question": "What does Titus 1:16, listed for Abomination, say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Wisdom of Solomon 14:23",
+          "url": "/precepts/abortion",
+          "text": "For whilst they slew their children in sacrifices, or used secret ceremonies, or made revellings of strange rites;",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Titus 1:16",
+          "url": "/precepts/abomination",
+          "text": "They profess that they know God; but in works they deny him, being abominable, and disobedient, and unto every good work reprobate.",
+          "n": 2
+        }
+      ],
+      "answer": "> They profess that they know God; but in works they deny him, being abominable, and disobedient, and unto every good work reprobate. [2]",
+      "claims": [
+        {
+          "text": "They profess that they know God; but in works they deny him, being abominable, and disobedient, and unto every good work reprobate.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "They profess that they know God; but in works they deny him, being abominable, and disobedient, and unto every good work reprobate."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-45",
+      "question": "What does Wisdom of Solomon 14:23, listed for Abortion, say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Wisdom of Solomon 14:23",
+          "url": "/precepts/abortion",
+          "text": "For whilst they slew their children in sacrifices, or used secret ceremonies, or made revellings of strange rites;",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Romans 12:2",
+          "url": "/precepts/acceptable",
+          "text": "And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God.",
+          "n": 2
+        }
+      ],
+      "answer": "> For whilst they slew their children in sacrifices, or used secret ceremonies, or made revellings of strange rites; [1]",
+      "claims": [
+        {
+          "text": "For whilst they slew their children in sacrifices, or used secret ceremonies, or made revellings of strange rites;",
+          "support": [
+            {
+              "n": 1,
+              "quote": "For whilst they slew their children in sacrifices, or used secret ceremonies, or made revellings of strange rites;"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-46",
+      "question": "What does Romans 12:2, listed for Acceptable, say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Deuteronomy 4:2",
+          "url": "/precepts/add-nor-remove",
+          "text": "Ye shall not add unto the word which I command you, neither shall ye diminish ought from it, that ye may keep the commandments of the Lord your God which I command you.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Romans 12:2",
+          "url": "/precepts/acceptable",
+          "text": "And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God.",
+          "n": 2
+        }
+      ],
+      "answer": "> And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God. [2]",
+      "claims": [
+        {
+          "text": "And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "And be not conformed to this world: but be ye transformed by the renewing of your mind, that ye may prove what is that good, and acceptable, and perfect, will of God."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-47",
+      "question": "What does Deuteronomy 4:2, listed for Add nor Remove, say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Deuteronomy 4:2",
+          "url": "/precepts/add-nor-remove",
+          "text": "Ye shall not add unto the word which I command you, neither shall ye diminish ought from it, that ye may keep the commandments of the Lord your God which I command you.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Exodus 20:14",
+          "url": "/precepts/adultery",
+          "text": "Thou shalt not commit adultery.",
+          "n": 2
+        }
+      ],
+      "answer": "> Ye shall not add unto the word which I command you, neither shall ye diminish ought from it, that ye may keep the commandments of the Lord your God which I command you. [1]",
+      "claims": [
+        {
+          "text": "Ye shall not add unto the word which I command you, neither shall ye diminish ought from it, that ye may keep the commandments of the Lord your God which I command you.",
+          "support": [
+            {
+              "n": 1,
+              "quote": "Ye shall not add unto the word which I command you, neither shall ye diminish ought from it, that ye may keep the commandments of the Lord your God which I command you."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recorded-48",
+      "question": "What does Exodus 20:14, listed for Adultery, say?",
+      "retrieval": [
+        {
+          "kind": "verse",
+          "title": "Exodus 20:8",
+          "url": "/bible/exodus/20#v8",
+          "text": "Remember the sabbath day, to keep it holy.",
+          "n": 1
+        },
+        {
+          "kind": "verse",
+          "title": "Exodus 20:14",
+          "url": "/precepts/adultery",
+          "text": "Thou shalt not commit adultery.",
+          "n": 2
+        }
+      ],
+      "answer": "> Thou shalt not commit adultery. [2]",
+      "claims": [
+        {
+          "text": "Thou shalt not commit adultery.",
+          "support": [
+            {
+              "n": 2,
+              "quote": "Thou shalt not commit adultery."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gap-uncovered",
+      "question": "What is the library's recommendation for servicing a spacecraft engine?",
+      "retrieval": [],
+      "answer": "I couldn't find enough library material to answer this reliably. Try naming the person, book, feast or verse you mean.",
+      "claims": [],
+      "non_claim": true
+    },
+    {
+      "id": "greeting",
+      "question": "Shalom!",
+      "retrieval": [],
+      "answer": "Shalom!",
+      "claims": [],
+      "non_claim": true
+    }
+  ]
+}

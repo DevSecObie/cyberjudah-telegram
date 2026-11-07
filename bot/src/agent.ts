@@ -6,7 +6,7 @@ import { books, chapter, dataJson } from "./data";
 import { claude } from "./providers";
 import type { Env, Exec } from "./env";
 import { MORE_RUN, MORE_TOOLS } from "./ask-tools";
-import { answerCandidates, APP, normalizeHistory, RESEARCH, SYSTEM, type Passage, type Turn } from "./ai.mjs";
+import { answerCandidates, APP, normalizeHistory, RESEARCH, SYSTEM, retrievalText, notInTheClasses, type Passage, type Turn } from "./ai.mjs";
 import { checkInput, describeReminder, findCases, findChats, findFeatures, findPeople, proposeReminder } from "./assistant.mjs";
 import { FEATURES } from "../../shared/app-features.mjs";
 import { listChats, type SavedAction } from "./chats";
@@ -16,6 +16,7 @@ import { parseReference } from "./refs.mjs";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
 import { freeSpend, type Spend } from "./spend";
+import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlText } from "./grounding.mjs";
 
 /**
  * Ask CyberJudah with Claude doing its own research: it starts from the passages retrieval
@@ -107,7 +108,7 @@ export async function runAgent(
   requestedResources?: ResourcePins,
   maxRounds = MAX_ROUNDS,
   citeAppSources = false,
-): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean }> {
+): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean }> {
   // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
   const resourcePins = await resolveResourcePins(env, requestedResources);
   const client = await claude(env);
@@ -210,16 +211,49 @@ export async function runAgent(
     return { content: `No tool named ${name}.`, error: true };
   };
 
+  let coverageVersion = 0;
+  let checkedVersion = -1;
+  let coverage: ReturnType<typeof assessCoverage>;
+  const appTools = new Set(["app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change"]);
+  const toolEvidence: { kind: string; title: string; text: string }[] = [];
+  const runWithEvidence = async (name: string, input: Record<string, unknown>) => {
+    const before = passages.length;
+    try {
+      const result = await run(name, input);
+      if (!result.error && appTools.has(name)) toolEvidence.push({ kind: "tool", title: name, text: result.content });
+      return { ...result, source_registry: passages.slice(before).map(source => ({ source_n: source.n, title: source.title, url: source.url })) };
+    } finally { coverageVersion++; }
+  };
+  const evidence = () => {
+    if (checkedVersion !== coverageVersion) {
+      coverage = assessCoverage(env, retrievalText(question, history), [...passages, ...toolEvidence]);
+      checkedVersion = coverageVersion;
+    }
+    return coverage;
+  };
+  const modelEmit = (event: AgentEvent) => {
+    // A thin-evidence answer must not flash ungrounded prose before the final gap result.
+    if ('delta' in event && evidence().blocked) return;
+    emit(event);
+  };
+  const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }) => {
+    if (!result.refused && evidence().blocked) {
+      const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
+      emit({ reset: true }); emit({ delta: gap.answer });
+      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false };
+    }
+    return { ...result, passages, actions, grounded: true };
+  };
   const messages: Anthropic.MessageParam[] = [
     ...normalizeHistory(history, 6).map((m) => ({ role: m.role as "assistant" | "user", content: String(m.content).slice(0, 3000) })),
-    { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${passages.map(listed).join("\n\n")}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
+    { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${libraryData(passages)}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
   ];
 
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
-    const r = await researchOpen(env, model, `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, run, emit, maxRounds, spend);
-    return { ...r, passages, actions };
+    const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend);
+    return finish(r);
   }
 
   let text = "";
@@ -229,7 +263,7 @@ export async function runAgent(
   // The instructions and tools are the same for every question and every round: cached once
   // (a breakpoint on the system prompt), and the conversation so far cached as it grows (the
   // request's automatic breakpoint on its last block), so each research round re-reads it cheaply.
-  const system: Anthropic.TextBlockParam[] = [{ type: "text", text: `${SYSTEM}\n\n${RESEARCH}\n\n${APP}`, cache_control: { type: "ephemeral" } }];
+  const system: Anthropic.TextBlockParam[] = [{ type: "text", text: groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), cache_control: { type: "ephemeral" } }];
   // A budgeted request sets aside each call's own input before choosing how much it may write, as
   // a strict upper bound on its tokens, priced as a prompt-cache write (the dearest way Claude bills
   // input): the first call's tokens are counted by the API; each later call's are the last call's
@@ -270,7 +304,7 @@ export async function runAgent(
       ...(last ? { tool_choice: { type: "none" as const } } : {}),
       messages,
     });
-    stream.on("text", (d) => { said += d; emit({ delta: d }); });
+    stream.on("text", (d) => { said += d; modelEmit({ delta: d }); });
     let message: Anthropic.Message;
     try { message = await stream.finalMessage(); badJson = 0; }
     catch (e) {
@@ -296,13 +330,13 @@ export async function runAgent(
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const u of uses) {
       const why = checkInput(SCHEMAS.get(u.name), u.input);
-      if (why) { results.push({ type: "tool_result", tool_use_id: u.id, content: JSON.stringify({ INVALID_INPUT: why, input: JSON.stringify(u.input ?? null).slice(0, 400) }), is_error: true }); continue; }
+      if (why) { results.push({ type: "tool_result", tool_use_id: u.id, content: untrustedData({ INVALID_INPUT: why, input: JSON.stringify(u.input ?? null).slice(0, 400) }, "tool_output"), is_error: true }); continue; }
       const input = u.input as Record<string, unknown>;
-      try { const r = await run(u.name, input); results.push({ type: "tool_result", tool_use_id: u.id, content: r.content, ...(r.error ? { is_error: true } : {}) }); }
-      catch (e) { results.push({ type: "tool_result", tool_use_id: u.id, content: `That failed: ${(e as Error).message?.slice(0, 120)}`, is_error: true }); }
+      try { const r = await runWithEvidence(u.name, input); results.push({ type: "tool_result", tool_use_id: u.id, content: untrustedData(r, "tool_output"), ...(r.error ? { is_error: true } : {}) }); }
+      catch (e) { results.push({ type: "tool_result", tool_use_id: u.id, content: untrustedData({ error: (e as Error).message?.slice(0, 120) }, "tool_output"), is_error: true }); }
     }
     messages.push({ role: "user", content: results });
     emit({ status: "Writing the answer" });
   }
-  return { text, passages, units, calls, actions, cut, refused };
+  return finish({ text, units, calls, cut, refused });
 }
