@@ -39,7 +39,6 @@ test('Firebase caller gets Telegram-compatible streaming without any Telegram id
   const events=(await response.text()).trim().split('\n').map(JSON.parse);
   assert.equal(events[0].delta,'An answer');
   assert.equal(events.at(-1).done,true);
-  assert.deepEqual(events.at(-1).unsupported_refs,[]);
   assert.equal(events.at(-1).sources[0].text,undefined);
   assert.notEqual(env.calls.at(-1).account,'victim');
   assert.notEqual(env.calls.at(-1).account,'firebase-alice');

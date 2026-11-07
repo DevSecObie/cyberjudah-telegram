@@ -1,7 +1,6 @@
 import type { Env } from "./env";
 import type { Turn } from "./ai.mjs";
 import { hasToolMarkup } from "./agent-open";
-import { isCoverageGap } from "./grounding.mjs";
 
 /**
  * Answers already written, kept for a week (KV, ask_cache:…). When the same first question is
@@ -14,7 +13,7 @@ import { isCoverageGap } from "./grounding.mjs";
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
 // Refresh older answers when the conversational prompt changes; old entries expire normally.
-const PROMPT_REVISION = "grounding-20261107";
+const PROMPT_REVISION = "conversation-20261107";
 
 export const normalizeQuestion = (q: string) => q.toLowerCase().replace(/[’']/g, "").replace(/[^\p{L}\p{N} ]+/gu, " ").replace(/\s+/g, " ").trim();
 
@@ -45,7 +44,7 @@ export async function cachedAnswer<T>(env: Env, key: string | null): Promise<T |
 
 /** Keeps an answer, and links the trace id that served it so a report can remove it. */
 export async function keepAnswer(env: Env, key: string | null, answer: unknown, traceId?: string): Promise<void> {
-  if (!key || isCoverageGap(answer)) return;
+  if (!key) return;
   const value = JSON.stringify(answer);
   if (value.length > MAX_BYTES || hasToolMarkup(value)) return;
   try {

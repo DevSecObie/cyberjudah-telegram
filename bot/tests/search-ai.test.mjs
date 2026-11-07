@@ -162,8 +162,7 @@ test("search routes one bounded call through the gateway, cites the library and 
   const calls = sent.filter(s => s.model === GOOGLE);
   assert.equal(calls.length, 1);
   assert.match(JSON.stringify(calls[0].input.messages), /Passages from the library/);
-  assert.ok(JSON.stringify(calls[0].input.messages).includes("Genesis 14:18"));
-  assert.ok(JSON.stringify(calls[0].input.messages).includes("source_n"));
+  assert.match(JSON.stringify(calls[0].input.messages), /\[1\] Genesis 14:18/);
   assert.equal(calls[0].input.tools, undefined);
   assert.ok(calls[0].input.max_tokens >= 64 && calls[0].input.max_tokens <= 4096);
   assert.deepEqual(calls[0].options, { gateway: { id: "default", collectLog: false } });
@@ -190,14 +189,14 @@ test("the daily breaker blocks external calls before retrieval", async t => {
 
 test("the per-answer budget bounds input plus output before starting an external call", async t => {
   const { env, sent } = fixture(t);
-  env.ASK_FREE_MAX_USD = "0.002";
+  env.ASK_FREE_MAX_USD = "0.001";
   await answerSearch(env, "Melchizedek", 7, ["Google"]);
   const call = sent.find(s => s.model === GOOGLE);
   assert.ok(call, "the small fixture still leaves enough room to answer");
   const { max_tokens, ...input } = call.input;
   const inputTokens = new TextEncoder().encode(JSON.stringify(input)).length + 1024;
   assert.ok(max_tokens < 4096, "a small budget must reduce the output limit");
-  assert.ok((inputTokens * 0.1 + max_tokens * 0.4) / 1e6 * 1.05 < 0.002,
+  assert.ok((inputTokens * 0.1 + max_tokens * 0.4) / 1e6 * 1.05 < 0.001,
     "input and output, including the gateway fee, must fit the reserved budget");
 });
 
@@ -419,14 +418,13 @@ test("app Ask researches and answers like cyberjudah.io/app, on the free allowan
     } },
     VEC: { query: async () => ({ matches: [] }) },
   };
-  e.ASK_COVERAGE_MODE = "enforce";
   assert.deepEqual(await answerAppAgent(e, "Why do we keep the Passover?", "acct-p", [], []), { ok: false, reason: "consent" });
   const events = [];
   const r = await answerAppAgent(e, "Why do we keep the Passover?", "acct-p", [], AGREED, { emit: (x) => events.push(x) });
   assert.equal(r.ok, true, JSON.stringify(r));
   assert.equal(r.model, "@cf/google/gemma-4-26b-a4b-it");
-  assert.match(r.answer, /couldn.t find/);
-  assert.deepEqual(r.followups, []);
+  assert.match(r.answer, /Keep it for ever/);
+  assert.deepEqual(r.followups, ["Why for ever?", "When is it kept?"]);
   assert.ok(sent.some((s) => s.model === "@cf/google/gemma-4-26b-a4b-it"));
   assert.ok((await freeSpendToday(e)) > 0, "the free allowance pays for it");
   assert.match(events.find((x) => x.status)?.status ?? "", /^Searching the classes and library/, "the first search is shown as a step even when the model never searches again");
