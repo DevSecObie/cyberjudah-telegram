@@ -10,6 +10,10 @@
  *
  *   node scripts/embed.mjs [--limit N] [--only docs|spoken] [--dry]
  *
+ * --dry only reads (D1 SELECTs and the transcript feeds) and reports what a run would embed: the
+ * count, by kind, the first ids and the target index. It makes no Workers AI call, writes nothing
+ * to D1 and never touches Vectorize.
+ *
  * The transcripts are read from the cyberjudah repository (blog/transcripts, captains/transcripts,
  * history/transcripts) and cut into chunks of about 45 seconds; the marks in `embedded`
  * skip what was embedded before.
@@ -66,11 +70,14 @@ const deleteIds = async (ids) => { for (let i = 0; i < ids.length; i += 100) awa
 const upsert = async (vectors) => cf(`/accounts/${ACCOUNT}/vectorize/v2/indexes/${INDEX}/upsert`, { method: "POST", headers: { "content-type": "application/x-ndjson" }, body: vectors.map((v) => JSON.stringify(v)).join("\n") });
 const lit = (v) => `'${String(v).replace(/'/g, "''")}'`;
 
-await sql("CREATE TABLE IF NOT EXISTS embedded (id TEXT PRIMARY KEY, hash TEXT NOT NULL)");
+// A dry run writes nothing, so it doesn't create the table: with no table, nothing was embedded before.
+const hasMarks = DRY
+  ? (await sql("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'embedded'")).length > 0
+  : (await sql("CREATE TABLE IF NOT EXISTS embedded (id TEXT PRIMARY KEY, hash TEXT NOT NULL)"), true);
 const known = new Map();
 // Paged by key, not by OFFSET: an OFFSET page re-reads every row before it, so two million marks
 // cost about a hundred million row reads, and D1 began to fail the run with "internal error".
-for (let last = ""; ; ) {
+for (let last = ""; hasMarks; ) {
   const rows = await sql(`SELECT id, hash FROM embedded WHERE id > ${lit(last)} ORDER BY id LIMIT 20000`);
   for (const r of rows) known.set(r.id, r.hash);
   if (rows.length < 20000) break;
@@ -121,11 +128,12 @@ async function* records() {
 }
 
 let seen = 0, todo = 0, done = 0, marksBlocked = false;
+const wouldByKind = new Map(), wouldIds = [];
 let pending = [], pendingChars = 0;
 const inflight = new Set();
 const flushEmbedded = async (batch) => {
+  if (DRY) throw new Error("a dry run never embeds");
   const vectors = (await embedTexts(batch.map((r) => r.text))).map((values, i) => ({ id: batch[i].id, values, metadata: batch[i].metadata }));
-  if (DRY) return vectors.length;
   for (let i = 0; i < vectors.length; i += UPSERT_BATCH) await upsert(vectors.slice(i, i + UPSERT_BATCH));
   const marks = batch.map((r) => `(${lit(r.id)},${lit(r.hash)})`);
   if (!marksBlocked) {
@@ -145,6 +153,8 @@ for await (const r of records()) {
   if (known.get(r.id) === h) continue;
   todo++;
   if (todo > LIMIT) break;
+  // A dry run only counts what it would embed: no batch is ever sent.
+  if (DRY) { const kind = r.metadata?.kind ?? "?"; wouldByKind.set(kind, (wouldByKind.get(kind) ?? 0) + 1); if (wouldIds.length < 20) wouldIds.push(r.id); continue; }
   pending.push({ ...r, hash: h });
   pendingChars += r.text.length;
   // A batch also closes on its length: about 3 characters a token keeps it well under the model's 60,000.
@@ -157,4 +167,9 @@ if (stale.length && !DRY) {
   for (let i = 0; i < stale.length; i += 500) await sql(`DELETE FROM embedded WHERE id IN (${stale.slice(i, i + 500).map(lit).join(",")})`);
   console.error(`${stale.length} stale passages removed from the index`);
 }
-console.error(`done: ${seen} passages seen, ${done} embedded this run${DRY ? " (dry)" : ""}`);
+if (DRY) {
+  const would = Math.min(todo, LIMIT);
+  console.error(`dry: ${seen} passages seen, ${would} would be embedded into ${INDEX} (${[...wouldByKind].map(([k, n]) => `${k} ${n}`).join(", ") || "none"}); ${stale.length} stale would be removed`);
+  if (wouldIds.length) console.error(`dry: first ids: ${wouldIds.join(" ")}`);
+  console.error("dry: no Workers AI call, no Vectorize call and no D1 write was made");
+} else console.error(`done: ${seen} passages seen, ${done} embedded this run`);

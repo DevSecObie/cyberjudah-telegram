@@ -1,0 +1,1 @@
+- A dry run of the nightly indexing (`embed.mjs --dry`) no longer spends Workers AI: it only reads and reports what it would embed (the count by kind, the first ids and the target index), with no Workers AI call, no Vectorize call and no D1 write.
