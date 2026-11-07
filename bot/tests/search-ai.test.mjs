@@ -591,3 +591,31 @@ test("past Claude's own daily cap a reader is answered by the free model, on the
   assert.equal(b.ok, true, JSON.stringify(b));
   assert.ok(appAskModels(bare, undefined, true).some((m) => m.id === b.model && m.format !== "anthropic"), b.model);
 });
+
+for (const position of ['before', 'after']) {
+  test(`Search route keeps sources through verse cleanup with citations ${position} the reference`, async t => {
+    const text = 'And Melchizedek king of Salem brought forth bread and wine: and he was the priest of the most high God.';
+    const quote = value => `> ${value}${position === 'before' ? ' [1]' : ''} **Genesis 14:18**${position === 'after' ? ' [1]' : ''}`;
+    const { env, sent } = fixture(t, modelReply(quote('Melchizedek was king and priest.')));
+    env.DATA_ORIGIN = 'https://data.test';
+    const original = globalThis.fetch;
+    globalThis.fetch = async url => {
+      const path = new URL(url).pathname;
+      if (path === '/api/kjv/books.json') return Response.json([{ book: 'Genesis', slug: 'genesis', chapters: 50 }]);
+      if (path === '/api/kjv/genesis/14.json') return Response.json({ verses: [{ verse: 18, text }] });
+      return new Response('', { status: 404 });
+    };
+    t.after(() => { globalThis.fetch = original; });
+    const { request } = routeFixture(t, env);
+    const response = await request('Who was the king of Salem?', 'Google');
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.equal(result.answer, quote(text));
+    assert.equal(result.sources.length, 1);
+    assert.equal(result.sources[0].title, 'Genesis 14:18');
+    assert.equal(result.state, undefined);
+    assert.equal(result.citation_diagnostics.retries, 0);
+    assert.equal(result.citation_diagnostics.valid_ids, 1);
+    assert.equal(sent.filter(s => s.model === GOOGLE).length, 1);
+  });
+}
