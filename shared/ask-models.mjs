@@ -12,7 +12,41 @@
  */
 import data from "./ask-models.json" with { type: "json" };
 
-export const MODELS = data.models;
+// Routing policy stays beside the catalog, rather than in its generated prices. These are
+// capability/latency choices, never price bands. New, unreviewed models stay balanced. The
+// frontier order is Ask's preference for deep research, not a cross-provider benchmark claim.
+export const FRONTIER_ORDER = [
+  "anthropic/claude-fable-5.1", "anthropic/claude-fable-5", "openai/gpt-6-astra",
+  "anthropic/claude-opus-5.5", "openai/gpt-5.6-sol", "openai/gpt-5.5-pro",
+  "openai/gpt-5.5", "google/gemini-3.1-pro", "alibaba/qwen3.8-max",
+  "moonshotai/kimi-k3", "xai/grok-4.7", "minimax/m3", "deepseek/deepseek-v4-pro",
+  "anthropic/claude-opus-5", "openai/gpt-5.4-pro", "openai/gpt-5.4",
+  "alibaba/qwen3.7-max", "xai/grok-4.6", "xai/grok-4.5",
+  "anthropic/claude-opus-4.8", "anthropic/claude-opus-4.7", "anthropic/claude-opus-4.6",
+  "anthropic/claude-opus-4.5", "google/gemini-2.5-pro", "alibaba/qwen3-max",
+  "@cf/zai-org/glm-5.3", "@cf/deepseek-ai/deepseek-v4-pro-0813",
+  "@cf/moonshotai/kimi-k2.7-code", "@cf/moonshotai/kimi-k2.6", "@cf/zai-org/glm-5.2",
+];
+const FRONTIER = new Set(FRONTIER_ORDER);
+const FAST = new Set([
+  "anthropic/claude-haiku-4.5", "anthropic/claude-haiku-5.5",
+  "google/gemini-2.5-flash-lite", "google/gemini-2.5-flash", "google/gemini-3-flash",
+  "google/gemini-3.1-flash-lite", "google/gemini-3.5-flash-lite", "google/gemini-3.5-flash",
+  "openai/gpt-4.1-mini", "openai/gpt-4.1-nano", "openai/gpt-4o-mini",
+  "openai/gpt-5-mini", "openai/gpt-5-nano", "openai/gpt-5.4-mini", "openai/gpt-5.4-nano",
+  "openai/gpt-5.6-luna", "openai/gpt-6-luna", "openai/o3-mini", "openai/o4-mini",
+  "@cf/meta/llama-3.1-8b-instruct-fp8", "@cf/meta/llama-3.2-1b-instruct",
+  "@cf/meta/llama-3.2-3b-instruct", "@cf/zai-org/glm-4.7-flash", "@cf/zai-org/glm-5.3-flash",
+  "@cf/openai/gpt-oss-20b", "@cf/ibm-granite/granite-4.0-h-micro",
+  "@cf/qwen/qwen3-30b-a3b-fp8", "@cf/daily-co/phonellm-mini-alpha-2",
+]);
+
+export const MODELS = data.models.map((m) => ({
+  ...m,
+  tier: FRONTIER.has(m.id) ? "frontier" : FAST.has(m.id) ? "fast" : "balanced",
+  // The catalog's format is also the backend's tool adapter: plain gets passages in one call.
+  tools: m.format !== "plain",
+}));
 
 /**
  * Where each provider is based (its headquarters), shown when Ask asks the reader to agree to it,
