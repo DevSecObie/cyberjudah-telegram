@@ -58,7 +58,7 @@ test("with nothing in the library it says so, on the default free model, and rep
     console.log = original;
   }
   assert.equal(r.ok, true);
-  assert.match(r.answer, /^Not discussed in the classes…yet\./);
+  assert.match(r.answer, /^I couldn't find enough library material/);
   assert.deepEqual(r.sources, []);
   assert.equal(r.model, "@cf/meta/llama-3.1-8b-instruct-fp8");
   // CYB-296: the response reports its own server-side latency in ms.

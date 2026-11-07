@@ -12,6 +12,8 @@ import { hasToolMarkup } from "./agent-open";
  */
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
+// Refresh older answers when the conversational prompt changes; old entries expire normally.
+const PROMPT_REVISION = "conversation-20261107";
 
 export const normalizeQuestion = (q: string) => q.toLowerCase().replace(/[’']/g, "").replace(/[^\p{L}\p{N} ]+/gu, " ").replace(/\s+/g, " ").trim();
 
@@ -25,7 +27,7 @@ export async function cacheKey(question: string, history: Turn[], model: string,
   if (history.length) return null;
   const q = normalizeQuestion(question);
   if (q.split(" ").length < 2) return null;
-  return `ask_cache:${release}:${mode}:${model}:${await sha256(q)}`;
+  return `ask_cache:${PROMPT_REVISION}:${release}:${mode}:${model}:${await sha256(q)}`;
 }
 
 export async function cachedAnswer<T>(env: Env, key: string | null): Promise<T | null> {
