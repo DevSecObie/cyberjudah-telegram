@@ -64,3 +64,35 @@ test("a failed Worker replacement never marks a release as live", t => {
   assert.notEqual(run("Deploy the worker", dir, { ...env, FAIL_DEPLOY: "1" }).status, 0);
   assert.doesNotMatch(fs.readFileSync(env.GITHUB_OUTPUT, "utf8"), /^live=true$/m);
 });
+
+const jobsOf = text => {
+  const jobs = text.slice(text.indexOf("\njobs:\n") + 7);
+  const starts = [...jobs.matchAll(/^  ([\w-]+):\n/gm)];
+  return starts.map((match, i) => ({ name: match[1], text: jobs.slice(match.index, starts[i + 1]?.index) }));
+};
+const jobLock = text => {
+  const match = /^    concurrency:\n      group: ([^\n]+)\n      cancel-in-progress: (true|false)\s*$/m.exec(text);
+  return match ? { group: match[1], cancel: match[2] === "true" } : null;
+};
+
+test("every production search loader holds the same non-cancelling lock for its whole job", () => {
+  const directory = new URL("../../.github/workflows/", import.meta.url);
+  const writers = [];
+  for (const file of fs.readdirSync(directory).filter(name => /\.ya?ml$/.test(name))) {
+    const text = fs.readFileSync(new URL(file, directory), "utf8");
+    for (const job of jobsOf(text).filter(job => job.text.includes("node scripts/load-search.mjs"))) {
+      if (job.text.includes("SEARCH_DB: cyberjudah-telegram-staging")) continue;
+      writers.push(`${file}:${job.name}`);
+      assert.deepEqual(jobLock(job.text), { group: "production-search-write", cancel: false }, `${file}:${job.name} must guard all staging/loading/swapping, not just the final rename`);
+    }
+  }
+  assert.ok(writers.includes("deploy.yml:deploy"));
+  assert.ok(writers.includes("deploy.yml:refresh-search"));
+});
+
+test("long embedding uses its own non-cancelling group outside the production-write lock", () => {
+  const jobs = jobsOf(workflow);
+  assert.deepEqual(jobLock(jobs.find(job => job.name === "embed").text), { group: "production-embedding", cancel: false });
+  const root = workflow.slice(0, workflow.indexOf("\njobs:\n"));
+  assert.match(root, /^concurrency:\n  group: .*github\.event_name == 'push' && 'production-deploy'.*github\.event_name == 'schedule' && 'production-maintenance'.*github\.event_name == 'workflow_dispatch' && 'production-dispatch'.*\n  cancel-in-progress: false$/m);
+});
