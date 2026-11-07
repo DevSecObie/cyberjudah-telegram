@@ -1,8 +1,8 @@
 import { Api, GrammyError, InlineKeyboard } from "grammy";
 import type { Env, Sub } from "./env";
 import { todaysVerse, openButton } from "./bot";
-import { open, seal } from "./privacy.mjs";
-import { isDue, offsetHour, subscriberDate } from "./subscribe";
+import { open } from "./privacy.mjs";
+import { isDueHour, offsetHour, SENT_TTL, sentKeyOf, subscriberDate } from "./subscribe";
 
 /** The subscriber's hour of the day for a UTC hour: tz is their offset in minutes (half-hour zones round down). */
 export const localHour = offsetHour;
@@ -34,11 +34,10 @@ export async function sendDaily(env: Env, now = new Date()): Promise<Counts> {
   return out;
 }
 
-/** Notes the local date on the sealed record, read afresh so a change made meanwhile is kept. */
+/** Notes the local date the verse went out, in its own key: the subscription is never rewritten. */
 async function markSent(env: Env, name: string, date: string): Promise<void> {
   try {
-    const now = await open<Sub>(env, name, await env.SUBS.get(name));
-    if (now && now.sent !== date) await env.SUBS.put(name, await seal(env, name, { ...now, sent: date }));
+    await env.SUBS.put(sentKeyOf(name), date, { expirationTtl: SENT_TTL });
   } catch (e) {
     console.error(JSON.stringify({ event: "daily_mark_failed", message: e instanceof Error ? e.message : String(e) }));
   }
@@ -59,10 +58,12 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
     const sub = await open<Sub>(env, name, await env.SUBS.get(name));
     // Their hour in their zone when the app sent one (right across daylight saving), else at their
     // fixed offset; and not twice on one local date (the night clocks fall back).
-    if (!sub || !isDue(sub, when)) return "skip";
+    if (!sub || !isDueHour(sub, when)) return "skip";
+    const date = subscriberDate(sub, when);
+    if ((await env.SUBS.get(sentKeyOf(name))) === date) return "skip";
     const attempt = async (): Promise<void> => {
       await api.sendMessage(sub.chatId, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup });
-      await markSent(env, name, subscriberDate(sub, when));
+      await markSent(env, name, date);
     };
     try {
       await attempt();

@@ -68,6 +68,14 @@ test("a subscriber at local midnight is due at hour 0, even where Intl says 24",
   } finally { Intl.DateTimeFormat.prototype.formatToParts = real; }
 });
 
+test("shared localHour gives midnight as 0 even where Intl says 24", async () => {
+  const { localHour } = await import("../../shared/holy-days.mjs");
+  const real = Intl.DateTimeFormat.prototype.formatToParts;
+  Intl.DateTimeFormat.prototype.formatToParts = function (d) { return real.call(this, d).map((p) => (p.type === "hour" && p.value === "0" ? { ...p, value: "24" } : p)); };
+  try { assert.equal(localHour(Date.parse("2026-01-15T05:00:00Z"), "America/New_York"), 0); }
+  finally { Intl.DateTimeFormat.prototype.formatToParts = real; }
+});
+
 test("a stored zone that isn't valid falls back to the offset", () => {
   assert.equal(m.subscriberHour({ tz: 60, zone: "Not/AZone" }, new Date("2026-01-15T06:00:00Z")), 7);
 });
@@ -113,20 +121,21 @@ test("the night clocks fall back, a repeated hour sends the verse once", async (
   assert.equal(m.subscriberHour(sub, again), 1);
   assert.equal(m.subscriberDate(sub, first), "2026-11-01");
   assert.equal(m.isDue(sub, first), true);
-  assert.equal(m.isDue({ ...sub, sent: "2026-11-01" }, again), false);
+  assert.equal(m.isDue(sub, again, "2026-11-01"), false);
   // The next day it's due again.
-  assert.equal(m.isDue({ ...sub, sent: "2026-11-01" }, new Date("2026-11-02T07:00:00Z")), true);
+  assert.equal(m.isDue(sub, new Date("2026-11-02T07:00:00Z"), "2026-11-01"), true);
+  assert.equal(m.sentKeyOf("sub:abc"), "sent:abc");
   // An offset-only subscriber's date is taken at their offset.
   assert.equal(m.subscriberDate({ tz: -300 }, new Date("2026-11-01T03:00:00Z")), "2026-10-31");
 });
 
-test("sendDaily sends once across the fall-back night and notes the local date", async () => {
-  const store = new Map();
+test("sendDaily sends once across the fall-back night and notes the local date beside the subscription", async () => {
+  const store = new Map(), ttls = new Map();
   const daily = {
     BOT_TOKEN: TOKEN, PRIVACY_KEY: "subscribe-test", DATA_ORIGIN: "https://data.invalid", WORKER_URL: "https://bot.invalid",
     SUBS: {
       get: async (k, type) => (store.has(k) ? (type === "json" ? JSON.parse(store.get(k)) : store.get(k)) : null),
-      put: async (k, v) => { store.set(k, v); }, delete: async (k) => { store.delete(k); },
+      put: async (k, v, o) => { store.set(k, v); ttls.set(k, o?.expirationTtl); }, delete: async (k) => { store.delete(k); },
       list: async ({ prefix }) => ({ keys: [...store.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
     },
   };
@@ -144,12 +153,22 @@ test("sendDaily sends once across the fall-back night and notes the local date",
   try {
     await sendDaily(daily, new Date("2026-11-01T06:00:00Z"));
     assert.equal(sent.length, 1);
-    assert.equal((await m.open(daily, name, store.get(name))).sent, "2026-11-01");
+    assert.equal(store.get("sent:fallback"), "2026-11-01");
+    assert.equal(ttls.get("sent:fallback"), 2 * 86400);
+    // The subscription itself is never rewritten by the send.
+    const sealed = store.get(name);
     await sendDaily(daily, new Date("2026-11-01T07:00:00Z"));
     assert.equal(sent.length, 1, "01:00 again after the clocks fell back: not sent twice");
     await sendDaily(daily, new Date("2026-11-02T07:00:00Z"));
     assert.equal(sent.length, 2, "the next day's 01:00 sends again");
-    assert.equal((await m.open(daily, name, store.get(name))).sent, "2026-11-02");
+    assert.equal(store.get("sent:fallback"), "2026-11-02");
+    assert.equal(store.get(name), sealed);
+    assert.deepEqual(await m.open(daily, name, store.get(name)), { chatId: 77, hour: 1, tz: -300, zone: "America/Chicago" });
+    // Turned off while the send runs: nothing brings the subscription back.
+    store.delete(name);
+    await sendDaily(daily, new Date("2026-11-03T07:00:00Z"));
+    assert.equal(store.has(name), false);
+    assert.equal(sent.length, 2);
   } finally {
     globalThis.fetch = realFetch; globalThis.caches = realCaches;
   }

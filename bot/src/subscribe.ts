@@ -7,11 +7,19 @@ import type { Sub } from "./env";
 export const DEFAULT_HOUR = 8;
 const MAX_OFFSET = 14 * 60;
 
+const zoneChecks = new Map<string, boolean>();
 /** The zone as sent when Intl knows it as a time zone ("America/Chicago", "Asia/Kolkata"), or null.
- *  Kept as sent: Intl's own spelling can be an older name ("Asia/Calcutta"). */
+ *  Kept as sent: Intl's own spelling can be an older name ("Asia/Calcutta"). Each answer is kept,
+ *  since the hourly send asks for every subscriber. (shared/holy-days.mjs zoneOf is not reused:
+ *  it accepts only its own short list of zones and falls back to a default.) */
 export function validZone(v: unknown): string | null {
   if (typeof v !== "string" || v.length < 1 || v.length > 64 || !/^[A-Za-z][A-Za-z0-9_+\-/]*$/.test(v)) return null;
-  try { new Intl.DateTimeFormat("en-US", { timeZone: v }); return v; } catch { return null; }
+  let ok = zoneChecks.get(v);
+  if (ok === undefined) {
+    try { new Intl.DateTimeFormat("en-US", { timeZone: v }); ok = true; } catch { ok = false; }
+    if (zoneChecks.size < 1000) zoneChecks.set(v, ok);
+  }
+  return ok ? v : null;
 }
 
 export type SubscribeInput =
@@ -61,10 +69,20 @@ export function subscriberDate(sub: Pick<Sub, "tz" | "zone">, when: Date): strin
   const zone = sub.zone ? validZone(sub.zone) : null;
   if (!zone) return new Date(when.getTime() + sub.tz * 60000).toISOString().slice(0, 10);
   let f = days.get(zone);
-  if (!f) { f = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }); days.set(zone, f); }
-  return f.format(when);
+  if (!f) { f = new Intl.DateTimeFormat("en-US", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }); days.set(zone, f); }
+  const p = Object.fromEntries(f.formatToParts(when).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}`;
 }
 
+/** Is it the subscriber's chosen hour where they are. */
+export const isDueHour = (sub: Pick<Sub, "tz" | "zone" | "hour">, when: Date) => subscriberHour(sub, when) === sub.hour;
+
 /** Is the verse due for this subscriber now: their chosen hour where they are, and not already sent
- *  on this local date (the night clocks fall back, an hour happens twice). */
-export const isDue = (sub: Sub, when: Date) => subscriberHour(sub, when) === sub.hour && sub.sent !== subscriberDate(sub, when);
+ *  on this local date (`sent`, from sentKeyOf; the night clocks fall back, an hour happens twice). */
+export const isDue = (sub: Pick<Sub, "tz" | "zone" | "hour">, when: Date, sent?: string | null) => isDueHour(sub, when) && sent !== subscriberDate(sub, when);
+
+/** Where the local date the verse was last sent is kept: its own key beside the subscription
+ *  ("sub:<pid>" -> "sent:<pid>"), so the hourly send never rewrites the subscription itself (a
+ *  rewrite could bring back one the person had just turned off). It expires on its own. */
+export const sentKeyOf = (subKey: string) => `sent:${subKey.replace(/^sub:/, "")}`;
+export const SENT_TTL = 2 * 86400;
