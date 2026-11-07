@@ -30,9 +30,9 @@ test("recorded URLs require an approved HTTP(S) host, without credentials or an 
   assert.equal(retrievedSourceUrl({ url: "https://archive.org/details/recorded" }, []), null, "retrieved text cannot add an outside host");
 });
 
-test("recorded root-relative library paths become absolute own-site URLs; bare paths are never guessed", () => {
-  for (const path of ["/bible/genesis/1#v1", "/classes/2026/recorded?t=9", "/resources/held/release?key=recorded", "/app/resources/held/release?key=recorded"]) {
-    assert.equal(retrievedSourceUrl({ url: path }, []), `https://cyberjudah.io${path}`);
+test("recorded root-relative library paths round-trip byte-identical; bare paths are never guessed", () => {
+  for (const path of ["/bible/genesis/1", "/bible/genesis/1#v1", "/classes/2026/recorded?t=9", "/resources/held/release?key=recorded", "/app/resources/held/release?key=recorded"]) {
+    assert.equal(retrievedSourceUrl({ url: path }, []), path);
   }
 });
 
@@ -59,6 +59,14 @@ test("real retrieval repairs an unchanged old vector and returns it as a valid S
   assert.equal(result.sources[0].text, text);
   assert.equal(result.sources[0].n, 1);
   assert.equal(result.citation_diagnostics.valid_ids, 1);
+});
+
+test("the release-smoke verse path stays relative through the real passageOf retrieval mapping", async t => {
+  const { env } = fixture(t, { kind: "verse", title: "Genesis 1:1 (KJV)", url: "/bible/genesis/1" });
+  const [passage] = await retrieve(env, "Preview source test");
+  assert.equal(passage.kind, "verse");
+  assert.equal(passage.title, "Genesis 1:1 (KJV)");
+  assert.equal(passage.url, "/bible/genesis/1");
 });
 
 test("unsafe or missing links without a recorded valid video are omitted before citation registration", async t => {
@@ -96,7 +104,7 @@ test("keyword hits use the same URL policy before source numbering", async t => 
   env.VEC.query = async () => ({ matches: [] });
   const result = await retrieve(env, "Preview test");
   assert.equal(result.length, 1);
-  assert.equal(result[0].url, "https://cyberjudah.io/classes/2026/recorded");
+  assert.equal(result[0].url, "/classes/2026/recorded");
   assert.equal(result[0].text, text);
 });
 

@@ -11,7 +11,7 @@ export function recordedMoment(value: unknown): number | undefined {
   return Number.isFinite(n) && n >= 0 && n <= Number.MAX_SAFE_INTEGER ? n : undefined;
 }
 
-/** A recorded root-relative path resolves only to our site, without traversal or authority changes. */
+/** A recorded root-relative path stays on our site, without traversal or authority changes. */
 function ownPath(value: string): boolean {
   if (!value.startsWith("/") || value.startsWith("//")) return false;
   const path = value.split(/[?#]/)[0];
@@ -33,7 +33,7 @@ export function retrievedSourceUrl(source: { url?: unknown; video?: unknown; t?:
       const relative = ownPath(recorded);
       const url = relative ? new URL(recorded, SITE) : new URL(recorded);
       if ((url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password && !url.port
-        && isApproved(url.hostname, [...CORE_HOSTS, ...approvedHosts])) return relative ? url.href : recorded;
+        && isApproved(url.hostname, [...CORE_HOSTS, ...approvedHosts])) return recorded;
     } catch { /* No usable recorded address; try only the recorded video ID. */ }
   }
   const video = typeof source.video === "string" && VIDEO.test(source.video) ? source.video : null;
