@@ -30,6 +30,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { readSources, saveSources } from "./cms-sources";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
 import { searchAnswers } from "./search-answer";
+import { semanticSearch } from "./semantic-search";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -251,6 +252,7 @@ app.route("/api", readerContent);
 
 // Library-only answers: provider consent, short edge cache, reader quota and owner funding.
 app.route("/api/search/answer", searchAnswers);
+app.route("/api/search/semantic", semanticSearch);
 
 // The frames of a recording (YouTube's storyboard): the levels, then the sheets by level and index.
 app.get("/api/frames/:video", async (c) => {
