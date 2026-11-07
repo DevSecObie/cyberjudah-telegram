@@ -20,7 +20,8 @@ await build({
         emit({ status: 'Reading sources' });
         if (env.fixtureCancelMode) {
           spend.call({ input_tokens: 1000, output_tokens: 100 }, model);
-          if (env.fixtureCancelMode === 'after') emit({ delta: 'A streamed fixture answer.' });
+          if (['after', 'reset'].includes(env.fixtureCancelMode)) emit({ delta: 'A streamed fixture answer.' });
+          if (env.fixtureCancelMode === 'reset') emit({ reset: true });
           env.fixtureStarted?.();
           await new Promise((_resolve, reject) => control.signal.addEventListener('abort', () => reject(control.signal.reason), { once: true }));
         }
@@ -32,7 +33,7 @@ await build({
 });
 const { ask, askStream, freeModel, answerApp, answerAppAgent, grantPayment, ownerOfUser, wallet, worker } = await import(out);
 
-for (const mode of ['before', 'after']) {
+for (const mode of ['before', 'after', 'reset']) {
   test(`paid cancellation ${mode} streamed answer text settles once with the proper charge`, async t => {
     const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5');
     Object.assign(env, { CLAUDE_MODEL: model.id, ANTHROPIC_API_KEY: 'fixture-only', AI: { run: async () => ({ data: [] }) }, fixtureCancelMode: mode });
@@ -43,7 +44,7 @@ for (const mode of ['before', 'after']) {
     assert.equal(response.status, 200);
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let received = '';
-    while (mode === 'after' ? !received.includes('A streamed fixture answer.') : !received.includes('Reading sources')) received += (await reader.read()).value;
+    while (mode === 'after' ? !received.includes('A streamed fixture answer.') : mode === 'reset' ? !received.includes('\"reset\":true') : !received.includes('Reading sources')) received += (await reader.read()).value;
     await reader.cancel();
     await Promise.all(pending);
     const rows = sql.prepare('SELECT status, charged_mc, held_mc FROM credit_usage WHERE user_id = ?').all(owner);
@@ -54,6 +55,30 @@ for (const mode of ['before', 'after']) {
     assert.equal((await wallet(env, owner)).total_mc, 2_000_000 - rows[0].charged_mc);
   });
 }
+
+test('a misconfigured primary backup stays free when the reader cancels its text', async t => {
+  const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5');
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI: { run: async (id, _input, options) => {
+    if (id.includes('bge-m3')) return { data: [[1, 2]] };
+    return new ReadableStream({ start(controller) {
+      controller.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({ response: 'A free backup fixture answer.', usage: { prompt_tokens: 1000, completion_tokens: 10 } }) + '\n\n'));
+      options.signal.addEventListener('abort', () => controller.error(options.signal.reason), { once: true });
+    } });
+  } }, VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://example.test/recorded', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
+  const owner = await ownerOfUser(env, 77);
+  await grantPayment(env, owner, { charge: 'backup-cancel', kind: 'pack', stars: 10, mc: 2_000_000 });
+  const pending = [], response = await askStream(env, 'Read recorded material', 77, { waitUntil: promise => pending.push(promise) }, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 2_000_000 } });
+  assert.equal(response.status, 200);
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let text = '';
+  while (!text.includes('A free backup fixture answer.')) text += (await reader.read()).value;
+  await reader.cancel();
+  await Promise.all(pending);
+  const row = sql.prepare('SELECT status, charged_mc FROM credit_usage WHERE user_id = ?').get(owner);
+  assert.equal(row.status, 'failed');
+  assert.equal(row.charged_mc, 0);
+  assert.equal((await wallet(env, owner)).total_mc, 2_000_000);
+});
 
 test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async () => {
   const question = 'Owner approved fixture';

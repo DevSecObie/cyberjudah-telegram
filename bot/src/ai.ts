@@ -699,7 +699,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // The reader can leave at any moment (Stop, another screen, the app closed). From then on
   // the shared signal stops provider work and further tools. Accounting still completes under
   // waitUntil, so already incurred costs are recorded and a failed answer is not charged.
-  let open = true, deliveredText = false;
+  let open = true, deliveredText = false, backupAnswer = false;
   let settled = false;
   const finish = async (status: Parameters<typeof finishMeter>[2], chargePartial = false) => {
     if (settled || !meter) return null;
@@ -710,7 +710,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (chatId) await markPending(env, userId, chatId, question).catch(() => undefined);
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
+      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
@@ -757,6 +757,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               return;
             }
           }
+          backupAnswer = true;
           const passages = first;
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
@@ -785,7 +786,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
-          const paidPartial = signal.aborted && deliveredText;
+          const paidPartial = signal.aborted && deliveredText && !backupAnswer;
           await finish(paidPartial ? "partial" : "failed", paidPartial);
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
           send({ error: "unavailable" });

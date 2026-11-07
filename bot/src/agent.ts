@@ -379,7 +379,7 @@ export async function runAgent(
         const usage = stream.currentMessage?.usage;
         if (usage) { units += unitsFor(usage, model); calls++; spend.call(usage, model); }
         spend.unreported = true;
-        if (signal.reason?.name === 'TimeoutError') { text = said.trim() ? said : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; break; }
+        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; break; }
       }
       signal.throwIfAborted();
       // A tool input that could not be parsed at all (eager streaming): the round is asked

@@ -250,6 +250,18 @@ test('aborted Claude streams retain provider-reported usage rather than inventin
   assert.equal(spend.unreported, true, 'a partial snapshot is a lower bound, never complete usage');
 });
 
+test('a research-round timeout never promotes search narration to the final answer', async () => {
+  const f = fixture(), controller = new AbortController();
+  f.env.client = { messages: { stream() {
+    let text;
+    return { on(_event, emit) { text = emit; }, async finalMessage() { text('Let me search the recorded material.'); controller.abort(new DOMException('Research deadline reached', 'TimeoutError')); throw controller.signal.reason; } };
+  } } };
+  const result = await runAgent(f.env, 'Read recorded material', [], [{ kind: 'note', title: 'Recorded material', url: '/study/recorded', text: 'Existing recorded source words, copied exactly.' }], async () => [], () => {}, undefined, undefined, modelOf('claude-sonnet-5-5'), undefined, undefined, 25, false, { signal: controller.signal });
+  assert.equal(result.cut, true);
+  assert.ok(!result.text.includes('Let me search'));
+  assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
+});
+
 test('cancelled or expired research starts no provider call, and sources are bounded above 48', async () => {
   const f = fixture(), controller = new AbortController(); controller.abort();
   f.env.AI = { run: async (_model, input) => { f.requests.push(input); return { response: 'Fixture answer.', usage: { prompt_tokens: 100, completion_tokens: 10 } }; } };
