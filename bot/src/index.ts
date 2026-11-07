@@ -46,14 +46,16 @@ import { syncRequestIssue } from "./request-issues";
 import { reportMessage } from "./report.mjs";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundStars } from "./billing";
-import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, typicalMc, usageDayCredits, wallet as creditWallet } from "./credits";
+import { adjust, creditsConfig, history as creditHistory, ownerOfUser, prepare as prepareCredits, usageDayCredits, wallet as creditWallet } from "./credits";
 import { getTopupReminder, sendTopupReminders, setTopupReminder } from "./topup-remind";
-import { estimateMc, mcOfUsd } from "../../shared/credits.mjs";
+import { mcOfUsd } from "../../shared/credits.mjs";
 import { givingPauseMessage, pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
 import { InputFile } from "grammy";
 import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
-import { MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
+import { modelOf } from "../../shared/ask-models.mjs";
+import { askModels, modelCosts } from "./ask-routing";
+import { askJson } from "./ask-json";
 import { keyedHash, pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
 import { deleteData, exportData } from "./mydata";
@@ -281,7 +283,11 @@ app.post("/api/ask", async (c) => {
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = normalizeHistory(body?.history, 8);
-  if (body?.stream) return askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
+  if (body?.stream || typeof body?.model === "string") {
+    const start = Date.now();
+    const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
+    return body?.stream ? response : askJson(response, String(body?.q ?? ""), start);
+  }
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
   return c.json(res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" ? 400 : 503);
@@ -353,14 +359,6 @@ const clock = (c: { env: Env; req: { header: (n: string) => string | undefined }
   const t = c.env.E2E_CLOCK === "on" ? Date.parse(c.req.header("x-e2e-now") ?? "") : NaN;
   return Number.isFinite(t) ? t : Date.now();
 };
-const askModels = (env: Env) => MODELS.filter((m) => (m.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY));
-async function modelCosts(env: Env, models: AskModel[]) {
-  const cfg = creditsConfig(env);
-  return Promise.all(models.map(async (m) => {
-    const est = estimateMc(m, cfg, { claudeViaCloudflare: unifiedBilling(env) });
-    return { id: m.id, name: m.name, provider: m.provider, what: m.what, typical_mc: (await typicalMc(env, m.id).catch(() => null)) ?? est.typicalMc, max_mc: est.maxMc, ...(freeModels(env).has(m.id) ? { free: true } : {}) };
-  }));
-}
 app.get("/api/ask/account", async (c) => {
   const uid = c.get("tma").user!.id;
   const cfg = creditsConfig(c.env);
@@ -375,7 +373,7 @@ app.get("/api/ask/account", async (c) => {
     // Top-ups: each in dollars and the Stars it costs, at what a Star pays out (usd_per_star).
     sale: { open: !cfg.missing.length, usd_per_star: cfg.usdPerStar, topups: cfg.topups, pause: pause ? { kind: pause.kind, until: pause.until, message: pauseMessage(pause) } : null },
     remind: await getTopupReminder(c.env, uid).catch(() => ({ on: false, tz: null })),
-    models: await modelCosts(c.env, askModels(c.env)),
+    models: await modelCosts(c.env, askModels(c.env), freeModels(c.env)),
     model: modelOf(defaultModelId(c.env, uid)).id,
   });
 });

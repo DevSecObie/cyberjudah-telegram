@@ -22,6 +22,7 @@ import { reserveFreeBudget, settleFreeBudget, type FreeReservation } from "./fre
 import { researchOpen } from "./agent-open";
 import { withAskSourcePictures } from "./ask-source-pictures";
 import { withAskBookLinks } from "./ask-source-links";
+import { autoModel } from "./ask-routing";
 export { freeSpendToday, freePaused } from "./free-budget";
 
 /**
@@ -724,13 +725,14 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // question (routeOf) goes to the lighter Claude model when one is configured (CLAUDE_MODEL_LIGHT):
   // it is answered faster and costs the reader less. Admins keep their own default.
   const light = !modelId && !isAdmin(env, userId) && env.CLAUDE_MODEL_LIGHT && routeOf(question, history) === "light";
-  const model = modelOf(modelId || (light ? env.CLAUDE_MODEL_LIGHT : undefined), defaultModelId(env, userId));
+  const selected = modelOf(modelId || (light ? env.CLAUDE_MODEL_LIGHT : undefined), defaultModelId(env, userId));
   const line = (o: unknown) => `${JSON.stringify(o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
   if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(approvedSources(approved))), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
+  const model = modelId === "auto" ? await autoModel(env, question, history.length, userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.

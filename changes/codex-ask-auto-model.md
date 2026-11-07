@@ -1,0 +1,1 @@
+- Ask can choose a model for each question with `model: "auto"`: quick lookups use a fast free model, deep research uses a capable research model the reader can afford, and other questions use the account default. Provider agreement and cost confirmation still apply to the chosen model. The account's model menu now includes `tier` and `tools` capabilities.
