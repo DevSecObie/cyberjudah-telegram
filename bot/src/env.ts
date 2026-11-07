@@ -118,5 +118,6 @@ export type Env = {
 export type Exec = { waitUntil(p: Promise<unknown>): void };
 
 /** A daily-verse subscriber: their chat, the local hour they chose, their offset in minutes east of UTC
- *  (older apps) and, when the app sent one, their IANA time zone (it follows daylight saving). */
-export type Sub = { chatId: number; hour: number; tz: number; zone?: string };
+ *  (older apps), when the app sent one their IANA time zone (it follows daylight saving), and the
+ *  local date the verse was last sent (so an hour that happens twice doesn't send it twice). */
+export type Sub = { chatId: number; hour: number; tz: number; zone?: string; sent?: string };

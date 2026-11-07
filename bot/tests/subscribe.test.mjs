@@ -7,8 +7,12 @@ import { signInitData } from "../src/initdata.mjs";
 // default), keeps an IANA zone when the app sends one, and the daily send finds the subscriber's
 // local hour from that zone (right across daylight saving) or, for older apps, the minutes offset.
 const out = new URL("./.build/subscribe.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/subscribe.ts"; export { localHour } from "./src/daily.ts"; export { open } from "./src/privacy.mjs"; export { default as worker } from "./src/index.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+await build({ stdin: { contents: 'export * from "./src/subscribe.ts"; export { localHour } from "./src/daily.ts"; export { open, seal } from "./src/privacy.mjs"; export { default as worker } from "./src/index.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
 const m = await import(out);
+// The daily send as it runs on the Worker: grammy's web build, which calls the global fetch (stubbed below).
+const outDaily = new URL("./.build/subscribe-daily.mjs", import.meta.url).pathname;
+await build({ stdin: { contents: 'export { sendDaily } from "./src/daily.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", alias: { grammy: "grammy/web" }, outfile: outDaily, logLevel: "error" });
+const { sendDaily } = await import(outDaily);
 
 const TOKEN = ["test-bot", "token", "not-a-credential"].join("-");
 
@@ -86,4 +90,54 @@ test("POST /api/subscribe stores the zone and answers 400 for bad input", async 
   r = await subscribe({ on: false });
   assert.deepEqual(await r.json(), { subscribed: false });
   assert.equal(await stored(), null);
+});
+
+test("the night clocks fall back, a repeated hour sends the verse once", async () => {
+  // Chicago, 2026-11-01: 01:00 local happens at 06:00 UTC (CDT) and again at 07:00 UTC (CST).
+  const sub = { chatId: 1, hour: 1, tz: -300, zone: "America/Chicago" };
+  const first = new Date("2026-11-01T06:00:00Z"), again = new Date("2026-11-01T07:00:00Z");
+  assert.equal(m.subscriberHour(sub, first), 1);
+  assert.equal(m.subscriberHour(sub, again), 1);
+  assert.equal(m.subscriberDate(sub, first), "2026-11-01");
+  assert.equal(m.isDue(sub, first), true);
+  assert.equal(m.isDue({ ...sub, sent: "2026-11-01" }, again), false);
+  // The next day it's due again.
+  assert.equal(m.isDue({ ...sub, sent: "2026-11-01" }, new Date("2026-11-02T07:00:00Z")), true);
+  // An offset-only subscriber's date is taken at their offset.
+  assert.equal(m.subscriberDate({ tz: -300 }, new Date("2026-11-01T03:00:00Z")), "2026-10-31");
+});
+
+test("sendDaily sends once across the fall-back night and notes the local date", async () => {
+  const store = new Map();
+  const daily = {
+    BOT_TOKEN: TOKEN, PRIVACY_KEY: "subscribe-test", DATA_ORIGIN: "https://data.invalid", WORKER_URL: "https://bot.invalid",
+    SUBS: {
+      get: async (k, type) => (store.has(k) ? (type === "json" ? JSON.parse(store.get(k)) : store.get(k)) : null),
+      put: async (k, v) => { store.set(k, v); }, delete: async (k) => { store.delete(k); },
+      list: async ({ prefix }) => ({ keys: [...store.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
+    },
+  };
+  const name = "sub:fallback";
+  store.set(name, await m.seal(daily, name, { chatId: 77, hour: 1, tz: -300, zone: "America/Chicago" }));
+  const sent = [];
+  const realFetch = globalThis.fetch, realCaches = globalThis.caches;
+  globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
+  globalThis.fetch = async (input, init) => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (url.includes("/sendMessage")) { sent.push(JSON.parse(init?.body ?? "{}")); return Response.json({ ok: true, result: { message_id: sent.length } }); }
+    if (url.startsWith("https://data.invalid/api/kjv/")) return Response.json({ verses: Array.from({ length: 200 }, (_, i) => ({ verse: i + 1, text: `Verse ${i + 1}` })) });
+    return new Response("not found", { status: 404 });
+  };
+  try {
+    await sendDaily(daily, new Date("2026-11-01T06:00:00Z"));
+    assert.equal(sent.length, 1);
+    assert.equal((await m.open(daily, name, store.get(name))).sent, "2026-11-01");
+    await sendDaily(daily, new Date("2026-11-01T07:00:00Z"));
+    assert.equal(sent.length, 1, "01:00 again after the clocks fell back: not sent twice");
+    await sendDaily(daily, new Date("2026-11-02T07:00:00Z"));
+    assert.equal(sent.length, 2, "the next day's 01:00 sends again");
+    assert.equal((await m.open(daily, name, store.get(name))).sent, "2026-11-02");
+  } finally {
+    globalThis.fetch = realFetch; globalThis.caches = realCaches;
+  }
 });

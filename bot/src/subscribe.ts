@@ -53,3 +53,17 @@ export function subscriberHour(sub: Pick<Sub, "tz" | "zone">, when: Date): numbe
   const zone = sub.zone ? validZone(sub.zone) : null;
   return zone ? zoneHour(when, zone) : offsetHour(when.getUTCHours(), sub.tz);
 }
+
+const days = new Map<string, Intl.DateTimeFormat>();
+/** The subscriber's local date ("YYYY-MM-DD") at this moment: in their zone, else at their offset. */
+export function subscriberDate(sub: Pick<Sub, "tz" | "zone">, when: Date): string {
+  const zone = sub.zone ? validZone(sub.zone) : null;
+  if (!zone) return new Date(when.getTime() + sub.tz * 60000).toISOString().slice(0, 10);
+  let f = days.get(zone);
+  if (!f) { f = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }); days.set(zone, f); }
+  return f.format(when);
+}
+
+/** Is the verse due for this subscriber now: their chosen hour where they are, and not already sent
+ *  on this local date (the night clocks fall back, an hour happens twice). */
+export const isDue = (sub: Sub, when: Date) => subscriberHour(sub, when) === sub.hour && sub.sent !== subscriberDate(sub, when);

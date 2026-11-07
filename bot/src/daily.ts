@@ -1,8 +1,8 @@
 import { Api, GrammyError, InlineKeyboard } from "grammy";
 import type { Env, Sub } from "./env";
 import { todaysVerse, openButton } from "./bot";
-import { open } from "./privacy.mjs";
-import { offsetHour, subscriberHour } from "./subscribe";
+import { open, seal } from "./privacy.mjs";
+import { isDue, offsetHour, subscriberDate } from "./subscribe";
 
 /** The subscriber's hour of the day for a UTC hour: tz is their offset in minutes (half-hour zones round down). */
 export const localHour = offsetHour;
@@ -34,6 +34,16 @@ export async function sendDaily(env: Env, now = new Date()): Promise<Counts> {
   return out;
 }
 
+/** Notes the local date on the sealed record, read afresh so a change made meanwhile is kept. */
+async function markSent(env: Env, name: string, date: string): Promise<void> {
+  try {
+    const now = await open<Sub>(env, name, await env.SUBS.get(name));
+    if (now && now.sent !== date) await env.SUBS.put(name, await seal(env, name, { ...now, sent: date }));
+  } catch (e) {
+    console.error(JSON.stringify({ event: "daily_mark_failed", message: e instanceof Error ? e.message : String(e) }));
+  }
+}
+
 async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
   const key = slotKey(when);
   const saved = (await env.SUBS.get(key, "json")) as { cursor?: string; done?: boolean } | null;
@@ -47,10 +57,12 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
   const send = async (name: string): Promise<"sent" | "dropped" | "skip"> => {
     // Sealed at rest (privacy.mjs); subscriptions from before sealing read as they are.
     const sub = await open<Sub>(env, name, await env.SUBS.get(name));
-    // Their zone when the app sent one (right across daylight saving), else their fixed offset.
-    if (!sub || subscriberHour(sub, when) !== sub.hour) return "skip";
+    // Their hour in their zone when the app sent one (right across daylight saving), else at their
+    // fixed offset; and not twice on one local date (the night clocks fall back).
+    if (!sub || !isDue(sub, when)) return "skip";
     const attempt = async (): Promise<void> => {
       await api.sendMessage(sub.chatId, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup });
+      await markSent(env, name, subscriberDate(sub, when));
     };
     try {
       await attempt();
