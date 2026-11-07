@@ -5,7 +5,7 @@ import { IdentityError } from "./account-links";
 import { publicReader, readerContent } from "./reader";
 import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
-import { sweepFreeBudget } from "./free-budget";
+import { alertFreeBudget, sweepFreeBudget } from "./free-budget";
 import { sweepAskEvents } from "./ask-events";
 import { issueAnswerReceipt, feedbackInput, parseFeedback, recordFeedback, sweepFeedback } from "./feedback";
 import { CmsError, CONTENT_REPO } from "./cms-github";
@@ -695,6 +695,8 @@ export default {
     ctx.waitUntil(sendTopupReminders(env, event.scheduledTime).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "topup_reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
     // New class alerts for the phone app, every quarter hour so a live class is announced soon after it starts (class-alerts.ts).
     ctx.waitUntil(sendClassAlerts(env).then((r) => { if (r.sent || r.failed || r.seeded) console.log(JSON.stringify({ event: "class_alerts", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "class_alerts_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // Free answers nearing the day's cap tell the admins once a day, checked every quarter hour so a small cap is caught in time (free-budget.ts).
+    ctx.waitUntil(alertFreeBudget(env, event.scheduledTime));
     // Everything else runs on the hour only.
     if (event.cron !== "0 * * * *") return;
     ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
