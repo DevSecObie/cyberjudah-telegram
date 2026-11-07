@@ -2,7 +2,7 @@
 // local hour is now. A time zone name (IANA, "America/Chicago") is kept when the app sends one,
 // so the hour stays right across daylight saving; the older offset in minutes (tz) still works
 // for apps that send only that. Anything sent that isn't valid is a 400, never quietly a default.
-import type { Sub } from "./env";
+import type { Env, Sub } from "./env";
 
 export const DEFAULT_HOUR = 8;
 const MAX_OFFSET = 14 * 60;
@@ -87,5 +87,17 @@ export const isDue = (sub: Pick<Sub, "tz" | "zone" | "hour">, when: Date, sent?:
 /** Where the local date the verse was last sent is kept: its own key beside the subscription
  *  ("sub:<pid>" -> "sent:<pid>"), so the hourly send never rewrites the subscription itself (a
  *  rewrite could bring back one the person had just turned off). It expires on its own. */
-export const sentKeyOf = (subKey: string) => `sent:${subKey.replace(/^sub:/, "")}`;
+export function sentKeyOf(subKey: string): string | null {
+  const id = subKey.replace(/^sub:/, "");
+  // A subscription not yet moved to its pseudonymous key (privacy-migrate) is keyed by the raw
+  // Telegram ID: no sent key is made from it, so that ID never appears in a new key.
+  return /^\d+$/.test(id) ? null : `sent:${id}`;
+}
 export const SENT_TTL = 2 * 86400;
+
+/** Deletes a subscription and the date its verse last went out: every path that ends one uses this. */
+export async function deleteSub(env: Pick<Env, "SUBS">, subKey: string): Promise<void> {
+  await env.SUBS.delete(subKey);
+  const sent = sentKeyOf(subKey);
+  if (sent) await env.SUBS.delete(sent);
+}

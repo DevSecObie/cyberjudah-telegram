@@ -2,10 +2,7 @@ import { Api, GrammyError, InlineKeyboard } from "grammy";
 import type { Env, Sub } from "./env";
 import { todaysVerse, openButton } from "./bot";
 import { open } from "./privacy.mjs";
-import { isDue, isDueHour, offsetHour, SENT_TTL, sentKeyOf, subscriberDate } from "./subscribe";
-
-/** The subscriber's hour of the day for a UTC hour: tz is their offset in minutes (half-hour zones round down). */
-export const localHour = offsetHour;
+import { deleteSub, isDueHour, SENT_TTL, sentKeyOf, subscriberDate } from "./subscribe";
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Telegram allows roughly 30 messages a second to distinct users; the broadcast stays under it. */
@@ -36,17 +33,13 @@ export async function sendDaily(env: Env, now = new Date()): Promise<Counts> {
 
 /** Notes the local date the verse went out, in its own key: the subscription is never rewritten. */
 async function markSent(env: Env, name: string, date: string): Promise<void> {
+  const key = sentKeyOf(name);
+  if (!key) return;
   try {
-    await env.SUBS.put(sentKeyOf(name), date, { expirationTtl: SENT_TTL });
+    await env.SUBS.put(key, date, { expirationTtl: SENT_TTL });
   } catch (e) {
     console.error(JSON.stringify({ event: "daily_mark_failed", message: e instanceof Error ? e.message : String(e) }));
   }
-}
-
-/** A person who blocked the bot: their subscription and its sent date go. */
-async function dropSub(env: Env, name: string): Promise<void> {
-  await env.SUBS.delete(name);
-  await env.SUBS.delete(sentKeyOf(name));
 }
 
 async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
@@ -59,15 +52,16 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
   const html = `<b>Verse of the day</b>\n\n${verse.html}`;
   const reply_markup: InlineKeyboard = openButton(env, env.WORKER_URL, "private", verse.param, "Read in CyberJudah");
   const slot: Counts = { sent: 0, dropped: 0, failed: 0 };
-  const drop = (name: string) => dropSub(env, name);
   const send = async (name: string): Promise<"sent" | "dropped" | "skip"> => {
     // Sealed at rest (privacy.mjs); subscriptions from before sealing read as they are.
     const sub = await open<Sub>(env, name, await env.SUBS.get(name));
     // Their hour in their zone when the app sent one (right across daylight saving), else at their
     // fixed offset; and not twice on one local date (the night clocks fall back).
-    // The sent date is read only at the subscriber's hour (one read, not one per hour).
-    if (!sub || !isDueHour(sub, when) || !isDue(sub, when, await env.SUBS.get(sentKeyOf(name)))) return "skip";
+    if (!sub || !isDueHour(sub, when)) return "skip";
+    // The sent date is read only at the subscriber's hour (one read a day, not one an hour).
     const date = subscriberDate(sub, when);
+    const sentKey = sentKeyOf(name);
+    if (sentKey && (await env.SUBS.get(sentKey)) === date) return "skip";
     const attempt = async (): Promise<void> => {
       await api.sendMessage(sub.chatId, html, { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup });
       await markSent(env, name, date);
@@ -76,12 +70,12 @@ async function sendSlot(env: Env, when: Date, out: Counts): Promise<void> {
       await attempt();
       return "sent";
     } catch (e) {
-      if (e instanceof GrammyError && e.error_code === 403) { await drop(name); return "dropped"; }
+      if (e instanceof GrammyError && e.error_code === 403) { await deleteSub(env, name); return "dropped"; }
       if (e instanceof GrammyError && e.error_code === 429) {
         const wait = Math.min(60, Number((e as { parameters?: { retry_after?: number } }).parameters?.retry_after ?? 1));
         await sleep(wait * 1000);
         try { await attempt(); return "sent"; } catch (e2) {
-          if (e2 instanceof GrammyError && e2.error_code === 403) { await drop(name); return "dropped"; }
+          if (e2 instanceof GrammyError && e2.error_code === 403) { await deleteSub(env, name); return "dropped"; }
           throw e2;
         }
       }

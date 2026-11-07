@@ -74,11 +74,11 @@ export function Settings() {
     const body = { on, hour: h, tz: -new Date().getTimezoneOffset() };
     const post = (json: object) => api<{ subscribed: boolean }>("/api/subscribe", { method: "POST", json });
     try {
-      // With the zone; only if the bot refuses the request (400: a zone its runtime doesn't know),
-      // again with the offset alone. Any other failure is shown, never retried without the zone.
+      // With the zone; only if the bot refuses that zone (400 "bad-zone": one its runtime doesn't
+      // know), again with the offset alone. Any other failure is shown, never retried without it.
       const zoned = zoneField();
       const r = zoned.zone
-        ? await post({ ...body, ...zoned }).catch((e: unknown) => { if (e instanceof ApiError && e.status === 400) return post(body); throw e; })
+        ? await post({ ...body, ...zoned }).catch((e: unknown) => { if (e instanceof ApiError && e.status === 400 && e.reason === "bad-zone") return post(body); throw e; })
         : await post(body);
       setDaily(r.subscribed); haptic(r.subscribed ? "success" : "tap");
     }

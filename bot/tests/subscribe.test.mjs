@@ -7,7 +7,7 @@ import { signInitData } from "../src/initdata.mjs";
 // default), keeps an IANA zone when the app sends one, and the daily send finds the subscriber's
 // local hour from that zone (right across daylight saving) or, for older apps, the minutes offset.
 const out = new URL("./.build/subscribe.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/subscribe.ts"; export { localHour } from "./src/daily.ts"; export { open, seal } from "./src/privacy.mjs"; export { default as worker } from "./src/index.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+await build({ stdin: { contents: 'export * from "./src/subscribe.ts"; export { open, seal } from "./src/privacy.mjs"; export { default as worker } from "./src/index.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
 const m = await import(out);
 // The daily send as it runs on the Worker: grammy's web build, which calls the global fetch (stubbed below).
 const outDaily = new URL("./.build/subscribe-daily.mjs", import.meta.url).pathname;
@@ -54,7 +54,7 @@ test("a zone follows daylight saving; an offset doesn't", () => {
   assert.equal(m.subscriberHour(sub, new Date("2026-03-08T08:00:00Z")), 3);
   // Half-hour zones round down, as the offset did.
   assert.equal(m.subscriberHour({ tz: 330, zone: "Asia/Kolkata" }, new Date("2026-01-15T02:00:00Z")), 7);
-  assert.equal(m.localHour(2, 330), 7);
+  assert.equal(m.offsetHour(2, 330), 7);
 });
 
 test("a subscriber at local midnight is due at hour 0, even where Intl says 24", () => {
@@ -105,7 +105,7 @@ test("POST /api/subscribe stores the zone and answers 400 for bad input", async 
   for (const [body, error] of [[{ on: true, hour: 24 }, "bad-hour"], [{ on: true, hour: 7, tz: 9999 }, "bad-tz"], [{ on: true, hour: 7, zone: "Mars/Olympus" }, "bad-zone"], ["{not json", "bad-json"], [null, "bad-json"]]) {
     const res = await subscribe(body);
     assert.equal(res.status, 400, JSON.stringify(body));
-    assert.deepEqual(await res.json(), { error }, JSON.stringify(body));
+    assert.deepEqual(await res.json(), { error, reason: error }, JSON.stringify(body));
   }
   // A refused request leaves the subscription as it was.
   assert.deepEqual(await stored(), { chatId: 4242, hour: 6, tz: 60 });
@@ -131,6 +131,8 @@ test("the night clocks fall back, a repeated hour sends the verse once", async (
   // The next day it's due again.
   assert.equal(m.isDue(sub, new Date("2026-11-02T07:00:00Z"), "2026-11-01"), true);
   assert.equal(m.sentKeyOf("sub:abc"), "sent:abc");
+  // A subscription still keyed by the raw Telegram ID (not yet migrated) gets no sent key.
+  assert.equal(m.sentKeyOf("sub:12345678"), null);
   // An offset-only subscriber's date is taken at their offset.
   assert.equal(m.subscriberDate({ tz: -300 }, new Date("2026-11-01T03:00:00Z")), "2026-10-31");
 });
@@ -185,6 +187,12 @@ test("sendDaily sends once across the fall-back night and notes the local date b
     await sendDaily(daily, new Date("2026-11-04T07:00:00Z"));
     assert.equal(store.has("sub:blocked"), false);
     assert.equal(store.has("sent:blocked"), false);
+    // A subscription not yet migrated off the raw Telegram ID: sent, but no key names that ID.
+    store.set("sub:12345678", JSON.stringify({ chatId: 99, hour: 1, tz: -360, zone: "America/Chicago" }));
+    const before = sent.length;
+    await sendDaily(daily, new Date("2026-11-05T07:00:00Z"));
+    assert.equal(sent.length, before + 1);
+    assert.ok(![...store.keys()].some((k) => k.startsWith("sent:") && k.includes("12345678")));
   } finally {
     globalThis.fetch = realFetch; globalThis.caches = realCaches;
   }
