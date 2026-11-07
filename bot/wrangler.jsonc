@@ -145,7 +145,8 @@
     // AI's rates, up to these caps. ASK_DAILY_LIMIT is each person's Ask answers a day (20).
     // ASK_USD_PER_STAR is kept a little under the Star's payout (about $0.013 when this was set),
     // so a fall in the payout never leaves a paid answer to the owner.
-    // ASK_IP_DAILY_LIMIT is the Sybil backstop (Ask requests per IP per day); SEARCH_AI_DAILY_LIMIT
+    // ASK_IP_DAILY_LIMIT is the Sybil backstop (Ask requests per IP per day; not for Telegram launch
+    // data, which the Mini App relays from one Cloudflare address for every reader); SEARCH_AI_DAILY_LIMIT
     // caps the search screen's AI answer block per reader (20/day, admins excluded); CREDIT_USAGE_RETENTION_DAYS
     // how long per-request telemetry is kept; CREDITS_CONTENTION_ALERT how many D1 write-contention
     // events in a day page the admins from the hourly health check.

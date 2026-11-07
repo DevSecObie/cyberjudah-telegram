@@ -55,7 +55,7 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Aggregate free-answer spend | D1 `free_spend_daily` | UTC day and total estimated cost; no reader id or question | Aggregate operational history | Not linked to a reader |
 | Who asked on a day (legacy) | D1 `usage_people` (pid) | pid, day; nothing writes it any more, old rows only | Pruned after 30 days (`billing.ts`) | Delete my data |
 | Daily limits | D1 `rate_counts` (`name:pid:day`: `ask`, `search_ai`, `ttsg`, `share`, `report`) | A count | Swept daily | Delete my data |
-| Ask limit per network | D1 `rate_counts` (`ask_ip:<IP address>:day`) | The IP address the question came from, and a count, never linked to a pid | Swept daily (kept up to two days) | Expires on its own |
+| Ask limit per network | D1 `rate_counts` (`ask_ip:<IP address>:day`) | The IP address the question came from, and a count, never linked to a pid; not kept for questions signed with Telegram launch data | Swept daily (kept up to two days) | Expires on its own |
 | New reminder browsers per network | KV `remcreate:<HMAC of IP address>:day` (`remind.ts`; `privacy.mjs` `keyedHash`, keyed from `PRIVACY_KEY`) | A count of new browser credentials from that address | Two days (`expirationTtl`) | Expires on its own |
 | Class-note requests | KV `notereq:<video>` | Count, pids (once each) | Until the notes are written | Delete my data (the reader's pid and vote) |
 | Cloud study backup | D1 `study_backups` (`owner` = pid; `study-backup.ts`) | The personal-study archive, sealed; revision, last update | Until replaced or deleted | The reader, Delete my data |
