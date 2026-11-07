@@ -1,0 +1,1 @@
+- Recover an Ask answer after a lost connection using its request ID, including saved partial text and the original charge. Retrying that ID returns its saved result without starting or charging for another answer.
