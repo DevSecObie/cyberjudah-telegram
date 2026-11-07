@@ -10,7 +10,7 @@ await build({ entryPoints: [new URL('../src/app-ask.ts', import.meta.url).pathna
     ? `export async function listen(env, account, audio) { env.voice.push({kind:'listen', account, bytes: audio.byteLength}); return {ok:true,text:'Who was Judah'} } export async function speak(env, account, text, voice) { env.voice.push({kind:'speak', account, text, voice}); return new Response(new Uint8Array([1,2,3]), {headers:{'content-type':'audio/mpeg'}}) }`
     : args.path === 'identity'
     ? `export async function appReader(req) { return req.headers.get('authorization') === 'Bearer fixture' ? {uid:'firebase-alice'} : null }`
-    : `const model = {id:'@cf/free',name:'Free',provider:'Cloudflare'}; export const appAskModels = () => [model]; export const freeModel = () => model; export const takeQuotaKey = async () => true; export async function answerApp(env,q,account,history,consent,ms,opts) { env.calls.push({q,account,history,consent,model:opts.model}); opts.emit?.({delta:'An answer'}); return {ok:true,answer:'An answer',sources:[{n:1,title:'Source',url:'/classes/a',text:'private passage'}],model:model.id,provider:model.provider,ms:1} } export async function answerAppAgent(env,q,account,history,consent,opts) { return answerApp(env,q,account,history,consent,0,opts) }` }));
+    : `const model = {id:'@cf/free',name:'Free',provider:'Cloudflare'}; export const appAskModels = () => [model]; export const freeModel = () => model; export const takeQuotaKey = async () => true; export async function answerApp(env,q,account,history,consent,ms,opts) { env.calls.push({q,account,history,consent,model:opts.model}); env.capturedSignal=opts.signal; if(env.waitForSignal) { env.started?.(); await new Promise((_resolve,reject)=>opts.signal.addEventListener("abort",()=>reject(opts.signal.reason),{once:true})); } opts.emit?.({delta:'An answer'}); return {ok:true,answer:'An answer',sources:[{n:1,title:'Source',url:'/classes/a',text:'private passage'}],model:model.id,provider:model.provider,ms:1} } export async function answerAppAgent(env,q,account,history,consent,opts) { return answerApp(env,q,account,history,consent,0,opts) }` }));
 }}] });
 const { appAsk } = await import(out);
 const env = { PRIVACY_KEY: 'fixture-key', calls: [], voice: [], SUBS: { put: async () => {} } };
@@ -87,4 +87,17 @@ test("voice needs a sign-in and the agreement to the free models' provider befor
   const read = await request('/speak', { text: 'An answer', voice: 'orpheus', consent: ['Cloudflare (Workers AI)'] });
   assert.equal(read.headers.get('content-type'), 'audio/mpeg');
   assert.ok(env.voice.every((v) => v.account && v.account !== 'firebase-alice'), 'the account is a keyed hash, never the raw UID');
+});
+
+
+test('native non-stream Ask forwards its incoming request signal without a network call', async () => {
+  let started;
+  const ready = new Promise(resolve => { started = resolve; });
+  const local = { ...env, calls: [], waitForSignal: true, started };
+  const controller = new AbortController();
+  const pending = appAsk.fetch(new Request('https://example.test/', { method: 'POST', headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' }, body: JSON.stringify({ q: 'Read recorded material', consent: ['Cloudflare'] }), signal: controller.signal }), local, ctx);
+  await ready; controller.abort();
+  await pending;
+  assert.equal(local.capturedSignal.aborted, true);
+  assert.equal(local.calls.length, 1);
 });

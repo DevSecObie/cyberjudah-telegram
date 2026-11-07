@@ -7,7 +7,7 @@ import type { AgentEvent } from "./agent";
 import type { Spend } from "./spend";
 import { modelOutputLimit } from "./model-capacity.mjs";
 import { DATA_POLICY, groundedSystem, untrustedData } from "./grounding.mjs";
-import { MAX_OPEN_OUTPUT, researchRounds, researchSignal } from "./research-policy.mjs";
+import { MAX_OPEN_OUTPUT, MAX_RESEARCH_MS, WRITING_RESERVE_MS, writingDue, withinPhase, researchRounds, researchSignal } from "./research-policy.mjs";
 
 const DEEPSEEK_V4 = /^@cf\/deepseek-ai\/deepseek-v4/;
 const GEMMA_4 = /^@cf\/google\/gemma-4/;
@@ -50,7 +50,9 @@ export async function researchOpen(
   options: { think?: boolean; signal?: AbortSignal; deadlineAt?: number } = {},
 ): Promise<Result> {
   maxRounds = researchRounds(maxRounds);
-  const signal = researchSignal(options.signal, options.deadlineAt);
+  const deadlineAt = options.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
+  const signal = researchSignal(options.signal, deadlineAt);
+  const toolSignal = researchSignal(signal, deadlineAt - WRITING_RESERVE_MS);
   signal.throwIfAborted();
   if (!system.includes(DATA_POLICY)) system = groundedSystem(system);
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
@@ -78,16 +80,17 @@ export async function researchOpen(
       if (!res || typeof res !== "object") throw new Error("empty response");
       if (streamPlain && typeof (res as ReadableStream).getReader === "function") return readAIStream(res as ReadableStream<Uint8Array>, text => emit({ delta: text }));
       return res as Record<string, unknown>;
-    } catch (e) { signal.throwIfAborted(); throw unavailable(e); }
+    } catch (e) { if (spend) spend.unreported = true; signal.throwIfAborted(); throw unavailable(e); }
   };
   /** Runs one tool call: its input checked against the tool's schema first, as for Claude. */
   const tool = async (name: string, raw: unknown): Promise<string> => {
     signal.throwIfAborted();
+    if (writingDue(deadlineAt)) return untrustedData({ error: "Research time is reserved for writing the final answer from the registered sources." }, "tool_output");
     let input: unknown = raw;
     if (typeof raw === "string") { try { input = raw.trim() ? JSON.parse(raw) : {}; } catch { return untrustedData({ INVALID_JSON: raw.slice(0, 400) }, "tool_output"); } }
     const why = checkInput(schemas.get(name) as never, input);
     if (why) return untrustedData({ INVALID_INPUT: why }, "tool_output");
-    try { return untrustedData(await run(name, input as Record<string, unknown>), "tool_output"); }
+    try { return untrustedData(await withinPhase(() => run(name, input as Record<string, unknown>), toolSignal), "tool_output"); }
     catch (e) { signal.throwIfAborted(); return untrustedData({ error: (e as Error).message?.slice(0, 120) }, "tool_output"); }
   };
   let units = 0, calls = 0;
@@ -106,7 +109,7 @@ export async function researchOpen(
     const input: unknown[] = messages.map((m) => ({ role: m.role, content: m.content }));
     for (let round = 0; round < maxRounds; round++) {
       // Past 70% of the request's budget the research stops and the answer is written (agent.ts).
-      const last = round === maxRounds - 1 || !!spend?.over(0.7);
+      const last = round === maxRounds - 1 || !!spend?.over(0.7) || writingDue(deadlineAt);
       const res = await call({ instructions: system, input, tools: defs, ...(last ? { tool_choice: "none" } : {}) });
       units += unitsFor(res.usage as Record<string, unknown>, model); calls++; spend?.call(res.usage as Record<string, unknown>, model);
       const output = Array.isArray(res.output) ? (res.output as Record<string, unknown>[]) : [];
@@ -126,7 +129,7 @@ export async function researchOpen(
   if (model.format === "messages") {
     const convo: unknown[] = messages.map((m) => ({ role: m.role, content: m.content }));
     for (let round = 0; round < maxRounds; round++) {
-      const last = round === maxRounds - 1 || !!spend?.over(0.7);
+      const last = round === maxRounds - 1 || !!spend?.over(0.7) || writingDue(deadlineAt);
       const res = await call({ system, messages: convo, tools, ...(last ? { tool_choice: { type: "none" } } : {}) });
       units += unitsFor(res.usage as Record<string, unknown>, model); calls++; spend?.call(res.usage as Record<string, unknown>, model);
       const content = Array.isArray(res.content) ? (res.content as Record<string, unknown>[]) : [];
@@ -149,7 +152,7 @@ export async function researchOpen(
   const defs = tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } }));
   const convo: unknown[] = [{ role: "system", content: system }, ...messages];
   for (let round = 0; round < maxRounds; round++) {
-    const last = round === maxRounds - 1 || !!spend?.over(0.7);
+    const last = round === maxRounds - 1 || !!spend?.over(0.7) || writingDue(deadlineAt);
     const res = await call({ messages: convo, tools: defs, ...(last ? { tool_choice: "none" } : {}) });
     const { text, usage, cut, toolCalls } = chatText(res);
     units += unitsFor(usage, model); calls++; spend?.call(usage, model);
@@ -160,7 +163,7 @@ export async function researchOpen(
       }
       // The model wrote only tool calls when it was told to answer: ask once more, with no tools
       // offered, so the reader gets prose and never the call markup.
-      if (spend?.over(0.9)) return { text: "", units, calls, cut: true, refused: false };
+      if (calls >= maxRounds || spend?.over(0.9)) return { text: "", units, calls, cut: true, refused: false };
       const again = chatText(await call({ messages: [...convo, { role: "user", content: "Write the answer now from what you have read, in plain prose, citing the sources by their numbers. Do not call any tools." }] }));
       units += unitsFor(again.usage, model); calls++; spend?.call(again.usage, model);
       if (again.text) emit({ delta: again.text });

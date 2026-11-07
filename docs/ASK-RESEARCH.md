@@ -61,10 +61,16 @@ ordinary free-reader pool or a reader wallet. Invalid/unreadable/exhausted budge
 The owner can change this dollar cap in configuration. It prevents unlimited sponsor spend under
 the default Opus model; it does not switch admins to a different model.
 
-Research has one 110-second deadline, aborts provider work on disconnect, and checks cancellation
-before further tools/calls. Accounting still finishes under waitUntil. Failed or cut answers are
-not charged to the reader, and a cut answer is not cached. Provider costs already incurred still
-count against the sponsor's pool. Unknown or aborted costs keep the full reservation.
+Research reserves its final 20 seconds for writing: tools stop around 90 seconds and the next
+model round must write from registered evidence. The hard deadline remains 110 seconds; if a
+provider stalls through it, the result is marked partial and shows existing verbatim excerpts
+rather than invented text. Provider work aborts on disconnect, and cancellation is checked before
+further tools/calls. Accounting still finishes under waitUntil. A cancelled request before any answer text and a cut answer are not charged; a paid cancellation
+after visible answer text is settled as partial for the provider-reported metered cost, at most
+the hold. Unknown tokens are never invented. A cut answer is not cached. Provider costs already incurred still
+count against the sponsor's pool. Known-usage admin failures release the unused reservation. Unknown or aborted usage keeps its
+reservation because the unspent amount cannot be established. Partial SDK usage snapshots are
+recorded as lower bounds, with usage_complete=false.
 Source registration is bounded at 256 records; full source words are retained for those readings.
 
 The Workers AI backup now has its own sponsored reservation before a call, including streaming
@@ -113,3 +119,9 @@ output parameters and reserved spending, including paid OpenAI chat completions.
 cover sponsored reservations, missing usage, provider failure and streaming cancellation. Question
 tests cover intact long input and explicit oversized-input rejection. Tests use stand-ins, not live
 paid inference.
+
+
+The Worker opts into `enable_request_signal` for non-stream client disconnections at its existing
+compatibility date. Ask explicitly forwards that signal to model/embedding calls; the flag does
+not itself add automatic subrequest cancellation. Webhook/payment handlers do not forward it to
+their settlement work. See [Cloudflare's compatibility documentation](https://developers.cloudflare.com/workers/configuration/compatibility-flags/).

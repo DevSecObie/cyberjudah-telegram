@@ -171,7 +171,7 @@ test("DeepSeek's DSML tool calls in the text are run as tools, and the markup ne
   assert.equal(sent[1].input.messages.at(-2).content, "", "the markup is not kept as the assistant's words");
 });
 
-test("markup on the last round asks once more without tools, and the reader gets prose", async () => {
+test("markup repair remains inside the hard model-call ceiling", async () => {
   const { env, sent } = binding([
     { choices: [{ message: { role: "assistant", content: `Let me look. ${DSML_REPLY}` }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 40 } },
   ]);
@@ -185,9 +185,9 @@ test("markup on the last round asks once more without tools, and the reader gets
     { choices: [{ message: { role: "assistant", content: "An answer [1]." }, finish_reason: "stop" }], usage: { prompt_tokens: 100, completion_tokens: 10 } },
   ]);
   const r2 = await researchOpen(second.env, modelOf("@cf/deepseek-ai/deepseek-v4-flash-0731"), "S", [{ role: "user", content: "q" }], TOOLS, SCHEMAS, async () => ({ content: "" }), () => {}, 1);
-  assert.equal(r2.text, "An answer [1].");
-  assert.equal(second.sent.length, 2);
-  assert.equal(second.sent[1].input.tools, undefined, "the retry offers no tools");
+  assert.equal(r2.text, "");
+  assert.equal(r2.cut, true);
+  assert.equal(second.sent.length, 1, "repair cannot exceed a one-call ceiling");
 });
 
 test("DSML markup with plain bars, a missing '<' and a JSON parameter still parses", async () => {

@@ -8,7 +8,7 @@ import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
-import { MAX_RESEARCH_ROUNDS, MAX_RESEARCH_MS, adminBudgetPool, researchRounds, researchSignal } from "./research-policy.mjs";
+import { MAX_RESEARCH_ROUNDS, MAX_RESEARCH_MS, adminBudgetPool, researchRounds, researchSignal, timeLeft } from "./research-policy.mjs";
 import { withTeachers } from "./class-attribution";
 export { withTeachers } from "./class-attribution";
 import { backupOnce, backupPieces } from "./backup-answer";
@@ -179,7 +179,7 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  */
 export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number; reservation?: FreeReservation };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
-export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal };
+export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean };
 
 /**
  * The free tier answers at the owner's expense, with the same default research guard
@@ -247,16 +247,16 @@ async function startMeterFor(env: Env, uid: number, model: AskModel, opts: Meter
  * charge is recorded as written off. Returns the charge and the new balance, or null when nothing
  * was settled (the free model, an admin).
  */
-export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | "refused" | "empty" | "backup" | "partial", elapsedMs?: number): Promise<{ charged_mc: number; balance: Wallet } | null> {
+export async function finishMeter(env: Env, m: Meter, status: "ok" | "failed" | "refused" | "empty" | "backup" | "partial", elapsedMs?: number, chargePartial = false): Promise<{ charged_mc: number; balance: Wallet } | null> {
   const cost = m.spend.total();
   const actual = mcOfUsd(cost);
-  const charged = status === "ok" && !m.free ? Math.min(actual, m.held) : 0;
-  const detail = { calls: m.spend.calls, searches: m.spend.searches, model_usd: Math.round(m.spend.modelUsd * 1e6) / 1e6, research_usd: Math.round(m.spend.researchUsd * 1e6) / 1e6 };
+  const charged = (status === "ok" || (status === "partial" && chargePartial)) && !m.free ? Math.min(actual, m.held) : 0;
+  const detail = { calls: m.spend.calls, searches: m.spend.searches, model_usd: Math.round(m.spend.modelUsd * 1e6) / 1e6, research_usd: Math.round(m.spend.researchUsd * 1e6) / 1e6, usage_complete: !m.spend.unreported };
   console.log(JSON.stringify({ event: "ask_usage", model: m.model.id, status, cost_usd: Math.round(cost * 1e6) / 1e6, charged_mc: charged, held_mc: m.held, free: m.free, ...(elapsedMs !== undefined ? { elapsedMs } : {}), ...detail }));
   // Failed/backup calls may have incurred unreported provider costs. Keep their full
   // reservation; a failed settlement leaves the reservation held, never reusable.
   if (m.reservation) await settleFreeBudget(env, m.reservation,
-    status === "failed" || status === "backup" || m.spend.unreported ? Math.max(cost, m.spend.budgetUsd ?? 0) : cost);
+    m.spend.unreported || (!m.admin && (status === "failed" || status === "backup")) ? Math.max(cost, m.spend.budgetUsd ?? 0) : cost);
   if (m.free) return null;
   const r = await settle(env, m.owner, m.request, { actualMc: charged, costUsd: cost, status, model: m.model.id, detail, absorbedMc: actual - charged }).catch((e: Error) => { console.error(JSON.stringify({ event: "credits_settle_failed", message: e.message?.slice(0, 160) })); return null; });
   return r ? { charged_mc: r.charged_mc, balance: await wallet(env, m.owner) } : null;
@@ -293,10 +293,10 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   const meter = r.meter;
   const spend = meter?.spend ?? freeSpend();
   try {
-    const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), MAX_RESEARCH_MS), 8);
+    const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), timeLeft(t0 + MAX_RESEARCH_MS)), 8);
     signal.throwIfAborted();
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
-      const { text, passages, grounded, cut } = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend, signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
+      const { text, passages, grounded, cut } = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
       const answer = await checkedVerses(env, splitFollowups(text).answer);
       if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
       return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
@@ -509,12 +509,12 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     // even when the model answers from these passages without searching again.
     const searchText = retrievalText(question, history);
     emit({ status: `Searching the classes and library for “${question.slice(0, 160)}”` });
-    const [found, verses] = await withDeadline(Promise.all([retrieve(env, searchText, 12, spend, signal), versesNamed(env, question)]), MAX_RESEARCH_MS);
+    const [found, verses] = await withDeadline(Promise.all([retrieve(env, searchText, 12, spend, signal), versesNamed(env, question)]), timeLeft(t0 + MAX_RESEARCH_MS));
     const first = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
     for (const passage of first) emit({ status: `Reading ${passage.title.slice(0, 180)}` });
     let ran: Awaited<ReturnType<typeof runAgent>>;
     try {
-      ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend, signal), emit, undefined, undefined, model, spend, undefined, meter.maxRounds, false, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
+      ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), emit, undefined, undefined, model, spend, undefined, meter.maxRounds, false, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
     } catch (e) {
       if (signal.aborted || model.format !== "anthropic" || !claudeUnavailable(e)) throw e;
       // Claude cannot answer now (out of money, overloaded, down): the free model answers instead.
@@ -699,18 +699,18 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // The reader can leave at any moment (Stop, another screen, the app closed). From then on
   // the shared signal stops provider work and further tools. Accounting still completes under
   // waitUntil, so already incurred costs are recorded and a failed answer is not charged.
-  let open = true;
+  let open = true, deliveredText = false;
   let settled = false;
-  const finish = async (status: Parameters<typeof finishMeter>[2]) => {
+  const finish = async (status: Parameters<typeof finishMeter>[2], chargePartial = false) => {
     if (settled || !meter) return null;
     settled = true;
-    return finishMeter(env, meter, status);
+    return finishMeter(env, meter, status, undefined, chargePartial);
   };
   // While it is being answered, the conversation says so, for a refresh or another device to wait on.
   if (chatId) await markPending(env, userId, chatId, question).catch(() => undefined);
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); } catch { open = false; } };
+      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
@@ -720,7 +720,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       };
       const job = (async () => {
         try {
-          const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), MAX_RESEARCH_MS), 8);
+          const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), timeLeft(startedAt + MAX_RESEARCH_MS)), 8);
     signal.throwIfAborted();
           let backup = false;
           // Claude needs its own access (hasClaude); every other model goes through the AI Gateway.
@@ -728,7 +728,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k) => retrieve(env, t, k, spend, signal), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds, true, { signal, deadlineAt: startedAt + MAX_RESEARCH_MS }); }
+            try { ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds, true, { signal, deadlineAt: startedAt + MAX_RESEARCH_MS }); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.
@@ -785,7 +785,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
-          await finish("failed");
+          const paidPartial = signal.aborted && deliveredText;
+          await finish(paidPartial ? "partial" : "failed", paidPartial);
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
           send({ error: "unavailable" });
         } finally {

@@ -518,3 +518,16 @@ test('a cut answer records its cost but returns the entire reader hold', async t
   assert.equal(row.status, 'partial');
   assert.ok(row.cost_usd > 0);
 });
+
+test('an admin failure with complete usage releases its unused daily reservation', async t => {
+  const { env, sql } = financialDb(t), model = modelOf('claude-opus-5-5');
+  const started = await startMeter(env, 100000002, model);
+  assert.equal(started.ok, true);
+  started.meter.spend.call({ input_tokens: 1000, output_tokens: 100 }, model);
+  const actual = started.meter.spend.total();
+  assert.ok(actual < started.meter.spend.budgetUsd);
+  await finishMeter(env, started.meter, 'failed');
+  const row = sql.prepare("SELECT usd_micro FROM free_spend_daily WHERE day LIKE 'admin:%'").get();
+  assert.equal(row.usd_micro, Math.ceil(actual * 1e6 - 1e-6));
+  assert.equal(await freeSpendToday(env), 0);
+});

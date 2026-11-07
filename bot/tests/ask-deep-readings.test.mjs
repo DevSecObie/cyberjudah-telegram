@@ -217,6 +217,39 @@ test('disconnect after a provider reply stops before its proposed tools and any 
   assert.equal(f.env.reads.includes(`/api/notes${path}.json`), false);
 });
 
+test('the writing reserve stops tools and forces a final model round from registered evidence', async () => {
+  const f = fixture(), now = Date.now, started = now();
+  let clock = started;
+  Date.now = () => clock;
+  try {
+    f.env.AI = { run: async (_model, input) => {
+      f.requests.push(input);
+      if (f.requests.length === 1) {
+        clock = started + 91000;
+        return { response: '', tool_calls: [{ name: 'read_note', arguments: { path } }], usage: { prompt_tokens: 100, completion_tokens: 10 } };
+      }
+      return { response: 'A source-backed fixture answer [1].', usage: { prompt_tokens: 100, completion_tokens: 10 } };
+    } };
+    const result = await runAgent(f.env, 'Read recorded material', [], [{ kind: 'note', title: 'Recorded material', url: '/study/recorded', text: 'Existing recorded source words, copied exactly.' }], async () => [], () => {}, undefined, undefined, modelOf('@cf/google/gemma-4-26b-a4b-it'), undefined, undefined, 25, false, { deadlineAt: started + 110000 });
+    assert.equal(f.requests.length, 2);
+    assert.equal(f.requests[1].tool_choice, 'none');
+    assert.equal(f.env.reads.includes(`/api/notes${path}.json`), false);
+    assert.equal(result.text, 'A source-backed fixture answer [1].');
+  } finally { Date.now = now; }
+});
+
+test('aborted Claude streams retain provider-reported usage rather than inventing tokens', async () => {
+  const f = fixture(), controller = new AbortController(), spend = makeSpend({ budgetUsd: 1.5 });
+  f.env.client = { messages: { countTokens: async () => ({ input_tokens: 100 }), stream() {
+    let text;
+    return { currentMessage: { usage: { input_tokens: 100, output_tokens: 1 } }, on(_event, emit) { text = emit; }, async finalMessage() { text('Visible fixture words.'); controller.abort(); throw controller.signal.reason; } };
+  } } };
+  await assert.rejects(runAgent(f.env, 'Read recorded material', [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-sonnet-5-5'), spend, undefined, 25, false, { signal: controller.signal }), { name: 'AbortError' });
+  assert.equal(spend.calls, 1);
+  assert.ok(spend.total() > 0);
+  assert.equal(spend.unreported, true, 'a partial snapshot is a lower bound, never complete usage');
+});
+
 test('cancelled or expired research starts no provider call, and sources are bounded above 48', async () => {
   const f = fixture(), controller = new AbortController(); controller.abort();
   f.env.AI = { run: async (_model, input) => { f.requests.push(input); return { response: 'Fixture answer.', usage: { prompt_tokens: 100, completion_tokens: 10 } }; } };
@@ -229,7 +262,7 @@ test('cancelled or expired research starts no provider call, and sources are bou
   assert.equal(result.passages.length, 256);
 });
 
-test('an overall deadline aborts the current provider request and starts no further research', async () => {
+test('a hard deadline aborts the provider, returns marked verbatim evidence and starts no further research', async () => {
   const f = fixture();
   f.env.AI = { run: async (_model, input, options) => {
     f.requests.push(input);
@@ -237,7 +270,10 @@ test('an overall deadline aborts the current provider request and starts no furt
   } };
   const keepAlive = setTimeout(() => {}, 250);
   try {
-    await assert.rejects(runAgent(f.env, 'Read recorded material', [], [], async () => [], () => {}, undefined, undefined, modelOf('@cf/google/gemma-4-26b-a4b-it'), undefined, undefined, 25, false, { deadlineAt: Date.now() + 100 }), { name: 'TimeoutError' });
+    const result = await runAgent(f.env, 'Read recorded material', [], [{ kind: 'note', title: 'Recorded material', url: '/study/recorded', text: 'Existing recorded source words, copied exactly.' }], async () => [], () => {}, undefined, undefined, modelOf('@cf/google/gemma-4-26b-a4b-it'), undefined, undefined, 25, false, { deadlineAt: Date.now() + 100 });
+    assert.equal(result.cut, true);
+    assert.match(result.text, /Research reached its time limit/);
+    assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
   } finally { clearTimeout(keepAlive); }
   assert.equal(f.requests.length, 1);
 });

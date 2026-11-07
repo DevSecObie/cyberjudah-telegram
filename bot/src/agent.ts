@@ -18,7 +18,7 @@ import { researchOpen } from "./agent-open";
 import { freeSpend, type Spend } from "./spend";
 import { DEEP_TOOLS, readForAsk } from "./ask-readers";
 import { claudeThinking } from "./model-capacity.mjs";
-import { MAX_RESEARCH_ROUNDS, MAX_CLAUDE_OUTPUT, MAX_RESEARCH_SOURCES, researchRounds, researchSignal, type ResearchControl } from "./research-policy.mjs";
+import { MAX_RESEARCH_ROUNDS, MAX_CLAUDE_OUTPUT, MAX_RESEARCH_MS, MAX_RESEARCH_SOURCES, WRITING_RESERVE_MS, writingDue, withinPhase, researchRounds, researchSignal, type ResearchControl } from "./research-policy.mjs";
 import { classAttributor } from "./class-attribution";
 import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlText } from "./grounding.mjs";
 
@@ -103,7 +103,7 @@ export async function runAgent(
   question: string,
   history: Turn[],
   first: Passage[],
-  retrieve: (text: string, k: number) => Promise<Passage[]>,
+  retrieve: (text: string, k: number, signal?: AbortSignal) => Promise<Passage[]>,
   emit: (e: AgentEvent) => void,
   ctx?: Exec,
   userId?: number,
@@ -115,12 +115,14 @@ export async function runAgent(
   control: ResearchControl = {},
 ): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean }> {
   maxRounds = researchRounds(maxRounds);
-  const signal = researchSignal(control.signal, control.deadlineAt);
+  const deadlineAt = control.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
+  const signal = researchSignal(control.signal, deadlineAt);
+  const toolSignal = researchSignal(signal, deadlineAt - WRITING_RESERVE_MS);
   signal.throwIfAborted();
   // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
-  const resourcePins = await resolveResourcePins(env, requestedResources);
-  const client = await claude(env);
-  const attribute = await classAttributor(env);
+  const resourcePins = await withinPhase(() => resolveResourcePins(env, requestedResources), signal);
+  const client = await withinPhase(() => claude(env), signal);
+  const attribute = await withinPhase(() => classAttributor(env), signal);
   const passages: Numbered[] = [];
   const seen = new Map<string, number>();
   const dirty = new Set<number>(), sent = new Map<number, string>();
@@ -135,7 +137,8 @@ export async function runAgent(
     dirty.clear();
     if (changed.length) emit(initial ? { passages: changed } : { passages_delta: changed });
   };
-  const add = (source: Passage): { n: number; fresh: boolean } | null => {
+  const add = (source: Passage, initial = false): { n: number; fresh: boolean } | null => {
+    if (!initial && toolSignal.aborted) return null;
     const p = attribute(source);
     const k = keyOf(p);
     if (seen.has(k)) return { n: seen.get(k)!, fresh: false };
@@ -144,7 +147,7 @@ export async function runAgent(
     passages.push({ ...p, n }); seen.set(k, n); dirty.add(n);
     return { n, fresh: true };
   };
-  for (const p of first) add(p);
+  for (const p of first) add(p, true);
   const actions: SavedAction[] = [];
   const line = (name: string, what: string, path: string) => {
     const kind = /^\/person\/[a-z0-9-]+$/.test(path) ? 'people' : /^\/timeline\/event\/[a-z0-9-]+$/.test(path) ? 'timeline' : undefined;
@@ -159,7 +162,7 @@ export async function runAgent(
       const query = str(input.query, 200);
       if (query.length < 2) return { content: "Give a query of a few words.", error: true };
       emit({ status: `Searching the teachings for “${query}”` });
-      const found = answerCandidates(query, await retrieve(query, 10), 6);
+      const found = answerCandidates(query, await retrieve(query, 10, toolSignal), 6);
       const lines: string[] = [];
       for (const p of found) { const a = add(p); if (a) lines.push(a.fresh ? listed(passages[a.n - 1]) : `[${a.n}] ${p.title} (already given above)`); }
       publishPassages();
@@ -227,6 +230,7 @@ export async function runAgent(
     if (DEEP_TOOLS.some(tool => tool.name === name)) {
       emit({ status: name === "search_classes" ? `Searching classes for “${str(input.query, 200)}”` : `Reading ${str(input.path ?? input.reference ?? input.video, 200)}` });
       const reading = await readForAsk(name, input, env, ctx);
+      if (toolSignal.aborted) return { content: "Research time is reserved for writing the final answer from the registered sources.", error: true };
       if (!reading) return { content: "That reading tool is unavailable.", error: true };
       const labels: string[] = [];
       for (const source of reading.sources ?? []) {
@@ -255,9 +259,16 @@ export async function runAgent(
   const toolEvidence: { kind: string; title: string; text: string }[] = [];
   const runWithEvidence = async (name: string, input: Record<string, unknown>) => {
     signal.throwIfAborted();
+    if (writingDue(deadlineAt)) return { content: "Research time is reserved for writing the final answer from the registered sources.", error: true, source_registry: [] };
     const before = passages.length;
     try {
-      const result = await run(name, input);
+      let result;
+      try { result = await withinPhase(() => run(name, input), toolSignal); }
+      catch (error) {
+        signal.throwIfAborted();
+        if (!toolSignal.aborted) throw error;
+        return { content: "Research time is reserved for writing the final answer from the registered sources.", error: true, source_registry: [] };
+      }
       if (!result.error && appTools.has(name)) toolEvidence.push({ kind: "tool", title: name, text: result.content });
       return { ...result, source_registry: passages.slice(before).map(source => ({ source_n: source.n, title: source.title, url: source.url })) };
     } finally { coverageVersion++; }
@@ -283,6 +294,10 @@ export async function runAgent(
     }
     return { ...result, passages, actions, grounded: true };
   };
+  const timedOut = () => {
+    const excerpts = passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)).slice(0, 3).map(source => `**${source.title.replace(/[*_\[\]]/g, '')}** [${source.n}]\n\n> ${source.text.slice(0, 1000).replace(/\n/g, '\n> ')}`);
+    return excerpts.length ? `Research reached its time limit. Here are the recorded excerpts I found:\n\n${excerpts.join('\n\n')}` : notInTheClasses([]).answer;
+  };
   const messages: Anthropic.MessageParam[] = [
     ...promptHistory(history).map((m) => ({ role: m.role as "assistant" | "user", content: m.content })),
     { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${libraryData(passages)}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
@@ -291,8 +306,15 @@ export async function runAgent(
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
-    const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, { signal });
-    return finish(r);
+    try {
+      const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, { signal, deadlineAt });
+      return finish(r);
+    } catch (error) {
+      if (!signal.aborted || signal.reason?.name !== 'TimeoutError') throw error;
+      const text = timedOut();
+      emit({ reset: true }); emit({ delta: text });
+      return finish({ text, units: 0, calls: spend.calls, cut: true, refused: false });
+    }
   }
 
   let text = "";
@@ -311,6 +333,7 @@ export async function runAgent(
   let knownTokens = 0, bytesAtKnown = 0, bytesThisCall = 0;
   let attempts = 0;
   for (let round = 0; round < maxRounds && attempts < maxRounds; round++) {
+    if (signal.aborted && signal.reason?.name === 'TimeoutError') { text = timedOut(); cut = true; break; }
     signal.throwIfAborted();
     // Without usage, another round cannot be proven to fit the money already reserved.
     if (spend.budgetUsd != null && spend.unreported) { cut = true; break; }
@@ -331,7 +354,7 @@ export async function runAgent(
     // Too little left for a reply the API accepts: the request stops here, inside what was set aside.
     if (room < 256) { cut = true; break; }
     // Close to the end of the budget the research stops and the answer is written.
-    const last = round === maxRounds - 1 || spend.over(0.7) || room < 1024;
+    const last = round === maxRounds - 1 || spend.over(0.7) || room < 1024 || writingDue(deadlineAt);
     if (round === 0) emit({ status: "Studying the question" });
     let said = "";
     attempts++;
@@ -351,6 +374,13 @@ export async function runAgent(
     let message: Anthropic.Message;
     try { message = await stream.finalMessage(); badJson = 0; }
     catch (e) {
+      if (signal.aborted) {
+        // Snapshot counters are provider-reported lower bounds. Never invent tokens after abort.
+        const usage = stream.currentMessage?.usage;
+        if (usage) { units += unitsFor(usage, model); calls++; spend.call(usage, model); }
+        spend.unreported = true;
+        if (signal.reason?.name === 'TimeoutError') { text = said.trim() ? said : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; break; }
+      }
       signal.throwIfAborted();
       // A tool input that could not be parsed at all (eager streaming): the round is asked
       // again, twice at most. API errors (rate limits, overload, auth) are not retried here.

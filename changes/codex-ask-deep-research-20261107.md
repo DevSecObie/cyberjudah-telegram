@@ -3,4 +3,4 @@
 - Telegram questions keep their full wording up to 4,000 characters; longer questions receive an explicit error instead of being silently shortened.
 - Answers name a recorded teacher only with quoted and cited source words, with teacher and date included on known video sources; unnamed classes stay unspecified.
 - Research progress sends only changed source previews; earlier chat context is bounded, and an exhausted backup allowance still returns available attributed excerpts without another AI call.
-- Cut answers are not charged; admin answers and backups use a separate configurable daily budget.
+- Cut answers and cancellations before any answer text are not charged; paid cancellations after streamed text charge only metered usage; admin answers and backups use a separate configurable daily budget.

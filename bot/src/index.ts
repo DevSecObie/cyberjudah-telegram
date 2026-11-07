@@ -278,7 +278,7 @@ app.post("/api/ask", async (c) => {
   const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
   const resourcePins = body?.resources === undefined ? undefined : ResourcePinsSchema.safeParse(body.resources);
   if (resourcePins && !resourcePins.success) return c.json({ error: "Invalid resource releases" }, 400);
-  const meterOpts = { resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps };
+  const meterOpts = { clientStreaming: Boolean(body?.stream), resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps };
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
