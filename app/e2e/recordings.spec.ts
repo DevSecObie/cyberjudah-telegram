@@ -526,6 +526,7 @@ test("shared controls clear search and Ask composers without adding a glass laye
 });
 
 test("audio settings are reachable from Settings without starting playback, and a choice there reaches the Bible reader", async ({ page }) => {
+  test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "local only: the stubbed recordings catalog and voices");
   await setup(page);
   await page.route("**/api/recordings/catalog", (r) => r.fulfill({ json: { chapters: [] } }));
   await page.goto("/settings");

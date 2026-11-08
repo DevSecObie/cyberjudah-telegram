@@ -46,6 +46,7 @@ test("the dictionary opens on A with the letters along the bottom, and a letter 
 });
 
 test("the lexicon files every word by its meaning, opens on A, and filters by language", async ({ page }) => {
+  test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "local only: the stubbed Strong's index; production serves the real one");
   await setup(page);
   await page.goto("/lexicon");
   // Filed by the meaning's first word, as Bible Strong files by gloss: A holds "abandon", not "father".

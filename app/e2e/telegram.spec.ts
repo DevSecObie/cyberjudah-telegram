@@ -915,7 +915,10 @@ liveDataTest("the recordings search works as the site's: matches lit, a moment t
   await page.fill("#q", "Most High");
   await page.press("#q", "Enter");
   await expect(page).toHaveURL(/\/search\?q=Most%20High/);
-  await expect(page.locator(".hint").first()).toContainText(/Results 1–\d+ for/);
+  // What was said in class has its own tab; Top shows only its first few moments.
+  await page.getByRole("tab", { name: /^Said in class/ }).click();
+  await expect(page).toHaveURL(/in=spoken/);
+  await expect(page.locator(".hint").first()).toContainText(/Moments 1–\d+ for/);
   await expect(page.locator(".rec mark").first()).toHaveText(/most|high/i);
   await expect(page.locator(".rec__meta b").first()).toHaveText(/\d+:\d\d/);
   await page.click(".chip >> text=Sabbath class");
