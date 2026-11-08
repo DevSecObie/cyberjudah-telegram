@@ -80,6 +80,7 @@ test("closing Search leaves the New Tab as it was", async ({ page }) => {
 });
 
 test("a card's Search loads only what its kind needs, and the card itself stays on the page", async ({ page }) => {
+  test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "local only: the stubbed Strong's index; production serves the real one");
   let strongs = 0;
   page.on("request", (r) => { if (r.url().includes("/api/strongs/index.json")) strongs++; });
   await setup(page);
@@ -96,6 +97,7 @@ test("a card's Search loads only what its kind needs, and the card itself stays 
 });
 
 test("Strong browses by letter with the alphabet; a code typed finds the word and the tab becomes it", async ({ page }) => {
+  test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "local only: the stubbed Strong's index; production serves the real one");
   await setup(page);
   await page.getByRole("button", { name: "Strong", exact: true }).click();
   await expect(sheet(page).getByRole("textbox", { name: "Search a Strong code" })).toBeVisible();

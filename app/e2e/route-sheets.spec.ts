@@ -71,6 +71,7 @@ test("an entry opened from outside the app is a page, as before", async ({ page 
 });
 
 test("a Strong's entry opens at full height, dimmed, as Bible Strong's strong sheet", async ({ page }) => {
+  test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "local only: the stubbed Strong's index; production serves the real one");
   await setup(page);
   await page.goto("/lexicon?letter=f");
   await page.locator('a[href="/lexicon/H1"]').first().click();
