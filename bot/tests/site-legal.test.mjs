@@ -44,6 +44,16 @@ test('only on cyberjudah.io: on workers.dev or staging, /privacy and /terms stay
   assert.equal(assets.length, 8);
 });
 
+test('SITE_LEGAL_PAGES "off" (the end-to-end tests, where wrangler dev reports cyberjudah.io) leaves them to the Mini App', async () => {
+  assets.length = 0;
+  const off = { ...env, SITE_LEGAL_PAGES: 'off' };
+  for (const p of ['/privacy', '/terms', '/privacy/', '/terms/']) {
+    const res = await m.worker.fetch(new Request(`https://cyberjudah.io${p}`, { redirect: 'manual' }), off, { waitUntil() {}, passThroughOnException() {} });
+    assert.equal(await res.text(), 'spa', p);
+  }
+  assert.equal(assets.length, 4);
+});
+
 test('the trailing-slash form redirects to the page', async () => {
   for (const p of ['privacy', 'terms']) {
     const res = await get(`/${p}/`);
@@ -93,6 +103,9 @@ for (const [path, name, file] of [['/privacy', 'PRIVACY_TEXT', 'privacy.md'], ['
       assert.ok(found >= 0, `missing or out of order: ${content.slice(0, 60)}`);
       at = found + expected.length;
     }
-    assert.ok(!/[*#]/.test(html.replace(/<style>[\s\S]*?<\/style>/, '').replace(/<[^>]+>/g, '')), 'no markdown left in the text');
+    // Strip tags until nothing changes, so a tag rebuilt by one pass cannot survive (CodeQL js/incomplete-multi-character-sanitization).
+    let text = html.replace(/<style>[\s\S]*?<\/style>/, '');
+    for (let prev; prev !== text;) { prev = text; text = text.replace(/<[^>]+>/g, ''); }
+    assert.ok(!/[*#<>]/.test(text), 'no markdown or markup left in the text');
   });
 }

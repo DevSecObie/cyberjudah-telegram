@@ -33,6 +33,11 @@ test("the end-to-end tests' clock is never on in a deployed Worker", () => {
   assert.equal(config.env.staging.vars.E2E_CLOCK, undefined);
 });
 
+test("the site's privacy policy and terms are never turned off in a deployed Worker (SITE_LEGAL_PAGES is for the end-to-end tests)", () => {
+  assert.equal(config.vars.SITE_LEGAL_PAGES, undefined);
+  assert.equal(config.env.staging.vars.SITE_LEGAL_PAGES, undefined);
+});
+
 test("production and staging search use only a hosted free-tier model", () => {
   for (const vars of [config.vars, config.env.staging.vars]) {
     assert.equal(vars.SEARCH_AI_FREE_ONLY, "on");
