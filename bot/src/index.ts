@@ -5,7 +5,7 @@ import { IdentityError } from "./account-links";
 import { publicReader, readerContent } from "./reader";
 import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
-import { sweepFreeBudget } from "./free-budget";
+import { alertFreeBudget, sweepFreeBudget } from "./free-budget";
 import { sweepAskEvents } from "./ask-events";
 import { issueAnswerReceipt, feedbackInput, parseFeedback, recordFeedback, sweepFeedback } from "./feedback";
 import { CmsError, CONTENT_REPO } from "./cms-github";
@@ -705,6 +705,8 @@ export default {
       .catch(() => console.error(JSON.stringify({ event: "broadcast_failed" }))));
     // New class alerts for the phone app, every quarter hour so a live class is announced soon after it starts (class-alerts.ts).
     ctx.waitUntil(sendClassAlerts(env).then((r) => { if (r.sent || r.failed || r.seeded) console.log(JSON.stringify({ event: "class_alerts", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "class_alerts_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // Free answers nearing the day's cap tell the admins once a day, checked every quarter hour so a small cap is caught in time (free-budget.ts).
+    ctx.waitUntil(alertFreeBudget(env, event.scheduledTime));
     // Everything else runs on the hour only.
     if (event.cron !== "0 * * * *") return;
     // The hourly self-check pages the admins over Telegram when something breaks.
