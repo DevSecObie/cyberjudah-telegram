@@ -171,8 +171,8 @@ for (const stream of [false, true]) {
   });
 }
 
-// A streamed line carries each source's text as a preview with its full length (ask-frame.ts).
-const streamed = (stream, s) => stream ? { ...s, text: s.text.slice(0, 1000), excerpt: s.text.slice(0, 1000), text_chars: s.text.length, ...(s.text.length > 1000 ? { truncated: true } : {}) } : s;
+// A streamed line cuts a long source's text to a preview and says how long it was (ask-frame.ts).
+const streamed = (stream, s) => stream && s.text.length > 1000 ? { ...s, text: s.text.slice(0, 1000), text_chars: s.text.length, truncated: true } : s;
 
 for (const stream of [false, true]) {
   test(`normal ${stream ? 'streamed' : 'one-piece'} Ask includes bounded excerpts with source attribution`, async t => {

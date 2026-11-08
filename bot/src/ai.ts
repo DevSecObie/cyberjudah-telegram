@@ -1,4 +1,4 @@
-import { boundedFrame } from "./ask-frame";
+import { boundedFrame, hasSourceList } from "./ask-frame";
 import { askIpKey, clientIp } from "./client-ip";
 import type { ResourcePins } from "../../shared/resources";
 import { books, chapter, dataJson } from "./data";
@@ -735,9 +735,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // it is answered faster and costs the reader less. Admins keep their own default.
   const light = !modelId && !isAdmin(env, userId) && env.CLAUDE_MODEL_LIGHT && routeOf(question, history) === "light";
   const selected = modelOf(modelId || (light ? env.CLAUDE_MODEL_LIGHT : undefined), defaultModelId(env, userId));
-  // Every line's sources and passages are bounded previews (ask-frame.ts): the full text stays
-  // on the server, and a long answer's final line stays under the Mini App's 256 KiB limit.
-  const line = (o: unknown) => `${JSON.stringify(o && typeof o === "object" ? boundedFrame(o as { sources?: unknown }) : o)}\n`;
+  // Lines with sources or passages carry bounded previews (ask-frame.ts): the full text stays on
+  // the server, and a long answer's final line stays under the Mini App's 256 KiB limit.
+  const line = (o: unknown) => `${JSON.stringify(hasSourceList(o) ? boundedFrame(o as object) : o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
