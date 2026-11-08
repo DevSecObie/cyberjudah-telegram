@@ -7,28 +7,29 @@ import { hasClaude, unifiedBilling } from "./providers";
 export type QuestionDepth = "quick" | "normal" | "deep";
 // Based on the Mini App's route-model.ts rules (study follow-ups included). Since the Mini App sends
 // "auto", these decide; one rule differs: asking what something means is never quick (MEANING).
-// A word to define, never a pronoun: "what does it mean" or "meaning of this" asks about something
-// earlier in the conversation, not a word.
-const PRONOUN = String.raw`(?:it|this|that|these|those|they|he|she|him|her)`;
-const WORD = String.raw`(?!["“]?${PRONOUN}["”]?(?![\p{L}'’-]))["“]?[\p{L}'’-]+["”]?`;
+const WORD = String.raw`["“]?[\p{L}'’-]+["”]?`;
 // A single word to define: "what does mercy mean", "define grace", "the meaning of grace", "grace meaning".
-const DEFINE = new RegExp(String.raw`^\s*(?:(?:what(?:'s| is| does)?|define|(?:the\s+)?meaning of)\s+(?:the\s+)?(?:word\s+)?${WORD}\s*(?:mean)?|${WORD}\s+meaning)\s*\??\s*$`, "iu");
+const DEFINE = new RegExp(String.raw`^\s*(?:(?:what(?:'s| is| does)?|define|(?:the\s+)?(?:meaning|definition) of)\s+(?:the\s+)?(?:word\s+)?${WORD}\s*(?:mean)?|${WORD}\s+meaning)\s*\??\s*$`, "iu");
 const VERSE = String.raw`(?:[1-3]\s*)?[a-z]+\.?\s+\d+(?::\d+(?:[-–]\d+)?)?`;
 const REF = new RegExp(String.raw`^\s*${VERSE}\s*\??\s*$`, "i");
 // Asking to read a passage ("read John 3:16", "what does John 8:32 say?") is a lookup, so quick;
 // asking what it means is not.
 const LOOKUP = new RegExp(String.raw`^\s*(?:(?:please\s+)?(?:read|show|quote|give|pull up|open)(?:\s+me)?\s+${VERSE}|what\s+(?:does|do)\s+${VERSE}\s+say)\s*[.?!]?\s*$`, "i");
 // Asking what something means is never a quick lookup, even short and without a "?".
-const MEANING = /\b(?:mean|meant|meaning|define|signif(?:y|ies|ied|ieth))\b/i;
+const MEANING = /\b(?:mean|meant|meaning|defin(?:e|es|ed|ition)|signif(?:y|ies|ied|ieth))\b/i;
+// A pronoun ("what does it mean", "what's this", "define 'them'") points at something earlier in the
+// conversation or on screen, not at a word: such a question is never a quick definition or phrase.
+// Whole words only, whatever quotes or punctuation surround them ("Hebrew" and "Ithiel" are words).
+const REFERS = /\b(?:it|its|this|that|these|those|they|them|their|he|him|his|she|her|here|there)\b/i;
 const DEEP = /\b(why|how come|explain|compare|difference|contrast|prove|proof|history|historical|prophec\w*|fulfil\w*|identity|lineage|genealog\w*|timeline|trace|origin|in depth|deep(?:er|ly)?|study|break (?:it )?down|step by step|all the|every|whole|relationship|connect|significance|symbol|interpret|context|argue|debate|refute|evidence)\b/i;
 
 /** `turns` counts earlier exchanges (a question and its answer), not messages. */
 export function depthOf(q: string, turns = 0): QuestionDepth {
   const t = q.trim();
   const words = t.split(/\s+/).filter(Boolean).length;
-  if (REF.test(t) || DEFINE.test(t) || LOOKUP.test(t)) return "quick";
+  if (REF.test(t) || LOOKUP.test(t) || (DEFINE.test(t) && !REFERS.test(t))) return "quick";
   if (DEEP.test(t) || words > 28 || (t.match(/\?/g) ?? []).length > 1 || (turns >= 4 && words > 8)) return "deep";
-  if (words <= 6 && !/\?$/.test(t) && turns === 0 && !MEANING.test(t)) return "quick";
+  if (words <= 6 && !/\?$/.test(t) && turns === 0 && !MEANING.test(t) && !REFERS.test(t)) return "quick";
   return "normal";
 }
 
