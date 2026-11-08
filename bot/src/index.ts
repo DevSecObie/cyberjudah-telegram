@@ -28,7 +28,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { semanticSearch } from "./semantic-search";
 import { normalizeHistory, VOICES } from "./ai.mjs";
@@ -76,6 +76,7 @@ import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
 import { LEGAL_HEADERS, legalPage } from "./site-legal";
+import { takeAskIpQuota } from "./client-ip";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
@@ -272,9 +273,10 @@ app.post("/api/frames/:video/warm", async (c) => {
 app.post("/api/ask", async (c) => {
   // A Sybil backstop: the per-account quota cannot see N Telegram accounts behind one IP.
   // Generous (ASK_IP_DAILY_LIMIT, 1000/day) so carrier NAT is never felt; keys are swept daily
-  // with the other quotas, and only the count is kept, never linked to a person.
-  const ip = c.req.header("cf-connecting-ip")?.slice(0, 45);
-  if (ip && !(await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000))))) {
+  // with the other quotas, and only a keyed hash of the address and a count are kept, never linked to a person.
+  // Through the Mini App's Worker every reader shares one Cloudflare address, so that Worker
+  // signs the reader's own address (client-ip.ts); unsigned requests count the connecting one.
+  if (!(await takeAskIpQuota(c.req.raw, c.env))) {
     return c.json({ error: "limit" }, 429);
   }
   const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
