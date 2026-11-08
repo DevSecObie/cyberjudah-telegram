@@ -85,7 +85,7 @@ test('the routes reach this Worker on cyberjudah.io, before the Mini App\'s asse
 
 // The served pages carry the owner-approved text exactly: docs/legal/*.md are byte copies of the
 // approved files (the part between the '---' lines), and every line of them appears in the page,
-// HTML-escaped, in order, with only the markdown markers turned into tags.
+// HTML-escaped, in order, with only the markdown markers (and https links) turned into tags.
 const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 for (const [path, name, file] of [['/privacy', 'PRIVACY_TEXT', 'privacy.md'], ['/terms', 'TERMS_TEXT', 'terms.md']]) {
   test(`${path} serves the approved text in docs/legal/${file}, every line escaped and in order`, async () => {
@@ -98,7 +98,7 @@ for (const [path, name, file] of [['/privacy', 'PRIVACY_TEXT', 'privacy.md'], ['
     let at = 0;
     for (const line of approved.split('\n').filter((l) => l.trim())) {
       const content = line.replace(/^#{1,6} /, '').replace(/^- /, '').replace(/^\d+\. /, '');
-      const expected = esc(content).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(\S(?:.*?\S)?)\*/g, '<em>$1</em>');
+      const expected = esc(content).replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(\S(?:.*?\S)?)\*/g, '<em>$1</em>');
       const found = html.indexOf(expected, at);
       assert.ok(found >= 0, `missing or out of order: ${content.slice(0, 60)}`);
       at = found + expected.length;
@@ -106,6 +106,13 @@ for (const [path, name, file] of [['/privacy', 'PRIVACY_TEXT', 'privacy.md'], ['
     // Strip tags until nothing changes, so a tag rebuilt by one pass cannot survive (CodeQL js/incomplete-multi-character-sanitization).
     let text = html.replace(/<style>[\s\S]*?<\/style>/, '');
     for (let prev; prev !== text;) { prev = text; text = text.replace(/<[^>]+>/g, ''); }
-    assert.ok(!/[*#<>]/.test(text), 'no markdown or markup left in the text');
+    assert.ok(!/[*#<>]|\]\(/.test(text), 'no markdown or markup left in the text');
   });
 }
+
+test('markdown links in the policy become https links with their words unchanged', async () => {
+  const html = await (await get('/privacy')).text();
+  assert.match(html, /<li><a href="https:\/\/firebase\.google\.com\/support\/privacy">Firebase privacy and security<\/a><\/li>/);
+  assert.match(html, /<a href="https:\/\/www\.cloudflare\.com\/privacypolicy\/">Cloudflare privacy policy<\/a>/);
+  assert.doesNotMatch(html, /\]\(/);
+});
