@@ -234,3 +234,13 @@ test('JSON adapter handles split frames, drops partial answers on errors, and re
     assert.equal((await r.json()).ok, false);
   }
 });
+
+test('a pronoun is not a word to define: meaning follow-ups are never quick, at any turn', () => {
+  // Each of these matched DEFINE or the short-phrase rule before; none may be quick now.
+  const asks = ['what does it mean', 'what does this mean?', 'What does that mean', 'what does he mean', 'meaning of this', 'the meaning of that?', 'define it',
+    "what does 'this' mean", "what does 'it' mean?", "define 'that'", 'what does “it” mean', "what does it' mean", 'what does this-mean',
+    'what does them mean', 'define them', 'meaning of them', "what's there?", "what's here", "what's this", 'what is it', 'definition of this'];
+  for (const turns of [0, 1, 4]) for (const q of asks) assert.notEqual(api.depthOf(q, turns), 'quick', `${q} (turns ${turns})`);
+  for (const q of ['what does mercy mean', 'what does Hebrew mean?', 'meaning of theophany', 'definition of mercy', 'define heresy', 'what is ithiel', "what's shiloh?"]) assert.equal(api.depthOf(q, 4), 'quick', `${q}: a word, including one that starts like a pronoun`);
+  assert.equal(api.depthOf('the sabbath day'), 'quick', 'a short phrase with no pronoun stays quick');
+});
