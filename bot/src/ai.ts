@@ -770,8 +770,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
-      // The model that answered goes on every finished line, so an Auto answer can name it.
-      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => send({ ...value, model: model.id, answer_id: await issueAnswerReceipt(env, userId, value.sources) });
+      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => send({ ...value, answer_id: await issueAnswerReceipt(env, userId, value.sources) });
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
@@ -811,7 +810,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               await keep(answer, sources, followups, steps, actions, cut);
-              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) });
+              // The model that wrote an answer is named on its finished line, so an Auto answer can show it;
+              // the fixed sentences below, written by no model, name none.
+              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}) });
               // What the answer cost, and the balance after it; the free model and admins pay nothing.
               if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
               else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });
@@ -844,7 +845,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
           await finish("backup");
-          await done({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) });
+          await done({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), model: ANSWER_MODEL, ...(backup ? { backup: true } : {}) });
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;

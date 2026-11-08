@@ -82,8 +82,11 @@ test('auto counts earlier exchanges, not messages, as turns', async t => {
   const followup = 'and what did the prophets say after that time';
   const history = (exchanges) => Array.from({ length: exchanges }, (_, i) => [{ role: 'user', content: `Question ${i}` }, { role: 'assistant', content: `Answer ${i}` }]).flat();
   const route = async (h) => { const r = await request(env, { q: followup, model: 'auto', stream: true, history: h, consent: ['Anthropic', 'Cloudflare (Workers AI)'], caps: { [DEFAULT.id]: 200_000, [BEST.id]: 200_000, 'anthropic/claude-opus-5.5': 200_000 } }); const body = await r.text(); assert.equal(r.status, 200, body); return env.calls.at(-1).model; };
+  const deep = (await api.autoModel(env, followup, 4, 77, DEFAULT, api.freeModels(env), false)).id;
+  assert.notEqual(deep, DEFAULT.id);
   assert.equal(await route(history(2)), DEFAULT.id, 'the third question (four messages before it) is normal');
-  assert.notEqual(await route(history(4)), DEFAULT.id, 'the fifth question is deep');
+  env.calls.length = 0;
+  assert.equal(await route(history(4)), deep, 'the fifth question is deep');
 });
 
 test('account models publish catalog tier/tools for every available model', async t => {
