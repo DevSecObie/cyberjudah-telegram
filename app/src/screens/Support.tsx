@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Screen, Section } from "@/ui/ui";
 import { useBackButton } from "@/tg/hooks";
 import { PRIVACY_CONTACT } from "./Privacy";
@@ -11,8 +11,6 @@ import { PRIVACY_CONTACT } from "./Privacy";
  */
 export function Support() {
   useBackButton();
-  const navigate = useNavigate();
-  const go = (path: string) => (e: { preventDefault(): void }) => { e.preventDefault(); navigate(path); };
   const subject = encodeURIComponent("CyberJudah support");
   return (
     <Screen title="Support" kicker="CyberJudah" className="privacy">
@@ -28,7 +26,7 @@ export function Support() {
           <li>Type DELETE to confirm, then tap Delete.</li>
           <li>If you signed in with Apple, confirm with Apple when asked. CyberJudah then stops your Apple ID from signing in to it.</li>
         </ol>
-        <p>This deletes your sign-in and the highlights, notes, bookmarks, tags, links and personal studies synced to it. If you last signed in a while ago, you are asked to sign in again first. Without the app, email <a href={`mailto:${PRIVACY_CONTACT}?subject=${encodeURIComponent("Delete my CyberJudah account")}`}>{PRIVACY_CONTACT}</a> from the address you signed in with. <a href="/delete-account" onClick={go("/delete-account")}>Delete your account</a> explains every way to delete and what is kept.</p>
+        <p>This deletes your sign-in and the highlights, notes, bookmarks, tags, links and personal studies synced to it. If you last signed in a while ago, you are asked to sign in again first. Without the app, email <a href={`mailto:${PRIVACY_CONTACT}?subject=${encodeURIComponent("Delete my CyberJudah account")}`}>{PRIVACY_CONTACT}</a> from the address you signed in with. <Link to="/delete-account">Delete your account</Link> explains every way to delete and what is kept.</p>
       </Section>
 
       <Section title="Your Privacy">

@@ -662,7 +662,6 @@ async function pollAccount(before: AskAccount, set: (a: AskAccount) => void) {
  * costs the Stars it does; and the opt-in reminder to top up before those days.
  */
 function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: AskAccount; onClose: () => void; onPaid: () => void; onUsage: () => void; onChanged: () => void }) {
-  const navigate = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
   const [why, setWhy] = useState("");
   const [remind, setRemind] = useState(!!acct.remind?.on);
