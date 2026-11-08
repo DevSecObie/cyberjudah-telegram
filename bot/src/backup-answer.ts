@@ -80,7 +80,6 @@ export async function* backupPieces(env: Env, messages: Msg[], admin = false, so
   try {
     const out = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3, stream: true }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as ReadableStream<Uint8Array>;
     reader = out.getReader();
-    wrote.model = ANSWER_MODEL;
     let buffer = "";
     const decoder = new TextDecoder();
     function* events(frames: string[]) {
@@ -92,7 +91,7 @@ export async function* backupPieces(env: Env, messages: Msg[], admin = false, so
           const value = JSON.parse(data) as { response?: string; usage?: object; choices?: { delta?: { content?: string } }[] };
           if (value.usage) usage = value.usage;
           const text = value.response ?? value.choices?.[0]?.delta?.content;
-          if (text) yield text;
+          if (text) { wrote.model = ANSWER_MODEL; yield text; }
         } catch { /* Ignore a non-JSON provider frame, without exposing it to the reader. */ }
       }
     }

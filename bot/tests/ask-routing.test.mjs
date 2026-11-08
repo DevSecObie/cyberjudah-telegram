@@ -72,8 +72,8 @@ test('question depth follows the Mini App rules, including definitions, referenc
 
 test('asking to read a passage is quick, as in the Mini App; asking what it means is not', () => {
   for (const q of ['read John 3:16', 'Show me Genesis 1:1-3', 'what does John 8:32 say?', 'quote Isaiah 45:7', 'please pull up 1 John 4:1.', 'open Rev. 13:1-8']) assert.equal(api.depthOf(q), 'quick', q);
-  for (const q of ['What does Isaiah 45:7 mean?', 'What does John 8:32 mean', 'what does John 8:32 mean.', 'John 8:32 meaning', 'what is meant by Romans 6', 'read John 3:16 and explain it', 'Give me a study on the feast days']) assert.notEqual(api.depthOf(q), 'quick', q);
-  for (const q of ['what does mercy mean', 'define righteousness', 'the sabbath day']) assert.equal(api.depthOf(q), 'quick', `${q}: a word definition or short phrase stays quick`);
+  for (const q of ['What does Isaiah 45:7 mean?', 'What does John 8:32 mean', 'what does John 8:32 mean.', 'John 8:32 meaning', 'what is meant by Romans 6', 'Rev 1:1 signified', 'what signifieth this', 'read John 3:16 and explain it', 'Give me a study on the feast days']) assert.notEqual(api.depthOf(q), 'quick', q);
+  for (const q of ['what does mercy mean', 'define righteousness', 'the sabbath day', 'mercy meaning', 'grace meaning?', 'the meaning of grace', 'meaning of the word hallelujah', 'by all means']) assert.equal(api.depthOf(q), 'quick', `${q}: a word definition or short phrase stays quick`);
   assert.equal(api.depthOf('read John 3:16', 10), 'quick', 'a lookup stays quick deep into a conversation');
 });
 
