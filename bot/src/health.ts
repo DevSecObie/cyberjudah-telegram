@@ -109,15 +109,17 @@ async function lastDailySlot(env: Env, now: number): Promise<{ sent: number; fai
 const adminIds = (env: Env): number[] =>
   String(env.ADMIN_IDS ?? "").split(/[,\s]+/).filter(Boolean).map(Number).filter((n) => Number.isInteger(n) && n > 0);
 
-export async function tellAdmins(env: Env, text: string): Promise<void> {
+/** Message every admin; returns how many were reached (0 when ADMIN_IDS is empty or every send failed). */
+export async function tellAdmins(env: Env, text: string): Promise<number> {
   const ids = adminIds(env);
-  if (!ids.length) { console.log(JSON.stringify({ event: "health_no_admins" })); return; }
+  if (!ids.length) { console.log(JSON.stringify({ event: "health_no_admins" })); return 0; }
   const api = telegramApi(env);
   // Plain text: check details carry server error text, which must not be parsed as HTML.
   const results = await Promise.allSettled(ids.map((id) => api.sendMessage(id, text)));
-  for (const [i, r] of results.entries()) {
+  for (const r of results) {
     if (r.status === "rejected") console.error(JSON.stringify({ event: "health_alert_failed", message: err(r.reason) }));
   }
+  return results.filter((r) => r.status === "fulfilled").length;
 }
 
 /** Page on the bad transition (and every six hours while still bad); note the recovery. */
