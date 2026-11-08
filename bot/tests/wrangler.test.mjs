@@ -74,7 +74,10 @@ test("signed-in requests are limited per person; per-address limits leave room f
 test("free Ask answers have room for several answers at once; Claude answers only in production, under a total cap", () => {
   for (const vars of [config.vars, config.env.staging.vars]) {
     assert.ok(Number(vars.ASK_FREE_DAILY_USD_CAP) >= 10 * Number(vars.ASK_FREE_MAX_USD), "the daily cap holds at least ten answers' reservations");
+    // It limits real spending: raising it past $25 a day is an owner decision, not a typo.
+    assert.ok(Number(vars.ASK_FREE_DAILY_USD_CAP) <= 25, "the free daily cap is at most $25");
   }
+  assert.ok(Number(config.env.staging.vars.ASK_FREE_DAILY_USD_CAP) <= Number(config.vars.ASK_FREE_DAILY_USD_CAP), "staging never spends more than production");
   for (const vars of [config.vars, config.env.staging.vars]) assert.equal(vars.ASK_DAILY_LIMIT, "20");
   assert.equal(config.env.staging.vars.ASK_CLAUDE_FOR_READERS, "off");
   assert.ok(Number(config.vars.ASK_CLAUDE_TOTAL_USD_CAP) > 0, "production's Claude answers have a total cap");

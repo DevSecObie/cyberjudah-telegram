@@ -102,6 +102,10 @@ export type Env = {
   CF_AIG_TOKEN?: string;
   /** Worker secret, set once and never changed: the key behind pseudonymous record IDs and sealed conversations (privacy.ts). */
   PRIVACY_KEY?: string;
+  /** Worker secret shared with the Mini App's Worker: it signs each reader's address so per-address limits see the reader, not the relay (client-ip.ts). Without it the connecting address is used. */
+  MINIAPP_CLIENT_IP_KEY?: string;
+  /** Worker secret, only while rotating MINIAPP_CLIENT_IP_KEY: the old value, still accepted. Delete it once both Workers have the new one. */
+  MINIAPP_CLIENT_IP_KEY_PREVIOUS?: string;
   /** Who pays for Claude: "cloudflare" (Unified Billing, from the account's AI Gateway credits; needs AI_GATEWAY and CF_AIG_TOKEN, sends no Anthropic key) or anything else for the ANTHROPIC_API_KEY secret. Not a secret. */
   CLAUDE_BILLING?: string;
   PUSH_TEST_ORIGIN?: string;
