@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { Link } from "react-router";
 import { Screen, Section } from "@/ui/ui";
 import { useBackButton } from "@/tg/hooks";
 
@@ -11,8 +11,6 @@ export const TERMS_UPDATED = "2026-10-07";
 
 export function Terms() {
   useBackButton();
-  const navigate = useNavigate();
-  const go = (path: string) => (e: { preventDefault(): void }) => { e.preventDefault(); navigate(path); };
   return (
     <Screen title="Terms" kicker={`Last updated ${TERMS_UPDATED}`} className="privacy">
       <Section title="What Your Balance Buys">
@@ -33,7 +31,7 @@ export function Terms() {
       </Section>
 
       <Section title="Deleting Your Data">
-        <p>Delete my data removes your balance and its history with everything else, and any balance left is lost. The record of each Stars payment is kept, no longer linked to you, for refunds and the accounts. See the <a href="/privacy" onClick={go("/privacy")}>privacy policy</a>.</p>
+        <p>Delete my data removes your balance and its history with everything else, and any balance left is lost. The record of each Stars payment is kept, no longer linked to you, for refunds and the accounts. See the <Link to="/privacy">privacy policy</Link>.</p>
       </Section>
     </Screen>
   );

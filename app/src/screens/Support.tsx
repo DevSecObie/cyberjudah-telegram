@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Screen, Section } from "@/ui/ui";
 import { useBackButton } from "@/tg/hooks";
 import { PRIVACY_CONTACT } from "./Privacy";
@@ -32,7 +32,7 @@ export function Support() {
       </Section>
 
       <Section title="Your Privacy">
-        <p>The <a href="/privacy" onClick={go("/privacy")}>privacy policy</a> lists everything CyberJudah keeps and for how long.</p>
+        <p>The <Link to="/privacy">privacy policy</Link> lists everything CyberJudah keeps and for how long.</p>
       </Section>
     </Screen>
   );
