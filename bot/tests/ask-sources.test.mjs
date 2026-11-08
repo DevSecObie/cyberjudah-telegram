@@ -114,6 +114,28 @@ for (const stream of [false, true]) {
   });
 }
 
+test('a final line citing seven long notes stays under the Mini App\'s 256 KiB frame, with previews and lengths', async t => {
+  const { env } = financialDb(t), model = freeModel(env);
+  const long = (i) => (`Note ${i}: ` + 'recorded words of a long class note '.repeat(1200)).slice(0, 40_000);
+  const sources = Array.from({ length: 7 }, (_, i) => ({ kind: 'web', title: `Long note ${i + 1}`, url: `https://cyberjudah.io/notes/long-${i + 1}`, text: long(i + 1) }));
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Seven notes agree [1, 2, 3, 4, 5, 6, 7].', fixtureSources: sources });
+  const lines = (await (await askStream(env, 'Compare the seven long notes', 77, undefined, [], undefined, false, model.id, [model.provider])).text()).trim().split('\n');
+  const doneLine = lines.find(l => JSON.parse(l).done);
+  assert.ok(sources.reduce((n, s) => n + s.text.length, 0) > 256 * 1024, 'the full texts alone would pass the limit');
+  for (const l of lines) assert.ok(new TextEncoder().encode(l).length < 256 * 1024, `a line of ${l.length} chars`);
+  const done = JSON.parse(doneLine);
+  assert.equal(done.answer, 'Seven notes agree [1, 2, 3, 4, 5, 6, 7].');
+  assert.deepEqual(done.sources.map(s => s.n), [1, 2, 3, 4, 5, 6, 7]);
+  for (const [i, s] of done.sources.entries()) {
+    assert.equal(s.text, sources[i].text.slice(0, 1000), 'a preview of the start of the text');
+    assert.equal(s.excerpt, s.text);
+    assert.equal(s.text_chars, 40_000);
+    assert.equal(s.truncated, true);
+    assert.equal(s.url, sources[i].url, 'the full source stays one tap away');
+  }
+  assert.equal(sources[0].text.length, 40_000, 'the passages themselves are not cut');
+});
+
 for (const stream of [false, true]) {
   test(`recorded teacher/date reach ${stream ? 'NDJSON' : 'JSON'} video sources without guessing unnamed sources`, async t => {
     const { env } = financialDb(t), model = freeModel(env);
@@ -149,6 +171,9 @@ for (const stream of [false, true]) {
   });
 }
 
+// A streamed line carries each source's text as a preview with its full length (ask-frame.ts).
+const streamed = (stream, s) => stream ? { ...s, text: s.text.slice(0, 1000), excerpt: s.text.slice(0, 1000), text_chars: s.text.length, ...(s.text.length > 1000 ? { truncated: true } : {}) } : s;
+
 for (const stream of [false, true]) {
   test(`normal ${stream ? 'streamed' : 'one-piece'} Ask includes bounded excerpts with source attribution`, async t => {
     const { env } = financialDb(t);
@@ -180,7 +205,7 @@ for (const stream of [false, true]) {
       assert.equal(result.ok, true);
     }
     assert.equal(result.answer, env.fixtureAnswer);
-    assert.deepEqual(result.sources, [2, 1, 4].map(n => ({ ...passages[n - 1], n, excerpt: passages[n - 1].text.slice(0, 1000) })));
+    assert.deepEqual(result.sources, [2, 1, 4].map(n => streamed(stream, { ...passages[n - 1], n, excerpt: passages[n - 1].text.slice(0, 1000) })));
     assert.equal(result.sources[0].excerpt.length, 1000);
     assert.equal(result.sources[1].excerpt, passages[0].text);
     assert.equal(result.sources[2].excerpt, '');
@@ -197,7 +222,7 @@ for (const stream of [false, true]) {
     const result = stream
       ? (await (await askStream(env, 'Read the recorded edition', 77, undefined, [], undefined, false, model.id, [model.provider])).text()).trim().split('\n').map(JSON.parse).find(event => event.done)
       : await ask(env, 'Read the recorded edition', 77, undefined, [], [model.provider]);
-    assert.deepEqual(result.sources, [{ ...passage, url: 'https://cyberjudah.io/app/resources/josephus/pinned-release?key=page%2F1%2F45', n: 1, excerpt: passage.text }]);
+    assert.deepEqual(result.sources, [streamed(stream, { ...passage, url: 'https://cyberjudah.io/app/resources/josephus/pinned-release?key=page%2F1%2F45', n: 1, excerpt: passage.text })]);
   });
 }
 
@@ -211,7 +236,7 @@ for (const stream of [false, true]) {
       ? (await (await askStream(env, 'Who was Moses?', 77, undefined, [], undefined, false, model.id, [model.provider])).text()).trim().split('\n').map(JSON.parse).find(event => event.done)
       : await ask(env, 'Who was Moses?', 77, undefined, [], [model.provider]);
     assert.equal(result.answer, env.fixtureAnswer);
-    assert.deepEqual(result.sources, [{ ...passage, n: 1, excerpt: passage.text, image: 'https://cyberjudah.io/api/img/people/moses-exo-2-10-256.webp', image_alt: '' }]);
+    assert.deepEqual(result.sources, [streamed(stream, { ...passage, n: 1, excerpt: passage.text, image: 'https://cyberjudah.io/api/img/people/moses-exo-2-10-256.webp', image_alt: '' })]);
   });
 }
 
