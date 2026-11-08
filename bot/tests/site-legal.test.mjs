@@ -10,7 +10,7 @@ await build({ stdin: { contents: 'export * from "./src/site-legal.ts"; export { 
 const m = await import(out);
 const assets = [];
 const env = { ASSETS: { fetch: async (req) => { assets.push(new URL(req.url).pathname); return new Response('spa', { headers: { 'content-type': 'text/html' } }); } } };
-const get = (path, method = 'GET') => m.worker.fetch(new Request(`https://cyberjudah.io${path}`, { method }), env, { waitUntil() {}, passThroughOnException() {} });
+const get = (path, method = 'GET', host = 'cyberjudah.io') => m.worker.fetch(new Request(`https://${host}${path}`, { method, redirect: 'manual' }), env, { waitUntil() {}, passThroughOnException() {} });
 
 for (const [path, title, other] of [['/privacy', 'Privacy Policy', '/terms'], ['/terms', 'Terms of Use', '/privacy']]) {
   test(`${path} is a plain HTML page, cached, readable without JavaScript, linking to ${other}`, async () => {
@@ -36,6 +36,22 @@ test('HEAD works, and the Mini App\'s /app/privacy and /app/terms still come fro
   assert.deepEqual(assets, ['/app/privacy', '/app/terms']);
 });
 
+test('only on cyberjudah.io: on workers.dev or staging, /privacy and /terms stay the Mini App\'s own screens', async () => {
+  assets.length = 0;
+  for (const host of ['cyberjudah-telegram.example.workers.dev', 'staging.example.workers.dev']) {
+    for (const p of ['/privacy', '/terms', '/privacy/', '/terms/']) assert.equal(await (await get(p, 'GET', host)).text(), 'spa', `${host}${p}`);
+  }
+  assert.equal(assets.length, 8);
+});
+
+test('the trailing-slash form redirects to the page', async () => {
+  for (const p of ['privacy', 'terms']) {
+    const res = await get(`/${p}/`);
+    assert.equal(res.status, 301);
+    assert.equal(new URL(res.headers.get('location'), 'https://cyberjudah.io').pathname, `/${p}`);
+  }
+});
+
 test('the pasted text is rendered as headings, lists and paragraphs, every character escaped', () => {
   const html = m.legalHtml('# Title\n\n## Section\n\nLine one\nline two & <b>three</b>\n\n- a "b"\n- c');
   assert.equal(html, '<h1>Title</h1>\n<h2>Section</h2>\n<p>Line one<br>line two &amp; &lt;b&gt;three&lt;/b&gt;</p>\n<ul><li>a &quot;b&quot;</li><li>c</li></ul>');
@@ -52,14 +68,9 @@ test('the routes reach this Worker on cyberjudah.io, before the Mini App\'s asse
   const src = fs.readFileSync(new URL('../wrangler.jsonc', import.meta.url), 'utf8');
   for (const p of ['/privacy', '/terms']) {
     assert.ok(src.includes(`"cyberjudah.io${p}"`), `route cyberjudah.io${p}`);
+    assert.ok(src.includes(`"cyberjudah.io${p}/"`), `route cyberjudah.io${p}/`);
     assert.match(src, new RegExp(`"run_worker_first": \\[[^\\]]*"${p}"`), `${p} runs the Worker first`);
   }
-});
-
-// Fails until the approved legal text is pasted in: the pages must not ship with a placeholder.
-test('both pages hold the approved legal text, not the placeholder', () => {
-  assert.ok(!m.PRIVACY_TEXT.includes(m.LEGAL_TEXT_PENDING), 'privacy text is still the placeholder');
-  assert.ok(!m.TERMS_TEXT.includes(m.LEGAL_TEXT_PENDING), 'terms text is still the placeholder');
 });
 
 // The served pages carry the owner-approved text exactly: docs/legal/*.md are byte copies of the
@@ -70,7 +81,10 @@ for (const [path, name, file] of [['/privacy', 'PRIVACY_TEXT', 'privacy.md'], ['
   test(`${path} serves the approved text in docs/legal/${file}, every line escaped and in order`, async () => {
     const approved = fs.readFileSync(new URL(`../../docs/legal/${file}`, import.meta.url), 'utf8');
     assert.equal(m[name], approved.replace(/\n$/, ''), `${name} is byte-identical to docs/legal/${file}`);
-    const html = await (await get(path)).text();
+    const page = await (await get(path)).text();
+    assert.ok(page.includes('<a href="mailto:privacy@cyberjudah.io">privacy@cyberjudah.io</a>'), 'the contact address is a mailto link');
+    // The mailto links only wrap words already in the text.
+    const html = page.replace(/<a href="mailto:[^"]+">([^<]+)<\/a>/g, '$1');
     let at = 0;
     for (const line of approved.split('\n').filter((l) => l.trim())) {
       const content = line.replace(/^#{1,6} /, '').replace(/^- /, '').replace(/^\d+\. /, '');

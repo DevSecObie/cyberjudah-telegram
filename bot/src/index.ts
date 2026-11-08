@@ -75,7 +75,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
-import { LEGAL_HEADERS, legalPage } from "./site-legal";
+import { LEGAL_HEADERS, LEGAL_HOST, legalPage } from "./site-legal";
 import { takeAskIpQuota } from "./client-ip";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
@@ -686,12 +686,16 @@ app.get("/app/*", async (c, next) => {
 app.get("/app/strong", (c) => c.redirect("/app/", 301));
 app.get("/app/strong/*", (c) => c.redirect("/app/", 301));
 
-// Anything else is the Mini App (run_worker_first only routes the paths above here).
-// The privacy policy and terms the app's store listing links to (site-legal.ts). Static HTML,
-// separate from the Mini App's /app/privacy and /app/terms.
-app.get("/privacy", () => new Response(legalPage("privacy"), { headers: LEGAL_HEADERS }));
-app.get("/terms", () => new Response(legalPage("terms"), { headers: LEGAL_HEADERS }));
+// The privacy policy and terms the app's store listing links to (site-legal.ts): static HTML on
+// cyberjudah.io only, with the trailing-slash form sent to the same page. Anywhere else (workers.dev,
+// staging) these paths are the Mini App's own screens, so they go on to the assets. Separate from
+// the Mini App's /app/privacy and /app/terms.
+for (const which of ["privacy", "terms"] as const) {
+  app.get(`/${which}`, (c, next) => new URL(c.req.url).hostname === LEGAL_HOST ? c.body(legalPage(which), 200, LEGAL_HEADERS) : next());
+  app.get(`/${which}/`, (c, next) => new URL(c.req.url).hostname === LEGAL_HOST ? c.redirect(`/${which}`, 301) : next());
+}
 
+// Anything else is the Mini App (run_worker_first only routes the paths above here).
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
 export default {
