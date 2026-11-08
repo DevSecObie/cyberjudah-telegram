@@ -1,0 +1,1 @@
+- Keep manual and nightly live checks from overlapping on the shared production test account; let the active run finish before the next begins.

@@ -171,7 +171,7 @@ test("sendDaily sends once across the fall-back night and notes the local date b
   const daily = {
     BOT_TOKEN: TOKEN, PRIVACY_KEY: "subscribe-test", DATA_ORIGIN: "https://data.invalid", WORKER_URL: "https://bot.invalid",
     SUBS: {
-      get: async (k, type) => (store.has(k) ? (type === "json" ? JSON.parse(store.get(k)) : store.get(k)) : null),
+      get: async (k, type) => Array.isArray(k) ? new Map(k.map(key => [key, store.get(key) ?? null])) : (store.has(k) ? (type === "json" ? JSON.parse(store.get(k)) : store.get(k)) : null),
       put: async (k, v, o) => { store.set(k, v); ttls.set(k, o?.expirationTtl); }, delete: async (k) => { store.delete(k); },
       list: async ({ prefix }) => ({ keys: [...store.keys()].filter((k) => k.startsWith(prefix)).map((name) => ({ name })), list_complete: true }),
     },

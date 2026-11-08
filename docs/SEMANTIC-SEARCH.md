@@ -18,8 +18,10 @@ best-scoring moment. Class and study pages must still be listed in the public no
 remain unnamed. Law entries, case metadata and precept counts hydrate from their existing public
 records. Only keyword-Hit fields are returned, never arbitrary vector metadata or private chats.
 
-Admission permits 10 requests/person/minute and 200/person/day, including cache hits. A coarse
-6,000/IP/minute ceiling leaves room for shared mobile networks and the Mini App proxy. IP keys
+Admission permits 10 requests/person/minute and 200/person/day, including cache hits. A
+per-IP minute ceiling (`client-ip.ts` `NETWORK_PER_MINUTE`): 600 for a reader's own address that the
+Mini App's Worker signed, leaving room for a class or carrier on one network, and 6,000 otherwise,
+since every unsigned Mini App reader arrives as the one proxy address. IP keys
 use a purpose-specific keyed hash; IP rejection does not spend a person's counter. Existing D1
 quota cleanup removes old counter rows. Public results are edge-cached for five minutes by a
 hash of normalized query, selected kinds and limit; authentication and admission still run on

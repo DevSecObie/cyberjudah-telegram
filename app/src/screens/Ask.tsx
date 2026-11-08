@@ -459,7 +459,7 @@ function AssistantTurn({ t, index, question, last, busy, chatId, onRetry, onFoll
             <button type="button" className="btn consent__go" onClick={() => { agree(t.consent!.provider); haptic("success"); onRetry(); }}>Agree and ask</button>
             <button type="button" className="consent__alt" onClick={onModel}>Choose another model</button>
           </div>
-          <p className="consent__foot">You can withdraw this at any time in Settings → Privacy. <a href="/privacy" onClick={(e) => { e.preventDefault(); navigate("/privacy"); }}>Privacy policy</a></p>
+          <p className="consent__foot">You can withdraw this at any time in Settings → Privacy. <Link to="/privacy">Privacy policy</Link></p>
         </div>
       ) : t.error === "confirm" && t.meter && !t.content ? (
         <CostCard m={t.meter} acct={acct} last={last} onAccept={() => onAccept(t.meter!.model, t.meter!.max_mc ?? 0)} onModel={onModel} />
@@ -662,7 +662,6 @@ async function pollAccount(before: AskAccount, set: (a: AskAccount) => void) {
  * costs the Stars it does; and the opt-in reminder to top up before those days.
  */
 function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: AskAccount; onClose: () => void; onPaid: () => void; onUsage: () => void; onChanged: () => void }) {
-  const navigate = useNavigate();
   const [busy, setBusy] = useState<string | null>(null);
   const [why, setWhy] = useState("");
   const [remind, setRemind] = useState(!!acct.remind?.on);
@@ -716,7 +715,7 @@ function BalanceSheet({ acct, onClose, onPaid, onUsage, onChanged }: { acct: Ask
           </>
         ) : null}
         {why ? <p className="credits__closed" role="alert">{why}</p> : null}
-        <p className="hint">Your chats, search, reading and PDFs stay free. Your balance never expires. <a href="/terms" onClick={(e) => { e.preventDefault(); onClose(); navigate("/terms"); }}>Terms</a></p>
+        <p className="hint">Your chats, search, reading and PDFs stay free. Your balance never expires. <Link to="/terms" onClick={() => onClose()}>Terms</Link></p>
       </div>
     </Sheet>
   );

@@ -110,6 +110,12 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
 10. **Roll back** if a check fails: see below. The search index is not part of a rollback;
     the next deploy or the nightly `refresh-search` reloads it.
 
+**Live-smoke account concurrency:** scheduled and manual `live-smoke` runs share the workflow-level
+`live-smoke-production` group with `cancel-in-progress: false`, including dispatches from another
+branch. Only one whole run, including its matrix shards, can use the shared production test account
+at a time. A newer pending run can replace an older pending run; the active run is allowed to finish.
+This is not a FIFO queue or a guarantee that every requested run executes.
+
 **Production search concurrency:** the deploy job and nightly `refresh-search` share the
 `production-search-write` concurrency group with `cancel-in-progress: false`, covering the entire
 index load and table swap. Any future workflow that loads production search must take the same
@@ -147,11 +153,28 @@ then roll forward to the noted id. Time each step and write the times here.
 
 ## Scaling notes
 
-- **Daily verse** (`src/daily.ts`): paced at ~25 sends/second with 429 backoff (the
-  server's `retry_after` is honored, then the chunk retries once). Progress checkpoints
-  per hourly slot in KV, so an interrupted run resumes; the previous hour's unfinished
-  slot is finished first. Rough math: 10k subscribers ≈ 7 minutes, 100k ≈ 70 minutes,
-  inside the hourly cron. Blocked users (403) are dropped from the list automatically.
+- **Scheduled Telegram broadcasts** (`bot/src/broadcast.ts`): daily verses, reading
+  reminders and top-up reminders share one budget per cron invocation. Every attempt,
+  including a retry, starts at least 40 ms after the previous one (at most 25/s overall
+  for these senders). A 429 pauses all queued sends for Telegram's full `retry_after`,
+  then the refused message retries once; a second 429 still extends the shared pause.
+  Interactive bot replies and health alerts are outside this broadcast budget.
+- **Daily verse** (`bot/src/daily.ts`): subscription values and due subscribers' sent-date
+  markers are bulk-read in batches of at most 100 keys. Sealed records and local-date/DST
+  checks are retained. KV writes still scale with delivered messages. Progress checkpoints
+  per hourly slot remain, and the previous unfinished hour is tried first. A 403 drops the
+  subscription and its sent-date marker.
+- **Overlapping cron deliveries**: schedules start on the hour and at minutes 15/30/45;
+  retries and a large list can approach the next interval. A 16-minute KV lease
+  (`cron-broadcast:lease`) skips broadcast delivery in a later run while the lease is held;
+  normal completion releases it, and a crashed run expires. `broadcast_skipped` / `leased`
+  is logged; unrelated cron maintenance still runs. This covers the current
+  [15-minute cron wall-time limit](https://developers.cloudflare.com/workers/platform/limits/#wall-time-limits-by-invocation-type).
+  KV is [eventually consistent](https://developers.cloudflare.com/kv/concepts/how-kv-works/#consistency),
+  so ownership checks are best-effort overlap protection, not an atomic cross-isolate lock.
+  No Queue/DO or new binding is added. Jobs that exhaust an invocation, skip a quarter,
+  or exceed the existing one-slot catch-up window still need a durable fan-out follow-up;
+  this change does not claim unlimited-subscriber delivery.
 - **Ask CyberJudah**: the expensive path. Every paid model is paid from the reader's own
   balance, at cost, so its spend is bounded by what readers top up; the free model is bounded
   by the per-user daily quota (100 asks; 50 new TTS generations). Balances, holds, the ledger
@@ -205,6 +228,8 @@ Ask answers with Claude (`CLAUDE_MODEL`), paid for as `CLAUDE_BILLING` says (bel
 - **Claude fails:** if Claude fails with an overloaded, rate-limited, server or connection error, the key is refused, or the Cloudflare credits have run out (402) (`claudeUnavailable` in `bot/src/providers.ts`), that answer is written by Workers AI from the passages already found. The reader sees "the backup model wrote this shorter answer" and is not charged. With no passages, it says the main model is busy, and nothing is saved as an answer.
 - **Logs:** each failover logs `ask_claude_unavailable` with the status.
 
+**Mini App reader addresses** (`MINIAPP_CLIENT_IP_KEY` Worker secret, `bot/src/client-ip.ts`): the Mini App's Worker relays Ask from one Cloudflare address, so it signs each reader's own address (`x-cj-client-ip`, `x-cj-client-ts`, `x-cj-client-sig`), and every per-address limit counts that address: Ask (`ASK_IP_DAILY_LIMIT`), semantic search (`semantic_ip`), the public reader (`READER_LIMIT`), app sign-in (`FIREBASE_SESSION_LIMIT`, `FIREBASE_AUTH_LIMIT`), reminders (`REMIND_LIMIT`, `remcreate`) and Ask feedback. Each is resolved once per request. The Mini App's Worker must sign every call it relays for this to apply. The same value must be set on both Workers; set it on this one with `npx wrangler secret put MINIAPP_CLIENT_IP_KEY`. Without it, signed headers are ignored and every Mini App reader shares the relay's limit. To rotate it, put the old value in `MINIAPP_CLIENT_IP_KEY_PREVIOUS` on this Worker and the new one in `MINIAPP_CLIENT_IP_KEY`, then change the Mini App's Worker, then delete `MINIAPP_CLIENT_IP_KEY_PREVIOUS`; both values are accepted in between. Deploy order: until the Mini App's Worker signs and both have the key, Mini App readers share the relay's limit, as before this change. The hourly sweep also drops any `ask_ip:` row that still holds a raw address.
+
 **Cloudflare AI Gateway** (`AI_GATEWAY` in `wrangler.jsonc`, `"default"` for production and staging):
 - **Workers AI:** calls (answers, embeddings, reranking, voices) pass `{ gateway: { id } }` and appear under AI Gateway → `default` in the Cloudflare dashboard, with logs and analytics. Cloudflare creates the `default` gateway on its first request. The AI binding authenticates it, so no token is needed.
 - **Claude:** calls go through the same gateway only when the **`CF_AIG_TOKEN`** Worker secret is set. That is an AI Gateway token with Run permission, made under the gateway's Settings → Create authentication token; it is sent as `cf-aig-authorization` because the default gateway is authenticated. Add it as the GitHub repository secret `CF_AIG_TOKEN` (Settings → Secrets and variables → Actions); the deploy puts it on the Worker. Without the token, Claude is called directly, as before. **The owner adds this secret.**
@@ -229,7 +254,7 @@ Readers pick the model in Ask’s header. The dollar balance under the question 
 - **The list** is `shared/ask-models.json`, built by `node bot/scripts/ask-models.mjs <cloudflare-docs>/src/content <commit>` from Cloudflare's catalog (`catalog-models` for third-party models, `workers-ai-models` for Cloudflare-hosted ones). It holds every text model with a published price. Rebuild it to pick up new models or prices.
 - **Claude** models go through the Anthropic SDK (`agent.ts`). Every other model goes through the AI binding and the gateway (`agent-open.ts`): chat completions, the Responses API or the Messages format, with the same tools, or no tools for models without function calling.
 - **Pricing:** each answer is charged exactly what it cost, at the price of the model that wrote it, with Unified Billing's fee where it applies and the library searches at Cloudflare's rates (`shared/credits.mjs`, `bot/src/spend.ts`). No margin.
-- **The free model** (`ASK_FREE_MODEL`, Llama 3.1 8B) is never charged. It is open to everyone (within `ASK_DAILY_LIMIT`, 20 a day per person), and is offered when a reader's balance is too low for the model chosen. Before a non-admin free Ask or search answer begins, D1 atomically reserves its estimated maximum cost against `ASK_FREE_DAILY_USD_CAP` ($0.11 by default). Completed spend plus in-flight reservations cannot admit more than that allowance. The reservation settles once against the UTC day it started; failed calls, missing usage and lost workers conservatively keep their reserved allowance. Storage failures block new free work. This covers these metered answers, excludes admin testing and other AI uses (including paid-request backups and speech), and is not a guarantee that the Cloudflare account stays inside its shared free allocation.
+- **The free model** (`ASK_FREE_MODEL`, Llama 3.1 8B) is never charged. It is open to everyone (within `ASK_DAILY_LIMIT`, 20 a day per person), and is offered when a reader's balance is too low for the model chosen. Before a non-admin free Ask or search answer begins, D1 atomically reserves its estimated maximum cost against `ASK_FREE_DAILY_USD_CAP` ($25 a day on production and $1.00 on staging in `bot/wrangler.jsonc`; $0.11 when unset). Completed spend plus in-flight reservations cannot admit more than that allowance. The reservation settles once against the UTC day it started; failed calls, missing usage and lost workers conservatively keep their reserved allowance. Storage failures block new free work. This covers these metered answers, excludes admin testing and other AI uses (including paid-request backups and speech), and is not a guarantee that the Cloudflare account stays inside its shared free allocation.
 - **Top-ups** ($1, $5, $20 in Stars) pause from sunset before each Sabbath, feast day and New Moon to full dark at its end, in the reader's time zone (`shared/holy-days.mjs`). The feast days and New Moons are in `shared/holy-days.json`, refreshed from the IUIC calendar by the weekly `holy-days` workflow as a pull request to approve.
 - **Failures:** if any model fails or Cloudflare refuses it (out of credits, for example), the answer falls back to the backup as before.
 

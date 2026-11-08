@@ -64,6 +64,18 @@ test("the sweep keeps two days so a UTC-midnight boundary never drops a live cou
   assert.ok(!left.some((k) => k.includes(day(2))), "two days ago goes");
 });
 
+test("the sweep drops per-address Ask rows that hold a raw address, and keeps the hashed ones", async () => {
+  const e = env();
+  const today = new Date().toISOString().slice(0, 10);
+  await takeQuotaKey(e, `ask_ip:1.2.3.4:${today}`, 100);
+  await takeQuotaKey(e, `ask_ip:2001:db8::1:${today}`, 100);
+  await takeQuotaKey(e, `ask_ip:${"a".repeat(64)}:${today}`, 100);
+  await takeQuotaKey(e, `ask:77:${today}`, 100);
+  assert.equal(await sweepRateCounts(e), 2);
+  const left = (await e.DB.prepare("SELECT key FROM rate_counts").all()).results.map((r) => r.key).sort();
+  assert.deepEqual(left, [`ask:77:${today}`, `ask_ip:${"a".repeat(64)}:${today}`]);
+});
+
 test("the free-tier circuit breaker trips at the owner's daily cap", async () => {
   const e = env();
   assert.equal(await freeSpendToday(e), 0);

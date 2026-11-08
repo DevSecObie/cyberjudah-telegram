@@ -56,7 +56,7 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Aggregate free-answer spend | D1 `free_spend_daily` | UTC day and total estimated cost; no reader id or question | Aggregate operational history | Not linked to a reader |
 | Who asked on a day (legacy) | D1 `usage_people` (pid) | pid, day; nothing writes it any more, old rows only | Pruned after 30 days (`billing.ts`) | Delete my data |
 | Daily limits | D1 `rate_counts` (`name:pid:day`: `ask`, `search_ai`, `ttsg`, `share`, `report`) | A count | Swept daily | Delete my data |
-| Ask limit per network | D1 `rate_counts` (`ask_ip:<IP address>:day`) | The IP address the question came from, and a count, never linked to a pid | Swept daily (kept up to two days) | Expires on its own |
+| Ask limit per network | D1 `rate_counts` (`ask_ip:<HMAC of IP address>:day`; `client-ip.ts` `askIpKey`, `privacy.mjs` `keyedHash`, keyed from `PRIVACY_KEY`) | A count per address the question came from (through the Mini App, the reader's address its Worker signs), never linked to a pid; the address itself is not stored, logged or returned | Swept daily (kept up to two days) | Expires on its own |
 | New reminder browsers per network | KV `remcreate:<HMAC of IP address>:day` (`remind.ts`; `privacy.mjs` `keyedHash`, keyed from `PRIVACY_KEY`) | A count of new browser credentials from that address | Two days (`expirationTtl`) | Expires on its own |
 | Class-note requests | KV `notereq:<video>` | Count, pids (once each) | Until the notes are written | Delete my data (the reader's pid and vote) |
 | Cloud study backup | D1 `study_backups` (`owner` = pid; `study-backup.ts`) | The personal-study archive, sealed; revision, last update | Until replaced or deleted | The reader, Delete my data |
@@ -89,8 +89,10 @@ location (`loc`, rounded to three decimal places, `Sabbath.tsx`), used on the de
 sunset and removed with Forget; like every CloudStorage key it is part of a backup sent through
 `/api/backup` to the reader's chat, which the Worker does not keep.
 
-The reminder endpoints also pass the caller's IP address to Cloudflare's rate limiter
-(`REMIND_LIMIT`, per minute), which the app does not store.
+The reminder endpoints also pass a keyed hash of the caller's IP address to Cloudflare's rate
+limiter (`REMIND_LIMIT`, per minute), which the app does not store. The public reader
+(`READER_LIMIT`) does the same. Behind the Mini App's Worker, every per-address limit uses the
+reader's address that Worker signs (`client-ip.ts`), never the address itself.
 
 Records from before this change (under Telegram IDs, unsealed) are moved by `privacy-migrate.ts`,
 a bounded amount each hour, until none are left. Chats also move the first time they are read.

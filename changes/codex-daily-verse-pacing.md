@@ -1,0 +1,2 @@
+- Daily verses, reading reminders and top-up reminders now share a paced Telegram send budget, wait for the full requested flood-control backoff, and skip delivery when a prior cron run still holds its lease.
+- Daily-verse delivery reads subscriptions and sent-date markers in KV batches, preserving sealed records and daylight-saving checks.

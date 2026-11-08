@@ -1,3 +1,5 @@
+import { boundedFrame, hasSourceList } from "./ask-frame";
+import { askIpKey, clientIp } from "./client-ip";
 import type { ResourcePins } from "../../shared/resources";
 import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
@@ -135,6 +137,13 @@ export async function takeQuotaKey(env: Env, key: string, limit: number): Promis
   return n <= limit;
 }
 
+/** The per-address Ask backstop (ASK_IP_DAILY_LIMIT, at least 100, 1000 by default) for both Ask
+ *  endpoints: false when this address has used the day's allowance. No address, no check. */
+export async function takeAskIpQuota(req: Request, env: Env): Promise<boolean> {
+  const ip = await clientIp(req, env);
+  return !ip || await takeQuotaKey(env, await askIpKey(env, ip), Math.max(100, Number(env.ASK_IP_DAILY_LIMIT ?? 1000)));
+}
+
 /**
  * Old quota rows are swept hourly, never on the request path: the sweep's leading-wildcard
  * LIKE cannot use the key index, so running it per request is a full table scan on every Ask.
@@ -145,8 +154,11 @@ export async function sweepRateCounts(env: Env, now = Date.now()): Promise<numbe
   const res = await env.DB.batch([
     env.DB.prepare("CREATE TABLE IF NOT EXISTS rate_counts (key TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)"),
     env.DB.prepare("DELETE FROM rate_counts WHERE key NOT LIKE ? AND key NOT LIKE ?").bind(`%:${day(0)}`, `%:${day(1)}`),
+    // Per-address Ask counters keep only a keyed hash (client-ip.ts askIpKey: "ask_ip:" + 64 hex +
+    // ":" + day, 82 characters); any older row holding a raw address goes at the next sweep.
+    env.DB.prepare("DELETE FROM rate_counts WHERE key LIKE 'ask_ip:%' AND length(key) <> 82"),
   ]);
-  return Number((res[1] as { meta?: { changes?: number } }).meta?.changes ?? 0);
+  return [1, 2].reduce((n, i) => n + Number((res[i] as { meta?: { changes?: number } }).meta?.changes ?? 0), 0);
 }
 
 /** ASK_DAILY_LIMIT answers a day per person. */
@@ -665,8 +677,8 @@ async function answerOnce(env: Env, messages: Msg[], admin = false, sources: Pas
   return backupOnce(env, messages, admin, sources, signal);
 }
 
-async function* answerPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): AsyncGenerator<string> {
-  yield* backupPieces(env, messages, admin, sources, signal);
+async function* answerPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): AsyncGenerator<string> {
+  yield* backupPieces(env, messages, admin, sources, signal, wrote);
 }
 
 /** The answer with every quoted verse checked against the King James text (verse-guard.mjs). */
@@ -724,7 +736,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // it is answered faster and costs the reader less. Admins keep their own default.
   const light = !modelId && !isAdmin(env, userId) && env.CLAUDE_MODEL_LIGHT && routeOf(question, history) === "light";
   const selected = modelOf(modelId || (light ? env.CLAUDE_MODEL_LIGHT : undefined), defaultModelId(env, userId));
-  const line = (o: unknown) => `${JSON.stringify(o)}\n`;
+  // Lines with sources or passages carry bounded previews (ask-frame.ts): the full text stays behind
+  // each source's own page, and a long answer's final line stays under the Mini App's 256 KiB limit.
+  const line = (o: unknown) => `${JSON.stringify(hasSourceList(o) ? boundedFrame(o as object) : o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
   if (opts.request !== undefined && !ASK_REQUEST_ID.test(opts.request)) return reply(400, { error: "invalid-request" });
@@ -742,7 +756,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   } catch { return reply(503, { error: "unavailable" }); }
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
-  const model = modelId === "auto" ? await autoModel(env, question, history.length, userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
+  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
@@ -810,7 +824,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       };
       const complete = async (packet: Record<string, unknown>, status: Parameters<typeof finishMeter>[2], steps: string[] = [], actions: SavedAction[] = []) => {
         clearInterval(checkpointTimer); await checkpoint;
-        const done = { ...packet, done: true, request, answer_id: claim.answer_id, model: model.id };
+        const { model: packetModel, ...rest } = packet as Record<string, unknown> & { model?: unknown };
+        const resolvedModel = packetModel === undefined ? model.id : packetModel;
+        const done = { ...rest, done: true, request, answer_id: claim.answer_id, ...(typeof resolvedModel === "string" ? { model: resolvedModel } : {}) };
         const prepared: RequestResult = { done, settlement: "pending" };
         // Save the whole answer before charging or claiming completion on the wire.
         await saveAskRequest(env, claim, "completed", prepared);
@@ -877,20 +893,21 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           if (!passages.length && backup) { await fail("backup", "busy"); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
-            send({ delta: answer }); await complete({ answer, followups: [], sources: [], unsupported_refs: [] }, "empty"); return;
+            send({ delta: answer }); await complete({ answer, followups: [], sources: [], unsupported_refs: [], model: null }, "empty"); return;
           }
           if (assessCoverage(env, retrievalText(question, history), passages).blocked) {
             const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
             const sources = await askSourcesOf(env, gap.answer, gap.sources);
-            send({ reset: true }); send({ delta: gap.answer }); await complete({ answer: gap.answer, followups: [], sources, unsupported_refs: [] }, "empty"); return;
+            send({ reset: true }); send({ delta: gap.answer }); await complete({ answer: gap.answer, followups: [], sources, unsupported_refs: [], model: null }, "empty"); return;
           }
           let answer = "";
-          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal)) { answer += piece; send({ delta: piece }); }
+          const wrote: { model?: string } = {};
+          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; send({ delta: piece }); }
           const { answer: clean, followups } = splitFollowups(answer);
           if (!clean.trim()) { await fail("empty", "empty"); return; }
           const sources = await askSourcesOf(env, clean, passages);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
-          await complete({ answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(backup ? { backup: true } : {}) }, "backup");
+          await complete({ answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(wrote.model ? { model: wrote.model } : { model: null }), ...(backup ? { backup: true } : {}) }, "backup");
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;
