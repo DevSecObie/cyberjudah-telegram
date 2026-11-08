@@ -78,7 +78,7 @@ const TOOL_DEFS: Anthropic.Tool[] = [
   },
   {
     name: "read_scripture",
-    description: "Read the exact King James text (the Apocrypha included) of a reference: a chapter (\"Sirach 43\"), a verse (\"Exodus 12:14\") or a range (\"Deuteronomy 16:1-8\"). Returns the verses, numbered for citation. Call it for every verse you will quote that is not already in the passages: quote Scripture only from what this returns or from the passages.",
+    description: "Read the exact King James text (the Apocrypha included) of a reference: a chapter (\"Sirach 43\"), a verse (\"Exodus 12:14\") or a range (\"Deuteronomy 16:1-8\"). Returns the verses, numbered for citation. A chapter comes 40 verses at a time with its verse count and what to read next; a longer chapter is read in full only when every part has been read. Call it for every verse you will quote that is not already in the passages: quote Scripture only from what this returns or from the passages.",
     input_schema: { type: "object", properties: { reference: { type: "string", description: "Book, chapter and optional verse or range." } }, required: ["reference"] },
   },
   ...MORE_TOOLS,
@@ -97,6 +97,9 @@ const keyOf = (p: Passage) => (p.video ? `v|${p.video}|${Math.round((p.t ?? 0) /
 const sourceLabel = (p: Numbered) => `[${p.n}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.date ? ` (${p.date})` : ""}${p.teacher ? ` (taught by ${p.teacher})` : ""}`;
 const listed = (p: Numbered) => `${sourceLabel(p)}\n${p.text}`;
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+
+/** Verses one read_scripture call returns for a chapter without a range. */
+export const CHAPTER_READ_VERSES = 40;
 
 export async function runAgent(
   env: Env,
@@ -176,14 +179,21 @@ export async function runAgent(
       emit({ status: `Reading ${ref.label}` });
       const c = await chapter(env, ref.slug, ref.chapter, ctx);
       if (!c) return { content: `${ref.label} could not be read just now.`, error: true };
-      const from = ref.verse ?? 1, to = ref.verseEnd ?? ref.verse ?? Math.min(c.verses.length, 40);
+      // A whole chapter is read CHAPTER_READ_VERSES at a time. Each reading says how many verses
+      // the chapter has and which to read next, so a chapter is never taken as read when it is not.
+      const total = c.verses.length, last = c.verses.at(-1)?.verse ?? 0, chapterName = `${ref.book} ${ref.chapter}`;
+      const from = ref.verse ?? 1, to = Math.min(ref.verseEnd ?? ref.verse ?? from + CHAPTER_READ_VERSES - 1, last);
       const verses = c.verses.filter((v) => v.verse >= from && v.verse <= to);
-      if (!verses.length) return { content: `${ref.label} has no such verses.`, error: true };
-      const label = ref.verse ? `${ref.book} ${ref.chapter}:${from}${to > from ? `-${to}` : ""}` : `${ref.book} ${ref.chapter}${to < c.verses.length ? `:1-${to}` : ""}`;
+      if (!verses.length) return { content: `${ref.label} has no such verses. ${chapterName} has ${total} verses.`, error: true };
+      const whole = from === 1 && to === last;
+      const label = whole ? chapterName : `${chapterName}:${from}${to > from ? `-${to}` : ""}`;
       const text = verses.map((v) => `${v.verse} ${v.text}`).join("\n");
+      const note = !ref.verse
+        ? whole ? `All ${total} verses of ${chapterName}.` : `Verses ${from}-${to} of the ${total} in ${chapterName}. The chapter is not finished: read "${chapterName}:${to + 1}-${Math.min(to + CHAPTER_READ_VERSES, last)}" next, and do not present ${chapterName} as read in full until every verse has been read.`
+        : ref.verseEnd && ref.verseEnd > last ? `${chapterName} ends at verse ${last}.` : "";
       const a = add({ kind: "verse", title: label, url: `/bible/${ref.slug}/${ref.chapter}`, sub: "", text: text.slice(0, 1400) });
       publishPassages();
-      return { content: `${a ? `[${a.n}] ` : ""}${label} (KJV)\n${text}` };
+      return { content: `${a ? `[${a.n}] ` : ""}${label} (KJV)\n${text}${note ? `\n\n(${note})` : ""}` };
     }
     if (name === "app_help") {
       const query = str(input.query, 120);
