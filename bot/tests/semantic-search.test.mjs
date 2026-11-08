@@ -140,6 +140,34 @@ test('IP rejection does not spend the person counter and the daily allowance is 
 });
 
 
+test('through the Mini App relay, a signed reader address gets its own counter; unsigned ones share the relay', async t => {
+  const f = fixture(t); cache(t);
+  f.env.MINIAPP_CLIENT_IP_KEY = 'relay-key';
+  const relay = { 'cf-connecting-ip': '203.0.113.9' };
+  const signed = (ip, ts = Math.floor(Date.now() / 1000)) => ({ ...relay, 'x-cj-client-ip': ip, 'x-cj-client-ts': String(ts), 'x-cj-client-sig': createHmac('sha256', 'relay-key').update(`${ip}|${ts}|GET|/api/search/semantic`).digest('hex') });
+  await get(f.env, 'words', relay);
+  f.sql.prepare("UPDATE rate_counts SET n = 6000 WHERE key LIKE 'semantic_ip:%'").run();
+  assert.equal((await get(f.env, 'words', relay)).status, 429, 'the relay address is spent');
+  assert.equal((await get(f.env, 'words', { ...relay, 'x-cj-client-ip': '198.51.100.7' })).status, 429, 'an unsigned claim counts the relay');
+  assert.equal((await get(f.env, 'words', signed('198.51.100.7'))).status, 200, 'a signed reader is counted on its own');
+  const keys = f.sql.prepare("SELECT key FROM rate_counts WHERE key LIKE 'semantic_ip:%'").all().map(r => r.key);
+  assert.equal(keys.length, 2);
+  assert.ok(keys.every(k => !k.includes('198.51.100.7') && !k.includes('203.0.113.9')), 'no plaintext address');
+});
+
+test('a signed reader address is held at 600 a minute; the unsigned relay keeps 6000, safe in any deploy order', async t => {
+  const f = fixture(t); cache(t);
+  f.env.MINIAPP_CLIENT_IP_KEY = 'relay-key';
+  const relay = { 'cf-connecting-ip': '203.0.113.9' };
+  const signed = (ip, ts = Math.floor(Date.now() / 1000)) => ({ ...relay, 'x-cj-client-ip': ip, 'x-cj-client-ts': String(ts), 'x-cj-client-sig': createHmac('sha256', 'relay-key').update(`${ip}|${ts}|GET|/api/search/semantic`).digest('hex') });
+  await get(f.env, 'words', relay);
+  await get(f.env, 'words', signed('198.51.100.7'));
+  f.sql.prepare("UPDATE rate_counts SET n = 600 WHERE key LIKE 'semantic_ip:%'").run();
+  f.sql.prepare("UPDATE rate_counts SET n = 0 WHERE key LIKE 'semantic_person:%'").run();
+  assert.equal((await get(f.env, 'words', relay)).status, 200, 'the unsigned relay is not cut to a tenth');
+  assert.equal((await get(f.env, 'words', signed('198.51.100.7'))).status, 429, 'a signed reader network stops at 600');
+});
+
 test('short hydrated KJV verses stay; five-word spoken scraps and retracted pages do not', async t => {
   const f = fixture(t);
   f.env.matches = [match('verse', '/bible/john/11#v35'), match('spoken', '/classes/recorded', { video, t: 3, text: 'These are five spoken words.' }), match('study', '/study/retracted'), match('spoken', '/classes/retracted', { video, t: 15 })];
