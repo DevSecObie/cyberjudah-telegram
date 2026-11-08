@@ -5,6 +5,7 @@ import { embed, takeQuotaKey } from './ai';
 import { dataJson, type Chapter } from './data';
 import type { BookRow } from './refs.mjs';
 import { keyedHash, pid } from './privacy.mjs';
+import { clientAddress, NETWORK_PER_MINUTE } from './client-ip';
 import { withinPhase } from './research-policy.mjs';
 
 export const SEMANTIC_MIN_SCORE = 0.55;
@@ -154,8 +155,9 @@ semanticSearch.get('/', async c => {
   if (!options) return c.json({ error: 'bad-query' }, 400);
   try {
     const owner = await pid(c.env, uid), day = new Date().toISOString().slice(0, 10), minute = Math.floor(Date.now() / 60000);
-    const ip = c.req.header('cf-connecting-ip');
-    if (ip && !await takeQuotaKey(c.env, `semantic_ip:${await keyedHash(c.env, 'semantic-ip', ip.slice(0, 45))}:${minute}:${day}`, 6000)) return c.json({ error: 'limit' }, 429);
+    // Through the Mini App's Worker, the reader's own signed address (client-ip.ts), not the relay's.
+    const { ip, signed } = await clientAddress(c.req.raw, c.env);
+    if (ip && !await takeQuotaKey(c.env, `semantic_ip:${await keyedHash(c.env, 'semantic-ip', ip)}:${minute}:${day}`, NETWORK_PER_MINUTE[signed ? 'signed' : 'unsigned'])) return c.json({ error: 'limit' }, 429);
     if (!await takeQuotaKey(c.env, `semantic_person:${owner}:${minute}:${day}`, 10) || !await takeQuotaKey(c.env, `semantic_day:${owner}:${day}`, 200)) return c.json({ error: 'limit' }, 429);
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(options)));
     const hash = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');

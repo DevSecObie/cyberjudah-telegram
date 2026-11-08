@@ -4,7 +4,8 @@ import type { Env } from "./env";
 import { validateInitData } from "./initdata.mjs";
 import { books, escapeHtml } from "./data";
 import { openButton } from "./bot";
-import { CHUNK, SENDS_PER_SECOND, SLOT_TTL, sleep } from "./daily";
+import { CHUNK, SLOT_TTL } from "./daily";
+import { createBroadcastSender, type BroadcastSender } from "./broadcast";
 import { tellAdmins } from "./health";
 import { telegramApi } from "./telegram-api";
 import {
@@ -14,6 +15,7 @@ import {
 } from "./reminders.mjs";
 import { b64u, sendPush, validSubscription, type VapidKeys } from "./webpush.mjs";
 import { keyedHash, open, pid, seal } from "./privacy.mjs";
+import { clientIpKey } from "./client-ip";
 
 /**
  * Reading reminders (rules in reminders.mjs). One record per reader in the SUBS namespace:
@@ -78,12 +80,14 @@ function same(a: string, b: string): boolean {
  * by address. The binding counts per Cloudflare location, so it bounds abuse rather than
  * counting exactly. Without the binding (a local run), nothing is limited.
  */
-async function overLimit(env: Env, key: string): Promise<boolean> {
+async function overLimit(env: Env, key: string | Promise<string>): Promise<boolean> {
   if (!env.REMIND_LIMIT) return false;
-  try { return !(await env.REMIND_LIMIT.limit({ key })).success; } catch { return false; }
+  // The key is awaited here so a failure to work it out (no key to hash with) fails open too.
+  try { return !(await env.REMIND_LIMIT.limit({ key: await key })).success; } catch { return false; }
 }
 const tooMany = (c: Context<{ Bindings: Env }>) => c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "60" });
-const clientIp = (c: Context<{ Bindings: Env }>) => c.req.header("cf-connecting-ip") ?? "unknown";
+/** The caller's address (signed by the Mini App's Worker when relayed, client-ip.ts) under a keyed hash, for the limiter keys. */
+const ipKey = (c: Context<{ Bindings: Env }>) => clientIpKey(c.req.raw, c.env, "remind-ip");
 
 /** A push subscription the Worker will post to: a browser push service, or in tests the loopback one (PUSH_TEST_ORIGIN). */
 const pushable = (env: Env, sub: unknown) => validSubscription(sub, env.PUSH_TEST_ORIGIN);
@@ -126,15 +130,6 @@ function telegramKeyboard(env: Env, p: Portion, done = false): InlineKeyboard {
   const kb = openButton(env, env.WORKER_URL, "private", p.param, "Open");
   if (done) return kb;
   return kb.text("Done", "rd:done").row().text("Pause…", "rd:pause").text("Stop", "rd:stop");
-}
-
-/** A Telegram send, retried once after the server's own backoff on 429. */
-async function withBackoff<T>(f: () => Promise<T>): Promise<T> {
-  try { return await f(); } catch (e) {
-    if (!(e instanceof GrammyError && e.error_code === 429)) throw e;
-    await sleep(Math.min(60, Number((e as { parameters?: { retry_after?: number } }).parameters?.retry_after ?? 1)) * 1000);
-    return f();
-  }
 }
 
 /** The Telegram reminder of the day, when it was sent, is marked done in place. */
@@ -279,10 +274,9 @@ reminders.put("/", async (c) => {
   if (!w) {
     if (c.req.header("authorization") || c.req.header("x-cj-device")) return c.json({ ok: false, error: "unauthorized" }, 401);
     // A new credential: limited per address per minute, and capped per address per day.
-    const ip = clientIp(c);
-    if (await overLimit(c.env, `create:${ip}`)) return tooMany(c);
+    if (await overLimit(c.env, ipKey(c).then((k) => `create:${k}`))) return tooMany(c);
     // The address is counted under a keyed hash (privacy.mjs), not one anyone could rebuild by hashing every address.
-    const dayKey = `remcreate:${await keyedHash(c.env, "remcreate", ip)}:${new Date().toISOString().slice(0, 10)}`;
+    const dayKey = `remcreate:${await clientIpKey(c.req.raw, c.env, "remcreate")}:${new Date().toISOString().slice(0, 10)}`;
     const made = Number(await c.env.SUBS.get(dayKey)) || 0;
     if (made >= CREATE_PER_DAY) return c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "3600" });
     await c.env.SUBS.put(dayKey, String(made + 1), { expirationTtl: 2 * 86400 });
@@ -379,7 +373,7 @@ push.use("/*", async (c, next) => {
   if (c.req.method !== "POST") return next();
   const body = await c.req.raw.clone().json<{ endpoint?: unknown; old?: unknown }>().catch(() => null);
   const ep = typeof body?.endpoint === "string" ? body.endpoint : typeof body?.old === "string" ? body.old : "";
-  if (await overLimit(c.env, ep ? `ep:${await sha256(ep)}` : `ip:${clientIp(c)}`)) return tooMany(c);
+  if (await overLimit(c.env, ep ? `ep:${await sha256(ep)}` : ipKey(c).then((k) => `ip:${k}`))) return tooMany(c);
   await next();
 });
 async function byEndpoint(c: Context<{ Bindings: Env }>): Promise<string | null> {
@@ -457,15 +451,15 @@ const slotKey = (when: Date) => { const t = new Date(Math.floor(when.getTime() /
  * an interrupted run resumes, and the previous run, if unfinished, finished first. Each
  * channel's sent day is saved on the record, so a resumed or repeated run never sends twice.
  */
-export async function sendReminders(env: Env, now = new Date()): Promise<Counts> {
+export async function sendReminders(env: Env, now = new Date(), sender: BroadcastSender = createBroadcastSender()): Promise<Counts> {
   const out: Counts = { telegram: 0, push: 0, fallback: 0, failed: 0 };
   const list = (await books(env)) ?? [];
   if (!list.length) { console.error(JSON.stringify({ event: "reminders_no_books" })); return out; }
-  for (const t of [new Date(now.getTime() - QUARTER), now]) await runSlot(env, slotKey(t), now, list, out);
+  for (const t of [new Date(now.getTime() - QUARTER), now]) await runSlot(env, slotKey(t), now, list, out, sender);
   return out;
 }
 
-async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Awaited<ReturnType<typeof books>>>, out: Counts) {
+async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Awaited<ReturnType<typeof books>>>, out: Counts, sender: BroadcastSender) {
   const saved = (await env.SUBS.get(key, "json")) as { cursor?: string; done?: boolean } | null;
   if (saved?.done) return;
   const api = telegramApi(env);
@@ -476,7 +470,7 @@ async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Await
   /** Telegram, for a reminder already claimed: a refused chat switches Telegram off; any other failure gives the claim back to retry on the next run. */
   const toTelegram = async (r: Reminder, p: Portion, before: Reminder): Promise<Reminder> => {
     try {
-      const msg = await withBackoff(() => api.sendMessage(r.chatId!, telegramMessage(p), { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup: telegramKeyboard(env, p) }));
+      const msg = await sender.send(() => api.sendMessage(r.chatId!, telegramMessage(p), { parse_mode: "HTML", link_preview_options: { is_disabled: true }, reply_markup: telegramKeyboard(env, p) }));
       slot.telegram++;
       return { ...r, tgMessage: { date: localNow(r.tz, now).date, id: msg.message_id } };
     } catch (e) {
@@ -528,12 +522,8 @@ async function runSlot(env: Env, key: string, now: Date, list: NonNullable<Await
       const due = page.keys.filter((k) => mayBeDue(k.metadata, now));
       for (let i = 0; i < due.length; i += CHUNK) {
         const chunk = due.slice(i, i + CHUNK);
-        const t0 = Date.now();
         const results = await Promise.allSettled(chunk.map(({ name }) => one(name)));
         for (const r of results) if (r.status === "rejected") slot.failed++;
-        const budget = (chunk.length / SENDS_PER_SECOND) * 1000;
-        const elapsed = Date.now() - t0;
-        if (elapsed < budget) await sleep(budget - elapsed);
       }
       if (cursor) await env.SUBS.put(key, JSON.stringify({ cursor, done: false }), { expirationTtl: SLOT_TTL });
     } while (cursor);

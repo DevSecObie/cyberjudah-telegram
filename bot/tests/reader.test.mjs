@@ -15,7 +15,7 @@ function fixture() {
   const prepare = (sql, values = []) => ({ bind: (...args) => prepare(sql, args), all: async () => { reads++; return { results: db.prepare(sql).all(...values) }; } });
   const keys = [], pending = [], saved = new Map();
   globalThis.caches = { default: { match: async key => saved.get(key)?.clone(), put: async (key, value) => { saved.set(key, value.clone()); } } };
-  const env = { DB: { prepare, batch: statements => Promise.all(statements.map(s => s.all())) }, READER_LIMIT: { limit: async ({ key }) => { keys.push(key); return { success: true }; } } };
+  const env = { BOT_TOKEN: '100:local-test', DB: { prepare, batch: statements => Promise.all(statements.map(s => s.all())) }, READER_LIMIT: { limit: async ({ key }) => { keys.push(key); return { success: true }; } } };
   const ctx = { waitUntil: promise => pending.push(promise), passThroughOnException() {} };
   const get = (path, options) => publicReader.request(`https://reader.test${path}`, options, env, ctx);
   return { env, keys, get, pending, reads: () => reads };
@@ -42,6 +42,20 @@ test("anonymous library search uses real FTS, caches only public results, and li
   assert.equal(denied.status, 429);
   assert.equal(denied.headers.get("retry-after"), "60");
   assert.equal(denied.headers.get("cache-control"), "no-store");
+});
+
+test("the reader limit keys each signed Mini App reader on its own, under a keyed hash", async () => {
+  const { createHmac } = await import("node:crypto");
+  const f = fixture();
+  f.env.MINIAPP_CLIENT_IP_KEY = "relay-key";
+  const signed = (ip) => { const ts = Math.floor(Date.now() / 1000); return { "cf-connecting-ip": "203.0.113.9", "x-cj-client-ip": ip, "x-cj-client-ts": String(ts), "x-cj-client-sig": createHmac("sha256", "relay-key").update(`${ip}|${ts}|GET|/books`).digest("hex") }; };
+  for (const headers of [signed("198.51.100.1"), signed("198.51.100.2"), { "cf-connecting-ip": "203.0.113.9" }, { "cf-connecting-ip": "203.0.113.9", "x-cj-client-ip": "198.51.100.3" }]) await f.get("/books", { headers });
+  assert.equal(f.keys.length, 4);
+  assert.equal(new Set(f.keys).size, 3, "two signed readers apart; an unsigned claim counts the relay");
+  assert.equal(f.keys[2], f.keys[3]);
+  assert.ok(f.keys.every((k) => /^[a-f0-9]{64}$/.test(k)));
+  const plain = (await import("node:crypto")).createHash("sha256").update("reader:203.0.113.9").digest("hex");
+  assert.notEqual(f.keys[2], plain, "not a digest anyone could rebuild by hashing every address");
 });
 
 test("missing or failed anonymous limiter fails closed without a database read", async () => {

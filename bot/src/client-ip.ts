@@ -1,6 +1,5 @@
 import type { Env } from "./env";
 import { keyedHash } from "./privacy.mjs";
-import { takeQuotaKey } from "./ai";
 
 /**
  * The reader's own address when the request came through the Mini App's Worker (tg.cyberjudah.io,
@@ -38,10 +37,25 @@ export async function signedClientIp(req: Request, env: Env, now = Date.now()): 
   return undefined;
 }
 
-/** The address a per-address limit should count: the signed reader's address, else the connecting one. */
-export async function clientIp(req: Request, env: Env): Promise<string | undefined> {
-  return (await signedClientIp(req, env)) ?? req.headers.get("cf-connecting-ip")?.slice(0, 45) ?? undefined;
+/** The address a per-address limit should count: the signed reader's address, else the connecting
+ *  one. Worked out once per Request object, however many limiters ask. */
+const resolved = new WeakMap<Request, Promise<{ ip?: string; signed: boolean }>>();
+/** clientIp(), and whether it is a reader's address the Mini App's Worker signed (true) or the connecting one. */
+export function clientAddress(req: Request, env: Env): Promise<{ ip?: string; signed: boolean }> {
+  let found = resolved.get(req);
+  if (!found) {
+    found = signedClientIp(req, env).then((signed) => signed ? { ip: signed, signed: true } : { ip: req.headers.get("cf-connecting-ip")?.slice(0, 45) || undefined, signed: false });
+    resolved.set(req, found);
+  }
+  return found;
 }
+export async function clientIp(req: Request, env: Env): Promise<string | undefined> {
+  return (await clientAddress(req, env)).ip;
+}
+/** A per-network ceiling sized for one reader's network (carrier NAT, a class on one Wi-Fi) when the
+ *  address is signed, and for the Mini App relay, which every unsigned Mini App reader shares, when not.
+ *  Safe in any deploy order: until the relay signs, nothing tightens. */
+export const NETWORK_PER_MINUTE = { signed: 600, unsigned: 6000 } as const;
 
 /** The day's per-address Ask counter key in rate_counts: a keyed hash of the address (PRIVACY_KEY,
  *  purpose "ask_ip"), never the address itself. Swept with the other counters after the next day. */
@@ -49,9 +63,9 @@ export async function askIpKey(env: Env, ip: string, now = Date.now()): Promise<
   return `ask_ip:${await keyedHash(env, "ask_ip", ip)}:${new Date(now).toISOString().slice(0, 10)}`;
 }
 
-/** The per-address Ask backstop (ASK_IP_DAILY_LIMIT, at least 100, 1000 by default) for both Ask
- *  endpoints: false when this address has used the day's allowance. No address, no check. */
-export async function takeAskIpQuota(req: Request, env: Env): Promise<boolean> {
-  const ip = await clientIp(req, env);
-  return !ip || await takeQuotaKey(env, await askIpKey(env, ip), Math.max(100, Number(env.ASK_IP_DAILY_LIMIT ?? 1000)));
+/** The key a per-address limiter counts: a keyed hash (privacy.mjs, PRIVACY_KEY) of clientIp(), so
+ *  no limiter holds an address. `purpose` keeps each limiter's hashes apart; with no address at
+ *  all, every such request shares the "unknown" key. */
+export async function clientIpKey(req: Request, env: Env, purpose: string): Promise<string> {
+  return keyedHash(env, purpose, (await clientIp(req, env)) ?? "unknown");
 }
