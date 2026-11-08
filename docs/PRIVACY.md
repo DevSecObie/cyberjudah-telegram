@@ -88,8 +88,10 @@ location (`loc`, rounded to three decimal places, `Sabbath.tsx`), used on the de
 sunset and removed with Forget; like every CloudStorage key it is part of a backup sent through
 `/api/backup` to the reader's chat, which the Worker does not keep.
 
-The reminder endpoints also pass the caller's IP address to Cloudflare's rate limiter
-(`REMIND_LIMIT`, per minute), which the app does not store.
+The reminder endpoints also pass a keyed hash of the caller's IP address to Cloudflare's rate
+limiter (`REMIND_LIMIT`, per minute), which the app does not store. The public reader
+(`READER_LIMIT`) does the same. Behind the Mini App's Worker, every per-address limit uses the
+reader's address that Worker signs (`client-ip.ts`), never the address itself.
 
 Records from before this change (under Telegram IDs, unsealed) are moved by `privacy-migrate.ts`,
 a bounded amount each hour, until none are left. Chats also move the first time they are read.

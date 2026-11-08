@@ -1,6 +1,7 @@
 import { IdentityError, verifyFirebaseIdentity } from "./account-links";
 import type { Env } from "./env";
 import { keyedHash } from "./privacy.mjs";
+import { clientIpKey } from "./client-ip";
 
 /**
  * Signed-in requests are limited twice. Per internet address, generously (FIREBASE_SESSION_LIMIT),
@@ -10,7 +11,7 @@ import { keyedHash } from "./privacy.mjs";
  */
 export async function limitSession(request: Request, env: Env) {
   if (!env.FIREBASE_SESSION_LIMIT || !env.PRIVACY_KEY) throw new IdentityError(503, "firebase_sign_in_unavailable");
-  const key = await keyedHash(env, "firebase-session-ip", request.headers.get("cf-connecting-ip") ?? "unknown");
+  const key = await clientIpKey(request, env, "firebase-session-ip");
   if (!(await env.FIREBASE_SESSION_LIMIT.limit({ key })).success) throw new IdentityError(429, "sign_in_rate_limited");
 }
 
