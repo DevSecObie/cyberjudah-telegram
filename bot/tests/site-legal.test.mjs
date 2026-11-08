@@ -61,3 +61,24 @@ test('both pages hold the approved legal text, not the placeholder', () => {
   assert.ok(!m.PRIVACY_TEXT.includes(m.LEGAL_TEXT_PENDING), 'privacy text is still the placeholder');
   assert.ok(!m.TERMS_TEXT.includes(m.LEGAL_TEXT_PENDING), 'terms text is still the placeholder');
 });
+
+// The served pages carry the owner-approved text exactly: docs/legal/*.md are byte copies of the
+// approved files (the part between the '---' lines), and every line of them appears in the page,
+// HTML-escaped, in order, with only the markdown markers turned into tags.
+const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+for (const [path, name, file] of [['/privacy', 'PRIVACY_TEXT', 'privacy.md'], ['/terms', 'TERMS_TEXT', 'terms.md']]) {
+  test(`${path} serves the approved text in docs/legal/${file}, every line escaped and in order`, async () => {
+    const approved = fs.readFileSync(new URL(`../../docs/legal/${file}`, import.meta.url), 'utf8');
+    assert.equal(m[name], approved.replace(/\n$/, ''), `${name} is byte-identical to docs/legal/${file}`);
+    const html = await (await get(path)).text();
+    let at = 0;
+    for (const line of approved.split('\n').filter((l) => l.trim())) {
+      const content = line.replace(/^#{1,6} /, '').replace(/^- /, '').replace(/^\d+\. /, '');
+      const expected = esc(content).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(\S(?:.*?\S)?)\*/g, '<em>$1</em>');
+      const found = html.indexOf(expected, at);
+      assert.ok(found >= 0, `missing or out of order: ${content.slice(0, 60)}`);
+      at = found + expected.length;
+    }
+    assert.ok(!/[*#]/.test(html.replace(/<style>[\s\S]*?<\/style>/, '').replace(/<[^>]+>/g, '')), 'no markdown left in the text');
+  });
+}
