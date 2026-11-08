@@ -70,6 +70,26 @@ test('question depth follows the Mini App rules, including definitions, referenc
   assert.equal(api.depthOf('word '.repeat(29)), 'deep');
 });
 
+test('asking to read a passage is quick, as in the Mini App; asking what it means is not', () => {
+  for (const q of ['read John 3:16', 'Show me Genesis 1:1-3', 'what does John 8:32 say?', 'quote Isaiah 45:7', 'please pull up 1 John 4:1.', 'open Rev. 13:1-8']) assert.equal(api.depthOf(q), 'quick', q);
+  for (const q of ['What does Isaiah 45:7 mean?', 'What does John 8:32 mean', 'what does John 8:32 mean.', 'John 8:32 meaning', 'what is meant by Romans 6', 'Rev 1:1 signified', 'what signifieth this', 'read John 3:16 and explain it', 'Give me a study on the feast days']) assert.notEqual(api.depthOf(q), 'quick', q);
+  for (const q of ['what does mercy mean', 'define righteousness', 'the sabbath day', 'mercy meaning', 'grace meaning?', 'the meaning of grace', 'meaning of the word hallelujah', 'by all means']) assert.equal(api.depthOf(q), 'quick', `${q}: a word definition or short phrase stays quick`);
+  assert.equal(api.depthOf('read John 3:16', 10), 'quick', 'a lookup stays quick deep into a conversation');
+});
+
+test('auto counts earlier exchanges, not messages, as turns', async t => {
+  const { env } = setup(t, { ASK_FREE_MODELS: FAST });
+  await funded(env, 200_000);
+  const followup = 'and what did the prophets say after that time';
+  const history = (exchanges) => Array.from({ length: exchanges }, (_, i) => [{ role: 'user', content: `Question ${i}` }, { role: 'assistant', content: `Answer ${i}` }]).flat();
+  const route = async (h) => { const r = await request(env, { q: followup, model: 'auto', stream: true, history: h, consent: ['Anthropic', 'Cloudflare (Workers AI)'], caps: { [DEFAULT.id]: 200_000, [BEST.id]: 200_000, 'anthropic/claude-opus-5.5': 200_000 } }); const body = await r.text(); assert.equal(r.status, 200, body); return env.calls.at(-1).model; };
+  const deep = (await api.autoModel(env, followup, 4, 77, DEFAULT, api.freeModels(env), false)).id;
+  assert.notEqual(deep, DEFAULT.id);
+  assert.equal(await route(history(2)), DEFAULT.id, 'the third question (four messages before it) is normal');
+  env.calls.length = 0;
+  assert.equal(await route(history(4)), deep, 'the fifth question is deep');
+});
+
 test('account models publish catalog tier/tools for every available model', async t => {
   const {env} = setup(t);
   const response = await request(env, undefined, 77, '/api/ask/account');
@@ -160,6 +180,7 @@ for (const stream of [true,false]) {
     const answer = stream ? (await events(response)).find(e => e.done) : await response.json();
     assert.equal(answer.answer, 'Existing library words [1].');
     assert.equal(answer.sources[0].excerpt, 'Existing library words.');
+    if (stream) assert.equal(answer.model, chosen, 'the finished line names the model Auto chose');
     assert.equal(env.calls[0].model, chosen);
     const usage = sql.prepare('SELECT model,charged_mc FROM credit_usage').get();
     assert.equal(usage.model, chosen);
