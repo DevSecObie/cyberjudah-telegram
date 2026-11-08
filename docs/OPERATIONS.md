@@ -110,6 +110,12 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
 10. **Roll back** if a check fails: see below. The search index is not part of a rollback;
     the next deploy or the nightly `refresh-search` reloads it.
 
+**Live-smoke account concurrency:** scheduled and manual `live-smoke` runs share the workflow-level
+`live-smoke-production` group with `cancel-in-progress: false`, including dispatches from another
+branch. Only one whole run, including its matrix shards, can use the shared production test account
+at a time. A newer pending run can replace an older pending run; the active run is allowed to finish.
+This is not a FIFO queue or a guarantee that every requested run executes.
+
 **Production search concurrency:** the deploy job and nightly `refresh-search` share the
 `production-search-write` concurrency group with `cancel-in-progress: false`, covering the entire
 index load and table swap. Any future workflow that loads production search must take the same
