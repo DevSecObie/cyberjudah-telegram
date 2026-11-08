@@ -4,7 +4,8 @@
  * showed a finished answer as interrupted. A streamed source's `text` and `excerpt` are cut to the
  * first SOURCE_PREVIEW_CHARS (both clients show them clamped); a source that was cut also carries
  * `text_chars` (the length it had) and `truncated: true`. Sources that fit are sent as they were.
- * The full text stays on the server, in the saved conversation and behind each source's own page.
+ * Nothing is lost: the full text stays behind each source's own page (its link). A saved conversation
+ * keeps only each source's locator (title, link, moment; chats.ts slim()), as before.
  */
 export const SOURCE_PREVIEW_CHARS = 1000;
 /** A stream line is kept under this, well below the Mini App's 256 KiB limit. */

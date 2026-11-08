@@ -735,8 +735,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // it is answered faster and costs the reader less. Admins keep their own default.
   const light = !modelId && !isAdmin(env, userId) && env.CLAUDE_MODEL_LIGHT && routeOf(question, history) === "light";
   const selected = modelOf(modelId || (light ? env.CLAUDE_MODEL_LIGHT : undefined), defaultModelId(env, userId));
-  // Lines with sources or passages carry bounded previews (ask-frame.ts): the full text stays on
-  // the server, and a long answer's final line stays under the Mini App's 256 KiB limit.
+  // Lines with sources or passages carry bounded previews (ask-frame.ts): the full text stays behind
+  // each source's own page, and a long answer's final line stays under the Mini App's 256 KiB limit.
   const line = (o: unknown) => `${JSON.stringify(hasSourceList(o) ? boundedFrame(o as object) : o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
