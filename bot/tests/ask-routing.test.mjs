@@ -234,3 +234,9 @@ test('JSON adapter handles split frames, drops partial answers on errors, and re
     assert.equal((await r.json()).ok, false);
   }
 });
+
+test('a pronoun is not a word to define: meaning follow-ups are never quick, at any turn', () => {
+  const asks = ['what does it mean', 'what does this mean?', 'What does that mean', 'what do these mean', 'what do those mean?', 'what does he mean', 'what did she mean', 'meaning of this', 'the meaning of that?', 'define it', 'what is it?', 'what does they mean', 'what does him mean', 'what does her mean'];
+  for (const turns of [0, 1, 4]) for (const q of asks) assert.notEqual(api.depthOf(q, turns), 'quick', `${q} (turns ${turns})`);
+  for (const q of ['what does mercy mean', 'what does Hebrew mean?', 'meaning of theophany', 'define heresy', 'what is ithiel']) assert.equal(api.depthOf(q, 4), 'quick', `${q}: a word starting like a pronoun is still a word`);
+});
