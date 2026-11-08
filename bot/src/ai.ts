@@ -675,8 +675,8 @@ async function answerOnce(env: Env, messages: Msg[], admin = false, sources: Pas
   return backupOnce(env, messages, admin, sources, signal);
 }
 
-async function* answerPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): AsyncGenerator<string> {
-  yield* backupPieces(env, messages, admin, sources, signal);
+async function* answerPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): AsyncGenerator<string> {
+  yield* backupPieces(env, messages, admin, sources, signal, wrote);
 }
 
 /** The answer with every quoted verse checked against the King James text (verse-guard.mjs). */
@@ -838,14 +838,15 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             send({ reset: true }); send({ delta: gap.answer }); await done({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
           }
           let answer = "";
-          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal)) { answer += piece; send({ delta: piece }); }
+          const wrote: { model?: string } = {};
+          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; send({ delta: piece }); }
           const { answer: clean, followups } = splitFollowups(answer);
           if (!clean.trim()) { send({ error: "empty" }); return; }
           const sources = await askSourcesOf(env, clean, passages);
           await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
           await finish("backup");
-          await done({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), model: ANSWER_MODEL, ...(backup ? { backup: true } : {}) });
+          await done({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(wrote.model ? { model: wrote.model } : {}), ...(backup ? { backup: true } : {}) });
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;

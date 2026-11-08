@@ -68,7 +68,11 @@ export async function backupOnce(env: Env, messages: Msg[], admin = false, sourc
   } finally { await budget.finish(usage, complete); }
 }
 
-export async function* backupPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): AsyncGenerator<string> {
+/**
+ * `wrote.model` is set only when a model actually writes the answer. With no budget left, the
+ * answer is a fixed notice with the passages' own words, which no model wrote, and it stays unset.
+ */
+export async function* backupPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): AsyncGenerator<string> {
   signal?.throwIfAborted();
   const budget = await admit(env, messages, admin, sources);
   if (typeof budget === "string") { yield budget; return; }
@@ -76,6 +80,7 @@ export async function* backupPieces(env: Env, messages: Msg[], admin = false, so
   try {
     const out = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3, stream: true }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as ReadableStream<Uint8Array>;
     reader = out.getReader();
+    wrote.model = ANSWER_MODEL;
     let buffer = "";
     const decoder = new TextDecoder();
     function* events(frames: string[]) {

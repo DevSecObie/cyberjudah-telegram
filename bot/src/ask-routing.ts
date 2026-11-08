@@ -12,6 +12,8 @@ const REF = new RegExp(String.raw`^\s*${VERSE}\s*\??\s*$`, "i");
 // Asking to read a passage ("read John 3:16", "what does John 8:32 say?") is a lookup, so quick;
 // asking what it means is not.
 const LOOKUP = new RegExp(String.raw`^\s*(?:(?:please\s+)?(?:read|show|quote|give|pull up|open)(?:\s+me)?\s+${VERSE}|what\s+(?:does|do)\s+${VERSE}\s+say)\s*[.?!]?\s*$`, "i");
+// Asking what something means is never a quick lookup, even short and without a "?".
+const MEANING = /\b(?:mean|means|meant|meaning|signif(?:y|ies|icance))\b/i;
 const DEEP = /\b(why|how come|explain|compare|difference|contrast|prove|proof|history|historical|prophec\w*|fulfil\w*|identity|lineage|genealog\w*|timeline|trace|origin|in depth|deep(?:er|ly)?|study|break (?:it )?down|step by step|all the|every|whole|relationship|connect|significance|symbol|interpret|context|argue|debate|refute|evidence)\b/i;
 
 /** `turns` counts earlier exchanges (a question and its answer), not messages. */
@@ -20,7 +22,7 @@ export function depthOf(q: string, turns = 0): QuestionDepth {
   const words = t.split(/\s+/).filter(Boolean).length;
   if (REF.test(t) || DEFINE.test(t) || LOOKUP.test(t)) return "quick";
   if (DEEP.test(t) || words > 28 || (t.match(/\?/g) ?? []).length > 1 || (turns >= 4 && words > 8)) return "deep";
-  if (words <= 6 && !/\?$/.test(t) && turns === 0) return "quick";
+  if (words <= 6 && !/\?$/.test(t) && turns === 0 && !MEANING.test(t)) return "quick";
   return "normal";
 }
 
