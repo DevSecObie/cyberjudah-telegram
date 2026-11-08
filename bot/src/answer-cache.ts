@@ -14,7 +14,7 @@ import { isCoverageGap } from "./grounding.mjs";
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
 // Refresh older answers when the conversational prompt changes; old entries expire normally.
-const PROMPT_REVISION = "depth-quote-citations-20261107";
+const PROMPT_REVISION = "depth-quote-citations-source-links-20261107";
 
 export const normalizeQuestion = (q: string) => q.toLowerCase().replace(/[’']/g, "").replace(/[^\p{L}\p{N} ]+/gu, " ").replace(/\s+/g, " ").trim();
 
