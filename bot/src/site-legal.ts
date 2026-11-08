@@ -15,10 +15,16 @@ export const PRIVACY_TEXT = "## Privacy Policy\n\n*Last updated November 7, 2026
 
 export const TERMS_TEXT = "## Terms of Use\n\n*Last updated November 7, 2026*\n\n1. **Free study tool.** CyberJudah is free and non-commercial. Use it for personal Bible study.\n2. **Scripture.** The scripture is the King James Version with the Apocrypha, which is in the public domain.\n3. **Your content.** What you write stays yours.\n4. **No warranty.** The app is provided as it is. As far as the law allows, we are not liable for loss that comes from using it.\n5. **Changes.** We may change or stop features, and we may update these terms. The date at the top shows the latest version.\n6. **Ending.** You can stop using CyberJudah and delete your account at any time from More → Delete account.\n7. **App stores.** If you got the app from the App Store, Apple's standard license agreement also applies.\n\nContact: privacy@cyberjudah.io";
 
-// Markdown emphasis to tags, and the site's own email addresses as mailto links (the words unchanged).
-// [text](https://…) becomes a link (https only); the words stay as written.
-const inline = (s: string) => escapeHtml(s).replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>').replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(\S(?:.*?\S)?)\*/g, "<em>$1</em>")
-  .replace(/\b([A-Za-z0-9._%+-]+@cyberjudah\.io)\b/g, '<a href="mailto:$1">$1</a>');
+// Markdown emphasis to tags, the site's own email addresses as mailto links, and [text](https://…)
+// as links (https only; one level of parentheses allowed in the URL). The words stay as written.
+// Links are set aside first, so emphasis and mailto never reach inside a link's URL or words.
+const LINK = /\[([^\]]+)\]\((https:\/\/(?:[^\s()]|\([^\s()]*\))+)\)/g;
+const emphasis = (s: string) => s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(\S(?:.*?\S)?)\*/g, "<em>$1</em>");
+const inline = (s: string) => {
+  const links: string[] = [];
+  const text = escapeHtml(s).replace(LINK, (_m, words: string, url: string) => `\u0000${links.push(`<a href="${url}">${emphasis(words)}</a>`) - 1}\u0000`);
+  return emphasis(text).replace(/\b([A-Za-z0-9._%+-]+@cyberjudah\.io)\b/g, '<a href="mailto:$1">$1</a>').replace(/\u0000(\d+)\u0000/g, (_m, i: string) => links[Number(i)]);
+};
 const HEADING = /^(#{1,6}) (.*)$/;
 
 /** The pasted text as HTML, line by line: a heading line or a list item starts its own block even

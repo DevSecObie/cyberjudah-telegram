@@ -104,7 +104,7 @@ for (const [path, name, file] of [['/privacy', 'PRIVACY_TEXT', 'privacy.md'], ['
       at = found + expected.length;
     }
     // Strip tags until nothing changes, so a tag rebuilt by one pass cannot survive (CodeQL js/incomplete-multi-character-sanitization).
-    let text = html.replace(/<style>[\s\S]*?<\/style>/, '');
+    let text = html.replace(/<style>[\s\S]*?<\/style>/g, '');
     for (let prev; prev !== text;) { prev = text; text = text.replace(/<[^>]+>/g, ''); }
     assert.ok(!/[*#<>]|\]\(/.test(text), 'no markdown or markup left in the text');
   });
@@ -124,7 +124,7 @@ test('only [text](https://...) becomes a link: javascript:, data: and http: stay
     assert.ok(html.includes('[click]('), url);
   }
   const quoted = m.legalHtml('[x](https://a.test/"onmouseover="alert(1))');
-  assert.match(quoted, /<a href="https:\/\/a\.test\/&quot;onmouseover=&quot;alert\(1">x<\/a>/);
+  assert.match(quoted, /<a href="https:\/\/a\.test\/&quot;onmouseover=&quot;alert\(1\)">x<\/a>/);
   assert.doesNotMatch(quoted, /href="[^"]*" onmouseover/);
   const tagged = m.legalHtml('[x](https://a.test/<script>)');
   assert.ok(!tagged.includes('<script>') && tagged.includes('&lt;script&gt;'));
@@ -135,4 +135,15 @@ test('SITE_LEGAL_PAGES is on unless set to the literal "off": unset, empty and o
     const res = await m.worker.fetch(new Request('https://cyberjudah.io/privacy'), { ...env, ...(value === undefined ? {} : { SITE_LEGAL_PAGES: value }) }, { waitUntil() {}, passThroughOnException() {} });
     assert.match(await res.text(), /<h1>Privacy Policy<\/h1>/, String(value));
   }
+});
+
+test('link URLs and words are never rewritten by emphasis or mailto, and one level of parentheses stays in the URL', () => {
+  const mail = m.legalHtml('[email privacy@cyberjudah.io](https://cyberjudah.io/contact?to=privacy@cyberjudah.io)');
+  assert.equal((mail.match(/<a /g) || []).length, 1, 'no link inside a link');
+  assert.ok(mail.includes('<a href="https://cyberjudah.io/contact?to=privacy@cyberjudah.io">email privacy@cyberjudah.io</a>'));
+  const starred = m.legalHtml('[Policy](https://example.test/a*b*c) and *this*');
+  assert.ok(starred.includes('<a href="https://example.test/a*b*c">Policy</a>'));
+  assert.ok(starred.includes('<em>this</em>'));
+  assert.ok(m.legalHtml('[Docs](https://en.wikipedia.org/wiki/Foo_(bar)).').includes('<a href="https://en.wikipedia.org/wiki/Foo_(bar)">Docs</a>.'));
+  assert.ok(m.legalHtml('Write to privacy@cyberjudah.io.').includes('<a href="mailto:privacy@cyberjudah.io">privacy@cyberjudah.io</a>.'));
 });
