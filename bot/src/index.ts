@@ -75,6 +75,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
+import { LEGAL_HEADERS, legalPage } from "./site-legal";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
@@ -684,6 +685,11 @@ app.get("/app/strong", (c) => c.redirect("/app/", 301));
 app.get("/app/strong/*", (c) => c.redirect("/app/", 301));
 
 // Anything else is the Mini App (run_worker_first only routes the paths above here).
+// The privacy policy and terms the app's store listing links to (site-legal.ts). Static HTML,
+// separate from the Mini App's /app/privacy and /app/terms.
+app.get("/privacy", () => new Response(legalPage("privacy"), { headers: LEGAL_HEADERS }));
+app.get("/terms", () => new Response(legalPage("terms"), { headers: LEGAL_HEADERS }));
+
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 
 export default {

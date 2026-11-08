@@ -11,8 +11,9 @@
   // The Mini App lives at cyberjudah.io/app: the SPA under /app, the API it calls under
   // /api, and the verse-card images and frames under /card and /frames. The rest of the
   // apex (whatever the tunnel serves) is untouched; the webhook stays on workers.dev. The phone
-  // app's video player page (/embed) and its downloads (/offline) are served here too.
-  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*", "cyberjudah.io/bs/*", "cyberjudah.io/embed/*", "cyberjudah.io/offline/*"],
+  // app's video player page (/embed) and its downloads (/offline) are served here too, and the
+  // privacy policy and terms the app's store listing links to (/privacy, /terms; site-legal.ts).
+  "routes": ["cyberjudah.io/app*", "cyberjudah.io/api/*", "cyberjudah.io/card/*", "cyberjudah.io/frames/*", "cyberjudah.io/bs/*", "cyberjudah.io/embed/*", "cyberjudah.io/offline/*", "cyberjudah.io/privacy", "cyberjudah.io/terms"],
   // The Mini App is a SPA staged by bot/scripts/prepare-assets.sh into .deploy/
   // (the build output at both / and /app/, so it loads on workers.dev and on
   // cyberjudah.io/app); every unknown path serves its index.html. The
@@ -25,7 +26,7 @@
     // on to the app. /__scheduled reaches the
     // Worker so `wrangler dev --test-scheduled` (the end-to-end tests) can run the cron; a
     // deployed Worker has no such route and hands it to the assets like any unknown path.
-    "run_worker_first": ["/api/*", "/mcp", "/mcp/*", "/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/*", "/.well-known/oauth-authorization-server", "/webhook", "/__scheduled", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*", "/app/published/*"]
+    "run_worker_first": ["/api/*", "/mcp", "/mcp/*", "/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/*", "/.well-known/oauth-authorization-server", "/webhook", "/__scheduled", "/card/*", "/frames/*", "/bs/*", "/app/strong", "/app/strong/*", "/app/published/*", "/privacy", "/terms"]
   },
   // search_docs (FTS5) loaded from the engine's search.sql.gz by scripts/load-search.mjs. The
   // id is filled in by the deploy workflow (scripts/d1-id.sh); nothing account-specific is committed.
