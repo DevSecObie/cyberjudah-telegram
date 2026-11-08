@@ -13,7 +13,7 @@ import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
 import { imageFile } from "./images";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Exec, Sub } from "./env";
@@ -76,6 +76,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
+import { LEGAL_HEADERS, LEGAL_HOST, legalPage } from "./site-legal";
 import { clientAddress, NETWORK_PER_MINUTE } from "./client-ip";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
@@ -686,6 +687,17 @@ app.get("/app/*", async (c, next) => {
 // The Bible Strong fork once lived at /app/strong; it is gone, and its old links open the app.
 app.get("/app/strong", (c) => c.redirect("/app/", 301));
 app.get("/app/strong/*", (c) => c.redirect("/app/", 301));
+
+// The privacy policy and terms the app's store listing links to (site-legal.ts): static HTML on
+// cyberjudah.io only, with the trailing-slash form sent to the same page. Anywhere else (workers.dev,
+// staging) these paths are the Mini App's own screens, so they go on to the assets. Separate from
+// the Mini App's /app/privacy and /app/terms. `wrangler dev` reports every request as cyberjudah.io
+// (it takes the host from "routes"), so the end-to-end tests turn the pages off (SITE_LEGAL_PAGES "off").
+const servesLegal = (c: Context<App>) => c.env.SITE_LEGAL_PAGES !== "off" && new URL(c.req.url).hostname === LEGAL_HOST;
+for (const which of ["privacy", "terms"] as const) {
+  app.get(`/${which}`, (c, next) => servesLegal(c) ? c.body(legalPage(which), 200, LEGAL_HEADERS) : next());
+  app.get(`/${which}/`, (c, next) => servesLegal(c) ? c.redirect(`/${which}`, 301) : next());
+}
 
 // Anything else is the Mini App (run_worker_first only routes the paths above here).
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
