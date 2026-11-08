@@ -38,7 +38,8 @@ for (const streaming of [false, true]) {
       if (brokenCounter) env.DB = { batch: async () => { throw new Error('counter unavailable'); } };
       const sources = [{ kind: 'note', title: 'No text', url: '/empty', text: '' }, { kind: 'spoken', title: 'Recorded source', url: '/recorded', text: 'Exact existing words.\nThe next recorded line.' }];
       let answer;
-      if (streaming) { answer = ''; for await (const piece of backupPieces(env, messages, false, sources)) answer += piece; }
+      const wrote = {};
+      if (streaming) { answer = ''; for await (const piece of backupPieces(env, messages, false, sources, undefined, wrote)) answer += piece; assert.equal(wrote.model, undefined, 'no model wrote the notice and excerpts'); }
       else answer = await backupOnce(env, messages, false, sources);
       assert.match(answer, /can't generate a new answer right now/);
       assert.match(answer, /\*\*Recorded source\*\* \[2\]/);
@@ -66,8 +67,10 @@ test('fragmented backup streams preserve text and settle the final usage frame w
   const data = new TextEncoder().encode(`data: ${JSON.stringify({ response: 'Existing ' })}\n\ndata: ${JSON.stringify({ response: 'material.' })}\n\ndata: ${JSON.stringify({ usage })}`);
   Object.assign(env, { ASK_FREE_DAILY_USD_CAP: '1', ASK_FREE_MAX_USD: '0.05', AI: { run: async () => new ReadableStream({ start(controller) { for (let at = 0; at < data.length; at += 7) controller.enqueue(data.slice(at, at + 7)); controller.close(); } }) } });
   let answer = '';
-  for await (const part of backupPieces(env, messages)) answer += part;
+  const wrote = {};
+  for await (const part of backupPieces(env, messages, false, [], undefined, wrote)) answer += part;
   assert.equal(answer, 'Existing material.');
+  assert.equal(wrote.model, model.id, 'the model that wrote it is reported');
   assert.ok(Math.abs(await freeSpendToday(env) - callUsd(usage, model)) <= 1e-6);
 });
 
