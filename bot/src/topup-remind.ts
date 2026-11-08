@@ -7,6 +7,7 @@ import { fmtUsd, MC_PER_USD } from "../../shared/credits.mjs";
 import { eveOfHolyDay, sunsetIn, localHour, zoneOf } from "../../shared/holy-days.mjs";
 import { open, seal } from "./privacy.mjs";
 import { telegramApi } from "./telegram-api";
+import { createBroadcastSender, type BroadcastSender } from "./broadcast";
 
 /**
  * "Remind me to top up before the Sabbath and feast days": an opt-in Telegram message at midday,
@@ -50,7 +51,7 @@ export async function forgetTopupReminder(env: Env, uid: number): Promise<boolea
 const FOR = { sabbath: "the Sabbath", feast: "the feast day", newmoon: "the New Moon" } as const;
 
 /** Every reader whose midday before a holy day it is now: claimed once for that day, then written to if their balance is under $1. */
-export async function sendTopupReminders(env: Env, now = Date.now()): Promise<{ sent: number; checked: number }> {
+export async function sendTopupReminders(env: Env, now = Date.now(), sender: BroadcastSender = createBroadcastSender()): Promise<{ sent: number; checked: number }> {
   await ensure(env);
   const rows = await env.DB.prepare("SELECT user_id, chat, tz, last_day FROM topup_reminders LIMIT 5000").all<{ user_id: string; chat: string; tz: string; last_day: string }>();
   let sent = 0, checked = 0;
@@ -66,7 +67,7 @@ export async function sendTopupReminders(env: Env, now = Date.now()): Promise<{ 
     const left = (await wallet(env, r.user_id, now)).total_mc;
     if (left >= MC_PER_USD) continue;
     try {
-      await telegramApi(env).sendMessage(chat!, `Top-ups pause for ${FOR[eve.kind]} from sunset this evening until after dark at its end. Your Ask CyberJudah balance is ${fmtUsd(left, { floor: true })}: top up before then if you will want to ask with a paid model. The free model stays free.`, { reply_markup: openButton(env, env.WORKER_URL, "private", "ask", "Top up") });
+      await sender.send(() => telegramApi(env).sendMessage(chat!, `Top-ups pause for ${FOR[eve.kind]} from sunset this evening until after dark at its end. Your Ask CyberJudah balance is ${fmtUsd(left, { floor: true })}: top up before then if you will want to ask with a paid model. The free model stays free.`, { reply_markup: openButton(env, env.WORKER_URL, "private", "ask", "Top up") }));
       sent++;
     } catch (e) {
       // The reader blocked the bot: there is no one to remind.

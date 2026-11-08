@@ -153,11 +153,28 @@ then roll forward to the noted id. Time each step and write the times here.
 
 ## Scaling notes
 
-- **Daily verse** (`src/daily.ts`): paced at ~25 sends/second with 429 backoff (the
-  server's `retry_after` is honored, then the chunk retries once). Progress checkpoints
-  per hourly slot in KV, so an interrupted run resumes; the previous hour's unfinished
-  slot is finished first. Rough math: 10k subscribers ≈ 7 minutes, 100k ≈ 70 minutes,
-  inside the hourly cron. Blocked users (403) are dropped from the list automatically.
+- **Scheduled Telegram broadcasts** (`bot/src/broadcast.ts`): daily verses, reading
+  reminders and top-up reminders share one budget per cron invocation. Every attempt,
+  including a retry, starts at least 40 ms after the previous one (at most 25/s overall
+  for these senders). A 429 pauses all queued sends for Telegram's full `retry_after`,
+  then the refused message retries once; a second 429 still extends the shared pause.
+  Interactive bot replies and health alerts are outside this broadcast budget.
+- **Daily verse** (`bot/src/daily.ts`): subscription values and due subscribers' sent-date
+  markers are bulk-read in batches of at most 100 keys. Sealed records and local-date/DST
+  checks are retained. KV writes still scale with delivered messages. Progress checkpoints
+  per hourly slot remain, and the previous unfinished hour is tried first. A 403 drops the
+  subscription and its sent-date marker.
+- **Overlapping cron deliveries**: schedules start on the hour and at minutes 15/30/45;
+  retries and a large list can approach the next interval. A 16-minute KV lease
+  (`cron-broadcast:lease`) skips broadcast delivery in a later run while the lease is held;
+  normal completion releases it, and a crashed run expires. `broadcast_skipped` / `leased`
+  is logged; unrelated cron maintenance still runs. This covers the current
+  [15-minute cron wall-time limit](https://developers.cloudflare.com/workers/platform/limits/#wall-time-limits-by-invocation-type).
+  KV is [eventually consistent](https://developers.cloudflare.com/kv/concepts/how-kv-works/#consistency),
+  so ownership checks are best-effort overlap protection, not an atomic cross-isolate lock.
+  No Queue/DO or new binding is added. Jobs that exhaust an invocation, skip a quarter,
+  or exceed the existing one-slot catch-up window still need a durable fan-out follow-up;
+  this change does not claim unlimited-subscriber delivery.
 - **Ask CyberJudah**: the expensive path. Every paid model is paid from the reader's own
   balance, at cost, so its spend is bounded by what readers top up; the free model is bounded
   by the per-user daily quota (100 asks; 50 new TTS generations). Balances, holds, the ledger
