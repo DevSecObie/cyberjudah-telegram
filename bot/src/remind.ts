@@ -14,6 +14,7 @@ import {
 } from "./reminders.mjs";
 import { b64u, sendPush, validSubscription, type VapidKeys } from "./webpush.mjs";
 import { keyedHash, open, pid, seal } from "./privacy.mjs";
+import { clientIpKey } from "./client-ip";
 
 /**
  * Reading reminders (rules in reminders.mjs). One record per reader in the SUBS namespace:
@@ -78,12 +79,14 @@ function same(a: string, b: string): boolean {
  * by address. The binding counts per Cloudflare location, so it bounds abuse rather than
  * counting exactly. Without the binding (a local run), nothing is limited.
  */
-async function overLimit(env: Env, key: string): Promise<boolean> {
+async function overLimit(env: Env, key: string | Promise<string>): Promise<boolean> {
   if (!env.REMIND_LIMIT) return false;
-  try { return !(await env.REMIND_LIMIT.limit({ key })).success; } catch { return false; }
+  // The key is awaited here so a failure to work it out (no key to hash with) fails open too.
+  try { return !(await env.REMIND_LIMIT.limit({ key: await key })).success; } catch { return false; }
 }
 const tooMany = (c: Context<{ Bindings: Env }>) => c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "60" });
-const clientIp = (c: Context<{ Bindings: Env }>) => c.req.header("cf-connecting-ip") ?? "unknown";
+/** The caller's address (signed by the Mini App's Worker when relayed, client-ip.ts) under a keyed hash, for the limiter keys. */
+const ipKey = (c: Context<{ Bindings: Env }>) => clientIpKey(c.req.raw, c.env, "remind-ip");
 
 /** A push subscription the Worker will post to: a browser push service, or in tests the loopback one (PUSH_TEST_ORIGIN). */
 const pushable = (env: Env, sub: unknown) => validSubscription(sub, env.PUSH_TEST_ORIGIN);
@@ -279,10 +282,9 @@ reminders.put("/", async (c) => {
   if (!w) {
     if (c.req.header("authorization") || c.req.header("x-cj-device")) return c.json({ ok: false, error: "unauthorized" }, 401);
     // A new credential: limited per address per minute, and capped per address per day.
-    const ip = clientIp(c);
-    if (await overLimit(c.env, `create:${ip}`)) return tooMany(c);
+    if (await overLimit(c.env, ipKey(c).then((k) => `create:${k}`))) return tooMany(c);
     // The address is counted under a keyed hash (privacy.mjs), not one anyone could rebuild by hashing every address.
-    const dayKey = `remcreate:${await keyedHash(c.env, "remcreate", ip)}:${new Date().toISOString().slice(0, 10)}`;
+    const dayKey = `remcreate:${await clientIpKey(c.req.raw, c.env, "remcreate")}:${new Date().toISOString().slice(0, 10)}`;
     const made = Number(await c.env.SUBS.get(dayKey)) || 0;
     if (made >= CREATE_PER_DAY) return c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "3600" });
     await c.env.SUBS.put(dayKey, String(made + 1), { expirationTtl: 2 * 86400 });
@@ -379,7 +381,7 @@ push.use("/*", async (c, next) => {
   if (c.req.method !== "POST") return next();
   const body = await c.req.raw.clone().json<{ endpoint?: unknown; old?: unknown }>().catch(() => null);
   const ep = typeof body?.endpoint === "string" ? body.endpoint : typeof body?.old === "string" ? body.old : "";
-  if (await overLimit(c.env, ep ? `ep:${await sha256(ep)}` : `ip:${clientIp(c)}`)) return tooMany(c);
+  if (await overLimit(c.env, ep ? `ep:${await sha256(ep)}` : ipKey(c).then((k) => `ip:${k}`))) return tooMany(c);
   await next();
 });
 async function byEndpoint(c: Context<{ Bindings: Env }>): Promise<string | null> {

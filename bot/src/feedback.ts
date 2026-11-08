@@ -75,13 +75,14 @@ async function rate(env: Env, key: string, max: number, now: number) {
 }
 
 /** Auth is resolved by the existing /api middleware, never by a body-supplied owner. */
-export async function recordFeedback(env: Env, userId: number, body: Feedback, ip?: string, now = Date.now()): Promise<200 | 400 | 404 | 429> {
+export async function recordFeedback(env: Env, userId: number, body: Feedback, ip?: string, now = Date.now(), ipPerMinute = 6000): Promise<200 | 400 | 404 | 429> {
   await tables(env);
   const owner = await feedbackOwner(env, userId);
   const ipKey = await keyedHash(env, 'ask-feedback-ip', ip ?? `unknown:${owner}`);
-  // The Mini App proxy shares one egress IP: keep this a coarse network guard.
-  // Check it first so a rejected network does not spend a person's allowance.
-  if (!await rate(env, `ip:${ipKey}`, 6000, now) || !await rate(env, `person:${owner}`, 30, now)) return 429;
+  // A per-network guard (client-ip.ts NETWORK_PER_MINUTE: tighter for a reader's own signed
+  // address than for the shared Mini App relay). Checked first so a rejected network does not
+  // spend a person's allowance.
+  if (!await rate(env, `ip:${ipKey}`, ipPerMinute, now) || !await rate(env, `person:${owner}`, 30, now)) return 429;
   const receipt = await env.DB.prepare('SELECT source_ns FROM ask_answer_receipts WHERE id = ? AND owner = ? AND expires_at > ?')
     .bind(body.answer_id, owner, now).first<{ source_ns: string }>();
   // Unknown, expired and someone else's receipt deliberately have the same response.

@@ -1,3 +1,4 @@
+import { askIpKey, clientIp } from "./client-ip";
 import type { ResourcePins } from "../../shared/resources";
 import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
@@ -132,6 +133,13 @@ export async function takeQuotaKey(env: Env, key: string, limit: number): Promis
   ]);
   const n = Number((res[1].results?.[0] as { n?: unknown } | undefined)?.n ?? limit + 1);
   return n <= limit;
+}
+
+/** The per-address Ask backstop (ASK_IP_DAILY_LIMIT, at least 100, 1000 by default) for both Ask
+ *  endpoints: false when this address has used the day's allowance. No address, no check. */
+export async function takeAskIpQuota(req: Request, env: Env): Promise<boolean> {
+  const ip = await clientIp(req, env);
+  return !ip || await takeQuotaKey(env, await askIpKey(env, ip), Math.max(100, Number(env.ASK_IP_DAILY_LIMIT ?? 1000)));
 }
 
 /**

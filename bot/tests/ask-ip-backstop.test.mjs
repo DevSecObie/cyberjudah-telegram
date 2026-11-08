@@ -10,7 +10,7 @@ import { keyedHash } from '../src/privacy.mjs';
 // Worker signs it (MINIAPP_CLIENT_IP_KEY, client-ip.ts), and the connecting address otherwise.
 // A header the caller sends without a valid signature changes nothing.
 const out = new URL('./.build/ask-ip-backstop.mjs', import.meta.url).pathname;
-await build({ stdin: { contents: 'export { default as worker } from "./src/index.ts"; export { signedClientIp } from "./src/client-ip.ts";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
+await build({ stdin: { contents: 'export { default as worker } from "./src/index.ts"; export { signedClientIp, clientIp, clientAddress } from "./src/client-ip.ts";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
 const m = await import(out);
 const nowS = () => Math.floor(Date.now() / 1000);
 const KEY = 'miniapp-client-ip-test-key';
@@ -101,4 +101,14 @@ test('signedClientIp: the exact contract', async () => {
   assert.equal(await m.signedClientIp(req(sign({ ts: nowS() - 59 })), env), READER, 'within 60 seconds');
   assert.equal(await m.signedClientIp(req(sign({ method: 'GET', path: '/api/search' }), 'get', 'https://bot.example/api/search'), env), READER, 'method compared uppercase');
   assert.equal(await m.signedClientIp(req({}), env), undefined);
+});
+
+test('clientIp is worked out once per request, however many limiters ask', async () => {
+  const env = { MINIAPP_CLIENT_IP_KEY: KEY };
+  const r = new Request('https://bot.example/api/ask', { method: 'POST', headers: { 'cf-connecting-ip': PROXY, ...sign() } });
+  const a = m.clientAddress(r, env), b = m.clientAddress(r, env);
+  assert.equal(a, b, 'the same promise');
+  assert.deepEqual(await a, { ip: READER, signed: true });
+  assert.equal(await m.clientIp(r, env), READER);
+  assert.equal(await m.clientIp(new Request('https://bot.example/api/ask', { headers: { 'cf-connecting-ip': PROXY } }), env), PROXY);
 });

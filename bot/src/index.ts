@@ -28,7 +28,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeAskIpQuota, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { semanticSearch } from "./semantic-search";
 import { normalizeHistory, VOICES } from "./ai.mjs";
@@ -75,7 +75,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
-import { takeAskIpQuota } from "./client-ip";
+import { clientAddress, NETWORK_PER_MINUTE } from "./client-ip";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
@@ -305,7 +305,8 @@ app.post('/api/feedback', async c => {
   const body = parseFeedback(input.body);
   if (!body) return c.json({ error: 'bad-request' }, 400);
   try {
-    const status = await recordFeedback(c.env, c.get('tma').user!.id, body, c.req.header('cf-connecting-ip')?.slice(0, 45));
+    const { ip, signed } = await clientAddress(c.req.raw, c.env);
+    const status = await recordFeedback(c.env, c.get('tma').user!.id, body, ip, Date.now(), NETWORK_PER_MINUTE[signed ? 'signed' : 'unsigned']);
     return status === 200 ? c.json({ ok: true }) : c.json({ error: status === 404 ? 'not-found' : status === 429 ? 'limit' : 'bad-source' }, status);
   } catch { return c.json({ error: 'unavailable' }, 503); }
 });
