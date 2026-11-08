@@ -116,3 +116,23 @@ test('markdown links in the policy become https links with their words unchanged
   assert.match(html, /<a href="https:\/\/www\.cloudflare\.com\/privacypolicy\/">Cloudflare privacy policy<\/a>/);
   assert.doesNotMatch(html, /\]\(/);
 });
+
+test('only [text](https://...) becomes a link: javascript:, data: and http: stay plain text, and the URL is attribute-escaped', () => {
+  for (const url of ['javascript:alert(1)', 'data:text/html,x', 'http://example.test/', 'JAVASCRIPT:alert(1)', ' https://example.test/']) {
+    const html = m.legalHtml(`[click](${url})`);
+    assert.doesNotMatch(html, /<a /, url);
+    assert.ok(html.includes('[click]('), url);
+  }
+  const quoted = m.legalHtml('[x](https://a.test/"onmouseover="alert(1))');
+  assert.match(quoted, /<a href="https:\/\/a\.test\/&quot;onmouseover=&quot;alert\(1">x<\/a>/);
+  assert.doesNotMatch(quoted, /href="[^"]*" onmouseover/);
+  const tagged = m.legalHtml('[x](https://a.test/<script>)');
+  assert.ok(!tagged.includes('<script>') && tagged.includes('&lt;script&gt;'));
+});
+
+test('SITE_LEGAL_PAGES is on unless set to the literal "off": unset, empty and other values all serve the pages', async () => {
+  for (const value of [undefined, '', 'on', 'OFF', 'false', '0']) {
+    const res = await m.worker.fetch(new Request('https://cyberjudah.io/privacy'), { ...env, ...(value === undefined ? {} : { SITE_LEGAL_PAGES: value }) }, { waitUntil() {}, passThroughOnException() {} });
+    assert.match(await res.text(), /<h1>Privacy Policy<\/h1>/, String(value));
+  }
+});
