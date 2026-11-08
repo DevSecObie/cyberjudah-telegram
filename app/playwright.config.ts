@@ -52,6 +52,9 @@ const vars = [
   // specs); the specs may name the moment a request is made (x-e2e-now) to test the Sabbath pause.
   "ASK_BILLING:on",
   "E2E_CLOCK:on",
+  // wrangler dev reports every request as cyberjudah.io (from "routes"), where /privacy and /terms are
+  // the site's legal pages (bot/src/site-legal.ts); here they stay the Mini App's own screens.
+  "SITE_LEGAL_PAGES:off",
   // The bot's webhook, for payments and refunds as Telegram delivers them (credits.spec.ts).
   "WEBHOOK_SECRET:e2e-webhook-secret",
   // Records are filed under pseudonymous IDs (bot/src/privacy.mjs); the tests derive the same ones.
