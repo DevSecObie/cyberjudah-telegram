@@ -4,6 +4,8 @@
 
 This policy describes processing associated with the CyberJudah website, mobile application and web application. CyberJudah is the data controller. The data used depends on the features you use and whether you sign in to an account.
 
+The CyberJudah Telegram bot and Mini App (cyberjudah.io/app) have their own privacy policy at cyberjudah.io/app/privacy. In this policy, the web application is the one at web.cyberjudah.io.
+
 ### Account and study data
 An account lets you access your synchronized data. Depending on your sign-in method, we process your account identifier, email address, verification status, display name, profile picture and sign-in provider. Google Firebase handles authentication.
 
