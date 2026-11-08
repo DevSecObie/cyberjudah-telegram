@@ -4,38 +4,52 @@
  * The text is pasted verbatim from the approved legal text (Data Security, t1x); nothing here is
  * written or reworded. The Mini App's own /app/privacy and /app/terms are separate and unchanged.
  *
- * Text format, as pasted: lines starting "# " or "## " are headings, lines starting "- " are list
- * items, blank lines separate paragraphs. Everything is HTML-escaped.
+ * Text format, exactly as pasted from the approved file: markdown headings ("## ", "### ";
+ * the highest level present becomes the page title), "- " bullet items, "1. " numbered items,
+ * **bold** and *italic*, blank lines between blocks. Everything is HTML-escaped first.
  */
 
 /** Marks text not yet supplied. A test fails while either page still holds it. */
 export const LEGAL_TEXT_PENDING = "LEGAL TEXT PENDING";
 
-export const PRIVACY_TEXT = `# Privacy Policy
+export const PRIVACY_TEXT = `## Privacy Policy
 
 ${LEGAL_TEXT_PENDING}`;
 
-export const TERMS_TEXT = `# Terms of Use
+export const TERMS_TEXT = `## Terms of Use
 
 ${LEGAL_TEXT_PENDING}`;
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-/** The pasted text as HTML blocks: headings, lists and paragraphs, every character escaped. */
+const inline = (s: string) => escape(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/\*(\S(?:.*?\S)?)\*/g, "<em>$1</em>");
+const HEADING = /^(#{1,6}) (.*)$/;
+
+/** The pasted text as HTML, line by line: a heading line or a list item starts its own block even
+ *  without a blank line before it; other lines join into paragraphs. Every character escaped. */
 export function legalHtml(text: string): string {
+  const lines = text.replace(/\r\n?/g, "\n").split("\n").map((l) => l.trimEnd());
+  const levels = lines.flatMap((l) => HEADING.test(l) ? [HEADING.exec(l)![1].length] : []);
+  const base = levels.length ? Math.min(...levels) : 1;
   const out: string[] = [];
-  for (const block of text.replace(/\r\n?/g, "\n").split(/\n\s*\n/)) {
-    const lines = block.split("\n").map((l) => l.trimEnd()).filter((l) => l.trim());
-    if (!lines.length) continue;
-    if (lines.length === 1 && /^#{1,2} /.test(lines[0])) {
-      const level = lines[0].startsWith("## ") ? 2 : 1;
-      out.push(`<h${level}>${escape(lines[0].replace(/^#{1,2} /, ""))}</h${level}>`);
-    } else if (lines.every((l) => l.startsWith("- "))) {
-      out.push(`<ul>${lines.map((l) => `<li>${escape(l.slice(2))}</li>`).join("")}</ul>`);
-    } else {
-      out.push(`<p>${lines.map(escape).join("<br>")}</p>`);
-    }
+  let para: string[] = [], list: { tag: "ul" | "ol"; start: number; items: string[] } | null = null;
+  const flush = () => {
+    if (para.length) out.push(`<p>${para.map(inline).join("<br>")}</p>`);
+    if (list) out.push(`<${list.tag}${list.tag === "ol" && list.start !== 1 ? ` start="${list.start}"` : ""}>${list.items.map((i) => `<li>${inline(i)}</li>`).join("")}</${list.tag}>`);
+    para = []; list = null;
+  };
+  for (const line of lines) {
+    const heading = HEADING.exec(line), bullet = /^- (.*)$/.exec(line), numbered = /^(\d+)\. (.*)$/.exec(line);
+    if (!line.trim()) flush();
+    else if (heading) { flush(); const level = Math.min(3, heading[1].length - base + 1); out.push(`<h${level}>${inline(heading[2])}</h${level}>`); }
+    else if (bullet || numbered) {
+      const tag = bullet ? "ul" : "ol";
+      if (para.length || (list && list.tag !== tag)) flush();
+      if (!list) list = { tag, start: numbered ? Number(numbered[1]) : 1, items: [] };
+      list.items.push(bullet ? bullet[1] : numbered![2]);
+    } else { if (list) flush(); para.push(line); }
   }
+  flush();
   return out.join("\n");
 }
 
