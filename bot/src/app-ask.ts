@@ -9,6 +9,7 @@ import { normalizeHistory, withReading } from "./ai.mjs";
 import { books } from "./data";
 import { parseReference } from "./refs.mjs";
 import { keyedHash } from "./privacy.mjs";
+import { takeAskIpQuota } from "./client-ip";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
 import { recordAskEvent } from "./ask-events";
@@ -98,8 +99,7 @@ appAsk.post('/', async c => {
   if (!model) return c.json({ error: 'model-unavailable' }, 400);
   const consent = Array.isArray(body.consent) ? body.consent.filter((x): x is string => typeof x === 'string').slice(0, 40) : [];
   if (!consent.includes(model.provider)) return c.json({ error: 'consent', provider: model.provider }, 428);
-  const ip = c.req.header('cf-connecting-ip')?.slice(0, 45);
-  if (ip && !await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000)))) return c.json({ error: 'limit' }, 429);
+  if (!await takeAskIpQuota(c.req.raw, c.env)) return c.json({ error: 'limit' }, 429);
   const history = normalizeHistory(body.history as never, 8);
   // The passage the reader has open, when Ask was opened from the Bible: only a reference the
   // Bible's own book list recognizes, as its canonical label, never the text sent.

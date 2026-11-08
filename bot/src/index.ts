@@ -28,12 +28,13 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
-import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota, takeQuotaKey } from "./ai";
+import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { semanticSearch } from "./semantic-search";
 import { normalizeHistory, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
+import { createBroadcastSender, withBroadcastLease } from "./broadcast";
 import { push, reminderCounts, reminders, sendReminders } from "./remind";
 import { reportHealth, selfCheck } from "./health";
 import { bookLabel, validVerseDate } from "./verse-of-day.mjs";
@@ -75,6 +76,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
+import { takeAskIpQuota } from "./client-ip";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
 type App = { Bindings: Env; Variables: { tma: InitData } };
@@ -271,9 +273,10 @@ app.post("/api/frames/:video/warm", async (c) => {
 app.post("/api/ask", async (c) => {
   // A Sybil backstop: the per-account quota cannot see N Telegram accounts behind one IP.
   // Generous (ASK_IP_DAILY_LIMIT, 1000/day) so carrier NAT is never felt; keys are swept daily
-  // with the other quotas, and only the count is kept, never linked to a person.
-  const ip = c.req.header("cf-connecting-ip")?.slice(0, 45);
-  if (ip && !(await takeQuotaKey(c.env, `ask_ip:${ip}:${new Date().toISOString().slice(0, 10)}`, Math.max(100, Number(c.env.ASK_IP_DAILY_LIMIT ?? 1000))))) {
+  // with the other quotas, and only a keyed hash of the address and a count are kept, never linked to a person.
+  // Through the Mini App's Worker every reader shares one Cloudflare address, so that Worker
+  // signs the reader's own address (client-ip.ts); unsigned requests count the connecting one.
+  if (!(await takeAskIpQuota(c.req.raw, c.env))) {
     return c.json({ error: "limit" }, 429);
   }
   const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
@@ -689,17 +692,23 @@ app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));
 export default {
   fetch: app.fetch,
   scheduled(event, env, ctx) {
-    // Reading reminders every quarter hour, so each reader's own time is reached in every time zone (remind.ts).
-    ctx.waitUntil(sendReminders(env, new Date(event.scheduledTime)).catch((e) => console.error(JSON.stringify({ event: "reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
-    // The opt-in reminder to top up before a Sabbath, feast day or New Moon, at midday where each reader is (topup-remind.ts).
-    ctx.waitUntil(sendTopupReminders(env, event.scheduledTime).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "topup_reminders_failed", message: (e as Error).message?.slice(0, 120) }))));
+    // All scheduled Telegram deliveries share one budget, including catch-up slots and retries.
+    // A slow previous run can outlive the 15-minute interval: skip delivery while it holds a lease.
+    ctx.waitUntil(withBroadcastLease(env.SUBS, async () => {
+      const sender = createBroadcastSender();
+      await Promise.all([
+        sendReminders(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "reminders_failed" }))),
+        sendTopupReminders(env, event.scheduledTime, sender).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch(() => console.error(JSON.stringify({ event: "topup_reminders_failed" }))),
+        ...(event.cron === "0 * * * *" ? [sendDaily(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "daily_failed" })))] : []),
+      ]);
+    }).then((ran) => { if (!ran) console.log(JSON.stringify({ event: "broadcast_skipped", reason: "leased" })); })
+      .catch(() => console.error(JSON.stringify({ event: "broadcast_failed" }))));
     // New class alerts for the phone app, every quarter hour so a live class is announced soon after it starts (class-alerts.ts).
     ctx.waitUntil(sendClassAlerts(env).then((r) => { if (r.sent || r.failed || r.seeded) console.log(JSON.stringify({ event: "class_alerts", ...r })); }).catch((e) => console.error(JSON.stringify({ event: "class_alerts_failed", message: (e as Error).message?.slice(0, 120) }))));
     // Free answers nearing the day's cap tell the admins once a day, checked every quarter hour so a small cap is caught in time (free-budget.ts).
     ctx.waitUntil(alertFreeBudget(env, event.scheduledTime));
     // Everything else runs on the hour only.
     if (event.cron !== "0 * * * *") return;
-    ctx.waitUntil(sendDaily(env, new Date(event.scheduledTime)));
     // The hourly self-check pages the admins over Telegram when something breaks.
     ctx.waitUntil(selfCheck(env).then((r) => reportHealth(env, r)));
     // Old usage rows are pruned; the tables stay small.
