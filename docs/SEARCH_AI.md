@@ -14,10 +14,11 @@ Google is not enabled. Removing `SEARCH_AI_MODEL` uses `ASK_FREE_MODEL` with the
 
 Cloudflare provides 10,000 free neurons per UTC day, shared by the account. Its Workers Paid
 plan bills usage above that allowance. The app's existing dollar-equivalent admission budget
-(`ASK_FREE_DAILY_USD_CAP`, $0.08 on production and $0.03 on staging, together inside the account's free allowance) limits Search and free Ask together; it is
-not an account-wide Cloudflare billing limit. Other Workers, embeddings, staging and Ask admin
-requests may also consume the account's allowance. Keep account usage within the provider's
-free allowance; this application counter alone cannot promise a zero provider bill.
+(`ASK_FREE_DAILY_USD_CAP`, $25 a day on production and $1.00 on staging, in `bot/wrangler.jsonc`) limits Search and free Ask together; it is
+not an account-wide Cloudflare billing limit. Free answers past the account's free allowance
+(about $0.11 a day) are billed at Workers AI's rates, up to this cap. Other Workers, embeddings,
+staging and Ask admin requests may also consume the account's allowance; this application
+counter alone cannot promise a zero provider bill.
 
 Search admins now share the same daily admission limit as other readers. Every answer has a
 per-request budget (`ASK_FREE_MAX_USD`, $0.05), one model call and a bounded output. Missing

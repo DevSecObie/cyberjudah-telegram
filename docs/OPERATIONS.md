@@ -110,6 +110,12 @@ What a production deploy does, in order (`deploy.yml`, job `deploy`), and what t
 10. **Roll back** if a check fails: see below. The search index is not part of a rollback;
     the next deploy or the nightly `refresh-search` reloads it.
 
+**Live-smoke account concurrency:** scheduled and manual `live-smoke` runs share the workflow-level
+`live-smoke-production` group with `cancel-in-progress: false`, including dispatches from another
+branch. Only one whole run, including its matrix shards, can use the shared production test account
+at a time. A newer pending run can replace an older pending run; the active run is allowed to finish.
+This is not a FIFO queue or a guarantee that every requested run executes.
+
 **Production search concurrency:** the deploy job and nightly `refresh-search` share the
 `production-search-write` concurrency group with `cancel-in-progress: false`, covering the entire
 index load and table swap. Any future workflow that loads production search must take the same
@@ -231,7 +237,7 @@ Readers pick the model in Ask’s header. The dollar balance under the question 
 - **The list** is `shared/ask-models.json`, built by `node bot/scripts/ask-models.mjs <cloudflare-docs>/src/content <commit>` from Cloudflare's catalog (`catalog-models` for third-party models, `workers-ai-models` for Cloudflare-hosted ones). It holds every text model with a published price. Rebuild it to pick up new models or prices.
 - **Claude** models go through the Anthropic SDK (`agent.ts`). Every other model goes through the AI binding and the gateway (`agent-open.ts`): chat completions, the Responses API or the Messages format, with the same tools, or no tools for models without function calling.
 - **Pricing:** each answer is charged exactly what it cost, at the price of the model that wrote it, with Unified Billing's fee where it applies and the library searches at Cloudflare's rates (`shared/credits.mjs`, `bot/src/spend.ts`). No margin.
-- **The free model** (`ASK_FREE_MODEL`, Llama 3.1 8B) is never charged. It is open to everyone (within `ASK_DAILY_LIMIT`, 20 a day per person), and is offered when a reader's balance is too low for the model chosen. Before a non-admin free Ask or search answer begins, D1 atomically reserves its estimated maximum cost against `ASK_FREE_DAILY_USD_CAP` ($0.11 by default). Completed spend plus in-flight reservations cannot admit more than that allowance. The reservation settles once against the UTC day it started; failed calls, missing usage and lost workers conservatively keep their reserved allowance. Storage failures block new free work. This covers these metered answers, excludes admin testing and other AI uses (including paid-request backups and speech), and is not a guarantee that the Cloudflare account stays inside its shared free allocation.
+- **The free model** (`ASK_FREE_MODEL`, Llama 3.1 8B) is never charged. It is open to everyone (within `ASK_DAILY_LIMIT`, 20 a day per person), and is offered when a reader's balance is too low for the model chosen. Before a non-admin free Ask or search answer begins, D1 atomically reserves its estimated maximum cost against `ASK_FREE_DAILY_USD_CAP` ($25 a day on production and $1.00 on staging in `bot/wrangler.jsonc`; $0.11 when unset). Completed spend plus in-flight reservations cannot admit more than that allowance. The reservation settles once against the UTC day it started; failed calls, missing usage and lost workers conservatively keep their reserved allowance. Storage failures block new free work. This covers these metered answers, excludes admin testing and other AI uses (including paid-request backups and speech), and is not a guarantee that the Cloudflare account stays inside its shared free allocation.
 - **Top-ups** ($1, $5, $20 in Stars) pause from sunset before each Sabbath, feast day and New Moon to full dark at its end, in the reader's time zone (`shared/holy-days.mjs`). The feast days and New Moons are in `shared/holy-days.json`, refreshed from the IUIC calendar by the weekly `holy-days` workflow as a pull request to approve.
 - **Failures:** if any model fails or Cloudflare refuses it (out of credits, for example), the answer falls back to the backup as before.
 

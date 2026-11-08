@@ -255,7 +255,7 @@ test("route checks consent even on a cached answer and separates models in the e
   assert.equal(first.status, 200);
   assert.equal(first.headers.get("cache-control"), "private, no-store");
   assert.equal(cache.size, 1);
-  assert.match([...cache.keys()][0], /version=library-answer-v4-cited-quotes/);
+  assert.match([...cache.keys()][0], /version=library-answer-v4-cited-quotes-source-links/);
   const count = sent.length;
   const again = await request("Melchizedek", "Google");
   assert.equal(again.status, 200);
