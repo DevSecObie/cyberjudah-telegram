@@ -283,3 +283,24 @@ test('Mini App JSON and stream responses issue fresh owner-bound receipts for ac
   }
   assert.equal(new Set(ids).size, 3);
 });
+
+test('a backup answer names its model only when a model wrote it; the no-budget notice names none', async t => {
+  for (const budget of ['0', '1']) {
+    // A Claude model with no Claude access answers through the backup (ai.ts), as when Claude is down.
+    const { env } = financialDb(t), model = modelOf('claude-sonnet-5-5');
+    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_DAILY_USD_CAP: budget, ASK_FREE_MAX_USD: '0.05', AI: { run: async (id) => id.includes('bge-m3') ? { data: [[1, 2]] } : new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ response: 'Backup words [1].', usage: { prompt_tokens: 100, completion_tokens: 10 } })}\n\n`)); c.close(); } }) },
+      VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://cyberjudah.io/recorded-fixture', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
+    delete env.AI_GATEWAY; delete env.ANTHROPIC_API_KEY;
+    const lines = (await (await askStream(env, 'Read recorded material', 77, undefined, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 500_000 } })).text()).trim().split('\n').map(JSON.parse);
+    const done = lines.find(l => l.done);
+    assert.ok(done, `${budget}: ${JSON.stringify(lines.slice(-2))}`);
+    assert.equal(done.sources.length > 0, true, `${budget}: the backup path, not the nothing-found sentence`);
+    if (budget === '0') {
+      assert.match(done.answer, /can't generate a new answer right now/);
+      assert.equal(done.model, undefined, 'the fixed notice and excerpts were written by no model');
+    } else {
+      assert.equal(done.answer, 'Backup words [1].');
+      assert.equal(done.model, '@cf/meta/llama-3.3-70b-instruct-fp8-fast');
+    }
+  }
+});

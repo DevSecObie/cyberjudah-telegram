@@ -68,7 +68,11 @@ export async function backupOnce(env: Env, messages: Msg[], admin = false, sourc
   } finally { await budget.finish(usage, complete); }
 }
 
-export async function* backupPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): AsyncGenerator<string> {
+/**
+ * `wrote.model` is set only when a model actually writes the answer. With no budget left, the
+ * answer is a fixed notice with the passages' own words, which no model wrote, and it stays unset.
+ */
+export async function* backupPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): AsyncGenerator<string> {
   signal?.throwIfAborted();
   const budget = await admit(env, messages, admin, sources);
   if (typeof budget === "string") { yield budget; return; }
@@ -87,7 +91,7 @@ export async function* backupPieces(env: Env, messages: Msg[], admin = false, so
           const value = JSON.parse(data) as { response?: string; usage?: object; choices?: { delta?: { content?: string } }[] };
           if (value.usage) usage = value.usage;
           const text = value.response ?? value.choices?.[0]?.delta?.content;
-          if (text) yield text;
+          if (text) { wrote.model = ANSWER_MODEL; yield text; }
         } catch { /* Ignore a non-JSON provider frame, without exposing it to the reader. */ }
       }
     }
