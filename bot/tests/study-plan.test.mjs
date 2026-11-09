@@ -6,7 +6,7 @@ import { modelOf } from '../../shared/ask-models.mjs';
 // The research plan and coverage checklist (study-plan.ts). Verses and notes are placeholders,
 // not Scripture or teaching.
 const out = new URL('./.build/study-plan.mjs', import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/study-plan.ts"; export { runAgent } from "./src/agent.ts"; export { parseReference } from "./src/refs.mjs";', resolveDir: new URL('..', import.meta.url).pathname }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error', plugins: [{ name: 'fixtures', setup(b) {
+await build({ stdin: { contents: 'export * from "./src/study-plan.ts"; export { runAgent } from "./src/agent.ts"; export { researchOpen } from "./src/agent-open.ts"; export { parseReference } from "./src/refs.mjs";', resolveDir: new URL('..', import.meta.url).pathname }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error', plugins: [{ name: 'fixtures', setup(b) {
   b.onResolve({ filter: /^\.\/(providers|resource-tools|ask-tools|data)$/ }, args => args.importer.endsWith('/agent.ts') ? { path: args.path.slice(2), namespace: 'fixture' } : undefined);
   b.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({ loader: 'js', contents: {
     providers: 'export async function claude(env) { return env.client; }',
@@ -117,7 +117,7 @@ test('the plan is announced, the checklist follows every reading, and research e
   const requests = [], events = [];
   const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }],
     [{ name: 'read_scripture', input: { reference: 'Psalms 119' } }, { name: 'read_scripture', input: { reference: 'Psalms 119:41-80' } }, { name: 'read_scripture', input: { reference: 'Psalms 119:81-120' } }, { name: 'read_scripture', input: { reference: 'Psalms 119:121-160' } }, { name: 'read_scripture', input: { reference: 'Psalms 119:161-176' } }],
-    'The answer [1].'];
+    'The Sabbath in Exodus 20 [1].\n\nThe rest in Psalms 119 [2].'];
   const result = await api.runAgent(env(claudeScript(turns, requests)), question, [], [], async () => [], e => events.push(e), undefined, undefined, modelOf('claude-opus-5-5'));
   assert.deepEqual(events.find(e => e.plan).plan, { parts: [{ id: 'p1', ask: 'The Sabbath in Exodus 20' }, { id: 'p2', ask: 'The rest in Psalms 119' }] });
   const note = (i) => requests[i].messages.at(-1).content.at(-1);
@@ -132,11 +132,11 @@ test('the plan is announced, the checklist follows every reading, and research e
 
 test('an answer written with a part still open is sent back once, then finishes as not found and partial', async () => {
   const requests = [];
-  const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'Only part one [1].', 'Still only part one [1]; the rest was not found.'];
+  const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'The Sabbath in Exodus 20 [1].', 'The Sabbath in Exodus 20 [1]; the rest was not found.'];
   const result = await api.runAgent(env(claudeScript(turns, requests)), question, [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
   assert.equal(requests.length, 4, 'one extra round, not more');
   assert.match(requests[3].messages.at(-1).content, /Part 2 \(missing\)/);
-  assert.equal(result.text, 'Still only part one [1]; the rest was not found.');
+  assert.equal(result.text, 'The Sabbath in Exodus 20 [1]; the rest was not found.');
   assert.deepEqual(result.coverage.parts.map(p => p.status), ['covered', 'missing']);
   assert.equal(result.coverage.stopped, 'not_found');
   const fields = api.studyFields(result.tracked, result.plan, result.coverage);
@@ -146,11 +146,11 @@ test('an answer written with a part still open is sent back once, then finishes 
 
 test('an answer sent back is kept when the model then writes nothing', async () => {
   const requests = [], events = [];
-  const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'Only part one [1].', ''];
+  const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'The Sabbath in Exodus 20 [1].', ''];
   const result = await api.runAgent(env(claudeScript(turns, requests)), question, [], [], async () => [], e => events.push(e), undefined, undefined, modelOf('claude-opus-5-5'));
   assert.equal(requests.length, 4);
-  assert.equal(result.text, 'Only part one [1].');
-  assert.equal(events.filter(e => 'delta' in e).at(-1).delta, 'Only part one [1].', 'the kept answer is shown again');
+  assert.equal(result.text, 'The Sabbath in Exodus 20 [1].');
+  assert.equal(events.filter(e => 'delta' in e).at(-1).delta, 'The Sabbath in Exodus 20 [1].', 'the kept answer is shown again');
 });
 
 test('an empty answer cut off at the token limit stays cut off', async () => {
@@ -193,7 +193,7 @@ test('rounds used up without a final answer are named as the round limit', async
 test('verses already in hand count as read for a named reference', async () => {
   const requests = [];
   const first = [{ kind: 'verse', title: 'Exodus 20:1-3 (KJV)', text: 'placeholder exodus 1 placeholder exodus 2 placeholder exodus 3', url: 'https://site.test/exodus/20' }];
-  const result = await api.runAgent(env(claudeScript(['Answer [1].', 'Answer [1].'], requests)), 'Explain Exodus 20:1-3', [], first, async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
+  const result = await api.runAgent(env(claudeScript(['Exodus 20:1-3 [1].', 'Exodus 20:1-3 [1].'], requests)), 'Explain Exodus 20:1-3', [], first, async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
   assert.equal(result.tracked, true);
   assert.deepEqual(result.coverage.parts.map(p => p.status), ['covered'], 'the verses found before research are the named reference, read');
   assert.equal(requests.length, 1, 'so the answer is not sent back');
@@ -223,3 +223,100 @@ test('part ids are short unique strings, and every coverage and unfinished id is
   const fields = api.studyFields(true, parts, { parts: state, complete: false, stopped: 'not_found' });
   for (const p of [...fields.coverage.parts, ...fields.unfinished]) assert.ok(ids.includes(p.id), p.id);
 });
+
+test('reading every source is not answering every part: omitted, uncited and wrongly cited parts stay partial', () => {
+  const parts = [{ id: 'p1', ask: 'Exodus 20 Sabbath', refs: [] }, { id: 'p2', ask: 'Psalms 119 rest', refs: [] }];
+  const covered = [{ id: 'p1', status: 'covered', sources: [1] }, { id: 'p2', status: 'covered', sources: [2] }];
+  for (const answer of ['Exodus 20 Sabbath [1].', 'Exodus 20 Sabbath [1].\n\nPsalms 119 rest.', 'Exodus 20 Sabbath [1].\n\nPsalms 119 rest [1].']) {
+    const checked = api.verifyAnswer(parts, covered, answer);
+    assert.deepEqual(checked.map(p => p.status), ['covered', 'partial']);
+  }
+  assert.deepEqual(api.verifyAnswer(parts, covered, 'Exodus 20 Sabbath [1].\n\nPsalms 119 rest [1,2].').map(p => p.status), ['covered', 'covered'], 'short answers and grouped citations are valid');
+  const fields = api.studyFields(true, parts, { parts: covered, complete: true, stopped: 'covered' }, [1]);
+  assert.equal(fields.coverage.complete, false, 'the final source filter cannot leave a covered part without a supporting citation');
+  assert.deepEqual(fields.unfinished, [{ id: 'p2', ask: 'Psalms 119 rest' }]);
+});
+
+function gatewayScript(format, turns, requests) {
+  return { run: async (_model, input) => {
+    requests.push(structuredClone(input));
+    const turn = turns[Math.min(requests.length - 1, turns.length - 1)];
+    const usage = { input_tokens: 100, output_tokens: 10, prompt_tokens: 100, completion_tokens: 10 };
+    if (format === 'responses') return { usage, status: 'completed', output: typeof turn === 'string'
+      ? [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: turn }] }]
+      : turn.map((t, i) => ({ type: 'function_call', call_id: `t${requests.length}-${i}`, name: t.name, arguments: JSON.stringify(t.input) })) };
+    if (format === 'messages') return { usage, stop_reason: typeof turn === 'string' ? 'end_turn' : 'tool_use', content: typeof turn === 'string'
+      ? [{ type: 'text', text: turn }]
+      : turn.map((t, i) => ({ type: 'tool_use', id: `t${requests.length}-${i}`, name: t.name, input: t.input })) };
+    return { usage, response: typeof turn === 'string' ? turn : '', ...(typeof turn === 'string' ? {} : { tool_calls: turn.map(t => ({ name: t.name, arguments: t.input })) }) };
+  } };
+}
+
+for (const format of ['chat', 'responses', 'messages']) {
+  const model = { ...modelOf('@cf/google/gemma-4-26b-a4b-it'), format };
+  test(`${format}: research plans, trusted checklist feedback and one repair round share the same coverage contract`, async () => {
+    const requests = [], events = [];
+    const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'The Sabbath in Exodus 20 [1].', 'The Sabbath in Exodus 20 [1]; the remaining evidence was not found.'];
+    const e = { ...env({}), AI_GATEWAY: 'fixture', AI: gatewayScript(format, turns, requests) };
+    const result = await api.runAgent(e, question, [], [], async () => [], event => events.push(event), undefined, undefined, model);
+    assert.equal(result.tracked, true);
+    assert.equal(requests.length, 4, 'at most one repair round');
+    assert.ok(JSON.stringify(requests[0].tools).includes('plan_research'));
+    assert.match(JSON.stringify(requests[2]), /Part 2 \(missing\)/);
+    assert.match(JSON.stringify(requests[3]), /not yet read in full: Psalms 119/);
+    assert.equal(events.filter(event => event.plan).length, 1);
+    assert.deepEqual(result.coverage.parts.map(p => p.status), ['covered', 'missing']);
+    assert.equal(result.coverage.stopped, 'not_found');
+    assert.equal(result.text, turns[3]);
+    assert.deepEqual(events.filter(event => event.delta).map(event => event.delta), [turns[3]], 'reviewed drafts are not appended to the final answer');
+  });
+
+  test(`${format}: a blank repair preserves the completed draft and round limits remain explicit`, async () => {
+    const requests = [];
+    const turns = [[plan], 'A usable draft.', ''];
+    const e = { ...env({}), AI_GATEWAY: 'fixture', AI: gatewayScript(format, turns, requests) };
+    const result = await api.runAgent(e, question, [], [], async () => [], () => {}, undefined, undefined, model, undefined, undefined, 3);
+    assert.equal(result.text, 'A usable draft.');
+    assert.equal(result.cut, false);
+    assert.equal(result.coverage.stopped, 'rounds');
+    assert.equal(requests.length, 3);
+  });
+
+  test(`${format}: researched but unanswered parts receive one answer-repair pass`, async () => {
+    const requests = [];
+    const first = [{ kind: 'verse', title: 'Exodus 20:1-3 (KJV)', text: 'placeholder exodus 1 placeholder exodus 2 placeholder exodus 3', url: 'https://site.test/exodus/20' }];
+    const e = { ...env({}), AI_GATEWAY: 'fixture', AI: gatewayScript(format, ['Unrelated final prose [1].', 'Exodus 20:1-3 [1].'], requests) };
+    const result = await api.runAgent(e, 'Explain Exodus 20:1-3', [], first, async () => [], () => {}, undefined, undefined, model);
+    assert.equal(requests.length, 2);
+    assert.equal(result.coverage.complete, true);
+    assert.match(JSON.stringify(requests[1]), /finding evidence alone does not answer it/);
+  });
+
+  test(`${format}: a completed draft survives the repair budget limit`, async () => {
+    const requests = [], events = [];
+    const e = { AI_GATEWAY: 'fixture', AI: gatewayScript(format, ['A usable draft.'], requests) };
+    const spend = { budgetUsd: 1, unreported: false, over: () => false, inputUsd: () => 0, outputTokensLeft: () => requests.length ? 0 : 1000, call: () => {} };
+    const result = await api.researchOpen(e, model, 'Fixture', [{ role: 'user', content: 'question' }], [], new Map(), async () => '', event => events.push(event), 3, spend, false, undefined, { reviewAnswer: () => 'An unfinished part remains.' });
+    assert.equal(result.text, 'A usable draft.');
+    assert.equal(result.stopped, 'budget');
+    assert.equal(requests.length, 1);
+    assert.deepEqual(events.filter(event => event.delta), [{ delta: 'A usable draft.' }]);
+  });
+
+  for (const reason of ['TimeoutError', 'AbortError']) test(`${format}: repair ${reason === 'TimeoutError' ? 'deadline keeps the draft' : 'cancellation is not swallowed'}`, async () => {
+    const requests = [], abort = new AbortController();
+    const first = gatewayScript(format, ['A usable draft.'], requests);
+    const e = { AI_GATEWAY: 'fixture', AI: { run: async (...args) => {
+      if (!requests.length) return first.run(...args);
+      abort.abort(new DOMException('Stopped', reason));
+      throw abort.signal.reason;
+    } } };
+    const run = () => api.researchOpen(e, model, 'Fixture', [{ role: 'user', content: 'question' }], [], new Map(), async () => '', () => {}, 3, undefined, false, undefined, { signal: abort.signal, reviewAnswer: () => 'An unfinished part remains.' });
+    if (reason === 'AbortError') await assert.rejects(run, { name: reason });
+    else {
+      const result = await run();
+      assert.equal(result.text, 'A usable draft.');
+      assert.equal(result.stopped, 'deadline');
+    }
+  });
+}

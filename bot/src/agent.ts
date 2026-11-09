@@ -13,7 +13,7 @@ import { listChats, type SavedAction } from "./chats";
 import { loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { parseReference } from "./refs.mjs";
-import { PLAN_TOOL, Readings, partId, namedRefs, nothingCovered, checklist, checklistNote, planFrom, type Coverage, type PlanPart, type StopReason } from "./study-plan";
+import { PLAN_TOOL, Readings, partId, namedRefs, nothingCovered, checklist, checklistNote, planFrom, verifyAnswer, type Coverage, type PlanPart, type StopReason } from "./study-plan";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
 import { freeSpend, type Spend } from "./spend";
@@ -92,8 +92,6 @@ const TOOL_DEFS: Anthropic.Tool[] = [
  * streaming, as the Claude docs advise for streamed requests with client tools). The API
  * then no longer checks the input, so every input is checked here before a tool runs.
  */
-// The research plan is Claude's alone (only Claude researches with the checklist).
-const OPEN_TOOL_DEFS = TOOL_DEFS.filter((t) => t !== PLAN_TOOL);
 const TOOLS: Anthropic.Tool[] = TOOL_DEFS.map((t) => ({ ...t, eager_input_streaming: true }));
 const SCHEMAS = new Map(TOOL_DEFS.map((t) => [t.name, t.input_schema]));
 
@@ -134,15 +132,16 @@ export async function runAgent(
   const [client, attribute, bookList] = await Promise.all([
     withinPhase(() => claude(env), signal),
     withinPhase(() => classAttributor(env), signal),
-    model.format === "anthropic" ? withinPhase(() => books(env, ctx), signal).catch(() => null) : null,
+    model.tools ? withinPhase(() => books(env, ctx), signal).catch(() => null) : null,
   ]);
   const passages: Numbered[] = [];
   // The research plan (study-plan.ts): until the model lists the parts, the question is one part,
-  // with any Scripture it names to be read in full. Only Claude researches with the checklist.
+  // with any Scripture it names to be read in full. Every tool-capable model uses the checklist.
   const readings = new Readings();
   const memo = new Map<string, boolean>();
-  const checklistOn = model.format === "anthropic";
-  let plan: PlanPart[] = [{ id: partId(0), ask: question.replace(/\s+/g, " ").trim().slice(0, 200), refs: namedRefs(question, bookList, parseReference) }];
+  const checklistOn = model.tools;
+  const researchQuestion = retrievalText(question, history);
+  let plan: PlanPart[] = [{ id: partId(0), ask: researchQuestion.replace(/\s+/g, " ").trim().slice(0, 200), refs: namedRefs(researchQuestion, bookList, parseReference) }];
   let planned = false, planTries = 0;
   // The checklist is kept for a question the model split into parts, or one that names Scripture.
   const tracking = () => checklistOn && (planned || plan[0].refs.length > 0);
@@ -287,7 +286,7 @@ export async function runAgent(
     if (name === "plan_research") {
       if (planned) return { content: "The plan is already set; research its open parts.", error: true };
       if (!checklistOn) return { content: "Research the question directly.", error: true };
-      const got = planFrom(question, input, bookList, parseReference);
+      const got = planFrom(researchQuestion, input, bookList, parseReference);
       if ("refused" in got) {
         // Refused whole, never partly, so no part of the reader's question goes untracked. After
         // three tries the question stays one part.
@@ -343,14 +342,14 @@ export async function runAgent(
   };
   // Each part's status, and why research ended: every part covered, a limit, or parts not found.
   // An answer cut short by a limit names the limit, even when every part was covered.
-  const coverageOf = (stopBy?: StopReason, cutShort = false): Coverage => {
-    const parts = state();
+  const coverageOf = (stopBy?: StopReason, cutShort = false, answer?: string): Coverage => {
+    const parts = answer === undefined ? state() : verifyAnswer(plan, state(), answer);
     const complete = parts.every((p) => p.status === "covered");
     return { parts, complete, stopped: cutShort && stopBy ? stopBy : complete ? "covered" : stopBy ?? "not_found" };
   };
   const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }, stopBy?: StopReason) => {
     // Worked out only for a tracked question; otherwise nothing is sent or saved.
-    const coverage = tracking() ? coverageOf(stopBy, result.cut) : nothingCovered(plan);
+    const coverage = tracking() ? coverageOf(stopBy, result.cut, result.text) : nothingCovered(plan);
     if (!result.refused && evidence().blocked) {
       const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       emit({ reset: true }); emit({ delta: gap.answer });
@@ -371,9 +370,18 @@ export async function runAgent(
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
+    let reviewed = false;
     try {
-      const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], OPEN_TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, { signal, deadlineAt });
-      return finish(r, r.cut ? "rounds" : undefined);
+      const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, {
+        signal, deadlineAt,
+        researchNote: () => tracking() ? checklistNote(plan, state(), readings) : undefined,
+        reviewAnswer: answer => {
+          if (!tracking() || reviewed || spend.over(0.5) || coverageOf(undefined, false, answer).complete) return undefined;
+          reviewed = true;
+          return `${checklistNote(plan, verifyAnswer(plan, state(), answer), readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.`;
+        },
+      });
+      return finish(r, r.stopped ?? (r.cut ? "rounds" : undefined));
     } catch (error) {
       if (!signal.aborted || signal.reason?.name !== 'TimeoutError') throw error;
       const text = timedOut();
@@ -472,11 +480,11 @@ export async function runAgent(
       // The model answered with parts of its plan still open: it is sent back once to research
       // them or to say they were not found, while the limits allow another round.
       // Only with at least half the budget left, so the extra round never costs the answer.
-      if (!last && message.stop_reason === "end_turn" && said.trim() && tracking() && !nudged && !spend.over(0.5) && !coverageOf().complete) {
+      if (!last && message.stop_reason === "end_turn" && said.trim() && tracking() && !nudged && !spend.over(0.5) && !coverageOf(undefined, false, said).complete) {
         nudged = true; draft = said;
         if (said) emit({ reset: true });
         messages.push({ role: "assistant", content: message.content });
-        messages.push({ role: "user", content: checklistNote(plan, state(), readings) });
+        messages.push({ role: "user", content: `${checklistNote(plan, verifyAnswer(plan, state(), said), readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.` });
         continue;
       }
       text = said; cut = message.stop_reason === "max_tokens"; if (last) stopBy = lastWhy; ended = true;

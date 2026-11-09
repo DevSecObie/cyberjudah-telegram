@@ -1,5 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { coverageDecision, hasControlText } from "./grounding.mjs";
+import { coverageDecision, hasControlText, topicOverlap } from "./grounding.mjs";
 
 /**
  * Deep Study step 1: a research plan and a coverage checklist. Before researching a question with
@@ -168,6 +168,20 @@ export function checklist(parts: PlanPart[], sources: Source[], readings: Readin
   });
 }
 
+/** Conservative answer check, not a semantic judge: reading evidence alone is not answering a part. */
+export function verifyAnswer(parts: PlanPart[], state: Coverage["parts"], answer: string): Coverage["parts"] {
+  const blocks = answer.split(/\n\s*\n/);
+  return state.map(p => {
+    if (p.status !== "covered") return p;
+    const part = parts.find(part => part.id === p.id)!;
+    const answered = blocks.some(text => {
+      const cited = [...text.matchAll(/\[(\d+(?:\s*,\s*\d+)*)\]/g)].flatMap(m => m[1].split(/\s*,\s*/).map(Number));
+      return cited.some(n => p.sources.includes(n)) && topicOverlap(part.ask, text) >= 0.25;
+    });
+    return answered ? p : { ...p, status: "partial" };
+  });
+}
+
 /** The checklist as the model reads it after each tool result. */
 export function checklistNote(parts: PlanPart[], state: Coverage["parts"], readings: Readings): string {
   const open = state.filter((p) => p.status !== "covered");
@@ -191,12 +205,16 @@ export const nothingCovered = (plan: PlanPart[]): Coverage => ({ parts: plan.map
 export function studyFields(tracked: boolean, plan: PlanPart[], coverage: Coverage, cited?: Iterable<number>) {
   if (!tracked) return {};
   const keep = cited ? new Set(cited) : null;
-  const parts = coverage.parts.map((p) => ({ ...p, sources: (keep ? p.sources.filter((n) => keep.has(n)) : p.sources).slice(0, PART_MAX_SOURCES) }));
+  const parts = coverage.parts.map((p) => {
+    const sources = (keep ? p.sources.filter((n) => keep.has(n)) : p.sources).slice(0, PART_MAX_SOURCES);
+    return { ...p, sources, status: p.status === "covered" && !sources.length ? "partial" as const : p.status };
+  });
   const open = parts.filter((p) => p.status !== "covered").map((p) => ({ id: p.id, ask: plan.find((x) => x.id === p.id)!.ask }));
+  const complete = coverage.complete && !open.length;
   return {
     plan: { parts: plan.map(({ id, ask }) => ({ id, ask })) },
-    coverage: { ...coverage, parts },
-    ...(coverage.complete ? {} : { partial: true, unfinished: open }),
+    coverage: { ...coverage, parts, complete, stopped: complete ? "covered" as const : coverage.stopped === "covered" ? "not_found" as const : coverage.stopped },
+    ...(complete ? {} : { partial: true, unfinished: open }),
   };
 }
 export type StudyFields = ReturnType<typeof studyFields>;
