@@ -41,6 +41,17 @@ test('a plan is taken whole when every part is a short restatement, and refused 
   assert.deepEqual(api.planFrom(q, {}, BOOKS, api.parseReference).refused, ['no parts were listed']);
 });
 
+test('numbered books keep their number, a chapter.verse form is not taken as the chapter, and a part may restate a named chapter', () => {
+  const books = [...BOOKS, { book: 'John', slug: 'john', chapters: 21 }, { book: '1 John', slug: '1-john', chapters: 5 }, { book: '1 Corinthians', slug: '1-corinthians', chapters: 16 }, { book: 'Romans', slug: 'romans', chapters: 16 }];
+  const labels = (t) => api.namedRefs(t, books, api.parseReference).map(r => r.slug + ' ' + r.chapter);
+  assert.deepEqual(labels('What does 1 John 4:1-3 teach?'), ['1-john 4']);
+  assert.deepEqual(labels('Compare Romans 8 and 1 Corinthians 13'), ['romans 8', '1-corinthians 13']);
+  assert.deepEqual(labels('What is John 3.16 about'), []);
+  assert.deepEqual(labels('Read Exodus 20.'), ['exodus 20']);
+  const ok = api.planFrom('What does Exodus 12:1-8 mean and how is it kept', { parts: [{ ask: 'What Exodus 12:1-8 means' }, { ask: 'How Exodus 12 is kept' }] }, books, api.parseReference);
+  assert.equal(ok.parts.length, 2, 'the chapter the reader named, in another form');
+});
+
 test('a reference counts as read only when every verse of it was read, across parts of a chapter', () => {
   const r = new api.Readings();
   const ref = { slug: 'psalms', chapter: 119, label: 'Psalms 119' }, range = { slug: 'psalms', chapter: 119, from: 30, to: 70, label: 'Psalms 119:30-70' };
@@ -93,6 +104,15 @@ const env = (client) => ({ client, DATA_ORIGIN: 'https://data.test', SITE_URL: '
 const plan = { name: 'plan_research', input: { parts: [{ ask: 'The Sabbath in Exodus 20', refs: ['Exodus 20'] }, { ask: 'The rest in Psalms 119', refs: ['Psalms 119'] }] } };
 const question = 'Explain the Sabbath in Exodus 20 and the rest in Psalms 119';
 
+test('a part is judged on its own words: a new plan reuses no old decision, and a retrieval score covers nothing', () => {
+  const memo = new Map(), r = new api.Readings();
+  const src = { n: 1, kind: 'note', title: 'Passover class', text: 'The passover lamb was killed and the blood put on the doorposts of the houses, recorded in the class notes as read.' };
+  assert.equal(api.checklist([{ id: 'p1', ask: 'the passover lamb blood doorposts', refs: [] }], [src], r, memo)[0].status, 'covered');
+  assert.equal(api.checklist([{ id: 'p1', ask: 'mountains rivers deserts geography', refs: [] }], [src], r, memo)[0].status, 'missing', 'p1 with new words is judged again');
+  const scored = { ...src, [Symbol.for('cyberjudah.retrieval-provenance')]: { mode: 'vector', score: 0.95 } };
+  assert.equal(api.checklist([{ id: 'p2', ask: 'mountains rivers deserts geography', refs: [] }], [scored], r)[0].status, 'missing');
+});
+
 test('the plan is announced, the checklist follows every reading, and research ends because every part is covered', async () => {
   const requests = [], events = [];
   const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }],
@@ -131,6 +151,17 @@ test('an answer sent back is kept when the model then writes nothing', async () 
   assert.equal(requests.length, 4);
   assert.equal(result.text, 'Only part one [1].');
   assert.equal(events.filter(e => 'delta' in e).at(-1).delta, 'Only part one [1].', 'the kept answer is shown again');
+});
+
+test('an empty answer cut off at the token limit stays cut off', async () => {
+  const requests = [];
+  const client = { messages: { countTokens: async () => ({ input_tokens: 100 }), stream(input) {
+    requests.push(input);
+    return { on() {}, async finalMessage() { return { content: [], stop_reason: 'max_tokens', usage: { input_tokens: 100, output_tokens: 10 } }; } };
+  } } };
+  const result = await api.runAgent(env(client), question, [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
+  assert.equal(result.cut, true);
+  assert.equal(requests.length, 1, 'an empty answer is not sent back');
 });
 
 test('a refused plan is sent back with the reasons, and a corrected one is taken', async () => {

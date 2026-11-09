@@ -57,12 +57,30 @@ type Parse = (q: string, b: Books) => { slug: string; chapter: number; verse?: n
 const toRef = (p: NonNullable<ReturnType<Parse>>): Ref => ({ slug: p.slug, chapter: p.chapter, from: p.verse, to: p.verseEnd ?? p.verse, label: p.label });
 const key = (r: Ref) => `${r.slug}|${r.chapter}|${r.from ?? ""}|${r.to ?? ""}`;
 
+/**
+ * The references a text names, as written. A match like "does 1" before "John 4" is the number of a
+ * numbered book, so the search starts again at that number ("1 John 4"). "John 3.16" is not read
+ * as all of John 3: a chapter followed by ".16" is left out rather than tracked as the whole chapter.
+ */
+function references(text: string): string[] {
+  const out: string[] = [];
+  const re = new RegExp(REFERENCE.source, "g");
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const end = m.index + m[0].length, rest = text.slice(end);
+    if (/\s[1-3]$/.test(m[0]) && /^\s+(?:of\s+)?[A-Za-z]+\.?\s+\d/.test(rest)) { re.lastIndex = end - 1; continue; }
+    if (/^\.\d/.test(rest)) continue;
+    out.push(m[0].replace(/\s+/g, " ").trim());
+  }
+  return out;
+}
+const chapterOf = (r: Ref) => `${r.slug}|${r.chapter}`;
+
 /** The Scripture a text names, as references this Bible has (at most `max`). */
 export function namedRefs(text: string, books: Books | null, parseReference: Parse, max = 6): Ref[] {
   if (!books) return [];
   const out: Ref[] = [];
-  for (const m of text.match(REFERENCE) ?? []) {
-    const p = parseReference(m.replace(/\s+/g, " ").trim(), books);
+  for (const m of references(text)) {
+    const p = parseReference(m, books);
     if (p && !out.some((r) => key(r) === key(toRef(p)))) out.push(toRef(p));
     if (out.length === max) break;
   }
@@ -78,14 +96,14 @@ export function planFrom(question: string, input: unknown, books: Books | null, 
   const raw = (input as { parts?: unknown })?.parts;
   if (!Array.isArray(raw) || !raw.length) return { refused: ["no parts were listed"] };
   if (raw.length > PLAN_MAX_PARTS) return { refused: [`at most ${PLAN_MAX_PARTS} parts`] };
-  const named = new Set(namedRefs(question, books, parseReference, 50).map(key));
+  // A part may name a chapter the reader named, in any form ("Exodus 12" for "Exodus 12:1-8").
+  const named = new Set(namedRefs(question, books, parseReference, 50).map(chapterOf));
   const parts: PlanPart[] = [], refused: string[] = [];
   raw.forEach((p, i) => {
     const ask = typeof (p as { ask?: unknown })?.ask === "string" ? (p as { ask: string }).ask.replace(/\s+/g, " ").trim() : "";
     const why = !ask ? "it is empty" : ask.length > PLAN_ASK_CHARS ? `it is longer than ${PLAN_ASK_CHARS} characters` : QUOTE.test(ask) || hasControlText(ask) ? "it has a quotation"
       // A reference the reader did not name would be the model's teaching, not the reader's part.
-      : (books ? namedRefs(ask, books, parseReference, 50).some((r) => !named.has(key(r))) : /\d/.test(ask) && REFERENCE.test(ask)) ? "it names Scripture the reader did not name" : "";
-    REFERENCE.lastIndex = 0;
+      : (books ? namedRefs(ask, books, parseReference, 50).some((r) => !named.has(chapterOf(r))) : references(ask).length > 0) ? "it names Scripture the reader did not name" : "";
     if (why) { refused.push(`part ${i + 1}: ${why}`); return; }
     const refs: Ref[] = [];
     for (const r of Array.isArray((p as { refs?: unknown }).refs) ? (p as { refs: unknown[] }).refs.slice(0, 6) : []) {
@@ -135,8 +153,11 @@ export function checklist(parts: PlanPart[], sources: Source[], readings: Readin
   const list = sources.filter(usable);
   return parts.map((part) => {
     const found = list.filter((s) => {
-      const k = `${part.id}|${s.n}|${s.text.length}`;
-      if (!memo.has(k)) memo.set(k, coverageDecision(part.ask, [s]).enough);
+      // Keyed by the part's words, so a plan that replaces the parts never reuses an old decision.
+      const k = `${part.ask}|${s.n}|${s.text.length}`;
+      // Judged on the words alone: a source's retrieval score belongs to the search that found it,
+      // not to this part, so one close match never marks every part covered.
+      if (!memo.has(k)) memo.set(k, coverageDecision(part.ask, [{ kind: s.kind, title: s.title, text: s.text }]).enough);
       return memo.get(k);
     }).map((s) => s.n);
     const evidence = found.length > 0;

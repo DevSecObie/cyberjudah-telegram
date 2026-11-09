@@ -134,7 +134,7 @@ export async function runAgent(
   const [client, attribute, bookList] = await Promise.all([
     withinPhase(() => claude(env), signal),
     withinPhase(() => classAttributor(env), signal),
-    withinPhase(() => books(env, ctx), signal).catch(() => null),
+    model.format === "anthropic" ? withinPhase(() => books(env, ctx), signal).catch(() => null) : null,
   ]);
   const passages: Numbered[] = [];
   // The research plan (study-plan.ts): until the model lists the parts, the question is one part,
@@ -220,8 +220,9 @@ export async function runAgent(
         : !ref.verseEnd ? ""
         : to === last ? `${chapterName} ends at verse ${last}.`
         : `${chapterName} ends at verse ${last}; to read on, read ${next}.`;
-      readings.record(ref.slug, ref.chapter, from, to, first, last);
       const a = add({ kind: "verse", title: label, url: `/bible/${ref.slug}/${ref.chapter}`, sub: "", text });
+      // Counted as read only when the answer has a source to cite for it.
+      if (a) readings.record(ref.slug, ref.chapter, from, to, first, last);
       publishPassages();
       return { content: `${a ? `[${a.n}] ` : ""}${label} (KJV)\n${text}${note ? `\n\n(${note})` : ""}` };
     }
@@ -341,13 +342,15 @@ export async function runAgent(
     emit(event);
   };
   // Each part's status, and why research ended: every part covered, a limit, or parts not found.
-  const coverageOf = (stopBy?: StopReason): Coverage => {
+  // An answer cut short by a limit names the limit, even when every part was covered.
+  const coverageOf = (stopBy?: StopReason, cutShort = false): Coverage => {
     const parts = state();
     const complete = parts.every((p) => p.status === "covered");
-    return { parts, complete, stopped: complete ? "covered" : stopBy ?? "not_found" };
+    return { parts, complete, stopped: cutShort && stopBy ? stopBy : complete ? "covered" : stopBy ?? "not_found" };
   };
   const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }, stopBy?: StopReason) => {
-    const coverage = coverageOf(stopBy);
+    // Worked out only for a tracked question; otherwise nothing is sent or saved.
+    const coverage = tracking() ? coverageOf(stopBy, result.cut) : nothingCovered(plan);
     if (!result.refused && evidence().blocked) {
       const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       emit({ reset: true }); emit({ delta: gap.answer });
@@ -417,6 +420,7 @@ export async function runAgent(
       inputUsd = spend.inputUsd({ input_tokens: 0, cache_creation_input_tokens: tokens }, model);
     }
     const room = spend.outputTokensLeft(model, inputUsd);
+    const outputCap = Math.min(MAX_CLAUDE_OUTPUT, model.maxOutput ?? MAX_CLAUDE_OUTPUT);
     // Too little left for a reply the API accepts: the request stops here, inside what was set aside.
     if (room < 256) { useDraft(); cut = true; stopBy = "budget"; break; }
     // Close to the end of the budget the research stops and the answer is written.
@@ -429,7 +433,7 @@ export async function runAgent(
       // The reader's chosen Claude model (shared/ask-models.mjs), with adaptive thinking and an
       // effort level only where the model takes them.
       model: model.native ?? model.id,
-      max_tokens: Math.min(MAX_CLAUDE_OUTPUT, model.maxOutput ?? MAX_CLAUDE_OUTPUT, room),
+      max_tokens: Math.min(outputCap, room),
       ...claudeThinking(model),
       cache_control: { type: "ephemeral" },
       system,
@@ -468,7 +472,7 @@ export async function runAgent(
       // The model answered with parts of its plan still open: it is sent back once to research
       // them or to say they were not found, while the limits allow another round.
       // Only with at least half the budget left, so the extra round never costs the answer.
-      if (!last && message.stop_reason === "end_turn" && tracking() && !nudged && !spend.over(0.5) && !coverageOf().complete) {
+      if (!last && message.stop_reason === "end_turn" && said.trim() && tracking() && !nudged && !spend.over(0.5) && !coverageOf().complete) {
         nudged = true; draft = said;
         if (said) emit({ reset: true });
         messages.push({ role: "assistant", content: message.content });
@@ -476,8 +480,10 @@ export async function runAgent(
         continue;
       }
       text = said; cut = message.stop_reason === "max_tokens"; if (last) stopBy = lastWhy; ended = true;
-      // Sent back but wrote nothing new: the answer it had written stands.
-      if (!text.trim()) { useDraft(); cut = false; }
+      // Cut off by what the budget left, not by the model's own output limit.
+      if (cut && !stopBy && room < outputCap) stopBy = "budget";
+      // Sent back, then wrote nothing or was cut off: the finished answer it had written stands.
+      if ((!text.trim() || cut) && useDraft()) { cut = false; if (stopBy === "budget" && !last) stopBy = undefined; }
       break;
     }
     // Words written before a search are not the answer; the answer starts again after it.
@@ -496,7 +502,7 @@ export async function runAgent(
     emit({ status: "Writing the answer" });
   }
   // Rounds used up without an answer, or an answer cut off by the budget, is a limit, not "not found".
-  if (!stopBy && !refused) stopBy = cut ? "budget" : !ended ? "rounds" : undefined;
+  if (!stopBy && !refused && !ended) stopBy = cut ? "budget" : "rounds";
   if (!text.trim() && !ended && !refused) useDraft();
   return finish({ text, units, calls, cut, refused }, stopBy);
 }
