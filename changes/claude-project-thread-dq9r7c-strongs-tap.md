@@ -1,0 +1,1 @@
+- Strong's Lexicon: a word tapped while the verse's Strong's cards are still loading is now selected at once, and its card is brought into view when the cards arrive, instead of the tap being lost.
