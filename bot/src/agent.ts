@@ -13,7 +13,7 @@ import { listChats, type SavedAction } from "./chats";
 import { loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { parseReference } from "./refs.mjs";
-import { PLAN_TOOL, Readings, checklist, checklistNote, planFrom, type Coverage, type PlanPart, type StopReason } from "./study-plan";
+import { PLAN_TOOL, Readings, partId, checklist, checklistNote, planFrom, type Coverage, type PlanPart, type StopReason } from "./study-plan";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
 import { freeSpend, type Spend } from "./spend";
@@ -31,7 +31,7 @@ import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlT
  * [n] citations map to one list of sources.
  */
 export type Numbered = Passage & { n: number };
-export type AgentEvent = { status: string } | { plan: { parts: { id: number; ask: string }[] } } | { passages: Numbered[] } | { passages_delta: Numbered[] } | { delta: string } | { reset: true } | { action: SavedAction };
+export type AgentEvent = { status: string } | { plan: { parts: { id: string; ask: string }[] } } | { passages: Numbered[] } | { passages_delta: Numbered[] } | { delta: string } | { reset: true } | { action: SavedAction };
 
 const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 
@@ -136,7 +136,7 @@ export async function runAgent(
   const readings = new Readings();
   const bookList = await withinPhase(() => books(env, ctx), signal).catch(() => null);
   const named = bookList ? (question.match(/\b(?:[1-3]\s*)?[A-Za-z]+\.?\s+\d+(?::\d+(?:\s*[-–]\s*\d+)?)?/g) ?? []).flatMap((r) => { const p = parseReference(r, bookList); return p ? [{ slug: p.slug, chapter: p.chapter, from: p.verse, to: p.verseEnd ?? p.verse, label: p.label }] : []; }).slice(0, 6) : [];
-  let plan: PlanPart[] = [{ id: 1, ask: question.replace(/\s+/g, " ").trim().slice(0, 200), refs: named }];
+  let plan: PlanPart[] = [{ id: partId(0), ask: question.replace(/\s+/g, " ").trim().slice(0, 200), refs: named }];
   let planned = false;
   // The checklist is kept for a question the model split into parts, or one that names Scripture.
   const tracking = () => planned || plan[0].refs.length > 0;

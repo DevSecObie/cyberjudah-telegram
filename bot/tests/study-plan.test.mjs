@@ -28,7 +28,7 @@ test('a plan keeps only short restatements of the reader\'s question, within the
     { ask: 'x'.repeat(201) },                               // too long: dropped
     { ask: 'The dietary laws', refs: ['Leviticus 11'] },
   ] }, BOOKS, api.parseReference);
-  assert.deepEqual(parts.map(p => [p.id, p.ask]), [[1, 'The Sabbath in Exodus 20'], [2, 'The Passover'], [3, 'The dietary laws']]);
+  assert.deepEqual(parts.map(p => [p.id, p.ask]), [['p1', 'The Sabbath in Exodus 20'], ['p2', 'The Passover'], ['p3', 'The dietary laws']]);
   assert.deepEqual(parts[1].refs.map(r => r.label), ['Exodus 12'], 'refs the model needs read are kept when they parse');
   assert.equal(api.planFrom(q, { parts: Array.from({ length: 12 }, (_, i) => ({ ask: `Part ${i}: the 10 commandments` })) }, BOOKS, api.parseReference).length, api.PLAN_MAX_PARTS);
   assert.equal(api.planFrom(q, { parts: [{ ask: '“quoted”' }] }, BOOKS, api.parseReference), null);
@@ -50,7 +50,7 @@ test('a reference counts as read only when every verse of it was read, across pa
 });
 
 test('each part is covered, partial or missing, with at most 20 sources', () => {
-  const parts = [{ id: 1, ask: 'the passover lamb blood doorposts', refs: [{ slug: 'exodus', chapter: 12, label: 'Exodus 12' }] }, { id: 2, ask: 'dietary laws clean unclean animals', refs: [] }];
+  const parts = [{ id: 'p1', ask: 'the passover lamb blood doorposts', refs: [{ slug: 'exodus', chapter: 12, label: 'Exodus 12' }] }, { id: 'p2', ask: 'dietary laws clean unclean animals', refs: [] }];
   const note = { n: 1, kind: 'note', title: 'Passover class', text: 'The passover lamb was killed and the blood put on the doorposts of the houses, recorded in the class notes as read.' };
   const r = new api.Readings();
   let state = api.checklist(parts, [note], r);
@@ -62,7 +62,7 @@ test('each part is covered, partial or missing, with at most 20 sources', () => 
   const many = Array.from({ length: 30 }, (_, i) => ({ ...note, n: i + 1 }));
   assert.equal(api.checklist(parts, many, r)[0].sources.length, api.PART_MAX_SOURCES);
   const fields = api.studyFields(true, parts, { parts: state, complete: false, stopped: 'not_found' });
-  assert.deepEqual(fields.unfinished, [{ id: 2, ask: 'dietary laws clean unclean animals' }]);
+  assert.deepEqual(fields.unfinished, [{ id: 'p2', ask: 'dietary laws clean unclean animals' }]);
   assert.equal(fields.partial, true);
   assert.deepEqual(api.studyFields(false, parts, { parts: state, complete: false, stopped: 'not_found' }), {});
 });
@@ -89,7 +89,7 @@ test('the plan is announced, the checklist follows every reading, and research e
     [{ name: 'read_scripture', input: { reference: 'Psalms 119' } }, { name: 'read_scripture', input: { reference: 'Psalms 119:41-80' } }, { name: 'read_scripture', input: { reference: 'Psalms 119:81-120' } }, { name: 'read_scripture', input: { reference: 'Psalms 119:121-160' } }, { name: 'read_scripture', input: { reference: 'Psalms 119:161-176' } }],
     'The answer [1].'];
   const result = await api.runAgent(env(claudeScript(turns, requests)), question, [], [], async () => [], e => events.push(e), undefined, undefined, modelOf('claude-opus-5-5'));
-  assert.deepEqual(events.find(e => e.plan).plan, { parts: [{ id: 1, ask: 'The Sabbath in Exodus 20' }, { id: 2, ask: 'The rest in Psalms 119' }] });
+  assert.deepEqual(events.find(e => e.plan).plan, { parts: [{ id: 'p1', ask: 'The Sabbath in Exodus 20' }, { id: 'p2', ask: 'The rest in Psalms 119' }] });
   const note = (i) => requests[i].messages.at(-1).content.at(-1);
   assert.equal(note(2).type, 'text', 'the checklist follows the tool results as a separate text block');
   assert.match(note(2).text, /Part 2 \(missing\): The rest in Psalms 119; not yet read in full: Psalms 119/);
@@ -111,7 +111,7 @@ test('an answer written with a part still open is sent back once, then finishes 
   assert.equal(result.coverage.stopped, 'not_found');
   const fields = api.studyFields(result.tracked, result.plan, result.coverage);
   assert.equal(fields.partial, true);
-  assert.deepEqual(fields.unfinished, [{ id: 2, ask: 'The rest in Psalms 119' }]);
+  assert.deepEqual(fields.unfinished, [{ id: 'p2', ask: 'The rest in Psalms 119' }]);
 });
 
 test('a round limit is named as the reason research stopped', async () => {
@@ -135,4 +135,14 @@ test('one answer registers at most 100 sources, the Mini App\'s limit', async ()
   const reads = Array.from({ length: 105 }, (_, i) => ({ name: 'read_scripture', input: { reference: `Psalms 119:${i + 1}` } }));
   const result = await api.runAgent(env(claudeScript([reads, 'Done [1].'], requests)), 'Read Psalms 119 verse by verse', [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
   assert.equal(result.passages.length, 100);
+});
+
+test('part ids are short unique strings, and every coverage and unfinished id is one of the plan\'s', () => {
+  const parts = api.planFrom('Explain three things', { parts: Array.from({ length: 8 }, (_, i) => ({ ask: `Thing ${String.fromCharCode(97 + i)}` })) }, BOOKS, api.parseReference);
+  const ids = parts.map(p => p.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(ids.every(id => typeof id === 'string' && id.length <= 16));
+  const state = api.checklist(parts, [], new api.Readings());
+  const fields = api.studyFields(true, parts, { parts: state, complete: false, stopped: 'not_found' });
+  for (const p of [...fields.coverage.parts, ...fields.unfinished]) assert.ok(ids.includes(p.id), p.id);
 });

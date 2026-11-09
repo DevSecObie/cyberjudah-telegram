@@ -5,7 +5,7 @@
 - Why research ended is recorded: every part `covered`, a limit (`rounds`, `deadline`, `budget`), or `not_found`.
 - A question that names Scripture is tracked the same way, so a chapter it names counts as read only when every verse was read.
 - New fields on the finished `/api/ask` stream line, only for a tracked question, optional and additive:
-  - `plan: { parts: [{ id, ask }] }`;
+  - `plan: { parts: [{ id, ask }] }`, where each `id` is a string ("p1" to "p8") unique within the plan, and every coverage and unfinished `id` is one of them;
   - `coverage: { parts: [{ id, status, sources }], complete, stopped }`, with at most 20 sources per part;
   - when a part is not covered, `partial: true` and `unfinished: [{ id, ask }]`.
   A `plan` event is also streamed when the parts are listed. The same fields are saved with the answer in the chat, so a reloaded chat shows them. They go wherever the chat goes: deleted with it, and in the data export.

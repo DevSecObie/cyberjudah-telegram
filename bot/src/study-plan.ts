@@ -15,12 +15,14 @@ export const PLAN_MAX_PARTS = 8;
 export const PLAN_ASK_CHARS = 200;
 /** Sources listed per part, and failures listed per answer: bounds the Mini App mirrors. */
 export const PART_MAX_SOURCES = 20;
+/** A part's id: "p1" to "p8", unique within its plan (at most 16 characters, the Mini App's bound). */
+export const partId = (index: number) => `p${index + 1}`;
 
 export type PartStatus = "covered" | "partial" | "missing";
 /** Why research ended: every part covered, or a limit (rounds, deadline, budget), or the model wrote the answer with parts still not found. */
 export type StopReason = "covered" | "rounds" | "deadline" | "budget" | "not_found";
-export type PlanPart = { id: number; ask: string; refs: Ref[] };
-export type Coverage = { parts: { id: number; status: PartStatus; sources: number[] }[]; complete: boolean; stopped: StopReason };
+export type PlanPart = { id: string; ask: string; refs: Ref[] };
+export type Coverage = { parts: { id: string; status: PartStatus; sources: number[] }[]; complete: boolean; stopped: StopReason };
 type Ref = { slug: string; chapter: number; from?: number; to?: number; label: string };
 type Source = { n: number; kind: string; title: string; text: string };
 type Books = Parameters<typeof import("./refs.mjs").parseReference>[1];
@@ -67,7 +69,7 @@ export function planFrom(question: string, input: unknown, books: Books | null, 
       const ref = typeof r === "string" && books ? parseReference(r.slice(0, 80), books) : null;
       if (ref) refs.push({ slug: ref.slug, chapter: ref.chapter, from: ref.verse, to: ref.verseEnd ?? ref.verse, label: ref.label });
     }
-    parts.push({ id: parts.length + 1, ask, refs });
+    parts.push({ id: partId(parts.length), ask, refs });
   }
   return parts.length ? parts : null;
 }
@@ -113,9 +115,9 @@ export function checklistNote(parts: PlanPart[], state: Coverage["parts"], readi
   const open = state.filter((p) => p.status !== "covered");
   if (!open.length) return "Checklist: every part of the question is covered. Write the answer from the sources.";
   return `Checklist: ${state.length - open.length} of ${state.length} parts covered. Still open:\n${open.map((p) => {
-    const part = parts[p.id - 1];
+    const part = parts.find((x) => x.id === p.id)!;
     const unread = part.refs.filter((r) => !readings.covers(r)).map((r) => r.label);
-    return `- Part ${p.id} (${p.status}): ${part.ask}${unread.length ? `; not yet read in full: ${unread.join(", ")}` : ""}`;
+    return `- Part ${parts.indexOf(part) + 1} (${p.status}): ${part.ask}${unread.length ? `; not yet read in full: ${unread.join(", ")}` : ""}`;
   }).join("\n")}\nResearch these, or, if the library has nothing for one, say so in the answer. Never fill a gap with teaching that was not found.`;
 }
 
@@ -126,7 +128,7 @@ export function checklistNote(parts: PlanPart[], state: Coverage["parts"], readi
  */
 export function studyFields(tracked: boolean, plan: PlanPart[], coverage: Coverage) {
   if (!tracked) return {};
-  const open = coverage.parts.filter((p) => p.status !== "covered").map((p) => ({ id: p.id, ask: plan[p.id - 1].ask }));
+  const open = coverage.parts.filter((p) => p.status !== "covered").map((p) => ({ id: p.id, ask: plan.find((x) => x.id === p.id)!.ask }));
   return {
     plan: { parts: plan.map(({ id, ask }) => ({ id, ask })) },
     coverage,

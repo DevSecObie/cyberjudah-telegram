@@ -14,7 +14,7 @@ export type SavedSource = { n: number; kind: string; title: string; url: string;
 /** A change the assistant proposed, which only the reader can carry out (see assistant.mjs). `state` is set when the reader acts on it. */
 export type SavedAction = { id: string; kind: "reminder"; summary: string; settings: Record<string, unknown>; state?: "applied" | "cancelled" };
 /** A study's research record (study-plan.ts studyFields): the reader's parts, their status, why research ended. */
-export type SavedStudy = { plan?: { parts: { id: number; ask: string }[] }; coverage?: { parts: { id: number; status: string; sources: number[] }[]; complete: boolean; stopped: string }; partial?: boolean; unfinished?: { id: number; ask: string }[] };
+export type SavedStudy = { plan?: { parts: { id: string; ask: string }[] }; coverage?: { parts: { id: string; status: string; sources: number[] }[]; complete: boolean; stopped: string }; partial?: boolean; unfinished?: { id: string; ask: string }[] };
 export type SavedTurn = { role: "user" | "assistant"; content: string; sources?: SavedSource[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean } & SavedStudy;
 export type Chat = { id: string; title: string; created: string; updated: string; turns: SavedTurn[] };
 export type ChatSummary = { id: string; title: string; updated: string; count: number };
