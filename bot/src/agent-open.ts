@@ -34,6 +34,8 @@ type ToolCall = { id: string; name: string; arguments: string };
 const unavailable = (e: unknown) => Object.assign(new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` }), { providerStatus: (e as { status?: number })?.status ?? 0 });
 /** Distinguish a local budget refusal from a failed provider request. */
 export class ModelBudgetError extends Error {}
+/** The conversation no longer leaves the model room to answer. */
+class ContextFullError extends Error {}
 
 export async function researchOpen(
   env: Env,
@@ -70,7 +72,7 @@ export async function researchOpen(
       if (room < 64 || spend.unreported) throw new ModelBudgetError("The answer has used its reserved budget.");
       outputLimit = outputLimit === null ? room : Math.min(outputLimit, room);
     }
-    if (outputLimit !== null && outputLimit < 64) throw new Error("This model's context window is full. Use a model with a larger context window.");
+    if (outputLimit !== null && outputLimit < 64) throw new ContextFullError("This model's context window is full. Use a model with a larger context window.");
     if (outputLimit !== null) input = { ...(input as Record<string, unknown>), [outputKey]: outputLimit };
     // An answer keeps each model's full reasoning; only a short mechanical step (a research plan)
     // is asked not to think first, which saves its time without making the answer shallower.
@@ -197,11 +199,13 @@ export async function researchOpen(
     if (!draft || (signal.aborted && signal.reason?.name !== "TimeoutError")) throw error;
     if (error instanceof ModelBudgetError) return finish(draft, false, false, "budget");
     if (signal.aborted && signal.reason?.name === "TimeoutError") return finish(draft, false, false, "deadline");
-    // A failed provider call on the repair round (rate limit, overload, a bad reply) never costs the
-    // reader the answer already written. Anything else (a fault in this code) is still raised.
-    if (error instanceof Anthropic.APIConnectionError) {
+    // A failed provider call on the repair round (rate limit, overload, a bad reply), or a conversation
+    // too long to answer in, never costs the reader the answer already written. Research ended on a
+    // limit, not because the library had nothing ("rounds", so the reader may continue). Anything
+    // else (a fault in this code) is still raised.
+    if (error instanceof Anthropic.APIConnectionError || error instanceof ContextFullError) {
       console.error(JSON.stringify({ event: "ask_sendback_failed", status: (error as { providerStatus?: number }).providerStatus ?? 0 }));
-      return finish(draft, false, false);
+      return finish(draft, false, false, "rounds");
     }
     throw error;
   }

@@ -473,12 +473,16 @@ export async function runAgent(
         const usage = stream.currentMessage?.usage;
         if (usage) { units += unitsFor(usage, model); calls++; spend.call(usage, model); }
         if (usage || !(e instanceof Anthropic.APIError && (e.status ?? 500) < 500)) spend.unreported = true;
-        useDraft(); cut = false; ended = true; if (last) stopBy = lastWhy;
+        // Research ended on a limit, not because the library had nothing: "rounds", so the reader
+        // may continue (the agreed reasons have no separate one for a failed call).
+        useDraft(); cut = false; ended = true; stopBy = last ? lastWhy : "rounds";
         console.error(JSON.stringify({ event: "ask_sendback_failed", status: (e as { status?: number }).status ?? 0 }));
         // The admins are told when Claude's money has run out, as the caller would have; after the
-        // answer is shown, never holding it up. (Loaded here so the tests' stand-in for providers
-        // needs nothing more; a renamed export fails the type check.)
-        ctx?.waitUntil(import("./providers").then((m) => m.alertClaudeFunds?.(env, e)).catch(() => {}));
+        // answer is shown. Without waitUntil (the Mini App's whole-answer path) it is awaited, so it
+        // is never dropped. (Loaded here so the tests' stand-ins for providers need nothing more; a
+        // renamed export fails the type check.)
+        const alert = import("./providers").then((m) => m.alertClaudeFunds?.(env, e)).catch(() => {});
+        if (ctx) ctx.waitUntil(alert); else await alert;
         break;
       }
       if (giveUp) throw e;

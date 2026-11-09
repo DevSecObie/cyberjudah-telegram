@@ -251,6 +251,7 @@ for (const status of [400, 429]) test(`hotfix: a provider error (${status}) on t
   assert.equal(result.cut, false);
   assert.equal(events.filter(e => 'delta' in e).at(-1).delta, 'Only part one [1].', 'the first answer is shown again after the reset');
   assert.equal(spend.unreported, false, 'a request refused outright used nothing');
+  assert.equal(result.coverage.stopped, 'rounds', 'a limit, not "not found in the library"');
   assert.ok(logged.some(l => l.includes('"event":"ask_sendback_failed"') && l.includes(`"status":${status}`)));
   assert.ok(logged.every(l => !l.includes('Sabbath')), 'no question text in the log');
 });
@@ -288,6 +289,11 @@ test('hotfix: a part reads the Scripture its own ask names, whatever refs the mo
   const overlap = api.planFrom('Explain Exodus 12:3-11', { parts: [{ ask: 'Exodus 12:1-8' }] }, BOOKS, api.parseReference).parts;
   assert.deepEqual(overlap[0].refs.map(r => r.label), ['Exodus 12:1-8', 'Exodus 12:3-11'], 'a reader range that meets the part is read too');
   assert.deepEqual(api.namedRefs('the significance of the 3 days', BOOKS, api.parseReference), []);
+  assert.deepEqual(api.namedRefs('the work of a 3 man team', BOOKS, api.parseReference), []);
+  const lam = [...BOOKS, { book: 'Lamentations', slug: 'lamentations', chapters: 5 }, { book: 'Jeremiah', slug: 'jeremiah', chapters: 52 }];
+  assert.deepEqual(api.namedRefs('the Lamentations of Jeremiah 3', lam, api.parseReference).map(r => r.label), ['Lamentations 3'], 'the book named first');
+  const lower = api.planFrom('explain all of psalms 119', { parts: [{ ask: 'All of Psalms 119' }] }, BOOKS, api.parseReference);
+  assert.deepEqual(lower.parts?.[0].refs.map(r => r.label), ['Psalms 119'], 'a lowercase question names the same chapter as the capitalised part');
 });
 
 function gatewayScript(format, turns, requests) {
@@ -368,6 +374,7 @@ for (const format of ['chat', 'responses', 'messages']) {
     assert.equal(result.text, 'A usable draft.');
     assert.equal(result.cut, false);
     assert.ok(logged.some(l => l.includes('"status":429')));
+    assert.equal(result.stopped, 'rounds');
   });
 
   for (const reason of ['TimeoutError', 'AbortError']) test(`${format}: repair ${reason === 'TimeoutError' ? 'deadline keeps the draft' : 'cancellation is not swallowed'}`, async () => {

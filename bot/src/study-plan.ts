@@ -80,13 +80,16 @@ export function namedRefs(text: string, books: Books | null, parseReference: Par
   if (!books) return [];
   const out: Ref[] = [];
   for (const m of references(text)) {
-    // "All of Psalms 119" matches as one phrase (the pattern allows "Song of Solomon"): when the whole
-    // phrase is not a book, the words after each " of " are tried, but only from a capitalised word,
-    // so "the significance of the 3 days" never becomes a book.
+    // "All of Psalms 119" matches as one phrase (the pattern allows "Song of Solomon"). When the whole
+    // phrase is not a book: first the words before " of " ("Lamentations of Jeremiah 3" is Lamentations
+    // 3), then the words after each " of ", except from a word like "the" or "a" ("the significance
+    // of the 3 days" never becomes a book).
     let p = parseReference(m, books);
-    for (const t of m.split(/ of /).slice(1).map((_, i, rest) => rest.slice(i).join(" of "))) {
+    const segments = m.split(/ of /), chapter = /\s\d.*$/.exec(m)?.[0] ?? "";
+    if (!p && segments.length > 1 && /^[A-Za-z]/.test(segments[0])) p = parseReference(`${segments[0].replace(/^(?:all|the|whole)\s+/i, "")}${chapter}`, books);
+    for (const t of segments.slice(1).map((_, i, rest) => rest.slice(i).join(" of "))) {
       if (p) break;
-      if (/^[A-Z]/.test(t)) p = parseReference(t, books);
+      if (!/^(?:the|a|an|his|her|its|my|our|your|their|this|that|these|those)\s/i.test(t)) p = parseReference(t, books);
     }
     if (p && !out.some((r) => key(r) === key(toRef(p)))) out.push(toRef(p));
     if (out.length === max) break;
@@ -109,9 +112,10 @@ export function planFrom(question: string, input: unknown, books: Books | null, 
   const parts: PlanPart[] = [], refused: string[] = [];
   raw.forEach((p, i) => {
     const ask = typeof (p as { ask?: unknown })?.ask === "string" ? (p as { ask: string }).ask.replace(/\s+/g, " ").trim() : "";
+    const own = ask && ask.length <= PLAN_ASK_CHARS ? namedRefs(ask, books, parseReference, 50) : [];
     const why = !ask ? "it is empty" : ask.length > PLAN_ASK_CHARS ? `it is longer than ${PLAN_ASK_CHARS} characters` : QUOTE.test(ask) || hasControlText(ask) ? "it has a quotation"
       // A reference the reader did not name would be the model's teaching, not the reader's part.
-      : (books ? namedRefs(ask, books, parseReference, 50).some((r) => !named.has(chapterOf(r))) : references(ask).length > 0) ? "it names Scripture the reader did not name" : "";
+      : (books ? own.some((r) => !named.has(chapterOf(r))) : references(ask).length > 0) ? "it names Scripture the reader did not name" : "";
     if (why) { refused.push(`part ${i + 1}: ${why}`); return; }
     // What must be read for a part is never left to the model: the Scripture its own ask names, and
     // the reader's ranges that meet it (so the widest range the reader gave). The model's own refs
@@ -120,7 +124,7 @@ export function planFrom(question: string, input: unknown, books: Books | null, 
     const push = (r: Ref) => { if (!refs.some((x) => key(x) === key(r))) refs.push(r); };
     // (A part that reads a whole chapter already reads every range in it.)
     const meets = (wide: Ref, r: Ref) => chapterOf(wide) === chapterOf(r) && r.from != null && (wide.from == null || (wide.from <= (r.to ?? r.from) && (wide.to ?? wide.from) >= r.from));
-    for (const r of namedRefs(ask, books, parseReference, 50)) { push(r); for (const w of readerRefs) if (meets(w, r)) push(w); }
+    for (const r of own) { push(r); for (const w of readerRefs) if (meets(w, r)) push(w); }
     for (const r of Array.isArray((p as { refs?: unknown }).refs) ? (p as { refs: unknown[] }).refs.slice(0, 6) : []) {
       const ref = typeof r === "string" && books ? parseReference(r.slice(0, 80), books) : null;
       if (ref) push(toRef(ref));
