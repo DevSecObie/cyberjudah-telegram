@@ -13,6 +13,7 @@ import { listChats, type SavedAction } from "./chats";
 import { loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { parseReference } from "./refs.mjs";
+import { PLAN_TOOL, Readings, partId, namedRefs, nothingCovered, checklist, checklistNote, planFrom, verifyAnswer, type Coverage, type PlanPart, type StopReason } from "./study-plan";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
 import { freeSpend, type Spend } from "./spend";
@@ -30,7 +31,7 @@ import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlT
  * [n] citations map to one list of sources.
  */
 export type Numbered = Passage & { n: number };
-export type AgentEvent = { status: string } | { passages: Numbered[] } | { passages_delta: Numbered[] } | { delta: string } | { reset: true } | { action: SavedAction };
+export type AgentEvent = { status: string } | { plan: { parts: { id: string; ask: string }[] } } | { passages: Numbered[] } | { passages_delta: Numbered[] } | { delta: string } | { reset: true } | { action: SavedAction };
 
 const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 
@@ -83,6 +84,7 @@ const TOOL_DEFS: Anthropic.Tool[] = [
   },
   ...MORE_TOOLS,
   ...DEEP_TOOLS,
+  PLAN_TOOL,
 ];
 
 /**
@@ -118,7 +120,7 @@ export async function runAgent(
   maxRounds = MAX_RESEARCH_ROUNDS,
   citeAppSources = false,
   control: ResearchControl = {},
-): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean }> {
+): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean }> {
   maxRounds = researchRounds(maxRounds);
   const deadlineAt = control.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
   const signal = researchSignal(control.signal, deadlineAt);
@@ -126,9 +128,24 @@ export async function runAgent(
   signal.throwIfAborted();
   // Directly, through the AI Gateway, or to the tests' stand-in (providers.ts).
   const resourcePins = await withinPhase(() => resolveResourcePins(env, requestedResources), signal);
-  const client = await withinPhase(() => claude(env), signal);
-  const attribute = await withinPhase(() => classAttributor(env), signal);
+  // The model client, the class attribution and the Bible's books (for the research plan) load together.
+  const [client, attribute, bookList] = await Promise.all([
+    withinPhase(() => claude(env), signal),
+    withinPhase(() => classAttributor(env), signal),
+    model.tools ? withinPhase(() => books(env, ctx), signal).catch(() => null) : null,
+  ]);
   const passages: Numbered[] = [];
+  // The research plan (study-plan.ts): until the model lists the parts, the question is one part,
+  // with any Scripture it names to be read in full. Every tool-capable model uses the checklist.
+  const readings = new Readings();
+  const memo = new Map<string, boolean>();
+  const checklistOn = model.tools;
+  const researchQuestion = retrievalText(question, history);
+  let plan: PlanPart[] = [{ id: partId(0), ask: researchQuestion.replace(/\s+/g, " ").trim().slice(0, 200), refs: namedRefs(researchQuestion, bookList, parseReference) }];
+  let planned = false, planTries = 0;
+  // The checklist is kept for a question the model split into parts, or one that names Scripture.
+  const tracking = () => checklistOn && (planned || plan[0].refs.length > 0);
+  const state = () => checklist(plan, passages, readings, memo);
   const seen = new Map<string, number>();
   const dirty = new Set<number>(), sent = new Map<number, string>();
   const publishPassages = (initial = false) => {
@@ -150,6 +167,11 @@ export async function runAgent(
     if (passages.length >= MAX_RESEARCH_SOURCES) return null;
     const n = passages.length + 1;
     passages.push({ ...p, n }); seen.set(k, n); dirty.add(n);
+    // Verses already in hand (found by search, or named and read before research) count as read.
+    if (p.kind === "verse" && bookList) {
+      const r = parseReference(p.title.replace(/ \(KJV\)$/, ""), bookList);
+      if (r?.verse != null) readings.record(r.slug, r.chapter, r.verse, r.verseEnd ?? r.verse);
+    }
     return { n, fresh: true };
   };
   for (const p of first) add(p, true);
@@ -198,6 +220,8 @@ export async function runAgent(
         : to === last ? `${chapterName} ends at verse ${last}.`
         : `${chapterName} ends at verse ${last}; to read on, read ${next}.`;
       const a = add({ kind: "verse", title: label, url: `/bible/${ref.slug}/${ref.chapter}`, sub: "", text });
+      // Counted as read only when the answer has a source to cite for it.
+      if (a) readings.record(ref.slug, ref.chapter, from, to, first, last);
       publishPassages();
       return { content: `${a ? `[${a.n}] ` : ""}${label} (KJV)\n${text}${note ? `\n\n(${note})` : ""}` };
     }
@@ -259,6 +283,20 @@ export async function runAgent(
       publishPassages();
       return { content: `${labels.length ? `Sources for this reading: ${labels.join("; ")}\n\n` : ""}${reading.content.map(block => block.text).join("\n")}`, ...(reading.isError ? { error: true } : {}) };
     }
+    if (name === "plan_research") {
+      if (planned) return { content: "The plan is already set; research its open parts.", error: true };
+      if (!checklistOn) return { content: "Research the question directly.", error: true };
+      const got = planFrom(researchQuestion, input, bookList, parseReference);
+      if ("refused" in got) {
+        // Refused whole, never partly, so no part of the reader's question goes untracked. After
+        // three tries the question stays one part.
+        if (++planTries >= 3) return { content: "The plan was not accepted. Research the question as one part.", error: true };
+        return { content: `The plan was not accepted: ${got.refused.join("; ")}. Each part must be a short restatement of the reader's question (at most 200 characters, no quotations, no Scripture the reader did not name). List the parts again.`, error: true };
+      }
+      plan = got.parts; planned = true;
+      emit({ plan: { parts: plan.map(({ id, ask }) => ({ id, ask })) } });
+      return { content: checklistNote(plan, state(), readings) };
+    }
     const more = MORE_RUN[name];
     if (more) {
       const r = await more(env, input, ctx, emit, line, add, resourcePins);
@@ -302,13 +340,23 @@ export async function runAgent(
     if ('delta' in event && evidence().blocked) return;
     emit(event);
   };
-  const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }) => {
+  // Each part's status, and why research ended: every part covered, a limit, or parts not found.
+  // An answer cut short by a limit names the limit, even when every part was covered.
+  const coverageOf = (stopBy?: StopReason, cutShort = false, answer?: string): Coverage => {
+    const parts = answer === undefined ? state() : verifyAnswer(plan, state(), answer);
+    const complete = parts.every((p) => p.status === "covered");
+    return { parts, complete, stopped: cutShort && stopBy ? stopBy : complete ? "covered" : stopBy ?? "not_found" };
+  };
+  const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }, stopBy?: StopReason) => {
+    // Worked out only for a tracked question; otherwise nothing is sent or saved.
+    const coverage = tracking() ? coverageOf(stopBy, result.cut, result.text) : nothingCovered(plan);
     if (!result.refused && evidence().blocked) {
       const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       emit({ reset: true }); emit({ delta: gap.answer });
-      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false };
+      // The answer became 'not in the classes': no part is shown as covered by sources it no longer lists.
+      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false, plan, coverage: nothingCovered(plan), tracked: tracking() };
     }
-    return { ...result, passages, actions, grounded: true };
+    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking() };
   };
   const timedOut = () => {
     const excerpts = passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)).slice(0, 3).map(source => `**${source.title.replace(/[*_\[\]]/g, '')}** [${source.n}]\n\n> ${source.text.slice(0, 1000).replace(/\n/g, '\n> ')}`);
@@ -322,14 +370,23 @@ export async function runAgent(
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
+    let reviewed = false;
     try {
-      const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, { signal, deadlineAt });
-      return finish(r);
+      const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, {
+        signal, deadlineAt,
+        researchNote: () => tracking() ? checklistNote(plan, state(), readings) : undefined,
+        reviewAnswer: answer => {
+          if (!tracking() || reviewed || spend.over(0.5) || coverageOf(undefined, false, answer).complete) return undefined;
+          reviewed = true;
+          return `${checklistNote(plan, verifyAnswer(plan, state(), answer), readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.`;
+        },
+      });
+      return finish(r, r.stopped ?? (r.cut ? "rounds" : undefined));
     } catch (error) {
       if (!signal.aborted || signal.reason?.name !== 'TimeoutError') throw error;
       const text = timedOut();
       emit({ reset: true }); emit({ delta: text });
-      return finish({ text, units: 0, calls: spend.calls, cut: true, refused: false });
+      return finish({ text, units: 0, calls: spend.calls, cut: true, refused: false }, "deadline");
     }
   }
 
@@ -348,11 +405,15 @@ export async function runAgent(
   const bytesOf = () => new TextEncoder().encode(JSON.stringify({ system, tools: TOOLS, messages })).length;
   let knownTokens = 0, bytesAtKnown = 0, bytesThisCall = 0;
   let attempts = 0;
+  // Why research stopped, when a limit stopped it; whether the model was sent back once to an open
+  // part, and the answer it had written then (kept, so sending it back never loses a finished answer).
+  let stopBy: StopReason | undefined, nudged = false, draft = "", ended = false;
+  const useDraft = () => { if (!draft.trim()) return false; text = draft; emit({ reset: true }); emit({ delta: text }); return true; };
   for (let round = 0; round < maxRounds && attempts < maxRounds; round++) {
-    if (signal.aborted && signal.reason?.name === 'TimeoutError') { text = timedOut(); cut = true; break; }
+    if (signal.aborted && signal.reason?.name === 'TimeoutError') { if (!useDraft()) text = timedOut(); cut = true; stopBy = "deadline"; break; }
     signal.throwIfAborted();
     // Without usage, another round cannot be proven to fit the money already reserved.
-    if (spend.budgetUsd != null && spend.unreported) { cut = true; break; }
+    if (spend.budgetUsd != null && spend.unreported) { useDraft(); cut = true; stopBy = "budget"; break; }
     // The request's budget (what was held from the balance for it): past 70% of it the research stops and the
     // answer is written, in no more words than what is left pays for.
     let inputUsd = 0;
@@ -367,10 +428,12 @@ export async function runAgent(
       inputUsd = spend.inputUsd({ input_tokens: 0, cache_creation_input_tokens: tokens }, model);
     }
     const room = spend.outputTokensLeft(model, inputUsd);
+    const outputCap = Math.min(MAX_CLAUDE_OUTPUT, model.maxOutput ?? MAX_CLAUDE_OUTPUT);
     // Too little left for a reply the API accepts: the request stops here, inside what was set aside.
-    if (room < 256) { cut = true; break; }
+    if (room < 256) { useDraft(); cut = true; stopBy = "budget"; break; }
     // Close to the end of the budget the research stops and the answer is written.
-    const last = round === maxRounds - 1 || spend.over(0.7) || room < 1024 || writingDue(deadlineAt);
+    const lastWhy: StopReason | undefined = writingDue(deadlineAt) ? "deadline" : spend.over(0.7) || room < 1024 ? "budget" : round === maxRounds - 1 ? "rounds" : undefined;
+    const last = !!lastWhy;
     if (round === 0) emit({ status: "Studying the question" });
     let said = "";
     attempts++;
@@ -378,7 +441,7 @@ export async function runAgent(
       // The reader's chosen Claude model (shared/ask-models.mjs), with adaptive thinking and an
       // effort level only where the model takes them.
       model: model.native ?? model.id,
-      max_tokens: Math.min(MAX_CLAUDE_OUTPUT, model.maxOutput ?? MAX_CLAUDE_OUTPUT, room),
+      max_tokens: Math.min(outputCap, room),
       ...claudeThinking(model),
       cache_control: { type: "ephemeral" },
       system,
@@ -395,7 +458,7 @@ export async function runAgent(
         const usage = stream.currentMessage?.usage;
         if (usage) { units += unitsFor(usage, model); calls++; spend.call(usage, model); }
         spend.unreported = true;
-        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; break; }
+        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : draft.trim() ? draft : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; stopBy = "deadline"; break; }
       }
       signal.throwIfAborted();
       // A tool input that could not be parsed at all (eager streaming): the round is asked
@@ -413,7 +476,24 @@ export async function runAgent(
     if (message.stop_reason === "refusal") { text = said; refused = true; break; }
     // Anything but a request for a tool ends the turn. At the token cap the answer, or a tool
     // input, is unfinished: no tool is run on it, and the answer is marked as cut off.
-    if (message.stop_reason !== "tool_use" || !uses.length || last) { text = said; cut = message.stop_reason === "max_tokens"; break; }
+    if (message.stop_reason !== "tool_use" || !uses.length || last) {
+      // The model answered with parts of its plan still open: it is sent back once to research
+      // them or to say they were not found, while the limits allow another round.
+      // Only with at least half the budget left, so the extra round never costs the answer.
+      if (!last && message.stop_reason === "end_turn" && said.trim() && tracking() && !nudged && !spend.over(0.5) && !coverageOf(undefined, false, said).complete) {
+        nudged = true; draft = said;
+        if (said) emit({ reset: true });
+        messages.push({ role: "assistant", content: message.content });
+        messages.push({ role: "user", content: `${checklistNote(plan, verifyAnswer(plan, state(), said), readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.` });
+        continue;
+      }
+      text = said; cut = message.stop_reason === "max_tokens"; if (last) stopBy = lastWhy; ended = true;
+      // Cut off by what the budget left, not by the model's own output limit.
+      if (cut && !stopBy && room < outputCap) stopBy = "budget";
+      // Sent back, then wrote nothing or was cut off: the finished answer it had written stands.
+      if ((!text.trim() || cut) && useDraft()) { cut = false; if (stopBy === "budget" && !last) stopBy = undefined; }
+      break;
+    }
     // Words written before a search are not the answer; the answer starts again after it.
     if (said) emit({ reset: true });
     messages.push({ role: "assistant", content: message.content });
@@ -425,8 +505,12 @@ export async function runAgent(
       try { const r = await runWithEvidence(u.name, input); results.push({ type: "tool_result", tool_use_id: u.id, content: untrustedData(r, "tool_output"), ...(r.error ? { is_error: true } : {}) }); }
       catch (e) { results.push({ type: "tool_result", tool_use_id: u.id, content: untrustedData({ error: (e as Error).message?.slice(0, 120) }, "tool_output"), is_error: true }); }
     }
-    messages.push({ role: "user", content: results });
+    // The checklist goes with the results as the server's own words, outside the untrusted tool output.
+    messages.push({ role: "user", content: tracking() ? [...results, { type: "text", text: checklistNote(plan, state(), readings) }] : results });
     emit({ status: "Writing the answer" });
   }
-  return finish({ text, units, calls, cut, refused });
+  // Rounds used up without an answer, or an answer cut off by the budget, is a limit, not "not found".
+  if (!stopBy && !refused && !ended) stopBy = cut ? "budget" : "rounds";
+  if (!text.trim() && !ended && !refused) useDraft();
+  return finish({ text, units, calls, cut, refused }, stopBy);
 }

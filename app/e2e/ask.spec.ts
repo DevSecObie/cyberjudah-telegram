@@ -102,7 +102,7 @@ test("an app question is answered from the app's own list of screens, with a lin
     expect(c.system?.[0].cache_control).toEqual({ type: "ephemeral" });
     expect(c.cache_control).toEqual({ type: "ephemeral" });
     expect(c.tools?.every((t) => t.eager_input_streaming === true)).toBe(true);
-    expect(c.tools?.map((t) => t.name)).toEqual(["search_library", "app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change", "read_scripture", "look_up_word", "person", "verse_study", "law", "precepts", "outside_source", "timeline", "search_classes", "read_note", "read_transcript", "commentary", "read_data"]);
+    expect(c.tools?.map((t) => t.name)).toEqual(["search_library", "app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change", "read_scripture", "look_up_word", "person", "verse_study", "law", "precepts", "outside_source", "timeline", "search_classes", "read_note", "read_transcript", "commentary", "read_data", "plan_research"]);
   }
   // The tool result the model was given is the Worker's own feature list.
   const result = JSON.stringify(calls[1].messages.at(-1));

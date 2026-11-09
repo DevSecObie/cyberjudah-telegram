@@ -43,6 +43,12 @@ function appIntent(question, tool) {
   return /^(?:how (?:do|can) i (?:use|open|find|share|save|get|set|turn|change|download|sign|read|search)|where (?:is|are|can i find)|help me (?:use|find|open))\b/i.test(question.trim()) && /\b(?:app|telegram|reminders?|settings?|buttons?|menus?|screens?|features?|share|save|download|sign in|sign out|account|balance|model|highlight|bookmark)\b/i.test(question);
 }
 
+/** Topic overlap only; short answers are not subject to the evidence-length threshold. */
+export function topicOverlap(question, text) {
+  const needed = topics(question), found = new Set(topics(text));
+  return needed.length ? needed.filter(word => found.has(word)).length / needed.length : 0;
+}
+
 /** A conservative coverage proxy, not an entailment classifier or a library-wide absence claim. */
 export function coverageDecision(question, sources) {
   if (SMALL_TALK.test(question.trim())) return { enough: true, reason: 'small-talk', usable: 0 };

@@ -262,7 +262,7 @@ test('a research-round timeout never promotes search narration to the final answ
   assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
 });
 
-test('cancelled or expired research starts no provider call, and sources are bounded above 48', async () => {
+test('cancelled or expired research starts no provider call, and sources are bounded at 100 (the Mini App keeps at most 100 per answer)', async () => {
   const f = fixture(), controller = new AbortController(); controller.abort();
   f.env.AI = { run: async (_model, input) => { f.requests.push(input); return { response: 'Fixture answer.', usage: { prompt_tokens: 100, completion_tokens: 10 } }; } };
   const model = modelOf('@cf/google/gemma-4-26b-a4b-it');
@@ -271,7 +271,7 @@ test('cancelled or expired research starts no provider call, and sources are bou
   assert.equal(f.requests.length, 0);
   const sources = Array.from({ length: 300 }, (_, index) => ({ kind: 'note', title: `Recorded material ${index}`, url: `/study/${index}`, text: 'Existing recorded source words, unchanged.' }));
   const result = await runAgent(f.env, 'Read recorded material', [], sources, async () => [], () => {}, undefined, undefined, model);
-  assert.equal(result.passages.length, 256);
+  assert.equal(result.passages.length, 100);
 });
 
 test('a hard deadline aborts the provider, returns marked verbatim evidence and starts no further research', async () => {
