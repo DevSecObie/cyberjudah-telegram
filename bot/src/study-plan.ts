@@ -29,7 +29,7 @@ type Books = Parameters<typeof import("./refs.mjs").parseReference>[1];
 
 export const PLAN_TOOL: Anthropic.Tool = {
   name: "plan_research",
-  description: "For a question with more than one part, call this first, once: list each part the reader asked, in their own words (no quotations, no teaching, no Scripture they did not name), and the Scripture each part needs read. After every reading you are told which parts are covered and which are still missing; keep researching until every part is covered or you have found the library has nothing for it, and then say which parts were not found.",
+  description: "For a question with more than one part, call this first: list each part the reader asked, in their own words (no quotations, no teaching, no Scripture they did not name), and the Scripture each part needs read. If a part is refused, you are told why and may list the parts again. After every reading you are told which parts are covered and which are still missing; keep researching until every part is covered or you have found the library has nothing for it, and then say which parts were not found.",
   input_schema: {
     type: "object",
     properties: {
@@ -49,45 +49,75 @@ export const PLAN_TOOL: Anthropic.Tool = {
   },
 };
 
-const REFERENCE = /\b(?:[1-3]\s*)?[A-Za-z]+\.?\s+\d+(?::\d+(?:\s*[-–]\s*\d+)?)?/g;
+// Scripture named in text: "Exodus 20", "1 John 4:1-3", "II Kings 2:11", "Song of Solomon 2". The
+// matches are checked against the Bible's books before they count, so "the 10 commandments" is not one.
+const REFERENCE = /\b(?:(?:[1-3]|I{1,3})\s*)?[A-Za-z]+(?: of [A-Za-z]+)*\.?\s+\d{1,3}(?:\s*:\s*\d{1,3}(?:\s*[-–]\s*\d{1,3})?)?/g;
 const QUOTE = /["“”„«»>]|^\s*['‘’]|['‘’]\s*$/;
+type Parse = (q: string, b: Books) => { slug: string; chapter: number; verse?: number; verseEnd?: number; label: string } | null;
+const toRef = (p: NonNullable<ReturnType<Parse>>): Ref => ({ slug: p.slug, chapter: p.chapter, from: p.verse, to: p.verseEnd ?? p.verse, label: p.label });
+const key = (r: Ref) => `${r.slug}|${r.chapter}|${r.from ?? ""}|${r.to ?? ""}`;
 
-/** The parts the model listed, kept only when each is a short restatement of the reader's question. */
-export function planFrom(question: string, input: unknown, books: Books | null, parseReference: (q: string, b: Books) => { slug: string; chapter: number; verse?: number; verseEnd?: number; label: string } | null): PlanPart[] | null {
+/** The Scripture a text names, as references this Bible has (at most `max`). */
+export function namedRefs(text: string, books: Books | null, parseReference: Parse, max = 6): Ref[] {
+  if (!books) return [];
+  const out: Ref[] = [];
+  for (const m of text.match(REFERENCE) ?? []) {
+    const p = parseReference(m.replace(/\s+/g, " ").trim(), books);
+    if (p && !out.some((r) => key(r) === key(toRef(p)))) out.push(toRef(p));
+    if (out.length === max) break;
+  }
+  return out;
+}
+
+/**
+ * The parts the model listed, or why they were refused. A plan is taken whole or not at all, so a
+ * part of the reader's question is never dropped without the model knowing: each part must be a
+ * short restatement with no quotation and no Scripture the reader did not name.
+ */
+export function planFrom(question: string, input: unknown, books: Books | null, parseReference: Parse): { parts: PlanPart[] } | { refused: string[] } {
   const raw = (input as { parts?: unknown })?.parts;
-  if (!Array.isArray(raw)) return null;
-  const named = new Set((question.match(REFERENCE) ?? []).map((r) => r.replace(/\s+/g, " ").toLowerCase()));
-  const parts: PlanPart[] = [];
-  for (const p of raw.slice(0, PLAN_MAX_PARTS)) {
+  if (!Array.isArray(raw) || !raw.length) return { refused: ["no parts were listed"] };
+  if (raw.length > PLAN_MAX_PARTS) return { refused: [`at most ${PLAN_MAX_PARTS} parts`] };
+  const named = new Set(namedRefs(question, books, parseReference, 50).map(key));
+  const parts: PlanPart[] = [], refused: string[] = [];
+  raw.forEach((p, i) => {
     const ask = typeof (p as { ask?: unknown })?.ask === "string" ? (p as { ask: string }).ask.replace(/\s+/g, " ").trim() : "";
-    if (!ask || ask.length > PLAN_ASK_CHARS || QUOTE.test(ask) || hasControlText(ask)) continue;
-    // A reference the reader did not name would be the model's teaching, not the reader's part.
-    // Only real Bible references count ("the 10 commandments" is not one).
-    if ((ask.match(REFERENCE) ?? []).some((r) => !named.has(r.replace(/\s+/g, " ").toLowerCase()) && (!books || !!parseReference(r, books)))) continue;
+    const why = !ask ? "it is empty" : ask.length > PLAN_ASK_CHARS ? `it is longer than ${PLAN_ASK_CHARS} characters` : QUOTE.test(ask) || hasControlText(ask) ? "it has a quotation"
+      // A reference the reader did not name would be the model's teaching, not the reader's part.
+      : (books ? namedRefs(ask, books, parseReference, 50).some((r) => !named.has(key(r))) : /\d/.test(ask) && REFERENCE.test(ask)) ? "it names Scripture the reader did not name" : "";
+    REFERENCE.lastIndex = 0;
+    if (why) { refused.push(`part ${i + 1}: ${why}`); return; }
     const refs: Ref[] = [];
     for (const r of Array.isArray((p as { refs?: unknown }).refs) ? (p as { refs: unknown[] }).refs.slice(0, 6) : []) {
       const ref = typeof r === "string" && books ? parseReference(r.slice(0, 80), books) : null;
-      if (ref) refs.push({ slug: ref.slug, chapter: ref.chapter, from: ref.verse, to: ref.verseEnd ?? ref.verse, label: ref.label });
+      if (ref) refs.push(toRef(ref));
     }
-    parts.push({ id: partId(parts.length), ask, refs });
-  }
-  return parts.length ? parts : null;
+    parts.push({ id: partId(i), ask, refs });
+  });
+  return refused.length ? { refused } : { parts };
 }
 
-/** What of each chapter has been read: verse ranges, and the chapter's last verse once known. */
+/** What of each chapter has been read: verse ranges, and the chapter's first and last verse once known. */
 export class Readings {
-  private read = new Map<string, { ranges: [number, number][]; first: number; last: number }>();
-  record(slug: string, chapter: number, from: number, to: number, first: number, last: number) {
+  private read = new Map<string, { ranges: [number, number][]; first?: number; last?: number }>();
+  /** A reading of verses `from`-`to`; `first`/`last` when the whole chapter was in hand (read_scripture). */
+  record(slug: string, chapter: number, from: number, to: number, first?: number, last?: number) {
     const k = `${slug}|${chapter}`;
-    const r = this.read.get(k) ?? { ranges: [], first, last };
+    const r = this.read.get(k) ?? { ranges: [] };
     r.ranges.push([from, to]);
+    if (first != null) r.first = first;
+    if (last != null) r.last = last;
     this.read.set(k, r);
   }
-  /** Whether every verse of the reference has been read. */
+  /** Whether every verse of the reference has been read (a whole chapter only once its bounds are known). */
   covers(ref: Ref): boolean {
     const r = this.read.get(`${ref.slug}|${ref.chapter}`);
     if (!r) return false;
-    const from = ref.from ?? r.first, to = Math.min(ref.to ?? r.last, r.last);
+    const from = ref.from ?? r.first, end = ref.to ?? r.last;
+    if (from == null || end == null) return false;
+    // A range that starts past the chapter's end was never read, however much of the chapter was.
+    if (r.last != null && from > r.last) return false;
+    const to = r.last != null ? Math.min(end, r.last) : end;
     let next = from;
     for (const [a, b] of [...r.ranges].sort((x, y) => x[0] - y[0])) if (a <= next && b >= next) next = b + 1;
     return next > to;
@@ -97,16 +127,23 @@ export class Readings {
 
 const usable = (s: Source) => s.kind !== "tool" && !!s.text?.trim() && !hasControlText(`${s.title}\n${s.text}`);
 
-/** Each part's status from the passages read so far. */
-export function checklist(parts: PlanPart[], sources: Source[], readings: Readings): Coverage["parts"] {
+/**
+ * Each part's status from the passages read so far. `memo` keeps each part-and-source decision
+ * across rounds (a source's text only grows when a longer reading replaces it).
+ */
+export function checklist(parts: PlanPart[], sources: Source[], readings: Readings, memo: Map<string, boolean> = new Map()): Coverage["parts"] {
   const list = sources.filter(usable);
   return parts.map((part) => {
-    const found = list.filter((s) => coverageDecision(part.ask, [s]).enough).map((s) => s.n);
+    const found = list.filter((s) => {
+      const k = `${part.id}|${s.n}|${s.text.length}`;
+      if (!memo.has(k)) memo.set(k, coverageDecision(part.ask, [s]).enough);
+      return memo.get(k);
+    }).map((s) => s.n);
     const evidence = found.length > 0;
     const refsRead = part.refs.every((r) => readings.covers(r));
     const someRead = part.refs.some((r) => readings.touched(r));
     const status: PartStatus = evidence && refsRead ? "covered" : evidence || someRead ? "partial" : "missing";
-    return { id: part.id, status, sources: found.slice(0, PART_MAX_SOURCES) };
+    return { id: part.id, status, sources: found };
   });
 }
 
@@ -121,17 +158,23 @@ export function checklistNote(parts: PlanPart[], state: Coverage["parts"], readi
   }).join("\n")}\nResearch these, or, if the library has nothing for one, say so in the answer. Never fill a gap with teaching that was not found.`;
 }
 
+/** Every part missing, for an answer replaced by "not in the classes". */
+export const nothingCovered = (plan: PlanPart[]): Coverage => ({ parts: plan.map((p) => ({ id: p.id, status: "missing", sources: [] })), complete: false, stopped: "not_found" });
+
 /**
  * What a finished answer carries about its research (only when it was tracked): the reader's parts,
- * each part's status, why research ended, and, when a part is not covered, `partial` with the
- * unfinished parts. Optional and additive; within the Mini App's bounds.
+ * each part's status and the cited sources behind it (at most PART_MAX_SOURCES, only numbers the
+ * answer's own sources carry), why research ended, and, when a part is not covered, `partial` with
+ * the unfinished parts. Optional and additive; within the Mini App's bounds.
  */
-export function studyFields(tracked: boolean, plan: PlanPart[], coverage: Coverage) {
+export function studyFields(tracked: boolean, plan: PlanPart[], coverage: Coverage, cited?: Iterable<number>) {
   if (!tracked) return {};
-  const open = coverage.parts.filter((p) => p.status !== "covered").map((p) => ({ id: p.id, ask: plan.find((x) => x.id === p.id)!.ask }));
+  const keep = cited ? new Set(cited) : null;
+  const parts = coverage.parts.map((p) => ({ ...p, sources: (keep ? p.sources.filter((n) => keep.has(n)) : p.sources).slice(0, PART_MAX_SOURCES) }));
+  const open = parts.filter((p) => p.status !== "covered").map((p) => ({ id: p.id, ask: plan.find((x) => x.id === p.id)!.ask }));
   return {
     plan: { parts: plan.map(({ id, ask }) => ({ id, ask })) },
-    coverage,
+    coverage: { ...coverage, parts },
     ...(coverage.complete ? {} : { partial: true, unfinished: open }),
   };
 }

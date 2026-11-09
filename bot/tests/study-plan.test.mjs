@@ -18,21 +18,27 @@ await build({ stdin: { contents: 'export * from "./src/study-plan.ts"; export { 
 const api = await import(out);
 const BOOKS = [{ book: 'Exodus', slug: 'exodus', chapters: 40 }, { book: 'Psalms', slug: 'psalms', chapters: 150 }, { book: 'Leviticus', slug: 'leviticus', chapters: 27 }];
 
-test('a plan keeps only short restatements of the reader\'s question, within the bounds', () => {
+test('a plan is taken whole when every part is a short restatement, and refused whole with the reasons otherwise', () => {
   const q = 'Explain the Sabbath in Exodus 20, the Passover and the dietary laws';
-  const parts = api.planFrom(q, { parts: [
+  const plan = (parts) => api.planFrom(q, { parts }, BOOKS, api.parseReference);
+  const ok = plan([
     { ask: 'The Sabbath in Exodus 20', refs: ['Exodus 20'] },
     { ask: 'The Passover', refs: ['Exodus 12', 'not a reference'] },
-    { ask: 'What "the Lord said" about food' },             // a quotation: dropped
-    { ask: 'Leviticus 11 on dietary laws' },               // Scripture the reader did not name: dropped
-    { ask: 'x'.repeat(201) },                               // too long: dropped
     { ask: 'The dietary laws', refs: ['Leviticus 11'] },
-  ] }, BOOKS, api.parseReference);
-  assert.deepEqual(parts.map(p => [p.id, p.ask]), [['p1', 'The Sabbath in Exodus 20'], ['p2', 'The Passover'], ['p3', 'The dietary laws']]);
-  assert.deepEqual(parts[1].refs.map(r => r.label), ['Exodus 12'], 'refs the model needs read are kept when they parse');
-  assert.equal(api.planFrom(q, { parts: Array.from({ length: 12 }, (_, i) => ({ ask: `Part ${i}: the 10 commandments` })) }, BOOKS, api.parseReference).length, api.PLAN_MAX_PARTS);
-  assert.equal(api.planFrom(q, { parts: [{ ask: '“quoted”' }] }, BOOKS, api.parseReference), null);
-  assert.equal(api.planFrom(q, {}, BOOKS, api.parseReference), null);
+  ]);
+  assert.deepEqual(ok.parts.map(p => [p.id, p.ask]), [['p1', 'The Sabbath in Exodus 20'], ['p2', 'The Passover'], ['p3', 'The dietary laws']]);
+  assert.deepEqual(ok.parts[1].refs.map(r => r.label), ['Exodus 12'], 'refs the model needs read are kept when they parse');
+  const bad = plan([
+    { ask: 'The Sabbath in Exodus 20' },
+    { ask: 'What "the Lord said" about food' },
+    { ask: 'Leviticus 11 on dietary laws' },
+    { ask: 'x'.repeat(201) },
+  ]);
+  assert.equal(bad.parts, undefined, 'no part is kept from a refused plan');
+  assert.deepEqual(bad.refused, ['part 2: it has a quotation', 'part 3: it names Scripture the reader did not name', 'part 4: it is longer than 200 characters']);
+  assert.deepEqual(plan(Array.from({ length: 9 }, (_, i) => ({ ask: `Part ${i}: the 10 commandments` }))).refused, [`at most ${api.PLAN_MAX_PARTS} parts`]);
+  assert.equal(plan(Array.from({ length: 8 }, (_, i) => ({ ask: `Part ${i}: the 10 commandments` }))).parts.length, 8, 'numbers that are not Scripture are not references');
+  assert.deepEqual(api.planFrom(q, {}, BOOKS, api.parseReference).refused, ['no parts were listed']);
 });
 
 test('a reference counts as read only when every verse of it was read, across parts of a chapter', () => {
@@ -47,6 +53,7 @@ test('a reference counts as read only when every verse of it was read, across pa
   assert.equal(r.covers(ref), false, 'half a chapter is not the chapter');
   for (const [a, b] of [[81, 120], [121, 160], [161, 176]]) r.record('psalms', 119, a, b, 1, 176);
   assert.equal(r.covers(ref), true);
+  assert.equal(r.covers({ slug: 'psalms', chapter: 119, from: 180, to: 190, label: 'Psalms 119:180-190' }), false, 'verses past the chapter\'s end were never read');
 });
 
 test('each part is covered, partial or missing, with at most 20 sources', () => {
@@ -60,7 +67,10 @@ test('each part is covered, partial or missing, with at most 20 sources', () => 
   state = api.checklist(parts, [note], r);
   assert.deepEqual(state.map(p => p.status), ['covered', 'missing']);
   const many = Array.from({ length: 30 }, (_, i) => ({ ...note, n: i + 1 }));
-  assert.equal(api.checklist(parts, many, r)[0].sources.length, api.PART_MAX_SOURCES);
+  const all = api.checklist(parts, many, r);
+  assert.equal(all[0].sources.length, 30, 'the checklist keeps every source; only what is sent is bounded');
+  assert.equal(api.studyFields(true, parts, { parts: all, complete: true, stopped: 'covered' }).coverage.parts[0].sources.length, api.PART_MAX_SOURCES);
+  assert.deepEqual(api.studyFields(true, parts, { parts: all, complete: true, stopped: 'covered' }, [2, 5, 99]).coverage.parts[0].sources, [2, 5], 'only sources the answer cites');
   const fields = api.studyFields(true, parts, { parts: state, complete: false, stopped: 'not_found' });
   assert.deepEqual(fields.unfinished, [{ id: 'p2', ask: 'dietary laws clean unclean animals' }]);
   assert.equal(fields.partial, true);
@@ -114,12 +124,48 @@ test('an answer written with a part still open is sent back once, then finishes 
   assert.deepEqual(fields.unfinished, [{ id: 'p2', ask: 'The rest in Psalms 119' }]);
 });
 
+test('an answer sent back is kept when the model then writes nothing', async () => {
+  const requests = [], events = [];
+  const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'Only part one [1].', ''];
+  const result = await api.runAgent(env(claudeScript(turns, requests)), question, [], [], async () => [], e => events.push(e), undefined, undefined, modelOf('claude-opus-5-5'));
+  assert.equal(requests.length, 4);
+  assert.equal(result.text, 'Only part one [1].');
+  assert.equal(events.filter(e => 'delta' in e).at(-1).delta, 'Only part one [1].', 'the kept answer is shown again');
+});
+
+test('a refused plan is sent back with the reasons, and a corrected one is taken', async () => {
+  const requests = [], events = [];
+  const bad = { name: 'plan_research', input: { parts: [{ ask: 'The Sabbath in Exodus 20' }, { ask: 'Leviticus 11 on food' }] } };
+  const turns = [[bad], [plan], 'The answer [1].'];
+  await api.runAgent(env(claudeScript(turns, requests)), question, [], [], async () => [], e => events.push(e), undefined, undefined, modelOf('claude-opus-5-5'));
+  assert.match(JSON.stringify(requests[1].messages.at(-1).content), /part 2: it names Scripture the reader did not name/);
+  assert.deepEqual(events.filter(e => e.plan).map(e => e.plan.parts.length), [2], 'only the accepted plan is announced');
+});
+
 test('a round limit is named as the reason research stopped', async () => {
   const requests = [];
   const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'Answer at the limit [1].'];
   const result = await api.runAgent(env(claudeScript(turns, requests)), question, [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'), undefined, undefined, 3);
   assert.equal(result.coverage.stopped, 'rounds');
   assert.equal(result.coverage.complete, false);
+});
+
+test('rounds used up without a final answer are named as the round limit', async () => {
+  const requests = [];
+  const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }]];
+  const client = claudeScript(turns, requests);
+  // Every turn asks for a tool, even the one where tools are turned off: the loop runs out.
+  const result = await api.runAgent(env(client), question, [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'), undefined, undefined, 2);
+  assert.equal(result.coverage.stopped, 'rounds');
+});
+
+test('verses already in hand count as read for a named reference', async () => {
+  const requests = [];
+  const first = [{ kind: 'verse', title: 'Exodus 20:1-3 (KJV)', text: 'placeholder exodus 1 placeholder exodus 2 placeholder exodus 3', url: 'https://site.test/exodus/20' }];
+  const result = await api.runAgent(env(claudeScript(['Answer [1].', 'Answer [1].'], requests)), 'Explain Exodus 20:1-3', [], first, async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
+  assert.equal(result.tracked, true);
+  assert.deepEqual(result.coverage.parts.map(p => p.status), ['covered'], 'the verses found before research are the named reference, read');
+  assert.equal(requests.length, 1, 'so the answer is not sent back');
 });
 
 test('a question with no parts and no Scripture is not tracked and gets no checklist', async () => {
@@ -138,7 +184,7 @@ test('one answer registers at most 100 sources, the Mini App\'s limit', async ()
 });
 
 test('part ids are short unique strings, and every coverage and unfinished id is one of the plan\'s', () => {
-  const parts = api.planFrom('Explain three things', { parts: Array.from({ length: 8 }, (_, i) => ({ ask: `Thing ${String.fromCharCode(97 + i)}` })) }, BOOKS, api.parseReference);
+  const { parts } = api.planFrom('Explain three things', { parts: Array.from({ length: 8 }, (_, i) => ({ ask: `Thing ${String.fromCharCode(97 + i)}` })) }, BOOKS, api.parseReference);
   const ids = parts.map(p => p.id);
   assert.equal(new Set(ids).size, ids.length);
   assert.ok(ids.every(id => typeof id === 'string' && id.length <= 16));

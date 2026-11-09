@@ -813,7 +813,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const used = await finish(cut ? "partial" : grounded === false ? "empty" : "ok");
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
-              const study = studyFields(ran.tracked, ran.plan, ran.coverage);
+              // Each part lists only sources the answer cites (the numbers its own sources carry).
+              const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n));
               await keep(answer, sources, followups, steps, actions, cut, study);
               // The model that wrote an answer is named on its finished line, so an Auto answer can show it;
               // the fixed sentences below, written by no model, name none.
