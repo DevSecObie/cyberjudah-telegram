@@ -13,6 +13,7 @@ import { listChats, type SavedAction } from "./chats";
 import { loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { parseReference } from "./refs.mjs";
+import { PLAN_TOOL, Readings, checklist, checklistNote, planFrom, type Coverage, type PlanPart, type StopReason } from "./study-plan";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
 import { freeSpend, type Spend } from "./spend";
@@ -30,7 +31,7 @@ import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlT
  * [n] citations map to one list of sources.
  */
 export type Numbered = Passage & { n: number };
-export type AgentEvent = { status: string } | { passages: Numbered[] } | { passages_delta: Numbered[] } | { delta: string } | { reset: true } | { action: SavedAction };
+export type AgentEvent = { status: string } | { plan: { parts: { id: number; ask: string }[] } } | { passages: Numbered[] } | { passages_delta: Numbered[] } | { delta: string } | { reset: true } | { action: SavedAction };
 
 const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 
@@ -83,6 +84,7 @@ const TOOL_DEFS: Anthropic.Tool[] = [
   },
   ...MORE_TOOLS,
   ...DEEP_TOOLS,
+  PLAN_TOOL,
 ];
 
 /**
@@ -118,7 +120,7 @@ export async function runAgent(
   maxRounds = MAX_RESEARCH_ROUNDS,
   citeAppSources = false,
   control: ResearchControl = {},
-): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean }> {
+): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean }> {
   maxRounds = researchRounds(maxRounds);
   const deadlineAt = control.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
   const signal = researchSignal(control.signal, deadlineAt);
@@ -129,6 +131,15 @@ export async function runAgent(
   const client = await withinPhase(() => claude(env), signal);
   const attribute = await withinPhase(() => classAttributor(env), signal);
   const passages: Numbered[] = [];
+  // The research plan (study-plan.ts): until the model lists the parts, the question is one part,
+  // with any Scripture it names to be read in full.
+  const readings = new Readings();
+  const bookList = await withinPhase(() => books(env, ctx), signal).catch(() => null);
+  const named = bookList ? (question.match(/\b(?:[1-3]\s*)?[A-Za-z]+\.?\s+\d+(?::\d+(?:\s*[-–]\s*\d+)?)?/g) ?? []).flatMap((r) => { const p = parseReference(r, bookList); return p ? [{ slug: p.slug, chapter: p.chapter, from: p.verse, to: p.verseEnd ?? p.verse, label: p.label }] : []; }).slice(0, 6) : [];
+  let plan: PlanPart[] = [{ id: 1, ask: question.replace(/\s+/g, " ").trim().slice(0, 200), refs: named }];
+  let planned = false;
+  // The checklist is kept for a question the model split into parts, or one that names Scripture.
+  const tracking = () => planned || plan[0].refs.length > 0;
   const seen = new Map<string, number>();
   const dirty = new Set<number>(), sent = new Map<number, string>();
   const publishPassages = (initial = false) => {
@@ -197,6 +208,7 @@ export async function runAgent(
         : !ref.verseEnd ? ""
         : to === last ? `${chapterName} ends at verse ${last}.`
         : `${chapterName} ends at verse ${last}; to read on, read ${next}.`;
+      readings.record(ref.slug, ref.chapter, from, to, first, last);
       const a = add({ kind: "verse", title: label, url: `/bible/${ref.slug}/${ref.chapter}`, sub: "", text });
       publishPassages();
       return { content: `${a ? `[${a.n}] ` : ""}${label} (KJV)\n${text}${note ? `\n\n(${note})` : ""}` };
@@ -259,6 +271,14 @@ export async function runAgent(
       publishPassages();
       return { content: `${labels.length ? `Sources for this reading: ${labels.join("; ")}\n\n` : ""}${reading.content.map(block => block.text).join("\n")}`, ...(reading.isError ? { error: true } : {}) };
     }
+    if (name === "plan_research") {
+      if (planned) return { content: "The plan is already set; research its open parts.", error: true };
+      const parts = planFrom(question, input, bookList, parseReference);
+      if (!parts) return { content: "Each part must be a short restatement of the reader's question (at most 200 characters, no quotations, no Scripture the reader did not name). Try again, or research the question as one part.", error: true };
+      plan = parts; planned = true;
+      emit({ plan: { parts: plan.map(({ id, ask }) => ({ id, ask })) } });
+      return { content: checklistNote(plan, checklist(plan, passages, readings), readings) };
+    }
     const more = MORE_RUN[name];
     if (more) {
       const r = await more(env, input, ctx, emit, line, add, resourcePins);
@@ -302,13 +322,20 @@ export async function runAgent(
     if ('delta' in event && evidence().blocked) return;
     emit(event);
   };
-  const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }) => {
+  // Each part's status, and why research ended: every part covered, a limit, or parts not found.
+  const coverageOf = (stopBy?: StopReason): Coverage => {
+    const parts = checklist(plan, passages, readings);
+    const complete = parts.every((p) => p.status === "covered");
+    return { parts, complete, stopped: complete ? "covered" : stopBy ?? "not_found" };
+  };
+  const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }, stopBy?: StopReason) => {
+    const coverage = coverageOf(stopBy);
     if (!result.refused && evidence().blocked) {
       const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       emit({ reset: true }); emit({ delta: gap.answer });
-      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false };
+      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false, plan, coverage, tracked: tracking() };
     }
-    return { ...result, passages, actions, grounded: true };
+    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking() };
   };
   const timedOut = () => {
     const excerpts = passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)).slice(0, 3).map(source => `**${source.title.replace(/[*_\[\]]/g, '')}** [${source.n}]\n\n> ${source.text.slice(0, 1000).replace(/\n/g, '\n> ')}`);
@@ -324,12 +351,12 @@ export async function runAgent(
   if (model.format !== "anthropic") {
     try {
       const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, { signal, deadlineAt });
-      return finish(r);
+      return finish(r, r.cut ? "rounds" : undefined);
     } catch (error) {
       if (!signal.aborted || signal.reason?.name !== 'TimeoutError') throw error;
       const text = timedOut();
       emit({ reset: true }); emit({ delta: text });
-      return finish({ text, units: 0, calls: spend.calls, cut: true, refused: false });
+      return finish({ text, units: 0, calls: spend.calls, cut: true, refused: false }, "deadline");
     }
   }
 
@@ -348,11 +375,13 @@ export async function runAgent(
   const bytesOf = () => new TextEncoder().encode(JSON.stringify({ system, tools: TOOLS, messages })).length;
   let knownTokens = 0, bytesAtKnown = 0, bytesThisCall = 0;
   let attempts = 0;
+  // Why research stopped, when a limit stopped it; and whether the model was sent back once to an open part.
+  let stopBy: StopReason | undefined, nudged = false;
   for (let round = 0; round < maxRounds && attempts < maxRounds; round++) {
-    if (signal.aborted && signal.reason?.name === 'TimeoutError') { text = timedOut(); cut = true; break; }
+    if (signal.aborted && signal.reason?.name === 'TimeoutError') { text = timedOut(); cut = true; stopBy = "deadline"; break; }
     signal.throwIfAborted();
     // Without usage, another round cannot be proven to fit the money already reserved.
-    if (spend.budgetUsd != null && spend.unreported) { cut = true; break; }
+    if (spend.budgetUsd != null && spend.unreported) { cut = true; stopBy = "budget"; break; }
     // The request's budget (what was held from the balance for it): past 70% of it the research stops and the
     // answer is written, in no more words than what is left pays for.
     let inputUsd = 0;
@@ -368,9 +397,10 @@ export async function runAgent(
     }
     const room = spend.outputTokensLeft(model, inputUsd);
     // Too little left for a reply the API accepts: the request stops here, inside what was set aside.
-    if (room < 256) { cut = true; break; }
+    if (room < 256) { cut = true; stopBy = "budget"; break; }
     // Close to the end of the budget the research stops and the answer is written.
-    const last = round === maxRounds - 1 || spend.over(0.7) || room < 1024 || writingDue(deadlineAt);
+    const lastWhy: StopReason | undefined = writingDue(deadlineAt) ? "deadline" : spend.over(0.7) || room < 1024 ? "budget" : round === maxRounds - 1 ? "rounds" : undefined;
+    const last = !!lastWhy;
     if (round === 0) emit({ status: "Studying the question" });
     let said = "";
     attempts++;
@@ -395,7 +425,7 @@ export async function runAgent(
         const usage = stream.currentMessage?.usage;
         if (usage) { units += unitsFor(usage, model); calls++; spend.call(usage, model); }
         spend.unreported = true;
-        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; break; }
+        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; stopBy = "deadline"; break; }
       }
       signal.throwIfAborted();
       // A tool input that could not be parsed at all (eager streaming): the round is asked
@@ -413,7 +443,18 @@ export async function runAgent(
     if (message.stop_reason === "refusal") { text = said; refused = true; break; }
     // Anything but a request for a tool ends the turn. At the token cap the answer, or a tool
     // input, is unfinished: no tool is run on it, and the answer is marked as cut off.
-    if (message.stop_reason !== "tool_use" || !uses.length || last) { text = said; cut = message.stop_reason === "max_tokens"; break; }
+    if (message.stop_reason !== "tool_use" || !uses.length || last) {
+      // The model answered with parts of its plan still open: it is sent back once to research
+      // them or to say they were not found, while the limits allow another round.
+      if (!last && message.stop_reason === "end_turn" && tracking() && !nudged && !coverageOf().complete) {
+        nudged = true;
+        if (said) emit({ reset: true });
+        messages.push({ role: "assistant", content: message.content });
+        messages.push({ role: "user", content: checklistNote(plan, checklist(plan, passages, readings), readings) });
+        continue;
+      }
+      text = said; cut = message.stop_reason === "max_tokens"; if (last) stopBy = lastWhy; break;
+    }
     // Words written before a search are not the answer; the answer starts again after it.
     if (said) emit({ reset: true });
     messages.push({ role: "assistant", content: message.content });
@@ -425,8 +466,9 @@ export async function runAgent(
       try { const r = await runWithEvidence(u.name, input); results.push({ type: "tool_result", tool_use_id: u.id, content: untrustedData(r, "tool_output"), ...(r.error ? { is_error: true } : {}) }); }
       catch (e) { results.push({ type: "tool_result", tool_use_id: u.id, content: untrustedData({ error: (e as Error).message?.slice(0, 120) }, "tool_output"), is_error: true }); }
     }
-    messages.push({ role: "user", content: results });
+    // The checklist goes with the results as the server's own words, outside the untrusted tool output.
+    messages.push({ role: "user", content: tracking() ? [...results, { type: "text", text: checklistNote(plan, checklist(plan, passages, readings), readings) }] : results });
     emit({ status: "Writing the answer" });
   }
-  return finish({ text, units, calls, cut, refused });
+  return finish({ text, units, calls, cut, refused }, stopBy);
 }

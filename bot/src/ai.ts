@@ -10,6 +10,7 @@ import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
+import { studyFields, type StudyFields } from "./study-plan";
 import { MAX_RESEARCH_ROUNDS, MAX_RESEARCH_MS, adminBudgetPool, researchRounds, researchSignal, timeLeft } from "./research-policy.mjs";
 import { withTeachers } from "./class-attribution";
 export { withTeachers } from "./class-attribution";
@@ -777,9 +778,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
-      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false) => {
+      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false, study: StudyFields = {}) => {
         if (!chatId) return;
-        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, ...study }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
       };
       const job = (async () => {
         try {
@@ -812,10 +813,11 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const used = await finish(cut ? "partial" : grounded === false ? "empty" : "ok");
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
-              await keep(answer, sources, followups, steps, actions, cut);
+              const study = studyFields(ran.tracked, ran.plan, ran.coverage);
+              await keep(answer, sources, followups, steps, actions, cut, study);
               // The model that wrote an answer is named on its finished line, so an Auto answer can show it;
               // the fixed sentences below, written by no model, name none.
-              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}) });
+              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}), ...study });
               // What the answer cost, and the balance after it; the free model and admins pay nothing.
               if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
               else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });

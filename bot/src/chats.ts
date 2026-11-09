@@ -13,7 +13,9 @@ import { open, pid, seal } from "./privacy.mjs";
 export type SavedSource = { n: number; kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string };
 /** A change the assistant proposed, which only the reader can carry out (see assistant.mjs). `state` is set when the reader acts on it. */
 export type SavedAction = { id: string; kind: "reminder"; summary: string; settings: Record<string, unknown>; state?: "applied" | "cancelled" };
-export type SavedTurn = { role: "user" | "assistant"; content: string; sources?: SavedSource[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean };
+/** A study's research record (study-plan.ts studyFields): the reader's parts, their status, why research ended. */
+export type SavedStudy = { plan?: { parts: { id: number; ask: string }[] }; coverage?: { parts: { id: number; status: string; sources: number[] }[]; complete: boolean; stopped: string }; partial?: boolean; unfinished?: { id: number; ask: string }[] };
+export type SavedTurn = { role: "user" | "assistant"; content: string; sources?: SavedSource[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean } & SavedStudy;
 export type Chat = { id: string; title: string; created: string; updated: string; turns: SavedTurn[] };
 export type ChatSummary = { id: string; title: string; updated: string; count: number };
 
@@ -90,7 +92,7 @@ export async function getChat(env: Env, uid: number, id: string): Promise<Chat |
  * `replaceLast` is a retry: the same question asked again replaces its earlier exchange instead
  * of repeating it.
  */
-export async function saveExchange(env: Env, uid: number, id: string, question: string, answer: { content: string; sources?: (SavedSource & { text?: string })[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean }, replaceLast = false): Promise<void> {
+export async function saveExchange(env: Env, uid: number, id: string, question: string, answer: { content: string; sources?: (SavedSource & { text?: string })[]; followups?: string[]; steps?: string[]; actions?: SavedAction[]; cut?: boolean } & SavedStudy, replaceLast = false): Promise<void> {
   if (!CHAT_ID.test(id) || !answer.content.trim()) return;
   const owner = await pid(env, uid);
   if (await env.SUBS.get(goneKey(owner, id))) return;
@@ -98,7 +100,7 @@ export async function saveExchange(env: Env, uid: number, id: string, question: 
   const chat: Chat = (await getChat(env, uid, id)) ?? { id, title: titleOf(question), created: now, updated: now, turns: [] };
   const n = chat.turns.length;
   if (replaceLast && n >= 2 && chat.turns[n - 2].role === "user" && chat.turns[n - 2].content.trim() === question.trim()) chat.turns.splice(n - 2, 2);
-  chat.turns.push({ role: "user", content: question }, { role: "assistant", content: answer.content, sources: (answer.sources ?? []).map(slim), followups: answer.followups ?? [], steps: answer.steps ?? [], ...(answer.actions?.length ? { actions: answer.actions } : {}), ...(answer.cut ? { cut: true } : {}) });
+  chat.turns.push({ role: "user", content: question }, { role: "assistant", content: answer.content, sources: (answer.sources ?? []).map(slim), followups: answer.followups ?? [], steps: answer.steps ?? [], ...(answer.actions?.length ? { actions: answer.actions } : {}), ...(answer.cut ? { cut: true } : {}) , ...(answer.coverage ? { plan: answer.plan, coverage: answer.coverage, ...(answer.partial ? { partial: true, unfinished: answer.unfinished } : {}) } : {}) });
   chat.turns = chat.turns.slice(-MAX_TURNS);
   chat.updated = now;
   await put(env, owner, chatKey(owner, id), chat);
