@@ -463,7 +463,29 @@ export async function runAgent(
       signal.throwIfAborted();
       // A tool input that could not be parsed at all (eager streaming): the round is asked
       // again, twice at most. API errors (rate limits, overload, auth) are not retried here.
-      if (e instanceof Anthropic.APIError || badJson++ >= 2) throw e;
+      const giveUp = e instanceof Anthropic.APIError || badJson++ >= 2;
+      // After a send-back, a failed call (rate limit, overload, a bad request) never costs the
+      // reader the answer already written: it finishes with that answer, saved as usual.
+      if (giveUp && nudged && draft.trim()) {
+        // What the failed call had used is counted (a lower bound). A request the provider refused
+        // outright (a 4xx, such as a rate limit) used nothing; any other failure may have, so the
+        // usage is marked as not fully reported, as for an aborted call.
+        const usage = stream.currentMessage?.usage;
+        if (usage) { units += unitsFor(usage, model); calls++; spend.call(usage, model); }
+        if (usage || !(e instanceof Anthropic.APIError && (e.status ?? 500) < 500)) spend.unreported = true;
+        // Research ended on a limit, not because the library had nothing: "rounds", so the reader
+        // may continue (the agreed reasons have no separate one for a failed call).
+        useDraft(); cut = false; ended = true; stopBy = last ? lastWhy : "rounds";
+        console.error(JSON.stringify({ event: "ask_sendback_failed", status: (e as { status?: number }).status ?? 0 }));
+        // The admins are told when Claude's money has run out, as the caller would have; after the
+        // answer is shown. Without waitUntil (the Mini App's whole-answer path) it is awaited in full:
+        // cut short, it could mark itself sent without telling anyone. (Loaded here so the tests'
+        // stand-ins for providers need nothing more; a renamed export fails the type check.)
+        const alert = import("./providers").then((m) => m.alertClaudeFunds?.(env, e)).catch(() => {});
+        if (ctx) ctx.waitUntil(alert); else await alert;
+        break;
+      }
+      if (giveUp) throw e;
       if (said) emit({ reset: true });
       round--;
       continue;

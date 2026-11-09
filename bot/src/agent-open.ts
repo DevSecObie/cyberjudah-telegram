@@ -31,9 +31,11 @@ type Ai = { run: (model: string, input: unknown, options?: unknown) => Promise<u
 type ToolCall = { id: string; name: string; arguments: string };
 
 /** A failure from the model's side: shaped as an API connection error, so Ask's backup answers instead (providers.ts claudeUnavailable). */
-const unavailable = (e: unknown) => new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` });
+const unavailable = (e: unknown) => Object.assign(new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` }), { providerStatus: (e as { status?: number })?.status ?? 0 });
 /** Distinguish a local budget refusal from a failed provider request. */
 export class ModelBudgetError extends Error {}
+/** The conversation no longer leaves the model room to answer. */
+class ContextFullError extends Error {}
 
 export async function researchOpen(
   env: Env,
@@ -70,7 +72,7 @@ export async function researchOpen(
       if (room < 64 || spend.unreported) throw new ModelBudgetError("The answer has used its reserved budget.");
       outputLimit = outputLimit === null ? room : Math.min(outputLimit, room);
     }
-    if (outputLimit !== null && outputLimit < 64) throw new Error("This model's context window is full. Use a model with a larger context window.");
+    if (outputLimit !== null && outputLimit < 64) throw new ContextFullError("This model's context window is full. Use a model with a larger context window.");
     if (outputLimit !== null) input = { ...(input as Record<string, unknown>), [outputKey]: outputLimit };
     // An answer keeps each model's full reasoning; only a short mechanical step (a research plan)
     // is asked not to think first, which saves its time without making the answer shallower.
@@ -97,7 +99,9 @@ export async function researchOpen(
   };
   let units = 0, calls = 0;
   let draft = "";
-  const stopReason = (round: number): Result["stopped"] => writingDue(deadlineAt) ? "deadline" : spend?.over(0.7) ? "budget" : round === maxRounds - 1 ? "rounds" : undefined;
+  // The limit the current round runs under, if any (set by stopReason; kept for a call that fails).
+  let roundStop: Result["stopped"];
+  const stopReason = (round: number): Result["stopped"] => (roundStop = writingDue(deadlineAt) ? "deadline" : spend?.over(0.7) ? "budget" : round === maxRounds - 1 ? "rounds" : undefined);
   const finish = (text: string, cut: boolean, refused = false, stopped?: Result["stopped"]): Result => {
     if (draft && (!text.trim() || cut) && !refused) { text = draft; cut = false; }
     if (text) emit({ delta: text });
@@ -197,6 +201,14 @@ export async function researchOpen(
     if (!draft || (signal.aborted && signal.reason?.name !== "TimeoutError")) throw error;
     if (error instanceof ModelBudgetError) return finish(draft, false, false, "budget");
     if (signal.aborted && signal.reason?.name === "TimeoutError") return finish(draft, false, false, "deadline");
+    // A failed provider call on the repair round (rate limit, overload, a bad reply), or a conversation
+    // too long to answer in, never costs the reader the answer already written. Research ended on a
+    // limit, not because the library had nothing: the round's own limit (budget, deadline), or
+    // "rounds", so the reader may continue. Anything else (a fault in this code) is still raised.
+    if (error instanceof Anthropic.APIConnectionError || error instanceof ContextFullError) {
+      console.error(JSON.stringify({ event: "ask_sendback_failed", status: (error as { providerStatus?: number }).providerStatus ?? 0 }));
+      return finish(draft, false, false, roundStop ?? "rounds");
+    }
     throw error;
   }
 }
