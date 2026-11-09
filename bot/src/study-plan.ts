@@ -76,7 +76,7 @@ function references(text: string): string[] {
 const chapterOf = (r: Ref) => `${r.slug}|${r.chapter}`;
 
 // (Not before "the", "a" and the like, which name no book; not "the rest of", part of "Rest of Esther".)
-const HOW_MUCH = /\b(?:all|the whole|the end|the beginning|the start|the middle|part|most|each|every verse) of (?!(?:the|a|an|his|her|its|their|our|my|your|this|that|these|those)\b)(?=[A-Za-z0-9])/gi;
+const HOW_MUCH = /\b(?:all|the\s+whole|the\s+end|the\s+beginning|the\s+start|the\s+middle|part|most|each|every\s+verse)\s+of\s+(?!(?:the|a|an|his|her|its|their|our|my|your|this|that|these|those)\b)(?=[A-Za-z0-9])/gi;
 
 /** The Scripture a text names, as references this Bible has (at most `max`). */
 export function namedRefs(text: string, books: Books | null, parseReference: Parse, max = 6): Ref[] {

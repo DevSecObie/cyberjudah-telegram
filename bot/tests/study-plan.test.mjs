@@ -298,6 +298,7 @@ test('hotfix: a part reads the Scripture its own ask names, whatever refs the mo
   assert.deepEqual(refs('all of the 3 days, each of the 2 witnesses'), [], 'no book after "the"');
   const johns = [...more, { book: 'John', slug: 'john', chapters: 21 }, { book: '2 John', slug: '2-john', chapters: 1 }];
   assert.deepEqual(api.namedRefs('Psalms 2 all of John 1', johns, api.parseReference).map(r => r.label), ['Psalms 2', 'John 1'], 'the words on either side never join');
+  assert.equal(api.planFrom('Explain the  whole\nof Psalms 119', { parts: [{ ask: 'The whole of Psalms 119' }] }, BOOKS, api.parseReference).parts?.length, 1, 'spacing in the question does not matter');
   const lower = api.planFrom('explain all of psalms 119', { parts: [{ ask: 'All of Psalms 119' }] }, BOOKS, api.parseReference);
   assert.deepEqual(lower.parts?.[0].refs.map(r => r.label), ['Psalms 119'], 'a lowercase question names the same chapter as the capitalised part');
 });
