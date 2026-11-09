@@ -290,8 +290,14 @@ test('hotfix: a part reads the Scripture its own ask names, whatever refs the mo
   assert.deepEqual(overlap[0].refs.map(r => r.label), ['Exodus 12:1-8', 'Exodus 12:3-11'], 'a reader range that meets the part is read too');
   assert.deepEqual(api.namedRefs('the significance of the 3 days', BOOKS, api.parseReference), []);
   assert.deepEqual(api.namedRefs('the work of a 3 man team', BOOKS, api.parseReference), []);
-  const lam = [...BOOKS, { book: 'Lamentations', slug: 'lamentations', chapters: 5 }, { book: 'Jeremiah', slug: 'jeremiah', chapters: 52 }];
-  assert.deepEqual(api.namedRefs('the Lamentations of Jeremiah 3', lam, api.parseReference).map(r => r.label), ['Lamentations 3'], 'the book named first');
+  const more = [...BOOKS, { book: 'Lamentations', slug: 'lamentations', chapters: 5 }, { book: 'Jeremiah', slug: 'jeremiah', chapters: 52 }, { book: 'Song of Solomon', slug: 'song-of-solomon', chapters: 8 }, { book: 'Daniel', slug: 'daniel', chapters: 12 }, { book: 'Jonah', slug: 'jonah', chapters: 4 }, { book: 'Acts', slug: 'acts', chapters: 28 }];
+  const refs = (t) => api.namedRefs(t, more, api.parseReference).map(r => r.label);
+  assert.deepEqual(refs('the whole of Exodus 12, most of Psalms 119 and Song of Solomon 2'), ['Exodus 12', 'Psalms 119', 'Song of Solomon 2']);
+  assert.deepEqual(refs('Explain Jonah 1 and the Son of man 3 days; the tribe of dan 2; acts of kindness 3'), ['Jonah 1'], 'no new readings of ordinary phrases');
+  assert.deepEqual(refs('the Lamentations of Jeremiah 3'), [], 'as on main: never the wrong book');
+  assert.deepEqual(refs('all of the 3 days, each of the 2 witnesses'), [], 'no book after "the"');
+  const johns = [...more, { book: 'John', slug: 'john', chapters: 21 }, { book: '2 John', slug: '2-john', chapters: 1 }];
+  assert.deepEqual(api.namedRefs('Psalms 2 all of John 1', johns, api.parseReference).map(r => r.label), ['Psalms 2', 'John 1'], 'the words on either side never join');
   const lower = api.planFrom('explain all of psalms 119', { parts: [{ ask: 'All of Psalms 119' }] }, BOOKS, api.parseReference);
   assert.deepEqual(lower.parts?.[0].refs.map(r => r.label), ['Psalms 119'], 'a lowercase question names the same chapter as the capitalised part');
 });
@@ -375,6 +381,20 @@ for (const format of ['chat', 'responses', 'messages']) {
     assert.equal(result.cut, false);
     assert.ok(logged.some(l => l.includes('"status":429')));
     assert.equal(result.stopped, 'rounds');
+  });
+
+  test(`hotfix ${format}: a provider error on a repair round that the budget made the last records the budget`, async (t) => {
+    const requests = [];
+    t.mock.method(console, 'error', () => {});
+    const first = gatewayScript(format, ['A usable draft.'], requests);
+    const e = { AI_GATEWAY: 'fixture', AI: { run: async (...args) => {
+      if (!requests.length) return first.run(...args);
+      throw Object.assign(new Error('rate limited'), { status: 429 });
+    } } };
+    const spend = { budgetUsd: 1, unreported: false, over: () => requests.length > 0, inputUsd: () => 0, outputTokensLeft: () => 1000, call: () => {} };
+    const result = await api.researchOpen(e, model, 'Fixture', [{ role: 'user', content: 'question' }], [], new Map(), async () => '', () => {}, 3, spend, false, undefined, { reviewAnswer: () => 'An unfinished part remains.' });
+    assert.equal(result.text, 'A usable draft.');
+    assert.equal(result.stopped, 'budget');
   });
 
   for (const reason of ['TimeoutError', 'AbortError']) test(`${format}: repair ${reason === 'TimeoutError' ? 'deadline keeps the draft' : 'cancellation is not swallowed'}`, async () => {

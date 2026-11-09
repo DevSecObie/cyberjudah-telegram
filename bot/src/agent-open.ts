@@ -99,7 +99,9 @@ export async function researchOpen(
   };
   let units = 0, calls = 0;
   let draft = "";
-  const stopReason = (round: number): Result["stopped"] => writingDue(deadlineAt) ? "deadline" : spend?.over(0.7) ? "budget" : round === maxRounds - 1 ? "rounds" : undefined;
+  // The limit the current round runs under, if any (set by stopReason; kept for a call that fails).
+  let roundStop: Result["stopped"];
+  const stopReason = (round: number): Result["stopped"] => (roundStop = writingDue(deadlineAt) ? "deadline" : spend?.over(0.7) ? "budget" : round === maxRounds - 1 ? "rounds" : undefined);
   const finish = (text: string, cut: boolean, refused = false, stopped?: Result["stopped"]): Result => {
     if (draft && (!text.trim() || cut) && !refused) { text = draft; cut = false; }
     if (text) emit({ delta: text });
@@ -201,11 +203,11 @@ export async function researchOpen(
     if (signal.aborted && signal.reason?.name === "TimeoutError") return finish(draft, false, false, "deadline");
     // A failed provider call on the repair round (rate limit, overload, a bad reply), or a conversation
     // too long to answer in, never costs the reader the answer already written. Research ended on a
-    // limit, not because the library had nothing ("rounds", so the reader may continue). Anything
-    // else (a fault in this code) is still raised.
+    // limit, not because the library had nothing: the round's own limit (budget, deadline), or
+    // "rounds", so the reader may continue. Anything else (a fault in this code) is still raised.
     if (error instanceof Anthropic.APIConnectionError || error instanceof ContextFullError) {
       console.error(JSON.stringify({ event: "ask_sendback_failed", status: (error as { providerStatus?: number }).providerStatus ?? 0 }));
-      return finish(draft, false, false, "rounds");
+      return finish(draft, false, false, roundStop ?? "rounds");
     }
     throw error;
   }

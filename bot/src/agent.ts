@@ -478,9 +478,9 @@ export async function runAgent(
         useDraft(); cut = false; ended = true; stopBy = last ? lastWhy : "rounds";
         console.error(JSON.stringify({ event: "ask_sendback_failed", status: (e as { status?: number }).status ?? 0 }));
         // The admins are told when Claude's money has run out, as the caller would have; after the
-        // answer is shown. Without waitUntil (the Mini App's whole-answer path) it is awaited, so it
-        // is never dropped. (Loaded here so the tests' stand-ins for providers need nothing more; a
-        // renamed export fails the type check.)
+        // answer is shown. Without waitUntil (the Mini App's whole-answer path) it is awaited in full:
+        // cut short, it could mark itself sent without telling anyone. (Loaded here so the tests'
+        // stand-ins for providers need nothing more; a renamed export fails the type check.)
         const alert = import("./providers").then((m) => m.alertClaudeFunds?.(env, e)).catch(() => {});
         if (ctx) ctx.waitUntil(alert); else await alert;
         break;

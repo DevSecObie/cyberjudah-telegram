@@ -75,22 +75,18 @@ function references(text: string): string[] {
 }
 const chapterOf = (r: Ref) => `${r.slug}|${r.chapter}`;
 
+// (Not before "the", "a" and the like, which name no book; not "the rest of", part of "Rest of Esther".)
+const HOW_MUCH = /\b(?:all|the whole|the end|the beginning|the start|the middle|part|most|each|every verse) of (?!(?:the|a|an|his|her|its|their|our|my|your|this|that|these|those)\b)(?=[A-Za-z0-9])/gi;
+
 /** The Scripture a text names, as references this Bible has (at most `max`). */
 export function namedRefs(text: string, books: Books | null, parseReference: Parse, max = 6): Ref[] {
   if (!books) return [];
   const out: Ref[] = [];
-  for (const m of references(text)) {
-    // "All of Psalms 119" matches as one phrase (the pattern allows "Song of Solomon"). When the whole
-    // phrase is not a book: first the words before " of " ("Lamentations of Jeremiah 3" is Lamentations
-    // 3), then the words after each " of ", except from a word like "the" or "a" ("the significance
-    // of the 3 days" never becomes a book).
-    let p = parseReference(m, books);
-    const segments = m.split(/ of /), chapter = /\s\d.*$/.exec(m)?.[0] ?? "";
-    if (!p && segments.length > 1 && /^[A-Za-z]/.test(segments[0])) p = parseReference(`${segments[0].replace(/^(?:all|the|whole)\s+/i, "")}${chapter}`, books);
-    for (const t of segments.slice(1).map((_, i, rest) => rest.slice(i).join(" of "))) {
-      if (p) break;
-      if (!/^(?:the|a|an|his|her|its|my|our|your|their|this|that|these|those)\s/i.test(t)) p = parseReference(t, books);
-    }
+  // "All of Psalms 119" names Psalms 119: words that say how much of a passage are dropped first, since
+  // the pattern (which allows "Song of Solomon") would otherwise read "All of Psalms" as one name.
+  // (Replaced by a comma, so the words on either side never join: "Psalm 2 all of John 1".)
+  for (const m of references(text.replace(HOW_MUCH, ", "))) {
+    const p = parseReference(m, books);
     if (p && !out.some((r) => key(r) === key(toRef(p)))) out.push(toRef(p));
     if (out.length === max) break;
   }
