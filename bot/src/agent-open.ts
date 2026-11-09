@@ -31,7 +31,7 @@ type Ai = { run: (model: string, input: unknown, options?: unknown) => Promise<u
 type ToolCall = { id: string; name: string; arguments: string };
 
 /** A failure from the model's side: shaped as an API connection error, so Ask's backup answers instead (providers.ts claudeUnavailable). */
-const unavailable = (e: unknown) => new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` });
+const unavailable = (e: unknown) => Object.assign(new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` }), { providerStatus: (e as { status?: number })?.status ?? 0 });
 /** Distinguish a local budget refusal from a failed provider request. */
 export class ModelBudgetError extends Error {}
 
@@ -197,6 +197,12 @@ export async function researchOpen(
     if (!draft || (signal.aborted && signal.reason?.name !== "TimeoutError")) throw error;
     if (error instanceof ModelBudgetError) return finish(draft, false, false, "budget");
     if (signal.aborted && signal.reason?.name === "TimeoutError") return finish(draft, false, false, "deadline");
+    // A failed provider call on the repair round (rate limit, overload, a bad reply) never costs the
+    // reader the answer already written. Anything else (a fault in this code) is still raised.
+    if (error instanceof Anthropic.APIConnectionError) {
+      console.error(JSON.stringify({ event: "ask_sendback_failed", status: (error as { providerStatus?: number }).providerStatus ?? 0 }));
+      return finish(draft, false, false);
+    }
     throw error;
   }
 }

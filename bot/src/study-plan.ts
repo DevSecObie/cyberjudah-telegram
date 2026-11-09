@@ -80,7 +80,14 @@ export function namedRefs(text: string, books: Books | null, parseReference: Par
   if (!books) return [];
   const out: Ref[] = [];
   for (const m of references(text)) {
-    const p = parseReference(m, books);
+    // "All of Psalms 119" matches as one phrase (the pattern allows "Song of Solomon"): when the whole
+    // phrase is not a book, the words after each " of " are tried, but only from a capitalised word,
+    // so "the significance of the 3 days" never becomes a book.
+    let p = parseReference(m, books);
+    for (const t of m.split(/ of /).slice(1).map((_, i, rest) => rest.slice(i).join(" of "))) {
+      if (p) break;
+      if (/^[A-Z]/.test(t)) p = parseReference(t, books);
+    }
     if (p && !out.some((r) => key(r) === key(toRef(p)))) out.push(toRef(p));
     if (out.length === max) break;
   }
@@ -97,7 +104,8 @@ export function planFrom(question: string, input: unknown, books: Books | null, 
   if (!Array.isArray(raw) || !raw.length) return { refused: ["no parts were listed"] };
   if (raw.length > PLAN_MAX_PARTS) return { refused: [`at most ${PLAN_MAX_PARTS} parts`] };
   // A part may name a chapter the reader named, in any form ("Exodus 12" for "Exodus 12:1-8").
-  const named = new Set(namedRefs(question, books, parseReference, 50).map(chapterOf));
+  const readerRefs = namedRefs(question, books, parseReference, 50);
+  const named = new Set(readerRefs.map(chapterOf));
   const parts: PlanPart[] = [], refused: string[] = [];
   raw.forEach((p, i) => {
     const ask = typeof (p as { ask?: unknown })?.ask === "string" ? (p as { ask: string }).ask.replace(/\s+/g, " ").trim() : "";
@@ -105,10 +113,17 @@ export function planFrom(question: string, input: unknown, books: Books | null, 
       // A reference the reader did not name would be the model's teaching, not the reader's part.
       : (books ? namedRefs(ask, books, parseReference, 50).some((r) => !named.has(chapterOf(r))) : references(ask).length > 0) ? "it names Scripture the reader did not name" : "";
     if (why) { refused.push(`part ${i + 1}: ${why}`); return; }
+    // What must be read for a part is never left to the model: the Scripture its own ask names, and
+    // the reader's ranges that meet it (so the widest range the reader gave). The model's own refs
+    // may only add to that.
     const refs: Ref[] = [];
+    const push = (r: Ref) => { if (!refs.some((x) => key(x) === key(r))) refs.push(r); };
+    // (A part that reads a whole chapter already reads every range in it.)
+    const meets = (wide: Ref, r: Ref) => chapterOf(wide) === chapterOf(r) && r.from != null && (wide.from == null || (wide.from <= (r.to ?? r.from) && (wide.to ?? wide.from) >= r.from));
+    for (const r of namedRefs(ask, books, parseReference, 50)) { push(r); for (const w of readerRefs) if (meets(w, r)) push(w); }
     for (const r of Array.isArray((p as { refs?: unknown }).refs) ? (p as { refs: unknown[] }).refs.slice(0, 6) : []) {
       const ref = typeof r === "string" && books ? parseReference(r.slice(0, 80), books) : null;
-      if (ref) refs.push(toRef(ref));
+      if (ref) push(toRef(ref));
     }
     parts.push({ id: partId(i), ask, refs });
   });

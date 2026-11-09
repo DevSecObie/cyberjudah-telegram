@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
+import Anthropic from '@anthropic-ai/sdk';
 import { modelOf } from '../../shared/ask-models.mjs';
 
 // The research plan and coverage checklist (study-plan.ts). Verses and notes are placeholders,
 // not Scripture or teaching.
 const out = new URL('./.build/study-plan.mjs', import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/study-plan.ts"; export { runAgent } from "./src/agent.ts"; export { researchOpen } from "./src/agent-open.ts"; export { parseReference } from "./src/refs.mjs";', resolveDir: new URL('..', import.meta.url).pathname }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error', plugins: [{ name: 'fixtures', setup(b) {
+await build({ stdin: { contents: 'export * from "./src/study-plan.ts"; export { runAgent } from "./src/agent.ts"; export { researchOpen } from "./src/agent-open.ts"; export { parseReference } from "./src/refs.mjs"; export { makeSpend } from "./src/spend.ts";', resolveDir: new URL('..', import.meta.url).pathname }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error', plugins: [{ name: 'fixtures', setup(b) {
   b.onResolve({ filter: /^\.\/(providers|resource-tools|ask-tools|data)$/ }, args => args.importer.endsWith('/agent.ts') ? { path: args.path.slice(2), namespace: 'fixture' } : undefined);
   b.onLoad({ filter: /.*/, namespace: 'fixture' }, args => ({ loader: 'js', contents: {
     providers: 'export async function claude(env) { return env.client; }',
@@ -95,12 +96,14 @@ function claudeScript(turns, requests) {
     const turn = turns[Math.min(requests.length - 1, turns.length - 1)];
     let onText;
     return { on(event, handler) { if (event === 'text') onText = handler; }, async finalMessage() {
+      if (turn instanceof Error) throw turn;
       if (typeof turn === 'string') { onText?.(turn); return { content: [{ type: 'text', text: turn }], stop_reason: 'end_turn', usage: { input_tokens: 100, output_tokens: 10 } }; }
       return { content: turn.map((t, i) => ({ type: 'tool_use', id: `t${requests.length}-${i}`, name: t.name, input: t.input })), stop_reason: 'tool_use', usage: { input_tokens: 100, output_tokens: 10 } };
     } };
   } } };
 }
 const env = (client) => ({ client, DATA_ORIGIN: 'https://data.test', SITE_URL: 'https://site.test' });
+const apiError = (status) => Anthropic.APIError.generate(status, { error: { type: 'x', message: 'm' } }, 'm', new Headers());
 const plan = { name: 'plan_research', input: { parts: [{ ask: 'The Sabbath in Exodus 20', refs: ['Exodus 20'] }, { ask: 'The rest in Psalms 119', refs: ['Psalms 119'] }] } };
 const question = 'Explain the Sabbath in Exodus 20 and the rest in Psalms 119';
 
@@ -237,6 +240,56 @@ test('reading every source is not answering every part: omitted, uncited and wro
   assert.deepEqual(fields.unfinished, [{ id: 'p2', ask: 'Psalms 119 rest' }]);
 });
 
+for (const status of [400, 429]) test(`hotfix: a provider error (${status}) on the sent-back round finishes with the first answer, not cut`, async (t) => {
+  const requests = [], events = [], logged = [];
+  t.mock.method(console, 'error', (line) => logged.push(String(line)));
+  const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'Only part one [1].', apiError(status)];
+  const spend = api.makeSpend();
+  const result = await api.runAgent(env(claudeScript(turns, requests)), question, [], [], async () => [], e => events.push(e), undefined, undefined, modelOf('claude-opus-5-5'), spend);
+  assert.equal(requests.length, 4, 'the sent-back call was made and failed');
+  assert.equal(result.text, 'Only part one [1].');
+  assert.equal(result.cut, false);
+  assert.equal(events.filter(e => 'delta' in e).at(-1).delta, 'Only part one [1].', 'the first answer is shown again after the reset');
+  assert.equal(spend.unreported, false, 'a request refused outright used nothing');
+  assert.ok(logged.some(l => l.includes('"event":"ask_sendback_failed"') && l.includes(`"status":${status}`)));
+  assert.ok(logged.every(l => !l.includes('Sabbath')), 'no question text in the log');
+});
+
+test('hotfix: a failed sent-back call that had begun is counted and marked as not fully reported', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const turns = [[plan], [{ name: 'read_scripture', input: { reference: 'Exodus 20' } }], 'Only part one [1].', apiError(529)];
+  const base = claudeScript(turns, []);
+  const client = { messages: { countTokens: base.messages.countTokens, stream(input) { const s = base.messages.stream(input); return { ...s, currentMessage: { usage: { input_tokens: 500, output_tokens: 50 } } }; } } };
+  const spend = api.makeSpend();
+  const result = await api.runAgent(env(client), question, [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'), spend);
+  assert.equal(result.text, 'Only part one [1].');
+  assert.equal(result.calls, 4, 'the failed call is counted');
+  assert.equal(spend.unreported, true);
+});
+
+test('hotfix: a provider error before any send-back is still raised', async () => {
+  await assert.rejects(api.runAgent(env(claudeScript([apiError(429)], [])), question, [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5')));
+});
+
+test('hotfix: a part reads the Scripture its own ask names, whatever refs the model lists', () => {
+  const src = { n: 1, kind: 'note', title: 'Psalm class', text: 'placeholder note about all of psalms 119 recorded in the class notes, with enough words to count.' };
+  for (const refs of [undefined, [], ['Psalms 119:1']]) {
+    const { parts } = api.planFrom('Explain all of Psalms 119', { parts: [{ ask: 'All of Psalms 119', ...(refs ? { refs } : {}) }] }, BOOKS, api.parseReference);
+    const r = new api.Readings();
+    r.record('psalms', 119, 1, 1, 1, 176);
+    assert.equal(api.checklist(parts, [src], r)[0].status, 'partial', `refs ${JSON.stringify(refs)}: one verse is not the chapter`);
+    r.record('psalms', 119, 2, 176, 1, 176);
+    assert.equal(api.checklist(parts, [src], r)[0].status, 'covered');
+  }
+  const wide = api.planFrom('Explain Psalms 119 and its first part', { parts: [{ ask: 'The first part, Psalms 119:1-8' }] }, BOOKS, api.parseReference).parts;
+  assert.ok(wide[0].refs.some(r => r.label === 'Psalms 119' && r.from == null), 'the reader named the whole chapter, so the whole chapter is read');
+  const two = api.planFrom('Compare Psalms 119:1-8 with Psalms 119:105', { parts: [{ ask: 'Psalms 119:1-8' }, { ask: 'Psalms 119:105' }] }, BOOKS, api.parseReference).parts;
+  assert.deepEqual(two.map(p => p.refs.map(r => r.label)), [['Psalms 119:1-8'], ['Psalms 119:105']], 'each part reads only its own range');
+  const overlap = api.planFrom('Explain Exodus 12:3-11', { parts: [{ ask: 'Exodus 12:1-8' }] }, BOOKS, api.parseReference).parts;
+  assert.deepEqual(overlap[0].refs.map(r => r.label), ['Exodus 12:1-8', 'Exodus 12:3-11'], 'a reader range that meets the part is read too');
+  assert.deepEqual(api.namedRefs('the significance of the 3 days', BOOKS, api.parseReference), []);
+});
+
 function gatewayScript(format, turns, requests) {
   return { run: async (_model, input) => {
     requests.push(structuredClone(input));
@@ -301,6 +354,20 @@ for (const format of ['chat', 'responses', 'messages']) {
     assert.equal(result.stopped, 'budget');
     assert.equal(requests.length, 1);
     assert.deepEqual(events.filter(event => event.delta), [{ delta: 'A usable draft.' }]);
+  });
+
+  test(`hotfix ${format}: a provider error on the repair round keeps the draft`, async (t) => {
+    const requests = [], logged = [];
+    t.mock.method(console, 'error', (line) => logged.push(String(line)));
+    const first = gatewayScript(format, ['A usable draft.'], requests);
+    const e = { AI_GATEWAY: 'fixture', AI: { run: async (...args) => {
+      if (!requests.length) return first.run(...args);
+      throw Object.assign(new Error('rate limited'), { status: 429 });
+    } } };
+    const result = await api.researchOpen(e, model, 'Fixture', [{ role: 'user', content: 'question' }], [], new Map(), async () => '', () => {}, 3, undefined, false, undefined, { reviewAnswer: () => 'An unfinished part remains.' });
+    assert.equal(result.text, 'A usable draft.');
+    assert.equal(result.cut, false);
+    assert.ok(logged.some(l => l.includes('"status":429')));
   });
 
   for (const reason of ['TimeoutError', 'AbortError']) test(`${format}: repair ${reason === 'TimeoutError' ? 'deadline keeps the draft' : 'cancellation is not swallowed'}`, async () => {
