@@ -1,3 +1,2 @@
 - The CyberJudah web app (the iPhone app's own web version) gets its home at web.cyberjudah.io: a new hand-run `web` workflow builds it from one pinned app commit with the store app's production settings and deploys it as its own Worker, after the production reviewer approves.
 - The API answers the web app at web.cyberjudah.io, so its classes, books, Said in Class and Ask load from cyberjudah.io as they do in the store app. No other site is let in.
-- Strong's Lexicon: a word tapped while the verse's Strong's cards are still loading is now selected at once, and its card is brought into view when the cards arrive, instead of the tap being lost.
