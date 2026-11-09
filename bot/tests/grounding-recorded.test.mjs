@@ -1,10 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { evaluateRecordedAnswer, evaluateRecordedSuite } from '../evals/grounding-eval.mjs';
+import { evaluateRecordedAnswer, evaluateRecordedSuite, evaluateRecordedCompleteness, multipartRecords } from '../evals/grounding-eval.mjs';
 import { coverageDecision } from '../src/grounding.mjs';
 
 const fixture = JSON.parse(readFileSync(new URL('../evals/grounding-recorded.json', import.meta.url), 'utf8'));
+
+for (const record of multipartRecords(fixture.cases)) test(`${record.id}: every subquestion needs its own recorded, cited evidence`, () => {
+  assert.equal(evaluateRecordedCompleteness(record).complete, true);
+  const missing = evaluateRecordedCompleteness(record, record.answer.split('\n\n')[0]);
+  assert.equal(missing.complete, false);
+  assert.ok(missing.coverage < 1, 'a long valid answer to one part is not a complete answer');
+  const uncited = evaluateRecordedCompleteness(record, record.answer.replace(/\[\d+(?:,\d+)*\]/g, ''));
+  assert.equal(uncited.complete, false);
+  assert.equal(uncited.coverage, 0);
+  const unsupported = evaluateRecordedCompleteness(record, `${record.answer}\n\nAn unreviewed assertion. [1]`);
+  assert.equal(unsupported.complete, false, 'covering all parts cannot excuse unsupported additions');
+});
 
 test('50 public recorded questions replay without network/inference and report claim alignment and uncited rates', t => {
   const fetchBefore = globalThis.fetch;

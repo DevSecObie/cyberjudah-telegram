@@ -54,3 +54,37 @@ export function evaluateRecordedSuite(records) {
     results,
   };
 }
+
+/** Explicit extractive requirements per subquestion, not answer length or citation existence. */
+export function evaluateRecordedCompleteness(record, answer = record.answer) {
+  const grounding = evaluateRecordedAnswer(record, answer);
+  const assigned = new Set(record.parts.flatMap(part => part.claims));
+  if (!record.parts.length || assigned.size !== record.claims.length || [...assigned].some(i => !Number.isInteger(i) || i < 0 || i >= record.claims.length) || record.parts.some(part => !part.claims.length)) throw new Error('Every recorded claim must belong to an explicit part');
+  const parts = record.parts.map(part => {
+    const claims = part.claims.map(i => record.claims[i]);
+    const present = claims.filter(claim => normalize(answer).includes(normalize(claim.text))).length;
+    const evidence = evaluateRecordedAnswer({ ...record, claims }, answer);
+    const status = evidence.aligned === claims.length && !evidence.failures.includes('invalid-recorded-evidence') ? 'covered' : present ? 'partial' : 'missing';
+    return { id: part.id, status };
+  });
+  const covered = parts.filter(part => part.status === 'covered').length;
+  return { id: record.id, complete: grounding.ok && covered === parts.length, coverage: covered / parts.length, parts, grounding };
+}
+
+/** Deterministic multipart replays of the existing public extracts; no generated teaching. */
+export function multipartRecords(records) {
+  const eligible = records.filter(record => record.claims.length && !record.non_claim);
+  const out = [];
+  for (let i = 0; i + 1 < eligible.length; i += 2) {
+    const pair = eligible.slice(i, i + 2), retrieval = [], claims = [], parts = [], answers = [];
+    for (const record of pair) {
+      const remap = new Map(record.retrieval.map(source => [source.n, retrieval.length + record.retrieval.indexOf(source) + 1]));
+      retrieval.push(...record.retrieval.map(source => ({ ...source, n: remap.get(source.n) })));
+      parts.push({ id: `p${parts.length + 1}`, claims: record.claims.map((_, index) => claims.length + index) });
+      claims.push(...record.claims.map(claim => ({ ...claim, support: claim.support.map(support => ({ ...support, n: remap.get(support.n) })) })));
+      answers.push(record.answer.replace(citation, (_, ns) => `[${ns.split(/\s*,\s*/).map(n => remap.get(Number(n))).join(',')}]`));
+    }
+    out.push({ id: `multipart-${i / 2 + 1}`, question: pair.map(record => record.question).join(' '), retrieval, claims, parts, answer: answers.join('\n\n') });
+  }
+  return out;
+}
