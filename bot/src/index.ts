@@ -31,7 +31,7 @@ import { readSources, saveSources } from "./cms-sources";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeAskIpQuota, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { semanticSearch } from "./semantic-search";
-import { normalizeHistory, VOICES } from "./ai.mjs";
+import { normalizeHistory, withStudyContext, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { createBroadcastSender, withBroadcastLease } from "./broadcast";
@@ -280,7 +280,7 @@ app.post("/api/ask", async (c) => {
   if (!(await takeAskIpQuota(c.req.raw, c.env))) {
     return c.json({ error: "limit" }, 429);
   }
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; context?: unknown; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
   // The request's id (a retry of the same request holds once), and the most the reader accepted a
   // request may cost on each model (balance units, mc): the server takes the one for the model it resolves.
   const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
@@ -290,7 +290,7 @@ app.post("/api/ask", async (c) => {
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
-  const history = normalizeHistory(body?.history, 8);
+  const history = withStudyContext(normalizeHistory(body?.history, 8), body?.context);
   if (body?.stream || typeof body?.model === "string") {
     const start = Date.now();
     const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);

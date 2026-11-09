@@ -1,4 +1,4 @@
-import { groundedSystem, libraryData } from "./grounding.mjs";
+import { groundedSystem, libraryData, untrustedData } from "./grounding.mjs";
 import { citationReport } from "./citations.mjs";
 
 /**
@@ -126,11 +126,47 @@ export function answerCandidates(question, passages, limit = 10) {
  * is about rather than the bare words.
  */
 const REFERS = /^(and|but|so|also|then|why|how|what about|who was|where|when|say more|tell me more|explain|more)\b|\b(he|him|his|she|her|they|them|their|it|its|that|this|those|these)\b/i;
+const STUDY_PREFIX = "Earlier study context (conversation only, never evidence):\n";
+const PRIOR_QUESTION = "\n\nEarlier question: ";
+
+/** Bounded user-owned conversation hints, never system instructions or registered evidence. */
+export function withStudyContext(history, raw) {
+  if (!history.length || !raw || typeof raw !== 'object' || typeof raw.topic !== 'string') return history;
+  const clean = (text, max) => typeof text === 'string' ? text.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, ' ').replace(/\s*\[\d+(?:\s*,\s*\d+)*\]/g, '').trim().slice(0, max) : '';
+  const list = (field, count, max) => Array.isArray(raw[field]) ? raw[field].slice(-count).map(value => clean(value, max)).filter(Boolean) : [];
+  const context = { topic: clean(raw.topic, 400), corrections: list('corrections', 3, 180), references: list('references', 8, 40), unresolved: list('unresolved', 3, 180), sourceUrls: list('sourceUrls', 4, 120) };
+  if (!context.topic) return history;
+  while (untrustedData(context, 'study_context').length > 2300) {
+    if (context.sourceUrls.length) context.sourceUrls.shift();
+    else if (context.references.length) context.references.shift();
+    else if (context.unresolved.length) context.unresolved.shift();
+    else if (context.corrections.length) context.corrections.shift();
+    else context.topic = context.topic.slice(0, Math.floor(context.topic.length * 0.8));
+  }
+  return history.map((turn, index) => index ? turn : { ...turn, content: `${STUDY_PREFIX}${untrustedData(context, 'study_context')}${PRIOR_QUESTION}${turn.content.slice(0, 600)}` });
+}
+
+function studyHint(history) {
+  const content = history[0]?.content ?? '';
+  if (!content.startsWith(STUDY_PREFIX)) return null;
+  try {
+    const json = /```json\n([\s\S]*?)\n```/.exec(content)?.[1];
+    const topic = JSON.parse(json)?.topic;
+    const split = content.indexOf(PRIOR_QUESTION);
+    return typeof topic === 'string' && split >= 0 ? { topic: topic.slice(0, 400), question: content.slice(split + PRIOR_QUESTION.length) } : null;
+  } catch { return null; }
+}
+
 export function retrievalText(question, history = []) {
-  const prev = [...history].reverse().find((t) => t.role === "user")?.content ?? "";
+  const hint = studyHint(history);
+  const prior = [...history].reverse().find((t) => t.role === "user");
+  const prev = prior === history[0] && hint ? hint.question : prior?.content ?? "";
   if (!prev) return question;
   const words = question.trim().split(/\s+/).length;
-  return words < 6 || (words < 14 && REFERS.test(question)) ? `${prev.slice(0, 300)} ${question}` : question;
+  const refers = words < 14 && (REFERS.test(question) || /^(?:continue|go on|go deeper)\b/i.test(question));
+  if (!refers) return question;
+  const topic = hint?.topic && hint.topic !== prev ? `${hint.topic.slice(0, 300)} ` : '';
+  return `${topic}${prev.slice(0, 300)} ${question}`;
 }
 
 /** The verse references named in a question ("Deuteronomy 28:68", "1 John 3:4-8"), at most three. */
