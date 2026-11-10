@@ -819,9 +819,10 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
               await alertClaudeFunds(env, e);
               backup = true;
-              // Decided before the meter settles: without the reader's agreement to the backup's
-              // provider no backup answer is written, so the free reservation is released ("empty").
-              if (!mayUseBackup(consent)) { await finish("empty"); send({ reset: true }); send({ error: "busy" }); return; }
+              // Decided before the meter settles: without the reader's agreement to the backup's provider
+              // no backup answer is written. The free reservation goes back when Claude refused before
+              // writing (nothing billed), and is kept whole after a server error or lost connection.
+              if (!mayUseBackup(consent)) { await finish(claudeRefusedUnbilled(e) ? "empty" : "failed"); send({ reset: true }); send({ error: "busy" }); return; }
               await finish("backup");
               send({ reset: true });
               send({ status: "Answering with the backup model" });

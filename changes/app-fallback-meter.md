@@ -6,4 +6,4 @@
   - A server error or a lost connection: the whole reservation is kept as before, because tokens may already have been billed.
   - Claude ran out of its reservation: what Claude reported spending is counted.
 - A fallback that runs still keeps the whole reservation, since its cost is not reported.
-- The same order as the askStream fix in PR #603.
+- askStream (PR #603) is aligned with this: a refused backup releases the free reservation only when Claude refused before writing, and keeps it whole after a server error or lost connection (t1v).
