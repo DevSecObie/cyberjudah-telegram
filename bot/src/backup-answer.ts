@@ -12,6 +12,15 @@ import { viaGateway } from "./providers";
 import { MAX_OPEN_OUTPUT, adminBudgetPool } from "./research-policy.mjs";
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
+
+/** The provider the backup model sends the question to (Workers AI). */
+export const BACKUP_PROVIDER = modelOf(ANSWER_MODEL).provider;
+/**
+ * Whether the backup may write this reader's answer: only with their agreement to its provider, as
+ * for any model (Apple 5.1.2(i); Telegram Bot Developer Terms 4.3). A reader who agreed only to
+ * Claude's provider is never sent to Workers AI when Claude cannot answer.
+ */
+export const mayUseBackup = (consent: readonly string[]) => consent.includes(BACKUP_PROVIDER);
 class BackupBudgetUnavailable extends Error {}
 
 /** A longer backup still has to fit the sponsor's allowance before any provider call. */

@@ -148,7 +148,7 @@ appAsk.post('/', async c => {
           if (result.ok) {
             // Never transmit retrieved passage text in the sources payload.
             const sources = result.sources.map(({ text, ...source }) => ({ ...source, ...(result.ui ? { excerpt: text.slice(0, 1000) } : {}) }));
-            send({ done: true, answer: result.answer, sources, unsupported_refs: result.unsupported_refs ?? [], followups: result.followups ?? [], model: result.model, ...(result.ui ? { ui: result.ui, teachingFound: result.teachingFound } : {}) });
+            send({ done: true, answer: result.answer, sources, unsupported_refs: result.unsupported_refs ?? [], followups: result.followups ?? [], model: result.model, plan: result.plan, coverage: result.coverage, partial: result.partial, unfinished: result.unfinished, cut: result.cut, ...(result.ui ? { ui: result.ui, teachingFound: result.teachingFound } : {}) });
           } else send({ error: result.reason });
         } catch { send({ error: 'unavailable' }); }
         finally { clearInterval(beat); if (open) { open = false; controller.close(); } }

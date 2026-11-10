@@ -14,7 +14,7 @@ import { studyFields, type StudyFields } from "./study-plan";
 import { MAX_RESEARCH_ROUNDS, MAX_RESEARCH_MS, adminBudgetPool, researchRounds, researchSignal, timeLeft } from "./research-policy.mjs";
 import { withTeachers } from "./class-attribution";
 export { withTeachers } from "./class-attribution";
-import { backupOnce, backupPieces } from "./backup-answer";
+import { backupOnce, backupPieces, mayUseBackup } from "./backup-answer";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
 import { alertClaudeFunds, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
@@ -32,7 +32,7 @@ import { withAskSourcePictures } from "./ask-source-pictures";
 import { withAskBookLinks } from "./ask-source-links";
 import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
 import { citationReport, citationTokenCount } from "./citations.mjs";
-import { autoModel } from "./ask-routing";
+import { autoModel, type AnswerDepth } from "./ask-routing";
 import { approvedSources as approvedOutsideHosts } from "./source-policy";
 import { recordedMoment, retrievedSourceUrl } from "./retrieved-source-url";
 import { issueAnswerReceipt } from "./feedback";
@@ -106,7 +106,7 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
   } catch { return passages.slice(0, topK); }
 }
 
-export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number } | { ok: false; reason: string };
+export type Answer = ({ ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number; cut?: boolean } & StudyFields) | { ok: false; reason: string };
 /** Ask answers a day per person (ASK_DAILY_LIMIT; a hundred when unset). */
 export function askLimit(env: Env): number {
   const n = Number(env.ASK_DAILY_LIMIT);
@@ -203,7 +203,7 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  */
 export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number; reservation?: FreeReservation };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
-export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean };
+export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean; depth?: AnswerDepth };
 
 /**
  * The free tier answers at the owner's expense, with the same default research guard
@@ -321,15 +321,21 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), timeLeft(t0 + MAX_RESEARCH_MS)), 8);
     signal.throwIfAborted();
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
-      const { text, passages, grounded, cut } = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
+      const ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
+      const { text, passages, grounded, cut } = ran;
       const answer = await checkedVerses(env, splitFollowups(text).answer);
       if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
-      return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
+      const sources = await askSourcesOf(env, answer, passages);
+      return { ok: true, q: question, answer, sources, ...citationMetadata(answer, passages), ...(cut ? { cut: true } : {}), ...studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer), ms: Date.now() - t0 };
     }
-    if (meter) await finishMeter(env, meter, "backup");
+    // The backup sends the question to its own provider: only with the reader's agreement to it.
+    // Without it nothing is written by a model, so nothing is held: the meter settles as empty.
+    const backupAllowed = mayUseBackup(consent);
+    if (meter) await finishMeter(env, meter, backupAllowed ? "backup" : "empty");
     const passages = first;
     if (assessCoverage(env, retrievalText(question, history), passages).blocked && passages.length) { const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`))); return { ok: true, q: question, answer: gap.answer, sources: await askSourcesOf(env, gap.answer, gap.sources), unsupported_refs: [], ms: Date.now() - t0 }; }
     if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], unsupported_refs: [], ms: Date.now() - t0 };
+    if (!backupAllowed) return { ok: false, reason: "unavailable" };
     const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal));
     return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
@@ -342,7 +348,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 
 type CitationDiagnostics = { sources_returned: number; citation_tokens_found: number; valid_ids: number; retries: number; model: string };
 export type SearchAnswer =
-  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean; state?: "no-cited-answer"; related?: { label: "Related library passages"; passages: Passage[] }; citation_diagnostics?: CitationDiagnostics }
+  | ({ ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean; state?: "no-cited-answer"; related?: { label: "Related library passages"; passages: Passage[] }; citation_diagnostics?: CitationDiagnostics; cut?: boolean } & StudyFields)
   | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "model-not-allowed" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
@@ -565,9 +571,12 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     }
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, ran.cut ? "partial" : ran.grounded === false ? "empty" : "ok", Date.now() - t0);
-    const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    const sources = sourcesOf(answer, ran.passages);
+    const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer);
+    const result: SearchAnswer = { ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 };
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
-    if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false) await keepAnswer(env, key, result, options.traceId);
+    // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
+    if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, result, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
@@ -753,7 +762,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
   if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
-  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
+  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId), opts.depth) : selected;
   // Enforce checks both the requested ID and the resolved model; shadow records a choice once.
   if ((!modelId || modelId === "auto" || modelAllowlistMode(env) === "enforce") && !checkModelAllowlist(env, model.id)) return reply(403, MODEL_NOT_ALLOWED);
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
@@ -810,10 +819,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               if (signal.aborted || !claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
               await alertClaudeFunds(env, e);
+              backup = true;
+              // Decided before the meter settles: without the reader's agreement to the backup's
+              // provider no backup answer is written, so the free reservation is released ("empty").
+              if (!mayUseBackup(consent)) { await finish("empty"); send({ reset: true }); send({ error: "busy" }); return; }
               await finish("backup");
               send({ reset: true });
               send({ status: "Answering with the backup model" });
-              backup = true;
             }
             if (ran) {
               const { text, passages, actions, cut, refused, grounded } = ran;
@@ -825,7 +837,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               // Each part lists only sources the answer cites (the numbers its own sources carry).
-              const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n));
+              const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n), answer);
               await keep(answer, sources, followups, steps, actions, cut, study);
               // The model that wrote an answer is named on its finished line, so an Auto answer can show it;
               // the fixed sentences below, written by no model, name none.
@@ -854,6 +866,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             await finish("empty"); await keep(gap.answer, sources, []);
             send({ reset: true }); send({ delta: gap.answer }); await done({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
           }
+          // The backup sends the question to its own provider: only with the reader's agreement to it.
+          // Without it nothing is sent, and the reader is told honestly that no answer could be written.
+          if (!mayUseBackup(consent)) { await finish("empty"); send({ error: backup ? "busy" : "unavailable" }); return; }
           let answer = "";
           const wrote: { model?: string } = {};
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; send({ delta: piece }); }

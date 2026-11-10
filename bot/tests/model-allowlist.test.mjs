@@ -180,19 +180,32 @@ test('enforce: listed picks still require provider consent and exact-model cost 
   assert.deepEqual(env.calls, []);
 });
 
-for (const model of [undefined, 'auto']) test(`shadow: ${model ?? 'default'} miss logs exactly once without changing its served model`, async (t) => {
+test('shadow: default miss logs exactly once without changing its served model', async (t) => {
   const { env } = setup(t, 'shadow', { CLAUDE_MODEL: excluded, ASK_BILLING: 'off' });
   const { value: response, misses } = await capture(async () => {
-    const r = await request(env, { q: 'Can I return to the existing preview fixture?', model, stream: true, consent: ['OpenAI'] });
+    const r = await request(env, { q: 'Can I return to the existing preview fixture?', stream: true, consent: ['OpenAI'] });
     await r.text(); return r;
   });
   assert.equal(response.status, 200); assert.deepEqual(env.calls, [excluded]);
   assert.deepEqual(misses, [{ event: 'ask_model_allowlist_miss', model: excluded }]);
 });
 
-test('enforce: unknown picks and unlisted defaults cannot fall through modelOf or Auto', async (t) => {
+for (const mode of ['shadow', 'enforce']) test(`${mode}: Auto replaces an unlisted default with allowed research`, async (t) => {
+  const { env } = setup(t, mode, { CLAUDE_MODEL: excluded, ASK_BILLING: 'off' });
+  const expected = modelOf(FRONTIER_ORDER[0]);
+  assert.ok(isAllowlistedModel(expected.id));
+  const { value: response, misses } = await capture(async () => {
+    const r = await request(env, { q: 'Can I return to the existing preview fixture?', model: 'auto', stream: true, consent: [expected.provider] });
+    await r.text(); return r;
+  });
+  assert.equal(response.status, 200);
+  assert.deepEqual(env.calls, [expected.id]);
+  assert.deepEqual(misses, []);
+});
+
+test('enforce: unknown picks and unlisted defaults cannot fall through modelOf', async (t) => {
   const { env } = setup(t, 'enforce', { CLAUDE_MODEL: excluded });
-  for (const model of ['not-a-model', 'auto']) {
+  for (const model of ['not-a-model']) {
     const response = await request(env, { q: 'Can I return to the existing preview fixture?', model, stream: true, consent: ['OpenAI'] });
     assert.equal(response.status, 403); assert.equal((await response.json()).error, 'model-not-allowed');
   }
