@@ -17,7 +17,7 @@ export { withTeachers } from "./class-attribution";
 import { backupOnce, backupPieces } from "./backup-answer";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
-import { alertClaudeFunds, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
+import { alertClaudeFunds, claudeRefusedUnbilled, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
@@ -464,6 +464,11 @@ export async function answerApp(env: Env, q: string, account: string, history: T
 }
 
 /** The free model a Claude answer falls back to: the default free model when the app offers it, else the first free one it offers. */
+/** Why the free fallback may not answer for this reader (no agreement to its provider, or no such model), or null when it may. */
+const fallbackRefusal = (models: AskModel[], fallback: string, consent: readonly string[]): "consent" | "model-unavailable" | null => {
+  const provider = models.find((m) => m.id === fallback)?.provider;
+  return !provider ? "model-unavailable" : consent.includes(provider) ? null : "consent";
+};
 const freeFallback = (env: Env, models: AskModel[]) => (models.find((m) => m.id === freeModel(env).id) ?? models.find((m) => m.format !== "anthropic"))?.id ?? freeModel(env).id;
 
 /**
@@ -544,22 +549,27 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
       // Claude cannot answer now (out of money, overloaded, down): the free model answers instead.
       await alertClaudeFunds(env, e);
       const fallback = freeFallback(env, models);
-      // Decided before the meter settles: without the reader's agreement to the free model's provider
-      // nothing more is sent, and Claude's reservation is released ("empty") rather than kept whole.
-      const provider = models.find((m) => m.id === fallback)?.provider;
-      if (!provider || !consent.includes(provider)) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: provider ? "consent" : "model-unavailable" }; }
-      await finishMeter(env, meter, "backup", Date.now() - t0);
       emit({ reset: true });
-      // Only with the reader's own agreement to the free model's provider; a reader's quota is already counted.
+      // The free model answers only with the reader's own agreement to its provider, decided before the
+      // meter settles. Without it nothing more is sent; Claude's reservation goes back when Claude
+      // refused before writing (nothing billed), and is kept whole otherwise (its cost is unknown).
+      const refused = fallbackRefusal(models, fallback, consent);
+      if (refused) { await finishMeter(env, meter, claudeRefusedUnbilled(e) ? "empty" : "failed", Date.now() - t0); return { ok: false, reason: refused }; }
+      await finishMeter(env, meter, "backup", Date.now() - t0);
+      // A reader's quota is already counted.
       return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback, adminId: undefined, quotaTaken: !adminClaude });
     }
     const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
     if (!answer.trim() && ran.cut && model.format === "anthropic" && !adminClaude) {
       // A reader's Claude answer ran out of what was set aside for it before writing: the free model
-      // answers instead, with the reader's own agreement to its provider and no second quota.
-      await finishMeter(env, meter, "backup", Date.now() - t0);
+      // answers instead, with the reader's own agreement to its provider and no second quota. Without
+      // that agreement the meter settles on what Claude reported spending ("empty"), not the whole reservation.
+      const fallback = freeFallback(env, models);
       emit({ reset: true });
-      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
+      const refused = fallbackRefusal(models, fallback, consent);
+      if (refused) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: refused }; }
+      await finishMeter(env, meter, "backup", Date.now() - t0);
+      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback, adminId: undefined, quotaTaken: true });
     }
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, ran.cut ? "partial" : ran.grounded === false ? "empty" : "ok", Date.now() - t0);

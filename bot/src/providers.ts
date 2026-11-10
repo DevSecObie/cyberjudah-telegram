@@ -75,6 +75,18 @@ export function claudeUnavailable(e: unknown): boolean {
   return s === undefined || s === 401 || s === 402 || s === 403 || s === 408 || s === 409 || s === 429 || s >= 500;
 }
 
+/**
+ * Whether Claude refused the request before writing anything, so nothing was billed for it: out of
+ * funds (400 credit balance, 402), a key that no longer works (401, 403), rate limited (429) or
+ * overloaded (529). A server error, a timeout or a lost connection may come after tokens were
+ * billed, so it is not counted here.
+ */
+export function claudeRefusedUnbilled(e: unknown): boolean {
+  if (!(e instanceof Anthropic.APIError)) return false;
+  const s = e.status;
+  return (s === 400 && /credit balance/i.test(e.message ?? "")) || s === 401 || s === 402 || s === 403 || s === 429 || s === 529;
+}
+
 /** Whether the failure means the money that pays for Claude has run out: the owner's console (400) or Cloudflare's credits (402). */
 export function claudeOutOfFunds(e: unknown): boolean {
   if (!(e instanceof Anthropic.APIError)) return false;
