@@ -7,13 +7,15 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 const { outputFiles } = await build({
   stdin: {
     contents: `import { Hono } from "hono";
-      import { publishedStudies, publishedStudyPage } from "./src/published-studies.ts";
+      import { publishedStudies, publishedStudyPage, takeDownStudy } from "./src/published-studies.ts";
       import { firebaseAuth } from "./src/firebase-auth.ts";
       const app = new Hono();
       app.use("*", async (c, next) => { c.env.FIREBASE_AUTH_LIMIT = { limit: async () => ({ success: true }) }; await next(); });
       app.route("/api/published-studies", publishedStudies);
       app.route("/app/published", publishedStudyPage);
       app.route("/api/firebase", firebaseAuth);
+      // Test only: the admin takedown the bot's /takedown runs (its admin check is tested in takedown-command.test.mjs).
+      app.delete("/test/takedown/:id", async c => c.json({ removed: await takeDownStudy(c.env, c.req.param("id")) }));
       export default app;`,
     resolveDir: new URL('..', import.meta.url).pathname,
   },
@@ -46,6 +48,7 @@ const del = (mf, id, uid) => mf.dispatchFetch(`https://cyberjudah.test/api/publi
   method: 'DELETE', headers: { authorization: `Bearer ${token(uid)}` },
 });
 const view = (mf, id) => mf.dispatchFetch(`https://cyberjudah.test/app/published/${id}`);
+const takedown = (mf, id) => mf.dispatchFetch(`https://cyberjudah.test/test/takedown/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
 test('both independent Worker stores remove native publications and links while preserving Telegram', async () => {
   const workers = [worker({ PRIVACY_KEY:'production-test-key' }), worker({ PRIVACY_KEY:'staging-test-key' })];
@@ -133,7 +136,8 @@ test("a reader's text never runs as code on the page", async () => {
     assert.equal((await put(mf, 'study-xss001', 'reader-one', { title: '<b>Title</b>', body })).status, 200);
     const html = await (await view(mf, 'study-xss001')).text();
     assert.doesNotMatch(html, /<script>alert/);
-    assert.doesNotMatch(html, /<img/);
+    // The only picture is the footer's own logo: a reader's image never renders.
+    assert.deepEqual([...html.matchAll(/<img[^>]*>/g)].map(m => m[0]), ['<img src="/app/icons/light-64.png" alt="CyberJudah" width="24" height="24">']);
     assert.doesNotMatch(html, /href="javascript:/);
     assert.doesNotMatch(html, /evil\.test/);
     assert.match(html, /<a href="https:\/\/cyberjudah\.io\/app" rel="noopener noreferrer nofollow">good<\/a>/);
@@ -152,5 +156,108 @@ test('deleting the account takes down every study the reader published, and only
     assert.equal((await view(mf, 'study-mine01')).status, 404);
     assert.equal((await view(mf, 'study-mine02')).status, 404);
     assert.equal((await view(mf, 'study-other1')).status, 200);
+  } finally { await mf.dispose(); }
+});
+
+
+// Reporting, as Bible Strong does it: an email with the study's link (Terms, "Your notes and shared studies").
+test('every published page has a plain "Report this study" mailto with only its link and title, and no added footer line', async () => {
+  const mf = worker();
+  try {
+    assert.equal((await put(mf, 'study-report1', 'reader-one', { title: 'Judah & "the" <Tribes>', author: 'Asahel', body: 'Text' })).status, 200);
+    const res = await view(mf, 'study-report1');
+    const html = await res.text();
+    // Owner: match Bible Strong, whose study page has no report line, so none is added.
+    assert.doesNotMatch(html, /24 hours|Reported studies/);
+    assert.match(html, /<a href="https:\/\/cyberjudah\.io">cyberjudah\.io<\/a><p><a href="mailto:[^"]*">Report this study<\/a><\/p><\/footer>/);
+    const links = [...html.matchAll(/<a href="(mailto:[^"]*)">Report this study<\/a>/g)];
+    assert.equal(links.length, 1, 'one visible report link');
+    // The attribute is HTML-escaped; unescaped it is a mailto to the contact address.
+    const href = links[0][1].replace(/&(amp|quot|lt|gt|#39);/g, (_, e) => ({ amp: '&', quot: '"', lt: '<', gt: '>', '#39': "'" })[e]);
+    const url = new URL(href);
+    assert.equal(url.protocol, 'mailto:');
+    assert.equal(url.pathname, 'privacy@cyberjudah.io');
+    assert.deepEqual([...url.searchParams.keys()], ['subject', 'body']);
+    assert.equal(url.searchParams.get('subject'), 'Report: Judah & "the" <Tribes>');
+    assert.equal(url.searchParams.get('body'), 'Study: https://cyberjudah.test/app/published/study-report1\n\nReason:\n');
+    // No author, owner hash or tracking in it, and no raw quote or bracket breaks out of the attribute.
+    assert.doesNotMatch(href, /Asahel|reader-one|utm_|owner/i);
+    assert.doesNotMatch(links[0][1], /["<>]/);
+    // No script anywhere, and the page's CSP still allows none.
+    assert.doesNotMatch(html, /<script|\son[a-z]+=/i);
+    assert.doesNotMatch(res.headers.get('content-security-policy'), /script-src/);
+    // The missing-study page offers no report link.
+    assert.doesNotMatch(await (await view(mf, 'study-absent1')).text(), /Report this study/);
+  } finally { await mf.dispose(); }
+});
+
+test('a study an admin took down 404s, says so, cannot be published again under its id, and other studies stay', async () => {
+  const mf = worker();
+  try {
+    for (const id of ['study-down01', 'study-keep01', 'study-unpub1']) assert.equal((await put(mf, id, 'reader-one', { title: id, body: 'text' })).status, 200);
+    assert.deepEqual(await (await takedown(mf, 'study-down01')).json(), { removed: 'removed' });
+    let res = await view(mf, 'study-down01');
+    assert.equal(res.status, 404);
+    assert.match(await res.text(), /This study was taken down\./);
+    res = await mf.dispatchFetch('https://cyberjudah.test/api/published-studies/study-down01');
+    assert.equal(res.status, 404);
+    assert.deepEqual(await res.json(), { published: false, taken_down: true });
+    assert.equal((await view(mf, 'study-keep01')).status, 200);
+    res = await put(mf, 'study-down01', 'reader-one', { title: 'again', body: 'text' });
+    assert.equal(res.status, 403);
+    assert.equal((await res.json()).error, 'taken_down');
+    assert.equal((await put(mf, 'study-down01', 'reader-two', { title: 'other', body: 'text' })).status, 403, 'nobody can use the id');
+    assert.equal((await view(mf, 'study-down01')).status, 404);
+    assert.deepEqual(await (await takedown(mf, 'study-down01')).json(), { removed: 'already' });
+
+    // Reported, then unpublished by its writer before the admin acts: the takedown still blocks the id.
+    assert.equal((await del(mf, 'study-unpub1', 'reader-one')).status, 200);
+    assert.deepEqual(await (await takedown(mf, 'study-unpub1')).json(), { removed: 'blocked' });
+    assert.equal((await put(mf, 'study-unpub1', 'reader-one', { title: 'back', body: 'text' })).status, 403);
+
+    // Kept: only the id and when; nothing about the writer or a reporter.
+    const db = await mf.getD1Database('DB');
+    const rows = (await db.prepare('SELECT * FROM published_takedowns ORDER BY id').all()).results;
+    assert.deepEqual(rows.map(r => Object.keys(r).sort()), [['at', 'id'], ['at', 'id']]);
+    assert.deepEqual(rows.map(r => r.id), ['study-down01', 'study-unpub1']);
+    // A malformed id removes nothing and keeps nothing; a page that was never taken down keeps the old wording.
+    assert.deepEqual(await (await takedown(mf, 'bad id!')).json(), { removed: 'invalid' });
+    assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM published_takedowns').first()).n, 2);
+    assert.match(await (await view(mf, 'study-never1')).text(), /its writer took it down/);
+    assert.deepEqual(await (await mf.dispatchFetch('https://cyberjudah.test/api/published-studies/study-never1')).json(), { published: false });
+  } finally { await mf.dispose(); }
+});
+
+test("the footer is Bible Strong's, with our names: the writer's given name (escaped), the logo from our own site, and a link to cyberjudah.io", async () => {
+  const mf = worker();
+  try {
+    assert.equal((await put(mf, 'study-foot01', 'reader-one', { title: 'T', author: '<b>Asahel</b> & co', body: 'Text' })).status, 200);
+    let res = await view(mf, 'study-foot01');
+    const html = await res.text();
+    assert.ok(html.includes('<hr><footer class="credit"><p>Study written by &lt;b&gt;Asahel&lt;/b&gt; &amp; co with <picture>'), 'the name, escaped');
+    assert.ok(html.includes('<img src="/app/icons/light-64.png" alt="CyberJudah" width="24" height="24">'));
+    assert.ok(html.includes('<source srcset="/app/icons/dark-64.png" media="(prefers-color-scheme:dark)">'));
+    assert.ok(html.includes('</p><a href="https://cyberjudah.io">cyberjudah.io</a><p><a href="mailto:'), 'the site link, then the report link');
+    // Every picture is a same-origin file; the CSP allows nothing else.
+    for (const [, src] of html.matchAll(/(?:src|srcset)="([^"]*)"/g)) assert.match(src, /^\/app\/icons\/[a-z0-9-]+\.png$/);
+    assert.match(res.headers.get('content-security-policy'), /img-src 'self';/);
+    assert.doesNotMatch(html, /Written in the CyberJudah app|reader-one|owner/);
+
+    assert.equal((await put(mf, 'study-foot02', 'reader-one', { title: 'T', author: '', body: 'Text' })).status, 200);
+    assert.ok((await (await view(mf, 'study-foot02')).text()).includes('<p>Study written with <picture>'), 'no name: no "by"');
+    // The not-found page keeps its old footer.
+    assert.match(await (await view(mf, 'study-nofoot')).text(), /<footer><p>Written in the CyberJudah app\.<\/p><\/footer>/);
+  } finally { await mf.dispose(); }
+});
+
+test('a title with an emoji at the subject cut still renders its page', async () => {
+  const mf = worker();
+  try {
+    const title = 'a'.repeat(149) + '\u{1F600}' + 'b'.repeat(40);
+    assert.equal((await put(mf, 'study-emoji1', 'reader-one', { title, body: 'text' })).status, 200);
+    const res = await view(mf, 'study-emoji1');
+    assert.equal(res.status, 200);
+    const href = /<a href="(mailto:[^"]*)">Report this study<\/a>/.exec(await res.text())[1].replace(/&(amp|quot|lt|gt|#39);/g, (_, e) => ({ amp: '&', quot: '"', lt: '<', gt: '>', '#39': "'" })[e]);
+    assert.equal(new URL(href).searchParams.get('subject'), `Report: ${'a'.repeat(149)}\u{1F600}`);
   } finally { await mf.dispose(); }
 });
