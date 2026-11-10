@@ -6,8 +6,8 @@ import { PROMPT_VERSION, UNAVAILABLE_CORPUS } from "./ask-versions";
 
 /**
  * Answers already written, kept for a week (KV, ask_cache:…). When the same first question is
- * asked again, word for word apart from case and punctuation, with the same prompts, library
- * (corpus release), model, mode and release, the kept answer is given at once with no model call and no cost. Only first questions
+ * asked again, word for word apart from case and punctuation, with the same prompts, cache revision
+ * (PROMPT_REVISION), library (corpus release), model, mode and release, the kept answer is given at once with no model call and no cost. Only first questions
  * (no conversation before them) that found teaching are kept, so nothing personal to one
  * conversation is ever reused. A reader's "wrong" or "harmful" report on a kept answer removes it,
  * so the next reader gets a fresh one.

@@ -569,7 +569,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     await finishMeter(env, meter, ran.cut ? "partial" : ran.grounded === false ? "empty" : "ok", Date.now() - t0);
     const sources = sourcesOf(answer, ran.passages);
     const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer);
-    const result: SearchAnswer = { ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 };
+    const answered: SearchAnswer = { ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 };
+    // The agent's text became the fixed not-in-the-classes sentence: marked as a gap (not sent to the
+    // app), so app-ask records the writer as "none" while `model` stays the app's label (#600).
+    const result = ran.grounded === false ? markCoverageGap(answered) : answered;
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
     // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
     if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, result, options.traceId);
