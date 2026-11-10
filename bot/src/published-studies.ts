@@ -140,7 +140,8 @@ const STYLE = `:root{color-scheme:light dark;--bg:#fbf8f2;--fg:#1d1b18;--muted:#
 main{max-width:680px;margin:0 auto;padding:32px 16px 64px}header{border-bottom:1px solid var(--rule);margin-bottom:24px;padding-bottom:16px}
 h1{font-size:30px;line-height:1.2;margin:0 0 8px}.by{color:var(--muted);font:15px/1.4 -apple-system,system-ui,sans-serif;margin:0}
 blockquote{margin:16px 0;padding:4px 16px;border-left:3px solid var(--accent);color:var(--fg)}a{color:var(--accent)}
-hr{border:0;border-top:1px solid var(--rule);margin:24px 0}footer{margin-top:40px;color:var(--muted);font:14px/1.4 -apple-system,system-ui,sans-serif}footer p{margin:0 0 8px}`;
+hr{border:0;border-top:1px solid var(--rule);margin:24px 0}footer{margin-top:40px;color:var(--muted);font:14px/1.4 -apple-system,system-ui,sans-serif}footer p{margin:0 0 8px}
+.credit{margin-top:48px;text-align:center;font-size:13px}.credit img{height:24px;width:24px;vertical-align:middle;margin-left:6px}.credit a{display:inline-block;margin-top:16px}`;
 
 /** Where a reader reports a study, as the Terms say (Bible Strong's wording): by email with its link. Bible Strong's page itself has no report line; the link is the owner's addition. */
 export const REPORT_ADDRESS = "privacy@cyberjudah.io";
@@ -152,12 +153,23 @@ export const REPORT_ADDRESS = "privacy@cyberjudah.io";
 export const reportLink = (link: string, title: string) =>
   `mailto:${REPORT_ADDRESS}?subject=${encodeURIComponent(`Report: ${Array.from(title).slice(0, 150).join("")}`)}&body=${encodeURIComponent(`Study: ${link}\n\nReason:\n`)}`;
 
-const page = (status: number, title: string, inner: string, footer = "") => new Response(
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(title)}</title><style>${STYLE}</style></head><body><main>${inner}<footer><p>Written in the CyberJudah app.</p>${footer}</footer></main></body></html>`,
+/** The app's own icon, a static same-origin file (no third-party request), light or dark with the page. */
+const LOGO = `<picture><source srcset="/app/icons/dark-64.png" media="(prefers-color-scheme:dark)"><img src="/app/icons/light-64.png" alt="CyberJudah" width="24" height="24"></picture>`;
+/**
+ * Bible Strong's study-page footer (apps/site/pages/studies/[id]/index.tsx), in English with our
+ * names: under a rule, "Study written by {author} with" and the logo, then a link to the site.
+ * The author is the name the writer gave when publishing (row.author, already shown above), escaped;
+ * with none, the "by" part is left out.
+ */
+export const studyFooter = (author: string) =>
+  `<hr><footer class="credit"><p>Study written ${author ? `by ${escape(author)} ` : ""}with ${LOGO}</p><a href="https://cyberjudah.io">cyberjudah.io</a>`;
+
+const page = (status: number, title: string, inner: string, footer = "<footer><p>Written in the CyberJudah app.</p>") => new Response(
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(title)}</title><style>${STYLE}</style></head><body><main>${inner}${footer}</footer></main></body></html>`,
   { status, headers: {
     "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex", "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer", "cache-control": status === 200 ? "public, max-age=60" : "no-store",
-    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
   } },
 );
 
@@ -174,5 +186,5 @@ publishedStudyPage.get("/:id", async c => {
   const by = [row.author, date].filter(Boolean).map(escape).join(" · ");
   const link = `${new URL(c.req.url).origin}/app/published/${id}`;
   return page(200, row.title, `<header><h1>${escape(row.title)}</h1><p class="by">${by}</p></header><article>${renderStudy(row.body)}</article>`,
-    `<p><a href="${escape(reportLink(link, row.title))}">Report this study</a></p>`);
+    `${studyFooter(row.author)}<p><a href="${escape(reportLink(link, row.title))}">Report this study</a></p>`);
 });

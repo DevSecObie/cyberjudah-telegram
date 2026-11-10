@@ -136,7 +136,8 @@ test("a reader's text never runs as code on the page", async () => {
     assert.equal((await put(mf, 'study-xss001', 'reader-one', { title: '<b>Title</b>', body })).status, 200);
     const html = await (await view(mf, 'study-xss001')).text();
     assert.doesNotMatch(html, /<script>alert/);
-    assert.doesNotMatch(html, /<img/);
+    // The only picture is the footer's own logo: a reader's image never renders.
+    assert.deepEqual([...html.matchAll(/<img[^>]*>/g)].map(m => m[0]), ['<img src="/app/icons/light-64.png" alt="CyberJudah" width="24" height="24">']);
     assert.doesNotMatch(html, /href="javascript:/);
     assert.doesNotMatch(html, /evil\.test/);
     assert.match(html, /<a href="https:\/\/cyberjudah\.io\/app" rel="noopener noreferrer nofollow">good<\/a>/);
@@ -168,7 +169,7 @@ test('every published page has a plain "Report this study" mailto with only its 
     const html = await res.text();
     // Owner: match Bible Strong, whose study page has no report line, so none is added.
     assert.doesNotMatch(html, /24 hours|Reported studies/);
-    assert.match(html, /<footer><p>Written in the CyberJudah app\.<\/p><p><a href="mailto:/);
+    assert.match(html, /<a href="https:\/\/cyberjudah\.io">cyberjudah\.io<\/a><p><a href="mailto:[^"]*">Report this study<\/a><\/p><\/footer>/);
     const links = [...html.matchAll(/<a href="(mailto:[^"]*)">Report this study<\/a>/g)];
     assert.equal(links.length, 1, 'one visible report link');
     // The attribute is HTML-escaped; unescaped it is a mailto to the contact address.
@@ -224,6 +225,28 @@ test('a study an admin took down 404s, says so, cannot be published again under 
     assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM published_takedowns').first()).n, 2);
     assert.match(await (await view(mf, 'study-never1')).text(), /its writer took it down/);
     assert.deepEqual(await (await mf.dispatchFetch('https://cyberjudah.test/api/published-studies/study-never1')).json(), { published: false });
+  } finally { await mf.dispose(); }
+});
+
+test("the footer is Bible Strong's, with our names: the writer's given name (escaped), the logo from our own site, and a link to cyberjudah.io", async () => {
+  const mf = worker();
+  try {
+    assert.equal((await put(mf, 'study-foot01', 'reader-one', { title: 'T', author: '<b>Asahel</b> & co', body: 'Text' })).status, 200);
+    let res = await view(mf, 'study-foot01');
+    const html = await res.text();
+    assert.ok(html.includes('<hr><footer class="credit"><p>Study written by &lt;b&gt;Asahel&lt;/b&gt; &amp; co with <picture>'), 'the name, escaped');
+    assert.ok(html.includes('<img src="/app/icons/light-64.png" alt="CyberJudah" width="24" height="24">'));
+    assert.ok(html.includes('<source srcset="/app/icons/dark-64.png" media="(prefers-color-scheme:dark)">'));
+    assert.ok(html.includes('</p><a href="https://cyberjudah.io">cyberjudah.io</a><p><a href="mailto:'), 'the site link, then the report link');
+    // Every picture is a same-origin file; the CSP allows nothing else.
+    for (const [, src] of html.matchAll(/(?:src|srcset)="([^"]*)"/g)) assert.match(src, /^\/app\/icons\/[a-z0-9-]+\.png$/);
+    assert.match(res.headers.get('content-security-policy'), /img-src 'self';/);
+    assert.doesNotMatch(html, /Written in the CyberJudah app|reader-one|owner/);
+
+    assert.equal((await put(mf, 'study-foot02', 'reader-one', { title: 'T', author: '', body: 'Text' })).status, 200);
+    assert.ok((await (await view(mf, 'study-foot02')).text()).includes('<p>Study written with <picture>'), 'no name: no "by"');
+    // The not-found page keeps its old footer.
+    assert.match(await (await view(mf, 'study-nofoot')).text(), /<footer><p>Written in the CyberJudah app\.<\/p><\/footer>/);
   } finally { await mf.dispose(); }
 });
 
