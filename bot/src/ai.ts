@@ -803,10 +803,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               if (signal.aborted || !claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
               await alertClaudeFunds(env, e);
+              backup = true;
+              // Decided before the meter settles: without the reader's agreement to the backup's
+              // provider no backup answer is written, so the free reservation is released ("empty").
+              if (!mayUseBackup(consent)) { await finish("empty"); send({ reset: true }); send({ error: "busy" }); return; }
               await finish("backup");
               send({ reset: true });
               send({ status: "Answering with the backup model" });
-              backup = true;
             }
             if (ran) {
               const { text, passages, actions, cut, refused, grounded } = ran;

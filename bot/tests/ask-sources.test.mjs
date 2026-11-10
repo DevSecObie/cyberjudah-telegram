@@ -14,9 +14,12 @@ await build({
     b.onResolve({ filter: /approved-answers\.json$/ }, () => ({ path: 'approved-data', namespace: 'approved-fixture' }));
     b.onLoad({ filter: /.*/, namespace: 'approved-fixture' }, () => ({ loader: 'json', contents: JSON.stringify({ answers: [{ id: 'approved-fixture', questions: ['Owner approved fixture'], answer: 'The owner approved this fixture answer.', sources: [{ kind: 'web', title: 'Approved attachment', url: 'https://example.test/approved' }] }] }) }));
     b.onResolve({ filter: /^\.\/agent$/ }, () => ({ path: 'agent', namespace: 'fixture' }));
-    b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ loader: 'js', contents: `
+    b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ loader: 'js', resolveDir: new URL('..', import.meta.url).pathname, contents: `
+      import Anthropic from '@anthropic-ai/sdk';
       export async function runAgent(env, question, history, first, retrieve, emit, ctx, uid, model, spend, resources, rounds, cite, control) {
         env.fixtureQuestion = question;
+        // Claude is busy (rate limited), as Anthropic answers it: the backup path decides what happens.
+        if (env.fixtureBusy) throw new Anthropic.RateLimitError(429, { type: 'error', error: { type: 'rate_limit_error', message: 'fixture' } }, 'fixture rate limit', new Headers());
         emit({ status: 'Reading sources' });
         if (env.fixtureCancelMode) {
           spend.call({ input_tokens: 1000, output_tokens: 100 }, model);
@@ -31,7 +34,7 @@ await build({
     ` }));
   } }],
 });
-const { ask, askStream, freeModel, answerApp, answerAppAgent, grantPayment, ownerOfUser, wallet, worker } = await import(out);
+const { ask, askStream, freeModel, freeSpendToday, answerApp, answerAppAgent, grantPayment, ownerOfUser, wallet, worker } = await import(out);
 
 for (const mode of ['before', 'after', 'reset']) {
   test(`paid cancellation ${mode} streamed answer text settles once with the proper charge`, async t => {
@@ -323,5 +326,37 @@ test('without agreement to the backup provider, no backup answer is written and 
       assert.deepEqual(await ask(env, 'Read recorded material', 77, undefined, [], [model.provider]), { ok: false, reason: 'unavailable' });
     }
     assert.deepEqual(sent, [], `${stream ? 'askStream' : 'ask'}: the backup model was never called`);
+  }
+});
+
+// t1w's repro (#603): Claude busy (429) on a free-tier Claude model, the reader agreed to Anthropic only.
+// The meter must settle as "empty" before any backup is chosen, so the day's free allowance gets its
+// reservation back; only an answer the backup actually writes keeps the whole reservation.
+test('a busy Claude without agreement to the backup releases the free reservation; with agreement the backup keeps it', async t => {
+  for (const agreed of [false, true]) {
+    const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5'), sent = [];
+    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_MODELS: model.id, ANTHROPIC_API_KEY: 'fixture-only', fixtureBusy: true,
+      AI: { run: async (id) => { if (id.includes('bge-m3')) return { data: [[1, 2]] }; if (id.includes('reranker')) return { response: [] }; sent.push(id); return new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ response: 'Backup words [1].' })}\n\n`)); c.close(); } }); } },
+      VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://cyberjudah.io/recorded-fixture', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
+    const consent = agreed ? [model.provider, 'Cloudflare (Workers AI)'] : [model.provider];
+    const pending = [], ctx = { waitUntil: promise => pending.push(promise) };
+    const lines = (await (await askStream(env, 'Read recorded material', 77, ctx, [], undefined, false, model.id, consent)).text()).trim().split('\n').map(JSON.parse);
+    await Promise.all(pending);
+    const holds = sql.prepare('SELECT reserved_micro, state FROM free_spend_holds').all();
+    assert.ok(holds.length && holds.every(h => h.state !== 'held'), 'every free reservation is settled');
+    const spent = Math.round((await freeSpendToday(env)) * 1e6);
+    if (agreed) {
+      assert.ok(lines.some(l => l.done), 'the backup answered');
+      assert.ok(sent.length > 0);
+      // The Ask meter and the backup's own free hold each keep their whole reservation (costs not reported).
+      assert.equal(spent, holds.reduce((n, h) => n + h.reserved_micro, 0));
+    } else {
+      assert.equal(holds.length, 1, 'only the Ask meter reserved');
+      assert.ok(spent < holds[0].reserved_micro, `the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
+      assert.deepEqual(lines.at(-1), { error: 'busy' });
+      assert.equal(lines.find(l => l.done), undefined);
+      assert.ok(!lines.some(l => l.status === 'Answering with the backup model'), 'no backup is announced');
+      assert.deepEqual(sent, [], 'the backup model was never called');
+    }
   }
 });
