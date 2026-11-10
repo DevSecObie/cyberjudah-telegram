@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
+import { createServer } from "node:http";
 import { financialDb } from "./helpers/financial-db.mjs";
 import { modelOf } from "../../shared/ask-models.mjs";
 import { verifyRelease } from "../scripts/verify-release.mjs";
@@ -706,4 +707,33 @@ test('an admin failure with complete usage releases its unused daily reservation
   const row = sql.prepare("SELECT usd_micro FROM free_spend_daily WHERE day LIKE 'admin:%'").get();
   assert.equal(row.usd_micro, Math.ceil(actual * 1e6 - 1e-6));
   assert.equal(await freeSpendToday(env), 0);
+});
+
+// When Claude is busy for a reader (429), the free model may answer only with the reader's agreement
+// to its provider. That is decided before Claude's meter settles: without the agreement nothing more
+// is sent and Claude's reservation goes back to its pool; only a fallback that runs keeps it whole.
+test("a busy Claude for a reader without agreement to the free provider releases Claude's reservation", async t => {
+  const busy = createServer((_req, res) => { res.writeHead(429, { "content-type": "application/json", "x-should-retry": "false" }); res.end(JSON.stringify({ type: "error", error: { type: "rate_limit_error", message: "fixture" } })); });
+  await new Promise(resolve => busy.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise(resolve => busy.close(resolve)));
+  for (const agreed of [false, true]) {
+    const sent = [];
+    const e = { ...claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5" }), AI_GATEWAY: "default", ANTHROPIC_BASE_URL: `http://127.0.0.1:${busy.address().port}`,
+      AI: { run: async (model) => { if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] }; sent.push(model); return { choices: [{ message: { role: "assistant", content: "Keep it for ever." }, finish_reason: "stop" }], usage: { prompt_tokens: 900, completion_tokens: 60 } }; } },
+      VEC: { query: async () => ({ matches: [] }) } };
+    const claudeSpent = async () => (await e.DB.prepare("SELECT COALESCE(SUM(usd_micro), 0) AS m FROM free_spend_daily WHERE day LIKE 'claude:%'").first()).m;
+    const claudeHolds = async () => (await e.DB.prepare("SELECT reserved_micro AS r, state FROM free_spend_holds WHERE day LIKE 'claude:%'").all()).results;
+    const r = await answerAppAgent(e, "Why do we keep the Passover?", `acct-busy-${agreed}`, [], agreed ? [...AGREED, "Anthropic"] : ["Anthropic"]);
+    const holds = await claudeHolds();
+    assert.equal(holds.length, 1, "Claude's pool was reserved once");
+    assert.notEqual(holds[0].state, "held", "and settled");
+    if (agreed) {
+      assert.equal(r.ok, true, JSON.stringify(r));
+      assert.equal(await claudeSpent(), holds[0].r, "a fallback that runs keeps Claude's whole reservation (its cost is not reported)");
+    } else {
+      assert.ok((await claudeSpent()) < holds[0].r, `Claude's reservation is released (${await claudeSpent()} of ${holds[0].r} micro-dollars kept)`);
+      assert.deepEqual(r, { ok: false, reason: "consent" });
+      assert.deepEqual(sent, [], "the free model was never called");
+    }
+  }
 });

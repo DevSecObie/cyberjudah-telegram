@@ -543,10 +543,15 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
       if (signal.aborted || model.format !== "anthropic" || !claudeUnavailable(e)) throw e;
       // Claude cannot answer now (out of money, overloaded, down): the free model answers instead.
       await alertClaudeFunds(env, e);
+      const fallback = freeFallback(env, models);
+      // Decided before the meter settles: without the reader's agreement to the free model's provider
+      // nothing more is sent, and Claude's reservation is released ("empty") rather than kept whole.
+      const provider = models.find((m) => m.id === fallback)?.provider;
+      if (!provider || !consent.includes(provider)) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: provider ? "consent" : "model-unavailable" }; }
       await finishMeter(env, meter, "backup", Date.now() - t0);
       emit({ reset: true });
       // Only with the reader's own agreement to the free model's provider; a reader's quota is already counted.
-      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: !adminClaude });
+      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback, adminId: undefined, quotaTaken: !adminClaude });
     }
     const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
     if (!answer.trim() && ran.cut && model.format === "anthropic" && !adminClaude) {
