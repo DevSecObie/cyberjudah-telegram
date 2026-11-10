@@ -120,7 +120,7 @@ export async function runAgent(
   maxRounds = MAX_RESEARCH_ROUNDS,
   citeAppSources = false,
   control: ResearchControl = {},
-): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean }> {
+): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean; /** A tool read or acted on the signed-in reader's own data: never cache the answer. */ readerData: boolean }> {
   maxRounds = researchRounds(maxRounds);
   const deadlineAt = control.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
   const signal = researchSignal(control.signal, deadlineAt);
@@ -176,6 +176,9 @@ export async function runAgent(
   };
   for (const p of first) add(p, true);
   const actions: SavedAction[] = [];
+  // Set when a tool read or acted on this signed-in person's own data (saved chats, reminder). Such an
+  // answer is that person's alone: the caller must never keep it in the shared answer cache.
+  let readerData = false;
   const line = (name: string, what: string, path: string) => {
     const kind = /^\/person\/[a-z0-9-]+$/.test(path) ? 'people' : /^\/timeline\/event\/[a-z0-9-]+$/.test(path) ? 'timeline' : undefined;
     // Telegram picture cards refer to the exact tool text already supplied, without new claims.
@@ -247,6 +250,7 @@ export async function runAgent(
     }
     if (name === "my_saved_chats") {
       if (!userId) return { content: "The person is not signed in, so there are no saved chats to look at.", error: true };
+      readerData = true;
       const query = str(input.query, 120);
       emit({ status: "Looking through your saved chats" });
       const hits = findChats(await listChats(env, userId), query, 8);
@@ -254,6 +258,7 @@ export async function runAgent(
     }
     if (name === "my_reminder") {
       if (!userId) return { content: "The person is not signed in.", error: true };
+      readerData = true;
       emit({ status: "Looking at your reading reminder" });
       const rec = await loadReminder(env, await tgRid(env, userId));
       return { content: `${describeReminder(rec ? publicView(rec) : null)} Settings: /settings/reminders` };
@@ -262,6 +267,7 @@ export async function runAgent(
       if (!userId) return { content: "The person is not signed in, so nothing can be proposed.", error: true };
       const p = proposeReminder(input, { inTelegram: true });
       if (p.error) return { content: p.error, error: true };
+      readerData = true;
       const action: SavedAction = { id: crypto.randomUUID().replace(/-/g, "").slice(0, 16), kind: "reminder", summary: p.summary!, settings: p.settings as Record<string, unknown> };
       actions.push(action);
       emit({ action });
@@ -354,9 +360,9 @@ export async function runAgent(
       const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       emit({ reset: true }); emit({ delta: gap.answer });
       // The answer became 'not in the classes': no part is shown as covered by sources it no longer lists.
-      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false, plan, coverage: nothingCovered(plan), tracked: tracking() };
+      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false, plan, coverage: nothingCovered(plan), tracked: tracking(), readerData };
     }
-    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking() };
+    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking(), readerData };
   };
   const timedOut = () => {
     const excerpts = passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)).slice(0, 3).map(source => `**${source.title.replace(/[*_\[\]]/g, '')}** [${source.n}]\n\n> ${source.text.slice(0, 1000).replace(/\n/g, '\n> ')}`);
