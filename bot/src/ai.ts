@@ -378,7 +378,7 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const model = searchModel(env);
   if (!model) return { ok: false, reason: "unavailable" };
-  if (!model.id.startsWith("@cf/") && !consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const started = await startMeterFor(env, uid, model, {}, true);
   if (!started.ok) return { ok: false, reason: started.body.error === "free-paused" ? "free-paused" : "unavailable" };
   return boundedAnswer(env, model, started.meter, question, question, [], deadlineMs, t0, undefined, undefined, undefined, true);

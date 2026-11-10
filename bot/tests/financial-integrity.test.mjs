@@ -114,9 +114,9 @@ test('a full free budget blocks Ask and all searches before calling AI', async t
     assert.equal((await ask.json()).error, 'free-paused');
     assert.equal((await api.ask(configured, 'one-piece question', 77, undefined, [], [model.provider])).reason, 'free-paused');
   }
-  assert.equal((await api.answerSearch(env, 'a search question', 77)).reason, 'free-paused');
+  assert.equal((await api.answerSearch(env, 'a search question', 77, ['Cloudflare (Workers AI)'])).reason, 'free-paused');
   assert.equal(calls, 0);
-  assert.equal((await api.answerSearch(env, 'admin search', 100000002)).reason, 'free-paused');
+  assert.equal((await api.answerSearch(env, 'admin search', 100000002, ['Cloudflare (Workers AI)'])).reason, 'free-paused');
   assert.equal(calls, 0);
   assert.equal(await api.freeSpendToday(env), 0);
 });

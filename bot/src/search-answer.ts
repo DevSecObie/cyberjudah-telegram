@@ -18,7 +18,8 @@ searchAnswers.get("/", async (c) => {
   const model = searchModel(c.env);
   if (!model) return c.json({ ok: false, error: "unavailable" }, 503);
   const consent = (c.req.header("x-ai-consent") ?? "").split(",").map((s) => s.trim());
-  if (!model.id.startsWith("@cf/") && !consent.includes(model.provider)) {
+  // Every model that writes an answer needs the reader's agreement, wherever it runs (owner, 2026-11-10).
+  if (!consent.includes(model.provider)) {
     return c.json({ ok: false, error: "consent", provider: model.provider }, 428);
   }
 
