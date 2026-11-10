@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import { APP_STUDY_RELEASE } from "./app-study-release";
+import { isCorpusMark } from "./corpus-marks.mjs";
 
 /**
  * What an Ask answer was made with, so any answer can be traced to its prompts, its library and
@@ -9,7 +10,9 @@ import { APP_STUDY_RELEASE } from "./app-study-release";
  *
  * Each prompt has an id and the SHA-256 of its text. tests/ask-versions.test.mjs fails when a
  * prompt's text changes and its id does not: a prompt change bumps the id here (and its hash) and
- * adds a line to docs/ASK-PROMPT-CHANGELOG.md.
+ * adds a line to docs/ASK-PROMPT-CHANGELOG.md. Besides the four system texts, `answer` pins the
+ * one-shot answer prompt as built (ai.mjs buildPrompt, with its citation guide) and `tools` pins
+ * the research tools' names, descriptions and inputs (agent.ts TOOL_DEFS), which also shape answers.
  */
 export const PROMPT_IDS = {
   /** ai.mjs SYSTEM */
@@ -20,6 +23,10 @@ export const PROMPT_IDS = {
   app: { id: "app-v1", sha256: "897ce4ad195426598367a6659b492f8c1f2240de28c642b3e6a43c907ac41891" },
   /** grounding.mjs DATA_POLICY */
   dataPolicy: { id: "data-policy-v1", sha256: "6ca5e4fe506e90b546ea59b381e4cadfa342e40a39a52cf175f0819b8d2fcf8f" },
+  /** ai.mjs buildPrompt, as built for placeholder inputs (tests/ask-versions.test.mjs) */
+  answer: { id: "answer-v1", sha256: "656af43560945d02b995328fec60f6bf9464c1904753cf3eae9589e1be716370" },
+  /** agent.ts TOOL_DEFS: names, descriptions and input schemas */
+  tools: { id: "tools-v1", sha256: "debf7b8efed9540f85425469176ef3a146c16dda51b8aa9f35b874fb807c5cee" },
 } as const;
 
 /** Every prompt id, joined: the prompt version an answer names. */
@@ -37,30 +44,40 @@ export type AnswerVersions = { prompt: string; policy: string; corpus: string; m
  * The library an answer searched: "<library>/<index>". The library is the search index file
  * scripts/load-search.mjs last loaded (its SHA-256, cut short); the index is the Vectorize build
  * scripts/embed.mjs last changed (its time). Both are written to D1 corpus_marks by those
- * scripts; either part is "-unknown" until its script has written one.
+ * scripts; either part is "-unknown" until its script has written one. When the marks cannot be
+ * read (D1 failing), the corpus is "unavailable": nothing is read from or kept in the answer cache
+ * then (answer-cache.ts), so an answer from another library can never be given in its place.
  */
 export const UNKNOWN_CORPUS = "lib-unknown/idx-unknown";
-const CORPUS_TTL_MS = 5 * 60_000;
+export const UNAVAILABLE_CORPUS = "lib-unavailable/idx-unavailable";
+/** How long an isolate keeps the marks it read: a new load or build is named within a minute. */
+const CORPUS_TTL_MS = 60_000;
 const corpusCache = new WeakMap<object, { at: number; value: Promise<string> }>();
 
 async function readCorpus(env: Pick<Env, "DB">): Promise<string> {
   try {
     const { results } = await env.DB.prepare("SELECT kind, id FROM corpus_marks WHERE kind IN ('library', 'index')").all<{ kind: string; id: string }>();
-    const of = (kind: string) => results?.find((r) => r.kind === kind)?.id;
-    const clean = (id: string | undefined, fallback: string) => (id && /^[a-z]{3}-[A-Za-z0-9-]{1,40}$/.test(id) ? id : fallback);
-    return `${clean(of("library"), "lib-unknown")}/${clean(of("index"), "idx-unknown")}`;
-  } catch {
-    // No marks yet (the table is made by the first load or embed), or D1 is down: the answer still goes out.
-    return UNKNOWN_CORPUS;
+    const of = (kind: "library" | "index", fallback: string) => {
+      const id = results?.find((r) => r.kind === kind)?.id;
+      return isCorpusMark(kind, id) ? id! : fallback;
+    };
+    return `${of("library", "lib-unknown")}/${of("index", "idx-unknown")}`;
+  } catch (e) {
+    // No marks yet: the table is made by the first load or embed.
+    if (/no such table/i.test(String((e as Error)?.message))) return UNKNOWN_CORPUS;
+    throw e;
   }
 }
 
-/** The corpus release, read at most every five minutes per isolate. */
+/** The corpus release, read at most once a minute per isolate. A failed read is not kept. */
 export function corpusRelease(env: Pick<Env, "DB">, now = Date.now()): Promise<string> {
   if (!env.DB || typeof env.DB !== "object") return Promise.resolve(UNKNOWN_CORPUS);
   const kept = corpusCache.get(env.DB);
   if (kept && now - kept.at < CORPUS_TTL_MS) return kept.value;
-  const value = readCorpus(env);
+  const value = readCorpus(env).catch(() => {
+    if (corpusCache.get(env.DB)?.value === value) corpusCache.delete(env.DB);
+    return UNAVAILABLE_CORPUS;
+  });
   corpusCache.set(env.DB, { at: now, value });
   return value;
 }

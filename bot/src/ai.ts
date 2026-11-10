@@ -777,7 +777,10 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
       // Each finished line names what the answer was made with (ask-versions.ts); a fixed sentence,
       // written by no model, names the model "none".
-      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => send({ ...value, answer_id: await issueAnswerReceipt(env, userId, value.sources), versions: await answerVersions(env, typeof value.model === "string" ? value.model : "none") });
+      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => {
+        const [answer_id, versions] = await Promise.all([issueAnswerReceipt(env, userId, value.sources), answerVersions(env, typeof value.model === "string" ? value.model : "none")]);
+        send({ ...value, answer_id, versions });
+      };
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.

@@ -35,7 +35,7 @@ export type AgentEvent = { status: string } | { plan: { parts: { id: string; ask
 
 const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 
-const TOOL_DEFS: Anthropic.Tool[] = [
+export const TOOL_DEFS: Anthropic.Tool[] = [
   {
     name: "search_library",
     description: "Search CyberJudah's library: the Sabbath classes and other recordings (what was said, with the moment), the study notes, the law handbook, the precepts, the case studies and the encyclopedia. Returns the closest passages, numbered for citation. Call it for any question about the Scripture or the teachings that the passages already given do not fully answer, and again with different words, names, feasts, books or doctrines to look from another side.",

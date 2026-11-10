@@ -17,10 +17,6 @@ export type AskEvent = {
   detail?: string;
   elapsedMs?: number;
   sources?: number;
-  /** Defaults to the surface's prompt version (ask-versions.ts promptVersion). */
-  promptVersion?: string;
-  /** Defaults to the corpus release now (ask-versions.ts corpusRelease). */
-  corpus?: string;
 };
 
 const RETAIN_DAYS = 14;
@@ -48,10 +44,10 @@ const clip = (s: unknown, n: number) => (typeof s === "string" ? s.slice(0, n) :
 export async function recordAskEvent(env: Env, e: AskEvent, now = Date.now()): Promise<void> {
   try {
     await table(env);
-    const corpus = e.corpus ?? await corpusRelease(env);
+    const corpus = await corpusRelease(env);
     await env.DB.prepare("INSERT INTO ask_events (at, trace_id, surface, model, outcome, detail, elapsed_ms, sources, prompt_version, corpus_release) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .bind(now, clip(e.traceId, 64), e.surface, clip(e.model, 100), clip(e.outcome, 40) ?? "unknown", clip(e.detail, 300), Number.isFinite(e.elapsedMs) ? Math.round(e.elapsedMs!) : null, Number.isFinite(e.sources) ? e.sources! : null,
-        clip(e.promptVersion ?? promptVersion(e.surface), 200), clip(corpus, 100)).run();
+        clip(promptVersion(e.surface), 200), clip(corpus, 100)).run();
   } catch (err) { console.error(JSON.stringify({ event: "ask_event_record_failed", message: String((err as Error)?.message ?? err).slice(0, 120) })); }
 }
 

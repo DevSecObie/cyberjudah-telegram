@@ -41,7 +41,9 @@ test("an events table made before the version stamps gets its two columns, and k
   DB.db.exec(`CREATE TABLE ask_events (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, trace_id TEXT,
     surface TEXT NOT NULL, model TEXT, outcome TEXT NOT NULL, detail TEXT, elapsed_ms INTEGER, sources INTEGER)`);
   DB.db.exec("INSERT INTO ask_events (at, surface, outcome) VALUES (1, 'app', 'complete')");
-  await recordAskEvent({ DB }, { surface: "app", model: "@cf/m", outcome: "complete", promptVersion: "system-v9", corpus: "lib-3226601ac088/idx-20261110T0412Z" }, 2);
+  await recordAskEvent({ DB }, { surface: "app", model: "@cf/m", outcome: "complete" }, 2);
   const rows = DB.db.prepare("SELECT at, prompt_version, corpus_release FROM ask_events ORDER BY at").all().map((r) => ({ ...r }));
-  assert.deepEqual(rows, [{ at: 1, prompt_version: null, corpus_release: null }, { at: 2, prompt_version: "system-v9", corpus_release: "lib-3226601ac088/idx-20261110T0412Z" }]);
+  assert.deepEqual(rows[0], { at: 1, prompt_version: null, corpus_release: null });
+  assert.match(rows[1].prompt_version, /^system-v\d+\.research-v\d+\.app-v\d+\.data-policy-v\d+\.answer-v\d+\.tools-v\d+$/);
+  assert.equal(rows[1].corpus_release, "lib-unknown/idx-unknown");
 });

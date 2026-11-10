@@ -2,7 +2,7 @@ import type { Env } from "./env";
 import type { Turn } from "./ai.mjs";
 import { hasToolMarkup } from "./agent-open";
 import { isCoverageGap } from "./grounding.mjs";
-import { PROMPT_VERSION } from "./ask-versions";
+import { PROMPT_VERSION, UNAVAILABLE_CORPUS } from "./ask-versions";
 
 /**
  * Answers already written, kept for a week (KV, ask_cache:…). When the same first question is
@@ -29,6 +29,8 @@ async function sha256(s: string) {
  */
 export async function cacheKey(question: string, history: Turn[], model: string, mode: string, release: string, corpus: string): Promise<string | null> {
   if (history.length) return null;
+  // The library could not be read: no kept answer can be shown to belong to it.
+  if (corpus === UNAVAILABLE_CORPUS) return null;
   const q = normalizeQuestion(question);
   if (q.split(" ").length < 2) return null;
   return `ask_cache:${PROMPT_VERSION}:${corpus}:${release}:${mode}:${model}:${await sha256(q)}`;
