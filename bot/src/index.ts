@@ -30,7 +30,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { readSources, saveSources } from "./cms-sources";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeAskIpQuota, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
-import { semanticSearch } from "./semantic-search";
+import { semanticSearch, takeSearchQuota } from "./semantic-search";
 import { normalizeHistory, withStudyContext, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -509,6 +509,8 @@ app.delete("/api/chats/:id", async (c) => {
   return c.json({ ok }, ok ? 200 : 400);
 });
 app.get("/api/similar", async (c) => {
+  // Each call embeds the query and reranks (model calls): limited like the semantic search (OWASP LLM10).
+  if (!(await takeSearchQuota(c.env, c.req.raw, c.get("tma").user!.id, "similar"))) return c.json({ error: "limit" }, 429);
   const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
   return c.json(res, res.ok ? 200 : 503);
 });

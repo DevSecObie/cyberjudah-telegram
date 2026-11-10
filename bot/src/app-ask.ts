@@ -9,6 +9,7 @@ import { normalizeHistory, withReading } from "./ai.mjs";
 import { books } from "./data";
 import { parseReference } from "./refs.mjs";
 import { keyedHash } from "./privacy.mjs";
+import { clientAddress } from "./client-ip";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
 import { recordAskEvent } from "./ask-events";
@@ -49,6 +50,8 @@ appAsk.get('/models', c => {
     billing: { purchasesEnabled: false },
   });
 });
+/** Answer reports a day from one address (OWASP LLM10): a signed address is one reader's, an unsigned one may be many. */
+const REPORTS_PER_ADDRESS = { signed: 30, unsigned: 300 } as const;
 appAsk.post('/report', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 1024) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
@@ -58,6 +61,10 @@ appAsk.post('/report', async c => {
   if (!body || !['wrong', 'harmful'].includes(String(body.reason))) return c.json({ error: 'bad-request' }, 400);
   const day = new Date().toISOString().slice(0, 10);
   if (!await takeQuotaKey(c.env, `app_report:${c.get('account')}:${day}`, 10)) return c.json({ error: 'limit' }, 429);
+  // Per address too, so many new accounts from one place cannot flood reports (each may drop a
+  // cached answer). Only a keyed hash of the address is kept; an unsigned address can be shared.
+  const { ip, signed } = await clientAddress(c.req.raw, c.env);
+  if (ip && !await takeQuotaKey(c.env, `app_report_ip:${await keyedHash(c.env, 'app-report-ip', ip)}:${day}`, REPORTS_PER_ADDRESS[signed ? 'signed' : 'unsigned'])) return c.json({ error: 'limit' }, 429);
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
   const model = appAskModels(c.env, undefined, true).find(m => m.id === body.model)?.id ?? 'default';
