@@ -270,3 +270,23 @@ test('a one-piece answer no model wrote names no model in its versions (#600)', 
   assert.equal(body.versions.model, 'none', 'the agent replaced its text with a fixed sentence');
   assert.equal('model' in body, false);
 });
+
+test('a streamed answer the agent replaced with a fixed sentence names no model in its versions, and keeps its Auto label (#600)', async t => {
+  const { env } = setup(t, { gapAnswer: true });
+  await funded(env, 200_000);
+  const response = await request(env, { q: 'Explain the historical evidence', model: 'auto', stream: true, request: 'gap-request', consent: ['Anthropic'], caps: { 'anthropic/claude-opus-5.5': 200_000 } });
+  assert.equal(response.status, 200, response.status === 200 ? '' : await response.clone().text());
+  const done = (await events(response)).find(e => e.done);
+  assert.equal(done.answer, 'Fixture gap sentence.');
+  assert.equal(done.versions.model, 'none', 'no model wrote the fixed sentence');
+  assert.equal(done.model, env.calls[0].model, 'the top-level model (the Mini App Auto label) is unchanged');
+});
+
+test('a streamed answer the agent wrote names its model in versions (#600)', async t => {
+  const { env } = setup(t);
+  await funded(env, 200_000);
+  const response = await request(env, { q: 'Explain the historical evidence', model: 'auto', stream: true, request: 'wrote-request', consent: ['Anthropic'], caps: { 'anthropic/claude-opus-5.5': 200_000 } });
+  const done = (await events(response)).find(e => e.done);
+  assert.equal(done.versions.model, env.calls[0].model);
+  assert.equal(done.model, env.calls[0].model);
+});
