@@ -51,8 +51,14 @@ export const pictureLines = (text: string) => text.match(PICTURE) ?? [];
 
 // The one image form kept: ![alt](src) on one line, alt without brackets, src an exact allowed path.
 const KEEPABLE = /!\[([^\[\]\n]*)\]\(([^()\s<>"']+)\)/g;
-// A tag is a name then a space, "/" or ">" (so an autolink <https://...> or "a < b" is left alone).
-const HTML_TAG = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?\/?>|<!--[\s\S]*?-->/g;
+// HTML, removed whole: a comment, or anything from "<" then a letter, "/", "!" or "?" to the next ">"
+// (whatever its attributes hold, "<" and "/" separators included). Kept: an exact <br> and a markdown
+// autolink (<https://...>). A "<" left before a letter etc. with no ">" (an unfinished tag) is dropped,
+// so nothing tag-like reaches a reader; "a < b" with a space is untouched.
+const HTML_COMMENT = /<!--[\s\S]*?(?:-->|$)/g;
+const HTML_TAG = /<[A-Za-z/!?][^>]*>/g;
+const KEEP_TAG = /^(?:<br\s*\/?>|<https?:\/\/[^\s<>"]+>)$/i;
+const OPEN_TAG = /<(?=[A-Za-z/!?])/g;
 // Any other image written whole on one line (titled, empty, angle-bracketed, by reference): its alt text.
 const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\[[^\[\]\n]*\])/g;
 
@@ -64,15 +70,20 @@ const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\
 export function onlyGivenPictures(answer: string, allowed: Set<string>): { text: string; dropped: number } {
   let dropped = 0;
   const kept: string[] = [];
+  // Kept pieces stand aside under a mark no answer can hold (private-use characters and a fresh nonce).
+  const nonce = crypto.randomUUID().slice(0, 8);
+  const mark = (whole: string) => { kept.push(whole); return `\uE000${nonce}:${kept.length - 1}\uE001`; };
   let text = answer.replace(KEEPABLE, (whole, alt: string, src: string) => {
-    if (allowed.has(src) && isAppPicture(src)) { kept.push(whole); return `\u0000${kept.length - 1}\u0000`; }
+    if (allowed.has(src) && isAppPicture(src)) return mark(whole);
     dropped++;
     return alt.trim();
   });
   text = text.replace(OTHER_IMAGE, (_whole, alt: string) => { dropped++; return alt.trim(); });
   text = text.replace(/!\[/g, () => { dropped++; return "["; });
-  text = text.replace(HTML_TAG, (tag) => (/^<br\s*\/?>$/i.test(tag) ? tag : (dropped++, "")));
-  text = text.replace(/\u0000(\d+)\u0000/g, (_m, i: string) => kept[Number(i)]);
+  text = text.replace(HTML_COMMENT, () => { dropped++; return ""; });
+  text = text.replace(HTML_TAG, (tag) => (KEEP_TAG.test(tag) ? mark(tag) : (dropped++, "")));
+  text = text.replace(OPEN_TAG, () => { dropped++; return ""; });
+  text = text.replace(new RegExp(`\uE000${nonce}:(\\d+)\uE001`, "g"), (_m, i: string) => kept[Number(i)]);
   return { text, dropped };
 }
 
@@ -114,7 +125,7 @@ export const passageEvidence = (passages: readonly { title?: string; text?: stri
 /**
  * Guards a streamed answer as it is sent: text goes out as it comes, except from where an image ("![")
  * or a tag ("<" then a letter, "/" or "!") may start to the end of its line, which is held until the
- * line is complete (a tag until its ">" too) and then sent through onlyGivenPictures with the pictures
+ * line is complete and then sent through onlyGivenPictures with the pictures
  * known so far. `push` takes each delta and returns what may be sent now; `flush` returns the rest at
  * the end; `reset` forgets a draft the reader was told to clear.
  */
@@ -134,12 +145,13 @@ export function pictureStream(evidence: () => Iterable<string | undefined | null
     for (let i = 0; i < t.length; i++) {
       const c = t[i], next = t[i + 1];
       if (c === "!" && (next === undefined || next === "[")) return i;
-      if (c === "<" && (next === undefined || /[A-Za-z/!]/.test(next))) return i;
+      if (c === "<" && (next === undefined || /[A-Za-z/!?]/.test(next))) return i;
     }
     return -1;
   };
-  // Held text is complete at the end of a line, unless a tag in it is still open.
-  const done = (h: string) => h.endsWith("\n") && !/<[A-Za-z/!][^>]*$/.test(h);
+  // Held text is complete at the end of its line. A tag left open there loses its "<" (onlyGivenPictures),
+  // so what follows on the next line is only words: nothing waits past a line, and nothing tag-like goes out.
+  const done = (h: string) => h.endsWith("\n");
   return {
     /** How many images or tags the stream has held back from the reader so far. */
     get dropped() { return dropped; },
@@ -186,9 +198,10 @@ export function guardedStream<E>(send: (event: E) => void, evidence: () => Itera
     }
     send(event);
   };
-  const settle = (final: string, draft: string) => {
+  /** `force`: the reader's draft is replaced whatever it held (e.g. it carried a second, retried draft). */
+  const settle = (final: string, draft: string, force = false) => {
     const rest = guard.flush();
-    if (final !== draft || guard.dropped) { guard.reset(); send({ reset: true } as E); send({ delta: final } as E); }
+    if (force || final !== draft || guard.dropped) { guard.reset(); send({ reset: true } as E); send({ delta: final } as E); }
     else if (rest) send({ delta: rest } as E);
   };
   return { emit, settle };

