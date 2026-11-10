@@ -286,7 +286,9 @@ test('a streamed answer the agent wrote names its model in versions (#600)', asy
   const { env } = setup(t);
   await funded(env, 200_000);
   const response = await request(env, { q: 'Explain the historical evidence', model: 'auto', stream: true, request: 'wrote-request', consent: ['Anthropic'], caps: { 'anthropic/claude-opus-5.5': 200_000 } });
+  assert.equal(response.status, 200, response.status === 200 ? '' : await response.clone().text());
   const done = (await events(response)).find(e => e.done);
+  assert.ok(done, 'the stream has a finished line');
   assert.equal(done.versions.model, env.calls[0].model);
   assert.equal(done.model, env.calls[0].model);
 });

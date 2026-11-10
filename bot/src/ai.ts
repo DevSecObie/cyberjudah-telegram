@@ -825,8 +825,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               // Each part lists only sources the answer cites (the numbers its own sources carry).
               const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n));
               await keep(answer, sources, followups, steps, actions, cut, study);
-              // The model that wrote an answer is named on its finished line, so an Auto answer can show it;
-              // the fixed sentences below, written by no model, name none.
+              // The agent's model is named on its finished line, so an Auto answer can show it (the Mini App's
+              // label; kept as is, also when the agent's text became the fixed not-in-the-classes sentence).
+              // versions.model names the writer: "none" for that sentence, as for the fixed sentences below.
               await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}), ...study }, grounded === false ? "none" : undefined);
               // What the answer cost, and the balance after it; the free model and admins pay nothing.
               if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
