@@ -18,6 +18,7 @@ await build({
         spend.modelUsd += 0.001;
         if (env.failAnswer) throw new Error('fixture failed');
         emit({delta:'Existing library words [1].'});
+        if (env.gapAnswer) return {text:'Fixture gap sentence.', passages:[], actions:[], cut:false, grounded:false};
         return {text:'Existing library words [1].', passages:[{kind:'spoken',title:'Existing class',url:'/classes/existing',text:'Existing library words.'}], actions:[],cut:false};
       }
     ` }));
@@ -256,4 +257,16 @@ test('the one-piece JSON answer names its versions, with the model that wrote it
   assert.ok(body.versions && typeof body.versions === 'object', 'versions is present');
   assert.deepEqual(Object.keys(body.versions).sort(), ['corpus', 'model', 'policy', 'prompt']);
   assert.equal(body.versions.model, env.calls[0].model, 'versions names the model that wrote the answer');
+  assert.equal('model' in body, false, 'the writer is sent only inside versions');
+});
+
+test('a one-piece answer no model wrote names no model in its versions (#600)', async t => {
+  const { env } = setup(t, { gapAnswer: true });
+  await funded(env, 1_000_000);
+  const response = await request(env, { q: 'Explain the historical evidence', consent: ['Anthropic', 'Cloudflare (Workers AI)'] });
+  const body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.answer, 'Fixture gap sentence.');
+  assert.equal(body.versions.model, 'none', 'the agent replaced its text with a fixed sentence');
+  assert.equal('model' in body, false);
 });

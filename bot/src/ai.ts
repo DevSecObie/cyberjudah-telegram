@@ -106,7 +106,7 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
   } catch { return passages.slice(0, topK); }
 }
 
-/** `model` is the model that wrote the answer; absent for a fixed sentence no model wrote. */
+/** `model` is the model that wrote the answer; absent for a fixed sentence no model wrote (including the agent's "not in the classes" answer, grounded false). */
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number; model?: string } | { ok: false; reason: string };
 /** Ask answers a day per person (ASK_DAILY_LIMIT; a hundred when unset). */
 export function askLimit(env: Env): number {
@@ -324,7 +324,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
       const { text, passages, grounded, cut } = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
       const answer = await checkedVerses(env, splitFollowups(text).answer);
       if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
-      return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0, ...(answer.trim() ? { model: model.id } : {}) };
+      return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0, ...(grounded !== false && answer.trim() ? { model: model.id } : {}) };
     }
     if (meter) await finishMeter(env, meter, "backup");
     const passages = first;

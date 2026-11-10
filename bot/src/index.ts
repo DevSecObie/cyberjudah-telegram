@@ -299,9 +299,15 @@ app.post("/api/ask", async (c) => {
   }
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  // Like every streamed finished line (ai.ts askStream), the one-piece answer names what it was made
-  // with (ask-versions.ts); "none" when a fixed sentence, written by no model, is the answer.
-  return c.json(res.ok ? { ...res, answer_id: await issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources), versions: await answerVersions(c.env, res.model ?? "none") } : res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
+  if (res.ok) {
+    // Like every streamed finished line (ai.ts askStream), the one-piece answer names what it was made
+    // with (ask-versions.ts); "none" when a fixed sentence, written by no model, is the answer.
+    // The writer is sent only inside `versions`, so the reply keeps its shape.
+    const { model, ...answer } = res;
+    const [answer_id, versions] = await Promise.all([issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources), answerVersions(c.env, model ?? "none")]);
+    return c.json({ ...answer, answer_id, versions });
+  }
+  return c.json(res, res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
 });
 app.post('/api/feedback', async c => {
   c.header('cache-control', 'no-store');
