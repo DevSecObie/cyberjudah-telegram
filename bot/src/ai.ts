@@ -31,7 +31,7 @@ import { withAskSourcePictures } from "./ask-source-pictures";
 import { withAskBookLinks } from "./ask-source-links";
 import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
 import { citationReport, citationTokenCount } from "./citations.mjs";
-import { autoModel } from "./ask-routing";
+import { autoModel, type AnswerDepth } from "./ask-routing";
 import { approvedSources as approvedOutsideHosts } from "./source-policy";
 import { recordedMoment, retrievedSourceUrl } from "./retrieved-source-url";
 import { issueAnswerReceipt } from "./feedback";
@@ -105,7 +105,7 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
   } catch { return passages.slice(0, topK); }
 }
 
-export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number } | { ok: false; reason: string };
+export type Answer = ({ ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number; cut?: boolean } & StudyFields) | { ok: false; reason: string };
 /** Ask answers a day per person (ASK_DAILY_LIMIT; a hundred when unset). */
 export function askLimit(env: Env): number {
   const n = Number(env.ASK_DAILY_LIMIT);
@@ -202,7 +202,7 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  */
 export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number; reservation?: FreeReservation };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
-export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean };
+export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean; depth?: AnswerDepth };
 
 /**
  * The free tier answers at the owner's expense, with the same default research guard
@@ -356,10 +356,12 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     signal.throwIfAborted();
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
       const evidence: string[] = [];
-      const { text, passages, grounded, cut } = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS, evidence });
+      const ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS, evidence });
+      const { text, passages, grounded, cut } = ran;
       const answer = await finalAnswer(env, splitFollowups(text).answer, { evidence: [...evidence, ...passageEvidence(passages)] });
       if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
-      return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
+      const sources = await askSourcesOf(env, answer, passages);
+      return { ok: true, q: question, answer, sources, ...citationMetadata(answer, passages), ...(cut ? { cut: true } : {}), ...studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer), ms: Date.now() - t0 };
     }
     // The backup sends the question to its own provider: only with the reader's agreement to it.
     // Without it nothing is written by a model, so nothing is held: the meter settles as empty.
@@ -381,7 +383,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 
 type CitationDiagnostics = { sources_returned: number; citation_tokens_found: number; valid_ids: number; retries: number; model: string };
 export type SearchAnswer =
-  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean; state?: "no-cited-answer"; related?: { label: "Related library passages"; passages: Passage[] }; citation_diagnostics?: CitationDiagnostics }
+  | ({ ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean; state?: "no-cited-answer"; related?: { label: "Related library passages"; passages: Passage[] }; citation_diagnostics?: CitationDiagnostics; cut?: boolean } & StudyFields)
   | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
@@ -610,10 +612,12 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     const status = { verified: true };
     const answer = await finalAnswer(env, drafted, { evidence: [...evidence, ...passageEvidence(ran.passages)], status });
     guard.settle(answer, drafted);
-    const result: SearchAnswer = markUnverified({ ok: true, answer, sources: sourcesOf(answer, ran.passages), ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 }, status);
+    const sources = sourcesOf(answer, ran.passages);
+    const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer);
+    const result: SearchAnswer = markUnverified({ ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 }, status);
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
     // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
-    if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
+    if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
@@ -803,7 +807,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const approvedRaw = approvedFor(question, history);
   const approved = approvedRaw && await approvedFinal(env, approvedRaw);
   if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
-  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
+  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId), opts.depth) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
@@ -882,7 +886,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const sources = await askSourcesOf(env, answer, passages);
               // Saved first: whatever happens to the connection after this, the answer is kept.
               // Each part lists only sources the answer cites (the numbers its own sources carry).
-              const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n));
+              const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n), answer);
               await keep(answer, sources, followups, steps, actions, cut, study);
               // The model that wrote an answer is named on its finished line, so an Auto answer can show it;
               // the fixed sentences below, written by no model, name none.

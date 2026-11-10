@@ -41,14 +41,53 @@ for (const [tool, args] of Object.entries(toolCall)) {
 
 // The cached path (answerAppAgent) with the agent standing in: a run that used the reader's data is not kept.
 const aiOut = new URL("./.build/ask-cache-reader-guard-ai.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export { answerAppAgent } from "./src/ai.ts";', resolveDir: root, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: aiOut, logLevel: "error", plugins: [{ name: "agent", setup(b) {
+await build({ stdin: { contents: 'export { answerAppAgent, ask, askStream } from "./src/ai.ts"; export { askJson } from "./src/ask-json.ts";', resolveDir: root, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: aiOut, logLevel: "error", plugins: [{ name: "agent", setup(b) {
   b.onResolve({ filter: /^\.\/agent$/ }, (args) => args.importer.endsWith("ai.ts") ? { path: "agent", namespace: "fixture" } : undefined);
   b.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({ loader: "js", contents:
     `export async function runAgent(env, ...args) { env.agentArgs = args; return { text: "Keep it for ever [1].", units: 0, calls: 1, cut: false, refused: false, grounded: true, actions: [], plan: null, tracked: false, readerData: env.readerData,
-       passages: [{ n: 1, kind: "note", title: "A class", url: "/classes/a", text: "Recorded class words." }] }; }
+       passages: [{ n: 1, kind: "note", title: "A class", url: "/classes/a", text: "Recorded class words." }], ...env.agentResult }; }
      export const claudeUnavailable = () => false; export const alertClaudeFunds = async () => {};` }));
 } }] });
 const ai = await import(aiOut);
+
+const plan = [{ id: 'p1', ask: 'Keep it for ever', refs: [] }, { id: 'p2', ask: 'The unfinished practice', refs: [] }];
+const partial = { tracked: true, plan, coverage: { complete: false, stopped: 'budget', parts: [{ id: 'p1', status: 'covered', sources: [1] }, { id: 'p2', status: 'missing', sources: [] }] } };
+const setup = (agentResult) => ({ DB: d1(), SUBS: kv(), PRIVACY_KEY: 'test-key', AI_GATEWAY: 'fixture', agentResult,
+  CLAUDE_MODEL: '@cf/google/gemma-4-26b-a4b-it', ASK_FREE_MODEL: '@cf/google/gemma-4-26b-a4b-it', ASK_FREE_MODELS: '@cf/google/gemma-4-26b-a4b-it',
+  AI: { run: async () => ({ data: [[0.1, 0.2]] }) }, VEC: { query: async () => ({ matches: [] }) } });
+
+for (const route of ['app', 'legacy', 'stream', 'json']) {
+  test(`${route}: unfinished research retains plan, coverage, unfinished parts and stop reason`, async () => {
+    const env = setup(partial), q = 'Why do we keep the Passover?', consent = ['Cloudflare (Workers AI)'];
+    let result;
+    if (route === 'app') result = await ai.answerAppAgent(env, q, 'acct-study', [], consent);
+    else if (route === 'legacy') result = await ai.ask(env, q, 7, undefined, [], consent);
+    else {
+      const response = await ai.askStream(env, q, 7, undefined, [], undefined, false, env.CLAUDE_MODEL, consent);
+      result = route === 'json' ? await (await ai.askJson(response, q, Date.now())).json() : (await response.text()).trim().split('\n').map(JSON.parse).find(event => event.done);
+    }
+    assert.ok(result.answer, JSON.stringify(result));
+    assert.equal(result.partial, true);
+    assert.equal(result.coverage.complete, false);
+    assert.equal(result.coverage.stopped, 'budget');
+    assert.deepEqual(result.plan.parts, plan.map(({ id, ask }) => ({ id, ask })));
+    assert.deepEqual(result.unfinished, [{ id: 'p2', ask: plan[1].ask }]);
+    assert.equal([...env.SUBS.m.keys()].filter(key => key.startsWith('ask_cache:')).length, 0);
+  });
+}
+
+test('a complete cached study replays its complete coverage without another agent run', async () => {
+  const complete = { tracked: true, plan: plan.slice(0, 1), coverage: { complete: true, stopped: 'covered', parts: partial.coverage.parts.slice(0, 1) } };
+  const env = setup(complete), args = [env, 'Why do we keep the Passover?', 'acct-complete', [], ['Cloudflare (Workers AI)']];
+  const first = await ai.answerAppAgent(...args);
+  assert.equal(first.coverage.complete, true);
+  assert.equal(first.partial, undefined);
+  assert.equal([...env.SUBS.m.keys()].filter(key => key.startsWith('ask_cache:')).length, 1);
+  env.agentResult = partial;
+  const replay = await ai.answerAppAgent(...args);
+  assert.deepEqual(replay.coverage, first.coverage);
+  assert.deepEqual(replay.plan, first.plan);
+});
 
 for (const readerData of [false, true]) {
   test(`the app's agent answer is ${readerData ? "never" : "still"} kept in the shared cache when the reader's own data was ${readerData ? "" : "not "}used`, async (t) => {
