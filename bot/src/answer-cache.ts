@@ -14,6 +14,18 @@ import { PROMPT_VERSION, UNAVAILABLE_CORPUS } from "./ask-versions";
  */
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
+// What a kept answer must hold (#610: the study completeness check below). A change here starts new
+// keys alongside the prompt version and corpus release (#600), so answers kept before it are never served.
+const PROMPT_REVISION = "study-completeness-v2";
+
+function incomplete(answer: unknown): boolean {
+  if (!answer || typeof answer !== "object") return false;
+  const value = answer as { partial?: boolean; cut?: boolean; unfinished?: unknown[]; coverage?: { complete?: boolean; stopped?: string; parts?: { status?: string }[] } };
+  if (value.partial === true || value.cut === true || value.unfinished?.length) return true;
+  if (!value.coverage) return false;
+  const coverage = value.coverage;
+  return coverage.complete !== true || coverage.stopped !== "covered" || !Array.isArray(coverage.parts) || !coverage.parts.length || coverage.parts.some(part => part?.status !== "covered");
+}
 
 export const normalizeQuestion = (q: string) => q.toLowerCase().replace(/[’']/g, "").replace(/[^\p{L}\p{N} ]+/gu, " ").replace(/\s+/g, " ").trim();
 
@@ -24,7 +36,7 @@ async function sha256(s: string) {
 
 /**
  * The cache key for a question, or null when it must not be cached (a follow-up, or too short).
- * A new prompt version (ask-versions.ts) or corpus release starts new keys, so an answer written
+ * A new prompt version (ask-versions.ts), cache revision (PROMPT_REVISION) or corpus release starts new keys, so an answer written
  * before the change is never given after it; old entries expire normally.
  */
 export async function cacheKey(question: string, history: Turn[], model: string, mode: string, release: string, corpus: string): Promise<string | null> {
@@ -33,7 +45,7 @@ export async function cacheKey(question: string, history: Turn[], model: string,
   if (corpus === UNAVAILABLE_CORPUS) return null;
   const q = normalizeQuestion(question);
   if (q.split(" ").length < 2) return null;
-  return `ask_cache:${PROMPT_VERSION}:${corpus}:${release}:${mode}:${model}:${await sha256(q)}`;
+  return `ask_cache:${PROMPT_VERSION}:${PROMPT_REVISION}:${corpus}:${release}:${mode}:${model}:${await sha256(q)}`;
 }
 
 export async function cachedAnswer<T>(env: Env, key: string | null): Promise<T | null> {
@@ -44,13 +56,15 @@ export async function cachedAnswer<T>(env: Env, key: string | null): Promise<T |
     // An answer kept before tool-call markup was removed (agent-open.ts chatText) is dropped,
     // so the reader gets a fresh answer and never the markup.
     if (hasToolMarkup(raw)) { await env.SUBS.delete(key).catch(() => undefined); return null; }
-    return JSON.parse(raw) as T;
+    const answer = JSON.parse(raw);
+    if (incomplete(answer)) { await env.SUBS.delete(key).catch(() => undefined); return null; }
+    return answer as T;
   } catch { return null; }
 }
 
 /** Keeps an answer, and links the trace id that served it so a report can remove it. */
 export async function keepAnswer(env: Env, key: string | null, answer: unknown, traceId?: string): Promise<void> {
-  if (!key || isCoverageGap(answer)) return;
+  if (!key || isCoverageGap(answer) || incomplete(answer)) return;
   const value = JSON.stringify(answer);
   if (value.length > MAX_BYTES || hasToolMarkup(value)) return;
   try {
