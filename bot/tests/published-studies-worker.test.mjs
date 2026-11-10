@@ -154,3 +154,79 @@ test('deleting the account takes down every study the reader published, and only
     assert.equal((await view(mf, 'study-other1')).status, 200);
   } finally { await mf.dispose(); }
 });
+
+// Reporting, as Bible Strong does it: an email with the study's link (Terms, "Your notes and shared studies").
+const { signInitData } = await import('../src/initdata.mjs');
+const admin = { PRIVACY_KEY: 'test-privacy-key', BOT_TOKEN: '123456:test-bot-token', ADMIN_IDS: '1001, 1002' };
+const launch = (id, botToken = admin.BOT_TOKEN) => signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id, first_name: 'Admin' } }, botToken);
+const takedown = async (mf, id, auth) => mf.dispatchFetch(`https://cyberjudah.test/api/published-studies/${id}/admin`, { method: 'DELETE', headers: auth ? { authorization: auth } : {} });
+
+test('every published page has a plain "Report this study" mailto with only its link and title, and no added footer line', async () => {
+  const mf = worker();
+  try {
+    assert.equal((await put(mf, 'study-report1', 'reader-one', { title: 'Judah & "the" <Tribes>', author: 'Asahel', body: 'Text' })).status, 200);
+    const res = await view(mf, 'study-report1');
+    const html = await res.text();
+    // Owner: match Bible Strong, whose study page has no report line, so none is added.
+    assert.doesNotMatch(html, /24 hours|Reported studies/);
+    assert.match(html, /<footer><p>Written in the CyberJudah app\.<\/p><p><a href="mailto:/);
+    const links = [...html.matchAll(/<a href="(mailto:[^"]*)">Report this study<\/a>/g)];
+    assert.equal(links.length, 1, 'one visible report link');
+    // The attribute is HTML-escaped; unescaped it is a mailto to the contact address.
+    const href = links[0][1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'");
+    const url = new URL(href);
+    assert.equal(url.protocol, 'mailto:');
+    assert.equal(url.pathname, 'privacy@cyberjudah.io');
+    assert.deepEqual([...url.searchParams.keys()], ['subject', 'body']);
+    assert.equal(url.searchParams.get('subject'), 'Report: Judah & "the" <Tribes>');
+    assert.equal(url.searchParams.get('body'), 'Study: https://cyberjudah.test/app/published/study-report1\n\nReason:\n');
+    // No author, owner hash or tracking in it, and no raw quote or bracket breaks out of the attribute.
+    assert.doesNotMatch(href, /Asahel|reader-one|utm_|owner/i);
+    assert.doesNotMatch(links[0][1], /["<>]/);
+    // No script anywhere, and the page's CSP still allows none.
+    assert.doesNotMatch(html, /<script|\son[a-z]+=/i);
+    assert.doesNotMatch(res.headers.get('content-security-policy'), /script-src/);
+    // The missing-study page offers no report link.
+    assert.doesNotMatch(await (await view(mf, 'study-absent1')).text(), /Report this study/);
+  } finally { await mf.dispose(); }
+});
+
+test('an admin (ADMIN_IDS, signed Telegram launch data) takes a study down: its page 404s and other studies stay', async () => {
+  const mf = worker(admin);
+  try {
+    for (const id of ['study-down01', 'study-keep01']) assert.equal((await put(mf, id, 'reader-one', { title: id, body: 'text' })).status, 200);
+    assert.equal((await takedown(mf, 'study-down01')).status, 401, 'no launch data');
+    assert.equal((await takedown(mf, 'study-down01', `tma ${await launch(1001, '999:other-bot')}`)).status, 401, 'signed by another bot');
+    assert.equal((await takedown(mf, 'study-down01', `Bearer ${token('reader-two')}`)).status, 401, 'a Firebase reader is not an admin');
+    assert.equal((await takedown(mf, 'study-down01', `tma ${await launch(2002)}`)).status, 403, 'a Telegram user not in ADMIN_IDS');
+    assert.equal((await view(mf, 'study-down01')).status, 200, 'nothing was removed by the refused calls');
+
+    let res = await takedown(mf, 'study-down01', `tma ${await launch(1002)}`);
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { removed: true });
+    assert.equal((await view(mf, 'study-down01')).status, 404);
+    assert.equal((await mf.dispatchFetch('https://cyberjudah.test/api/published-studies/study-down01')).status, 404);
+    assert.equal((await view(mf, 'study-keep01')).status, 200);
+
+    res = await takedown(mf, 'study-down01', `tma ${await launch(1001)}`);
+    assert.deepEqual(await res.json(), { removed: false });
+    assert.equal((await takedown(mf, 'bad id!', `tma ${await launch(1001)}`)).status, 400);
+  } finally { await mf.dispose(); }
+  // With no ADMIN_IDS set, nobody is an admin.
+  const none = worker({ PRIVACY_KEY: 'test-privacy-key', BOT_TOKEN: admin.BOT_TOKEN });
+  try {
+    assert.equal((await put(none, 'study-noadm1', 'reader-one', { title: 't', body: 'b' })).status, 200);
+    assert.equal((await takedown(none, 'study-noadm1', `tma ${await launch(1001)}`)).status, 403);
+  } finally { await none.dispose(); }
+});
+
+test('/takedown in the bot is admin-only, private-chat only, and uses the same takedown', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/bot.ts', import.meta.url), 'utf8');
+  const handler = /bot\.command\("takedown", async \(ctx\) => \{([\s\S]*?)\n {2}\}\);/.exec(src)?.[1];
+  assert.ok(handler, '/takedown has a handler');
+  assert.match(handler.split('\n')[1], /ctx\.chat\.type !== "private" \|\| !ctx\.from \|\| !isAdmin\(env, ctx\.from\.id\)\) return;/, 'the admin check comes first');
+  assert.match(handler, /takeDownStudy\(env, id\)/);
+  const setup = readFileSync(new URL('../scripts/setup.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(setup, /command: "takedown"/, 'not in the public command menu');
+});

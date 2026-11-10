@@ -15,6 +15,8 @@ import { fmtUsd } from "../../shared/credits.mjs";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
 import { pid, seal } from "./privacy.mjs";
 import { deleteData, deletionToken, exportData, useDeletionToken, type Deleted } from "./mydata";
+import { isAdmin } from "./edit";
+import { takeDownStudy } from "./published-studies";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -172,6 +174,16 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     if (!ctx.from) return;
     await tellAdmins(env, `Payment support asked for by ${ctx.from.first_name}${ctx.from.username ? ` (@${ctx.from.username})` : ""}, Telegram ID ${ctx.from.id}: "${(ctx.match || "").slice(0, 500)}"`).catch(() => undefined);
     await ctx.reply("Your request has reached the CyberJudah admins, who will reply to you here in Telegram. If something you paid for in Stars did not arrive, say what you bought and when (send /paysupport followed by the details).");
+  });
+
+  // An admin takes down a published study that was reported (by email, its page's "Report this study"
+  // link): /takedown <id or its /app/published/ link>. Not in the menu; anyone else gets no answer.
+  bot.command("takedown", async (ctx) => {
+    if (ctx.chat.type !== "private" || !ctx.from || !isAdmin(env, ctx.from.id)) return;
+    const id = (ctx.match || "").trim().replace(/^.*\/app\/published\//, "").replace(/[?#].*$/, "");
+    if (!id) return ctx.reply("Send /takedown followed by the study's id or its link.");
+    const removed = await takeDownStudy(env, id).catch(() => null);
+    await ctx.reply(removed === null ? "The study could not be taken down. Try again." : removed ? "Taken down: its page now shows \"Study not found\"." : "No published study has that id.");
   });
 
   bot.command("support", (ctx) =>

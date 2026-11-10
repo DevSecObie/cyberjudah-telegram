@@ -4,6 +4,8 @@ import { Marked } from "marked";
 import { IdentityError, verifyFirebaseIdentity } from "./account-links";
 import type { Env } from "./env";
 import { keyedHash } from "./privacy.mjs";
+import { isAdminId } from "./edit.mjs";
+import { SENSITIVE_MAX_AGE, validateInitData } from "./initdata.mjs";
 
 /**
  * A study the app's reader chose to publish. The app sends its own study as Markdown with
@@ -86,6 +88,29 @@ publishedStudies.delete("/:id", async c => {
   return c.json({ published: false });
 });
 
+/**
+ * An admin takes a study down: its row goes, so its page shows "Study not found". Only that one
+ * study's row is touched; the writer keeps their own copy in the app. Reports reach the admins by
+ * email (the page's "Report this study" link), as Bible Strong does; nothing here records them.
+ */
+export async function takeDownStudy(env: Env, id: string): Promise<boolean> {
+  if (!ID.test(id)) return false;
+  await schema(env);
+  const result = await env.DB.prepare("DELETE FROM published_studies WHERE id=?").bind(id).run();
+  return (result.meta.changes ?? 0) > 0;
+}
+
+/** The admin takedown over HTTP: Telegram launch data (Authorization: tma …, a day old at most) from an ADMIN_IDS account. */
+publishedStudies.delete("/:id/admin", async c => {
+  const id = c.req.param("id");
+  if (!ID.test(id)) return c.json({ error: "invalid_id" }, 400);
+  const launch = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i)?.[1];
+  const data = launch && c.env.BOT_TOKEN ? await validateInitData(launch, c.env.BOT_TOKEN, SENSITIVE_MAX_AGE) : null;
+  if (!data?.user) return c.json({ error: "unauthorized" }, 401);
+  if (!isAdminId(c.env.ADMIN_IDS, data.user.id)) return c.json({ error: "admin_only" }, 403);
+  return c.json({ removed: await takeDownStudy(c.env, id) });
+});
+
 const escape = (value: string) => value.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
 
 /** Markdown with no raw HTML, no images and only web links: a reader's text can never run as code. */
@@ -108,10 +133,20 @@ const STYLE = `:root{color-scheme:light dark;--bg:#fbf8f2;--fg:#1d1b18;--muted:#
 main{max-width:680px;margin:0 auto;padding:32px 16px 64px}header{border-bottom:1px solid var(--rule);margin-bottom:24px;padding-bottom:16px}
 h1{font-size:30px;line-height:1.2;margin:0 0 8px}.by{color:var(--muted);font:15px/1.4 -apple-system,system-ui,sans-serif;margin:0}
 blockquote{margin:16px 0;padding:4px 16px;border-left:3px solid var(--accent);color:var(--fg)}a{color:var(--accent)}
-hr{border:0;border-top:1px solid var(--rule);margin:24px 0}footer{margin-top:40px;color:var(--muted);font:14px/1.4 -apple-system,system-ui,sans-serif}`;
+hr{border:0;border-top:1px solid var(--rule);margin:24px 0}footer{margin-top:40px;color:var(--muted);font:14px/1.4 -apple-system,system-ui,sans-serif}footer p{margin:0 0 8px}`;
 
-const page = (status: number, title: string, inner: string) => new Response(
-  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(title)}</title><style>${STYLE}</style></head><body><main>${inner}<footer>Written in the CyberJudah app.</footer></main></body></html>`,
+/** Where a reader reports a study, as the Terms say (Bible Strong's wording): by email with its link. Bible Strong's page itself has no report line; the link is the owner's addition. */
+export const REPORT_ADDRESS = "privacy@cyberjudah.io";
+
+/**
+ * A plain mailto link: the study's public link and title, nothing else (no author, no owner hash,
+ * no tracking). The reader's own mail app sends it; the page runs no script and records nothing.
+ */
+export const reportLink = (link: string, title: string) =>
+  `mailto:${REPORT_ADDRESS}?subject=${encodeURIComponent(`Report: ${title.slice(0, 150)}`)}&body=${encodeURIComponent(`Study: ${link}\n\nReason:\n`)}`;
+
+const page = (status: number, title: string, inner: string, footer = "") => new Response(
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(title)}</title><style>${STYLE}</style></head><body><main>${inner}<footer><p>Written in the CyberJudah app.</p>${footer}</footer></main></body></html>`,
   { status, headers: {
     "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex", "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer", "cache-control": status === 200 ? "public, max-age=60" : "no-store",
@@ -130,5 +165,7 @@ publishedStudyPage.get("/:id", async c => {
   if (!row) return missing();
   const date = new Date(row.updated).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
   const by = [row.author, date].filter(Boolean).map(escape).join(" · ");
-  return page(200, row.title, `<header><h1>${escape(row.title)}</h1><p class="by">${by}</p></header><article>${renderStudy(row.body)}</article>`);
+  const link = `${new URL(c.req.url).origin}/app/published/${id}`;
+  return page(200, row.title, `<header><h1>${escape(row.title)}</h1><p class="by">${by}</p></header><article>${renderStudy(row.body)}</article>`,
+    `<p><a href="${escape(reportLink(link, row.title))}">Report this study</a></p>`);
 });
