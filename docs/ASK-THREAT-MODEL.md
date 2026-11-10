@@ -1,4 +1,4 @@
-# Ask threat model (STRIDE + OWASP LLM Top 10)
+# Ask threat model (STRIDE, OWASP LLM Top 10 2025, MITRE ATLAS)
 
 MDLC work package 4, stage 1 ("Plan and threat-model"). Checked against `main` at d6a915b9 on 2026-11-10. This is a register: each threat names the control that exists today (with the file that enforces it) or says it is a gap. It adds no answer rules and no teaching; the answer rules are in `docs/ASK-POLICY.md` (WP5) and the system prompt.
 
@@ -116,6 +116,38 @@ Status: **control** = in place on `main`; **partial** = in place but with a name
 | T30 | Forged identity to use another reader's balance or chats. | `initdata.mjs` checks Telegram launch data; Firebase token verified; browser sessions keyed-hashed; per-record sealing (`privacy.mjs`). | control |
 | T31 | Can't tell later which model, prompt and corpus produced a reported answer. | Trace id links a report to its `ask_events` row; `model` is recorded. Prompt and corpus versions are not. | **gap**: WP1 |
 
+## MITRE ATLAS mapping
+
+Technique IDs and names from `mitre-atlas/atlas-data` `dist/ATLAS.yaml` (checked 2026-11-10).
+
+| Threats | ATLAS techniques |
+|---|---|
+| T1, T2, T3 | AML.T0051.001 LLM Prompt Injection: Indirect; AML.T0066 Retrieval Content Crafting; AML.T0068 LLM Prompt Obfuscation |
+| T4 | AML.T0086 Exfiltration via AI Agent Tool Invocation; AML.T0053 AI Agent Tool Invocation; AML.T0085.001 Data from AI Services: AI Agent Tools |
+| T5, T20 | AML.T0053 AI Agent Tool Invocation |
+| T6 | AML.T0051.000 LLM Prompt Injection: Direct; AML.T0054 LLM Jailbreak; AML.T0093 Prompt Infiltration via Public-Facing Application |
+| T7, T8, T9, T10 | AML.T0057 LLM Data Leakage; AML.T0085.000 Data from AI Services: RAG Databases |
+| T11 | AML.T0057 LLM Data Leakage (cross-reader, through the cache) |
+| T12 | AML.T0056 Extract LLM System Prompt |
+| T13, T14, T16 | AML.T0010 AI Supply Chain Compromise (.001 AI Software, .003 Model) |
+| T15, T17, T24 | AML.T0070 RAG Poisoning; AML.T0071 False RAG Entry Injection; AML.T0010.002 AI Supply Chain Compromise: Data; AML.T0059 Erode Dataset Integrity |
+| T18 | AML.T0077 LLM Response Rendering |
+| T19, T21, T22 | AML.T0067.000 LLM Trusted Output Components Manipulation: Citations; AML.T0031 Erode AI Model Integrity; AML.T0048.003 External Harms: User Harm |
+| T25, T26, T27, T28 | AML.T0034 Cost Harvesting (.000 Excessive Queries, .001 Resource-Intensive Queries, .002 Agentic Resource Consumption); AML.T0029 Denial of AI Service |
+| C5 (below) | AML.T0046 Spamming AI System with Chaff Data; AML.T0080 AI Agent Context Poisoning |
+
+## RAG requirements owned by this work package
+
+From `docs/ASK-POLICY.md` (policy-v1, branch `obie-a0/ask-policy`): R3, R5, R10 and C5. Each ships behind a switch that only reports until the owner turns it on.
+
+**R3 Corpus change control (anti-poisoning; T15, T24).** Every index build writes a release manifest: counts per kind and feed, passages added, changed and removed against the previous manifest (by the content hashes `embed.mjs` already keeps in `embedded`), and the number of chunks for which `grounding.mjs` `hasControlText` is true. A build is **unusual**, and held, when any of: a kind's count drops more than 2%; more than 5% of passages change or are removed in one build; any new chunk matches a control pattern; a feed comes back empty. `CORPUS_GATE_MODE`: `report` (**default**: write the manifest and flag, index as today) or `hold` (an unusual build stops before upsert and the blue-green swap; the owner releases it with a workflow input). Manifests hold counts and ids only, never passage text. Thresholds are proposals for the owner.
+
+**R5 PII before embedding (T9).** Design in [ASK-PII-SCAN.md](ASK-PII-SCAN.md). Policy-v1 says "masked"; this design scans and reports by default and masks only when the owner sets `PII_SCAN_MODE=mask`, because masking changes what Ask can cite.
+
+**R10 Stale-index alert (T17).** Alert A6 in [ASK-ALERTS.md](ASK-ALERTS.md): compares the corpus release id (WP1) with the latest library release and watches vector-count drops; shadow by default.
+
+**C5 Feedback can't poison the system.** Checked on `main`: a reader's report (`POST /api/app/ask/report`, `app-ask.ts`) stores a fixed reason, model and trace id, removes at most the one cached answer it names (`answer-cache.ts` `dropReported`), and is limited to 10 per account per day; answer votes (`feedback.ts`) are limited to 30 a minute per reader and per network, and are read by nothing that builds prompts or the index. Remaining rules: reports become eval cases only through a person's review in the weekly review (never automatically); the eviction path stays one-answer-per-report so a flood can only cost cache misses, bounded by the daily limit (AML.T0046). Add a test that a report changes nothing but the one cache key.
+
 ## Gaps for this work package and who closes them
 
 | Gap | Fix (design) | Owner |
@@ -132,4 +164,4 @@ Status: **control** = in place on `main`; **partial** = in place but with a name
 
 Any change to prompts, tools, routing, the allowlist, the outside-source list or the indexing pipeline updates the matching row here in the same PR. A new tool adds a row under "Output handling and agency". Reviewed at each MDLC release gate (`docs/ASK-POLICY.md`).
 
-References: [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/), [OWASP RAG Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/RAG_Security_Cheat_Sheet.html), Microsoft STRIDE.
+References: [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/), [MITRE ATLAS](https://atlas.mitre.org/), [NIST AI RMF](https://www.nist.gov/itl/ai-risk-management-framework), [OWASP RAG Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/RAG_Security_Cheat_Sheet.html), Microsoft STRIDE.
