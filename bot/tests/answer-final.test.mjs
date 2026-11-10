@@ -13,7 +13,7 @@ await build({ entryPoints: [new URL("../src/answer-final.ts", import.meta.url).p
     `export async function books(env) { env.lookups.push("books"); return [{ book: "Exodus", slug: "exodus", chapters: 40 }]; }
      export async function chapter(env, slug, ch) { env.lookups.push(slug + "/" + ch); return { verses: [{ verse: 14, text: "Placeholder verse text for the test." }] }; }` }));
 } }] });
-const { finalAnswer, onlyGivenPictures, picturesIn, passageEvidence } = await import(out);
+const { finalAnswer, onlyGivenPictures, picturesIn, passageEvidence, pictureLines, pictureStream, guardedStream } = await import(out);
 const env = () => ({ lookups: [] });
 
 test("a picture a tool gave is kept; any other image becomes its alt text", async () => {
@@ -46,7 +46,8 @@ test("with no tool picture at all, every image is dropped, and text without imag
 });
 
 test("picture addresses come only from the run's own tool text and passages", () => {
-  assert.deepEqual([...picturesIn(["a Picture: /p/1.jpg, and Picture: /p/2.png.", null, undefined, "Picture:/p/3.jpg"])], ["/p/1.jpg", "/p/2.png", "/p/3.jpg"]);
+  assert.deepEqual([...picturesIn(["a Picture: /people/1.jpg, and Picture: /timeline/2.png.", null, undefined, "Picture:/library/3.jpg"])], ["/people/1.jpg", "/timeline/2.png", "/library/3.jpg"]);
+  assert.deepEqual([...picturesIn(["Picture: /p/1.jpg", "Picture: https://attacker.example/a.png", "Picture: /people/../x.jpg"])], [], "only the app's own picture files");
   assert.deepEqual(passageEvidence([{ title: "T", text: "Picture: /p.jpg" }]), ["T", "Picture: /p.jpg"]);
 });
 
@@ -56,6 +57,58 @@ test("a misquoted verse is corrected to the King James text in the final step", 
   assert.match(text, /^> Placeholder verse text for the test\. \*\*Exodus 12:14\*\*/m);
   assert.doesNotMatch(text, /made up/);
   assert.deepEqual(e.lookups, ["books", "exodus/12"]);
+});
+
+test("an owner-approved answer's own app pictures are trusted, and only those", async () => {
+  const answer = "![Own](/people/placeholder.jpg)\n![Out](https://attacker.example/a.png)\n![Not app](/elsewhere/a.png)";
+  const text = await finalAnswer(env(), answer, { trustOwnPictures: true });
+  assert.match(text, /!\[Own\]\(\/people\/placeholder\.jpg\)/);
+  assert.doesNotMatch(text, /attacker|!\[Not app\]/);
+});
+
+test("only a tool's Picture: lines are kept as evidence, however long the text, so a late picture isn't cut off", () => {
+  const long = `${"x".repeat(80_000)}\nPicture: /people/late.jpg\n`;
+  assert.deepEqual(pictureLines(long), ["Picture: /people/late.jpg"]);
+  assert.deepEqual([...picturesIn(pictureLines(long))], ["/people/late.jpg"]);
+});
+
+// The stream a reader watches: no image or tag is sent before it is checked.
+const given = () => ["Picture: /people/placeholder.jpg"];
+test("stream guard: an image split across deltas is held until its line ends, then checked", () => {
+  const g = pictureStream(given);
+  const out = ["Before ![x](https://att", "acker.example/?q=1) after", "\nNext ![Ok](/people/", "placeholder.jpg)\n"].map((d) => g.push(d));
+  assert.equal(out[0], "Before ");
+  assert.equal(out[1], "", "nothing of the image goes out mid-line");
+  assert.equal(out.join(""), "Before x after\nNext ![Ok](/people/placeholder.jpg)\n");
+  assert.doesNotMatch(out.join(""), /attacker/);
+  assert.equal(g.dropped, 1);
+});
+
+test("stream guard: an <img mid-line is removed, a plain <br> and words after a ! are kept", () => {
+  const g = pictureStream(given);
+  const sent = g.push("Text <img src=\"https://attacker.example/p.gif\"> more\n") + g.push("Amen! line<br>\nend") + g.flush();
+  assert.equal(sent, "Text  more\nAmen! line<br>\nend");
+});
+
+test("stream guard: reset forgets what was held for a cleared draft", () => {
+  const g = pictureStream(given);
+  assert.equal(g.push("Draft ![x](https://attacker.example/"), "Draft ");
+  g.reset();
+  assert.equal(g.push("Fresh\n") + g.flush(), "Fresh\n");
+});
+
+test("guardedStream.settle: replaces the draft when the final text differs or anything was held back, else sends the rest", () => {
+  const run = (deltas, final, draft) => { const sent = []; const s = guardedStream((e) => sent.push(e), given); for (const d of deltas) s.emit({ delta: d }); s.emit({ status: "x" }); s.settle(final, draft); return sent; };
+  // Nothing held back and nothing changed: no reset; the held tail (a "!" line) is sent at the end.
+  assert.deepEqual(run(["Hello world", " Amen!"], "Hello world Amen!", "Hello world Amen!"), [{ delta: "Hello world" }, { delta: " Amen" }, { status: "x" }, { delta: "!" }]);
+  // Plain text, unchanged: no reset, nothing more.
+  assert.deepEqual(run(["Hello"], "Hello", "Hello"), [{ delta: "Hello" }, { status: "x" }]);
+  // The final step changed the text (a verse corrected): reset, then the final text.
+  assert.deepEqual(run(["Draft"], "Final", "Draft").slice(-2), [{ reset: true }, { delta: "Final" }]);
+  // An image was held back: reset, then the final text, even when the final equals the draft.
+  const held = run(["A ![x](https://attacker.example/)\n"], "A x\n", "A x\n");
+  assert.deepEqual(held.slice(-2), [{ reset: true }, { delta: "A x\n" }]);
+  assert.ok(held.every((e) => !JSON.stringify(e).includes("attacker")));
 });
 
 // The answer paths in ai.ts. Each answer a model wrote must pass finalAnswer; each other answer is a
@@ -95,6 +148,17 @@ test("every answer path in ai.ts is a final answer, a fixed sentence or an appro
   // Every approved answer goes through approvedFinal; approvedFor's raw result is never answered.
   assert.equal((ai.match(/approvedFor\(/g) ?? []).length, (ai.match(/const approvedRaw = approvedFor\(/g) ?? []).length, "approvedFor is only ever called as approvedRaw");
   assert.equal((ai.match(/const approved = approvedRaw && await approvedFinal\(env, approvedRaw\);/g) ?? []).length, 3);
+  // Kept answers pass the final step again when given (answers kept before it existed).
+  assert.equal((ai.match(/cachedAnswer</g) ?? []).length, (ai.match(/return \{ \.\.\.\(await keptFinal\(env, kept\)\)/g) ?? []).length, "every cache hit goes through keptFinal");
+  // Approved answers trust only their own app pictures.
+  assert.match(ai, /finalAnswer\(env, approved\.answer, \{ evidence: [^}]*trustOwnPictures: true \}\)/);
+  // Every stream the reader watches is guarded, and settled at the end (no bare reset-and-resend).
+  assert.equal((ai.match(/guardedStream</g) ?? []).length, 4, "askStream (research, backup), answerAppAgent, boundedAnswer");
+  assert.doesNotMatch(ai, /!== (drafted|draft)\) \{ (send|emit)\(\{ reset: true \}\)/);
+  // The agent keeps only the tools' Picture: lines as evidence, never a cut of the text.
+  const agent = readFileSync(new URL("../src/agent.ts", import.meta.url), "utf8");
+  assert.match(agent, /control\.evidence\?\.push\(\.\.\.pictureLines\(result\.content\)\)/);
+  assert.doesNotMatch(agent, /evidence\?\.push\([^)]*slice\(/);
   // The verse check lives only in the final step.
   assert.doesNotMatch(ai, /guardVerses|checkedVerses/);
   // Every research run passes its evidence list, so a tool's picture can be recognised.
@@ -130,7 +194,25 @@ test("the app's agent answer passes the final step: an injected image is dropped
   assert.doesNotMatch(r.answer, /attacker/);
   assert.match(r.answer, /!\[Placeholder\]\(\/people\/placeholder\.jpg\)/);
   assert.deepEqual(events.slice(-2), [{ reset: true }, { delta: r.answer }], "the streamed draft is replaced by the final text");
+  assert.ok(events.slice(0, -2).every((e) => !JSON.stringify(e).includes("attacker")), "the injected image never reached the live draft");
   const kept = [...env.SUBS.m.entries()].filter(([k]) => k.startsWith("ask_cache:")).map(([, v]) => v);
   assert.equal(kept.length, 1);
   assert.doesNotMatch(kept[0], /attacker/, "the cache keeps only the final text");
+});
+
+test("a kept answer passes the final step again when it is given from the cache", async () => {
+  const draft = "Keep it [1].";
+  const env = { DB: d1(), SUBS: kv(), PRIVACY_KEY: "test-key", AI_GATEWAY: "fixture", draft,
+    ASK_FREE_MODEL: "@cf/google/gemma-4-26b-a4b-it", ASK_FREE_MODELS: "@cf/google/gemma-4-26b-a4b-it",
+    AI: { run: async () => ({ data: [[0.1, 0.2]] }) }, VEC: { query: async () => ({ matches: [] }) } };
+  const ask = () => answerAppAgent(env, "Why do we keep the Passover?", "acct-cache", [], ["Cloudflare (Workers AI)"], {});
+  assert.equal((await ask()).ok, true);
+  const [[key, value]] = [...env.SUBS.m.entries()].filter(([k]) => k.startsWith("ask_cache:"));
+  // An answer kept before the final step existed: it carries an outside image.
+  env.SUBS.m.set(key, value.replace("Keep it [1].", "Keep it [1].\\n![x](https://attacker.example/?q=old)"));
+  env.draft = "A fresh draft would differ.";
+  const again = await ask();
+  assert.equal(again.ok, true);
+  assert.match(again.answer, /^Keep it \[1\]\./, "given from the cache");
+  assert.doesNotMatch(again.answer, /attacker/);
 });

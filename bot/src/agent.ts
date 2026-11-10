@@ -16,6 +16,7 @@ import { parseReference } from "./refs.mjs";
 import { PLAN_TOOL, Readings, partId, namedRefs, nothingCovered, checklist, checklistNote, planFrom, verifyAnswer, type Coverage, type PlanPart, type StopReason } from "./study-plan";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
+import { pictureLines } from "./answer-final";
 import { freeSpend, type Spend } from "./spend";
 import { DEEP_TOOLS, readForAsk } from "./ask-readers";
 import { claudeThinking } from "./model-capacity.mjs";
@@ -324,8 +325,9 @@ export async function runAgent(
         return { content: "Research time is reserved for writing the final answer from the registered sources.", error: true, source_registry: [] };
       }
       if (!result.error && appTools.has(name)) toolEvidence.push({ kind: "tool", title: name, text: result.content });
-      // What the tools gave, for the answer's final step (answer-final.ts keeps only pictures a tool gave).
-      if (!result.error && typeof result.content === "string") control.evidence?.push(result.content.slice(0, 50_000));
+      // The pictures the tools gave, for the answer's final step (answer-final.ts keeps only those): just
+      // their "Picture:" lines, however long the result, so a late picture is never cut off.
+      if (!result.error && typeof result.content === "string") control.evidence?.push(...pictureLines(result.content));
       return { ...result, source_registry: passages.slice(before).map(source => ({ source_n: source.n, title: source.title, url: source.url })) };
     } finally { coverageVersion++; }
   };

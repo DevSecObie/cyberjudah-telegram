@@ -50,6 +50,8 @@ export const pictureLines = (text: string) => text.match(PICTURE) ?? [];
 // The one image form kept: ![alt](src) on one line, alt without brackets, src an exact allowed path.
 const KEEPABLE = /!\[([^\[\]\n]*)\]\(([^()\s<>"']+)\)/g;
 const HTML_TAG = /<\/?[A-Za-z][^>]*>|<!--[\s\S]*?-->/g;
+// Any other image written whole on one line (titled, empty, angle-bracketed, by reference): its alt text.
+const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\[[^\[\]\n]*\])/g;
 
 /**
  * The answer with only allowed pictures as images: an allowed ![alt](src) stays; any other image
@@ -64,6 +66,7 @@ export function onlyGivenPictures(answer: string, allowed: Set<string>): { text:
     dropped++;
     return alt.trim();
   });
+  text = text.replace(OTHER_IMAGE, (_whole, alt: string) => { dropped++; return alt.trim(); });
   text = text.replace(/!\[/g, () => { dropped++; return "["; });
   text = text.replace(HTML_TAG, (tag) => (/^<br\s*\/?>$/i.test(tag) ? tag : (dropped++, "")));
   text = text.replace(/\u0000(\d+)\u0000/g, (_m, i: string) => kept[Number(i)]);
