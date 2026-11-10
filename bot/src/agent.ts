@@ -265,9 +265,9 @@ export async function runAgent(
     }
     if (name === "propose_reminder_change") {
       if (!userId) return { content: "The person is not signed in, so nothing can be proposed.", error: true };
-      readerData = true;
       const p = proposeReminder(input, { inTelegram: true });
       if (p.error) return { content: p.error, error: true };
+      readerData = true;
       const action: SavedAction = { id: crypto.randomUUID().replace(/-/g, "").slice(0, 16), kind: "reminder", summary: p.summary!, settings: p.settings as Record<string, unknown> };
       actions.push(action);
       emit({ action });

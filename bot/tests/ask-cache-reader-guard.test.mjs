@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { modelOf } from "../../shared/ask-models.mjs";
 
 // An answer that used a signed-in reader's own data (saved chats, reminder) is that reader's alone:
+// (boundedAnswer, the cache's other writer at ai.ts:462, runs no tools at all.)
 // it must never be kept in the shared answer cache, where another reader asking the same words with
 // the same model would be given it (OWASP LLM02, threat model G7).
 
@@ -43,7 +44,7 @@ const aiOut = new URL("./.build/ask-cache-reader-guard-ai.mjs", import.meta.url)
 await build({ stdin: { contents: 'export { answerAppAgent } from "./src/ai.ts";', resolveDir: root, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: aiOut, logLevel: "error", plugins: [{ name: "agent", setup(b) {
   b.onResolve({ filter: /^\.\/agent$/ }, (args) => args.importer.endsWith("ai.ts") ? { path: "agent", namespace: "fixture" } : undefined);
   b.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({ loader: "js", contents:
-    `export async function runAgent(env) { return { text: "Keep it for ever [1].", units: 0, calls: 1, cut: false, refused: false, grounded: true, actions: [], plan: null, tracked: false, readerData: env.readerData,
+    `export async function runAgent(env, ...args) { env.agentArgs = args; return { text: "Keep it for ever [1].", units: 0, calls: 1, cut: false, refused: false, grounded: true, actions: [], plan: null, tracked: false, readerData: env.readerData,
        passages: [{ n: 1, kind: "note", title: "A class", url: "/classes/a", text: "Recorded class words." }] }; }
      export const claudeUnavailable = () => false; export const alertClaudeFunds = async () => {};` }));
 } }] });
@@ -61,3 +62,13 @@ for (const readerData of [false, true]) {
     assert.equal(kept.length, readerData ? 0 : 1);
   });
 }
+
+test("the cached path never gives the agent a reader, so no reader tool can read anyone's data there", async () => {
+  const env = { DB: d1(), SUBS: kv(), PRIVACY_KEY: "test-key", AI_GATEWAY: "fixture", readerData: false,
+    ASK_FREE_MODEL: "@cf/google/gemma-4-26b-a4b-it", ASK_FREE_MODELS: "@cf/google/gemma-4-26b-a4b-it",
+    AI: { run: async () => ({ data: [[0.1, 0.2]] }) }, VEC: { query: async () => ({ matches: [] }) } };
+  assert.equal((await ai.answerAppAgent(env, "Why do we keep the Passover?", "acct-g7b", [], ["Cloudflare (Workers AI)"], { adminId: 42 })).ok, true);
+  // runAgent(env, question, history, first, retrieve, emit, ctx, userId, ...): ctx and userId stay empty.
+  assert.equal(env.agentArgs[5], undefined, "no execution context");
+  assert.equal(env.agentArgs[6], undefined, "no reader id");
+});
