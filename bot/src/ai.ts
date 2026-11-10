@@ -3,7 +3,7 @@ import { askIpKey, clientIp } from "./client-ip";
 import type { ResourcePins } from "../../shared/resources";
 import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
-import { finalAnswer, guardedStream, passageEvidence } from "./answer-final";
+import { FINAL_STEP, finalAnswer, guardedStream, passageEvidence } from "./answer-final";
 import { approvedFor, approvedSources } from "./approved-answers";
 import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
@@ -302,10 +302,11 @@ async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): P
 }
 
 /** An owner-approved answer, through the same final step as every other (answer-final.ts). Its own
- *  pictures are trusted (still only the app's picture files). The result is kept for ten minutes per
- *  answer, not checked again on every ask; a failed check isn't kept. */
+ *  pictures are trusted (still only the app's picture files). The result is kept for a minute per
+ *  answer rather than checked on every ask. The verse check passes an answer through unchanged when the
+ *  King James text can't be read, so that minute is the longest an unchecked approved answer is kept. */
 type Approved = NonNullable<ReturnType<typeof approvedFor>>;
-const APPROVED_TTL_MS = 10 * 60_000;
+const APPROVED_TTL_MS = 60_000;
 const approvedChecked = new WeakMap<Approved, { at: number; answer: Promise<string> }>();
 async function approvedFinal(env: Env, approved: Approved) {
   let hit = approvedChecked.get(approved);
@@ -318,11 +319,14 @@ async function approvedFinal(env: Env, approved: Approved) {
   return { ...approved, answer: await hit.answer };
 }
 
-/** A kept answer, through the final step again before it is given (it may have been kept before the
- *  final step existed, or before its rules last changed). */
-async function keptFinal<T extends { answer: string; sources: (Passage & { n: number })[] }>(env: Env, kept: T): Promise<T> {
-  const checked = await finalAnswer(env, kept.answer, { evidence: passageEvidence(kept.sources) });
-  return checked === kept.answer ? kept : { ...kept, answer: checked, ...citationMetadata(checked, kept.sources) };
+/** A kept answer as it is given: one kept by this final step's version passes as it is; an older one
+ *  (kept before the final step, or before its rules last changed) goes through it again. Its own
+ *  pictures are trusted then, still only the app's picture files: the tools that gave them aren't kept. */
+async function keptFinal<T extends { answer: string; sources: (Passage & { n: number })[]; final_step?: number }>(env: Env, kept: T): Promise<T> {
+  const { final_step, ...answer } = kept;
+  if (final_step === FINAL_STEP) return answer as T;
+  const checked = await finalAnswer(env, kept.answer, { evidence: passageEvidence(kept.sources), trustOwnPictures: true });
+  return (checked === kept.answer ? answer : { ...answer, answer: checked, ...citationMetadata(checked, kept.sources) }) as unknown as T;
 }
 
 /** A question answered in one piece (the bot and older clients). It cannot ask first, so it is held to ASK_CONFIRM_ABOVE_USD at most. */
@@ -485,7 +489,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const meter: Meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: 1 };
   const result = await boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, mode, options.traceId);
   // Only an answer that found and cited teaching is kept; "nothing found" is always asked again.
-  if (result.ok && result.sources.length && !isCoverageGap(result)) await keepAnswer(env, key, result, options.traceId);
+  if (result.ok && result.sources.length && !isCoverageGap(result)) await keepAnswer(env, key, { ...result, final_step: FINAL_STEP }, options.traceId);
   return result;
 }
 
@@ -595,7 +599,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     guard.settle(answer, drafted);
     const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
-    if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false) await keepAnswer(env, key, result, options.traceId);
+    if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false) await keepAnswer(env, key, { ...result, final_step: FINAL_STEP }, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
@@ -635,7 +639,7 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
       // The study cards (ui) are checked by their own grammar (app-study-ui.ts: no generated verse text
       // or image addresses); the answer text goes through the same final step as every answer.
       const result = { ...study, answer: await finalAnswer(env, study.answer, { evidence: passageEvidence([...passages, ...study.sources]) }) };
-      guard?.settle(result.answer, study.answer);
+      // No settle here: a study answer streams its cards (ui), not prose; `done` carries the final text.
       return { ok: true, ...result, ...citationMetadata(result.answer, result.sources), model: model.id, provider: model.provider, ms: Date.now() - t0 };
     }
     // Nothing found: a greeting or a thank-you is still answered, in a sentence; a real question is

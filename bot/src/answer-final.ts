@@ -49,7 +49,8 @@ export const pictureLines = (text: string) => text.match(PICTURE) ?? [];
 
 // The one image form kept: ![alt](src) on one line, alt without brackets, src an exact allowed path.
 const KEEPABLE = /!\[([^\[\]\n]*)\]\(([^()\s<>"']+)\)/g;
-const HTML_TAG = /<\/?[A-Za-z][^>]*>|<!--[\s\S]*?-->/g;
+// A tag is a name then a space, "/" or ">" (so an autolink <https://...> or "a < b" is left alone).
+const HTML_TAG = /<\/?[A-Za-z][A-Za-z0-9-]*(?:\s[^<>]*)?\/?>|<!--[\s\S]*?-->/g;
 // Any other image written whole on one line (titled, empty, angle-bracketed, by reference): its alt text.
 const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\[[^\[\]\n]*\])/g;
 
@@ -85,6 +86,9 @@ export async function checkedVerses(env: Env, answer: string): Promise<string> {
 
 const ownPictures = (answer: string) => [...answer.matchAll(KEEPABLE)].map((m) => `Picture: ${m[2]}`);
 
+/** The final step's version: a kept answer marked with it has passed this very step (answer-cache.ts). */
+export const FINAL_STEP = 1;
+
 /** The answer as readers may see it and as it may be kept: pictures limited, verses checked. */
 export async function finalAnswer(env: Env, answer: string, options: FinalOptions = {}): Promise<string> {
   if (!answer) return answer;
@@ -98,14 +102,34 @@ export async function finalAnswer(env: Env, answer: string, options: FinalOption
 export const passageEvidence = (passages: readonly { title?: string; text?: string }[] = []) => passages.flatMap((p) => [p.title, p.text]);
 
 /**
- * Guards a streamed answer as it is sent: text goes out as it comes, except from a "!" or "<" to the
- * end of its line, which is held until the line is complete and then sent through onlyGivenPictures
- * with the pictures known so far. `push` takes each delta and returns what may be sent now; `flush`
- * returns the rest at the end; `reset` forgets a draft the reader was told to clear.
+ * Guards a streamed answer as it is sent: text goes out as it comes, except from where an image ("![")
+ * or a tag ("<" then a letter, "/" or "!") may start to the end of its line, which is held until the
+ * line is complete (a tag until its ">" too) and then sent through onlyGivenPictures with the pictures
+ * known so far. `push` takes each delta and returns what may be sent now; `flush` returns the rest at
+ * the end; `reset` forgets a draft the reader was told to clear.
  */
 export function pictureStream(evidence: () => Iterable<string | undefined | null>) {
   let held = "", dropped = 0;
-  const clean = (s: string) => { const r = onlyGivenPictures(s, picturesIn(evidence())); dropped += r.dropped; return r.text; };
+  // The allowed pictures, worked out again only when the evidence has grown.
+  let seen = -1, allowed = new Set<string>();
+  const known = () => {
+    const all = [...evidence()];
+    const size = all.reduce((n, t) => n + (typeof t === "string" ? t.length + 1 : 1), 0);
+    if (size !== seen) { seen = size; allowed = picturesIn(all); }
+    return allowed;
+  };
+  const clean = (s: string) => { const r = onlyGivenPictures(s, known()); dropped += r.dropped; return r.text; };
+  // Where something that may be an image or a tag starts ("!" or "<" last in the text may be one, too).
+  const start = (t: string) => {
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i], next = t[i + 1];
+      if (c === "!" && (next === undefined || next === "[")) return i;
+      if (c === "<" && (next === undefined || /[A-Za-z/!]/.test(next))) return i;
+    }
+    return -1;
+  };
+  // Held text is complete at the end of a line, unless a tag in it is still open.
+  const done = (h: string) => h.endsWith("\n") && !/<[A-Za-z/!][^>]*$/.test(h);
   return {
     /** How many images or tags the stream has held back from the reader so far. */
     get dropped() { return dropped; },
@@ -114,14 +138,14 @@ export function pictureStream(evidence: () => Iterable<string | undefined | null
       for (const part of delta.split(/(?<=\n)/)) {
         if (held) {
           held += part;
-          if (held.endsWith("\n")) { out += clean(held); held = ""; }
+          if (done(held)) { out += clean(held); held = ""; }
           continue;
         }
-        const at = part.search(/[!<]/);
+        const at = start(part);
         if (at < 0) { out += part; continue; }
         out += part.slice(0, at);
         held = part.slice(at);
-        if (held.endsWith("\n")) { out += clean(held); held = ""; }
+        if (done(held)) { out += clean(held); held = ""; }
       }
       return out;
     },
@@ -130,7 +154,7 @@ export function pictureStream(evidence: () => Iterable<string | undefined | null
   };
 }
 
-type Delta = { delta?: unknown; reset?: unknown };
+type Delta = { delta?: unknown; reset?: unknown; passages?: unknown; passages_delta?: unknown };
 
 /**
  * A stream's events with every delta guarded (pictureStream), and `settle(final, draft)` for the end:
@@ -138,9 +162,12 @@ type Delta = { delta?: unknown; reset?: unknown };
  * replaced by the final text (reset, then one delta); otherwise whatever is still held is sent.
  */
 export function guardedStream<E>(send: (event: E) => void, evidence: () => Iterable<string | undefined | null>) {
-  const guard = pictureStream(evidence);
+  // Passages the stream itself announces (a research run's "passages" events) count as evidence too.
+  const announced: (string | undefined)[] = [];
+  const guard = pictureStream(() => [...evidence(), ...announced]);
   const emit = (event: E) => {
     const e = event as Delta;
+    for (const list of [e?.passages, e?.passages_delta]) if (Array.isArray(list)) announced.push(...passageEvidence(list as { title?: string; text?: string }[]));
     if (e && e.reset === true) { guard.reset(); send(event); return; }
     if (e && typeof e.delta === "string") {
       const out = guard.push(e.delta);
