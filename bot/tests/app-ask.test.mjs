@@ -116,7 +116,7 @@ test('answer reports are limited per address as well as per account, keyed by a 
     const over = await report('r-next', '203.0.113.9');
     assert.equal(over.status, 429);
     assert.deepEqual(await over.json(), { error: 'limit' });
-    assert.equal(quota.get([...quota.keys()].find((k) => k.startsWith('app_report:') && k.includes('r-next')) ?? 'none'), undefined, 'a refused address spends no reader allowance');
+    assert.equal(over.headers.get('retry-after'), '60', 'an unsigned address is shut for the rest of the minute only');
     assert.equal((await report('r-other', '198.51.100.4')).status, 200, 'another address is counted on its own');
     // The next minute the shared address answers again: it is never shut for the day.
     Date.now = () => 1794052800000 + 60_000;
@@ -128,6 +128,8 @@ test('answer reports are limited per address as well as per account, keyed by a 
     // The per-account limit still applies.
     for (let i = 0; i < 10; i++) assert.equal((await report('same', '192.0.2.1')).status, 200);
     assert.equal((await report('same', '192.0.2.1')).status, 429);
+    // The account is counted first, so an account already refused spends none of its address's allowance.
+    assert.ok([...quota.entries()].some(([k, n]) => k.startsWith('app_report_ip:') && n === 10), 'the refused 11th report took no address slot');
   } finally { Date.now = now; }
 });
 
