@@ -564,7 +564,8 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     await finishMeter(env, meter, ran.cut ? "partial" : ran.grounded === false ? "empty" : "ok", Date.now() - t0);
     const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
-    if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false) await keepAnswer(env, key, result, options.traceId);
+    // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
+    if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, result, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
