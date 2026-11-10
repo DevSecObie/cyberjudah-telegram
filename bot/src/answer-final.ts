@@ -56,17 +56,12 @@ const KEEPABLE = /!\[([^\[\]\n]*)\]\(([^()\s<>"']+)\)/g;
 // and a markdown autolink (<https://...>, <mailto:...>, <name@host>). A "<" left before a letter etc.
 // with no ">" on its line (an unfinished tag, or "Jacob<Israel") loses only that "<", so nothing
 // tag-like reaches a reader and no text past the line is touched; "a < b" with a space is untouched.
-const HTML_COMMENT = /<!--[\s\S]*?-->/g;
+// An unclosed comment hides the rest of its own line (never more).
+const HTML_COMMENT = /<!--[\s\S]*?-->|<!--[^\n]*/g;
 const HTML_TAG = /<[A-Za-z/!?][^>\n]*>/g;
-const KEEP_TAG = /^(?:<br\s*\/?>|<(?:https?:\/\/|mailto:)[^\s<>"]+>|<[^\s<>@"/]+@[^\s<>@"/]+>)$/i;
+const KEEP_TAG = /^(?:<br\s*\/?>|<https?:\/\/[^\s<>"]+>|<mailto:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}>|<[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}>)$/i;
 const OPEN_TAG = /<(?=[A-Za-z/!?])/g;
-// The kept-piece mark's nonce: one per isolate, never known to an answer's writer. Made on first use
-// (Workers don't allow random values at global scope).
-let marking: { nonce: string; marked: RegExp } | null = null;
-const marks = () => {
-  if (!marking) { const nonce = crypto.randomUUID().slice(0, 8); marking = { nonce, marked: new RegExp(`\uE000${nonce}:(\\d+)\uE001`, "g") }; }
-  return marking;
-};
+
 // Any other image written whole on one line (titled, empty, angle-bracketed, by reference): its alt text.
 const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\[[^\[\]\n]*\])/g;
 
@@ -79,7 +74,8 @@ export function onlyGivenPictures(answer: string, allowed: Set<string>): { text:
   let dropped = 0;
   const kept: string[] = [];
   // Kept pieces stand aside under a mark no answer can hold (private-use characters and a nonce).
-  const { nonce, marked } = marks();
+  // A fresh nonce for each call (made here: Workers don't allow random values at global scope).
+  const nonce = crypto.randomUUID().slice(0, 8), marked = new RegExp(`\uE000${nonce}:(\\d+)\uE001`, "g");
   const mark = (whole: string) => { kept.push(whole); return `\uE000${nonce}:${kept.length - 1}\uE001`; };
   let text = answer.replace(KEEPABLE, (whole, alt: string, src: string) => {
     if (allowed.has(src) && isAppPicture(src)) return mark(whole);
@@ -114,7 +110,7 @@ export async function checkedVerses(env: Env, answer: string): Promise<{ text: s
 const ownPictures = (answer: string) => [...answer.matchAll(KEEPABLE)].map((m) => `Picture: ${m[2]}`);
 
 /** The final step's version: a kept answer marked with it has passed this very step (answer-cache.ts). */
-export const FINAL_STEP = 1;
+export const FINAL_STEP = 2;   // 2: outside pages allow no pictures; tags end at their line
 
 /** The answer as readers may see it and as it may be kept: pictures limited, verses checked. */
 export async function finalAnswer(env: Env, answer: string, options: FinalOptions = {}): Promise<string> {
@@ -135,7 +131,7 @@ const OUTSIDE = new Set(["web"]);
 
 /**
  * Guards a streamed answer as it is sent: text goes out as it comes, except from where an image ("![")
- * or a tag ("<" then a letter, "/" or "!") may start to the end of its line, which is held until the
+ * or a tag ("<" then a letter, "/", "!" or "?") may start to the end of its line, which is held until the
  * line is complete and then sent through onlyGivenPictures with the pictures
  * known so far. `push` takes each delta and returns what may be sent now; `flush` returns the rest at
  * the end; `reset` forgets a draft the reader was told to clear.
@@ -161,8 +157,9 @@ export function pictureStream(evidence: () => Iterable<string | undefined | null
     return -1;
   };
   // Held text is complete at the end of its line. A tag left open there loses its "<" (onlyGivenPictures),
-  // so what follows on the next line is only words: nothing waits past a line, and nothing tag-like goes out.
-  const done = (h: string) => h.endsWith("\n");
+  // so what follows on the next line is only words. A comment ("<!--") is held until its "-->" (at most
+  // 4,000 characters), so what it hides never streams out line by line.
+  const done = (h: string) => h.endsWith("\n") && (!/<!--(?![\s\S]*-->)/.test(h) || h.length > 4000);
   return {
     /** How many images or tags the stream has held back from the reader so far. */
     get dropped() { return dropped; },

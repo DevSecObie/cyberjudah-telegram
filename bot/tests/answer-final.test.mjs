@@ -113,6 +113,15 @@ test("stream guard: a tag split across lines never goes out as a tag, and nothin
   assert.equal(out[2], "after\n");
 });
 
+test("stream guard: a comment is held until its -->, so what it hides never streams out", () => {
+  const g = pictureStream(given);
+  const out = [g.push("Shown <!-- hidden\n"), g.push("secret line -->\n"), g.push("after\n")];
+  assert.equal(out[0], "Shown ");
+  assert.equal(out[1], "\n", "the whole comment went out removed, once closed");
+  assert.doesNotMatch(out.join(""), /hidden|secret/);
+  assert.equal(out[2], "after\n");
+});
+
 test("stream guard: a stray 'a<b' doesn't freeze the stream past its line", () => {
   const g = pictureStream(given);
   assert.equal(g.push("Compare a<b here\n"), "Compare ab here\n");
@@ -129,12 +138,13 @@ test("tags are removed whole: '/' separators, '<' inside values, ? and ! forms; 
 test("a stray '<' or an unclosed comment never deletes text past its own line", () => {
   const answer = "Jacob<Israel and more\n\n> In the beginning [1]\nEnd.";
   assert.equal(onlyGivenPictures(answer, new Set()).text, "JacobIsrael and more\n\n> In the beginning [1]\nEnd.");
-  assert.equal(onlyGivenPictures("Before <!-- never closed\nThe rest stays.", new Set()).text, "Before !-- never closed\nThe rest stays.");
+  assert.equal(onlyGivenPictures("Before <!-- never closed\nThe rest stays.", new Set()).text, "Before \nThe rest stays.", "an unclosed comment hides only the rest of its line");
   assert.equal(onlyGivenPictures("A <!-- closed --> B", new Set()).text, "A  B");
 });
 
 test("mail autolinks stay; a <?...> is caught by the final step's gate too", async () => {
   assert.equal(onlyGivenPictures("Write <mailto:a@cyberjudah.io> or <a@cyberjudah.io>.", new Set()).text, "Write <mailto:a@cyberjudah.io> or <a@cyberjudah.io>.");
+  for (const bad of ["<javascript:alert(1)@x>", "<tg:resolve@x.y>", "<intent:x@y.z>", "<mailto:a@b.c?x=<y>>"]) assert.doesNotMatch(onlyGivenPictures(`A ${bad} B`, new Set()).text, /<(javascript|tg|intent|mailto:a@b\.c\?)/, bad);
   assert.equal(await finalAnswer(env(), "A <?php x ?> B"), "A  B");
 });
 
@@ -221,7 +231,7 @@ test("every answer path in ai.ts is a final answer, a fixed sentence or an appro
   assert.equal((ai.match(/approvedFor\(/g) ?? []).length, (ai.match(/const approvedRaw = approvedFor\(/g) ?? []).length, "approvedFor is only ever called as approvedRaw");
   assert.equal((ai.match(/const approved = approvedRaw && await approvedFinal\(env, approvedRaw\);/g) ?? []).length, 3);
   // Kept answers pass the final step again when given (answers kept before it existed).
-  assert.equal((ai.match(/cachedAnswer</g) ?? []).length, (ai.match(/return \{ \.\.\.\(await keptFinal\(env, kept, key\)\)/g) ?? []).length, "every cache hit goes through keptFinal");
+  assert.equal((ai.match(/cachedAnswer</g) ?? []).length, (ai.match(/return \{ \.\.\.\(await keptFinal\(env, kept\)\)/g) ?? []).length, "every cache hit goes through keptFinal");
   // Approved answers trust only their own app pictures.
   assert.match(ai, /finalAnswer\(env, approved\.answer, \{ evidence: [^}]*trustOwnPictures: true \}\)/);
   // Every stream the reader watches is guarded, and settled at the end (no bare reset-and-resend).
@@ -286,7 +296,7 @@ test("a kept answer passes the final step again when it is given from the cache"
   const ask = () => answerAppAgent(env, "Why do we keep the Passover?", "acct-cache", [], ["Cloudflare (Workers AI)"], {});
   assert.equal((await ask()).ok, true);
   const [[key, value]] = [...env.SUBS.m.entries()].filter(([k]) => k.startsWith("ask_cache:"));
-  assert.equal(JSON.parse(value).final_step, 1, "kept with the final step's version");
+  assert.equal(JSON.parse(value).final_step, 2, "kept with the final step's version");
   // An answer kept before the final step existed (no version mark): it carries an outside image.
   const old = JSON.parse(value);
   delete old.final_step;

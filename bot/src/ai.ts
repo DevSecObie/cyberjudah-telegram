@@ -327,15 +327,13 @@ const finalMark = (result: object) => (unverified.has(result) ? {} : { final_ste
 /** A kept answer as it is given: one kept by this final step's version passes as it is; an older one
  *  (kept before the final step, or before its rules last changed) goes through it again. Its own
  *  pictures are trusted then, still only the app's picture files: the tools that gave them aren't kept. */
-async function keptFinal<T extends { answer: string; sources: (Passage & { n: number })[]; final_step?: number }>(env: Env, kept: T, key: string | null): Promise<T> {
+async function keptFinal<T extends { answer: string; sources: (Passage & { n: number })[]; final_step?: number }>(env: Env, kept: T): Promise<T> {
   const { final_step, ...answer } = kept;
   if (final_step === FINAL_STEP) return answer as T;
-  const status = { verified: true };
-  const checked = await finalAnswer(env, kept.answer, { evidence: passageEvidence(kept.sources), trustOwnPictures: true, status });
+  const checked = await finalAnswer(env, kept.answer, { evidence: passageEvidence(kept.sources), trustOwnPictures: true });
   const given = (checked === kept.answer ? answer : { ...answer, answer: checked, ...citationMetadata(checked, kept.sources) }) as unknown as T;
   // Not written back: a re-put would reset the entry's time to live, and could bring back one that was
   // deleted (a reported answer) in the meantime. An old entry is checked on each hit until it expires.
-  void key;
   return given;
 }
 
@@ -491,7 +489,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const mode = options.study ? "study" : "app";
   const key = await cacheKey(question, history, model.id, `${mode}:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
-  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept, key)), ms: Date.now() - t0 }; }
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept)), ms: Date.now() - t0 }; }
   if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
   const cfg = creditsConfig(env);
   const budget = Math.min(estimateMc(model, cfg, { rounds: options.study ? 2 : 1 }).maxMc * MC_USD, freeMaxUsd(env));
@@ -539,7 +537,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const key = await cacheKey(question, history, model.id, `agent:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
-  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept, key)), ms: Date.now() - t0 }; }
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept)), ms: Date.now() - t0 }; }
   let meter: Meter;
   if (model.format === "anthropic" && adminClaude) {
     // An admin's linked account: the admin meter holds nothing and charges no one.
