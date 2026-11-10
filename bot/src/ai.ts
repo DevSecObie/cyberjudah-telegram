@@ -31,7 +31,7 @@ import { withAskSourcePictures } from "./ask-source-pictures";
 import { withAskBookLinks } from "./ask-source-links";
 import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
 import { citationReport, citationTokenCount } from "./citations.mjs";
-import { autoModel } from "./ask-routing";
+import { autoModel, type AnswerDepth } from "./ask-routing";
 import { approvedSources as approvedOutsideHosts } from "./source-policy";
 import { recordedMoment, retrievedSourceUrl } from "./retrieved-source-url";
 import { issueAnswerReceipt } from "./feedback";
@@ -202,7 +202,7 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  */
 export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number; reservation?: FreeReservation };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
-export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean };
+export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean; depth?: AnswerDepth };
 
 /**
  * The free tier answers at the owner's expense, with the same default research guard
@@ -753,7 +753,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
   if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
-  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
+  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId), opts.depth) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
