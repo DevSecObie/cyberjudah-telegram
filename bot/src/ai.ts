@@ -352,8 +352,8 @@ export function searchModel(env: Env): AskModel | null {
 }
 
 /**
- * A library-grounded answer with at most one citation retry, funded by the same free reservation. A configured
- * external provider requires consent before retrieval or metering. No reader balance is held,
+ * A library-grounded answer with at most one citation retry, funded by the same free reservation. Every Search
+ * model, hosted on Cloudflare or not, requires the reader's agreement to its provider before retrieval or metering. No reader balance is held,
  * and no tools or web searches are offered to the model. Admin searches share the daily limit.
  */
 /**

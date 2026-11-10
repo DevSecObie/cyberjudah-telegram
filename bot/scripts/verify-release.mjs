@@ -1,6 +1,7 @@
 import { pathToFileURL } from "node:url";
 import { signInitData } from "../src/initdata.mjs";
 import { citationReport, citationTokenCount } from "../src/citations.mjs";
+import { MODELS } from "../../shared/ask-models.mjs";
 
 // A named verse is hydrated from the KJV library, even if Vectorize ranks short verses poorly.
 const SEARCH_CHECK_QUERY = "What does Genesis 1:1 say?";
@@ -21,8 +22,10 @@ const knownVerse = passage => passage?.kind === "verse"
  */
 export async function verifyRelease({ url, token, expectedModel, verifySync = false, bibleStrongApp = false, fetcher = fetch, log = console.log, warn = console.warn, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000 }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
-  // Every Search model needs the reader's agreement, hosted or not (docs/PRIVACY.md).
-  const provider = expectedModel.startsWith("@cf/") ? "Cloudflare (Workers AI)" : "Google";
+  // Every Search model needs the reader's agreement to its provider, hosted or not (docs/PRIVACY.md);
+  // the provider is the shared catalog's, as the server's 428 names it.
+  const provider = MODELS.find(m => m.id === expectedModel)?.provider;
+  if (!provider) throw new Error(`EXPECTED_SEARCH_MODEL ${expectedModel} is not in the model catalog.`);
   const origin = new URL(url).origin;
   const get = (path, headers = {}, waitMs = 60_000) => fetcher(`${origin}${path}`, { headers, redirect: "error", signal: AbortSignal.timeout(waitMs) });
   const requireStatus = (response, status, label) => {

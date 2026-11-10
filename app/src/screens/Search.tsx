@@ -229,7 +229,7 @@ function AiAnswer({ q }: { q: string }) {
         // The server names the provider of the Search model (hosted on Cloudflare or Google); each needs the reader's agreement.
         if (e instanceof ApiError && e.status === 428) {
           const named = (e.body as { provider?: unknown } | undefined)?.provider;
-          return { ok: false, error: "consent", provider: typeof named === "string" && named ? named : "Google" };
+          if (typeof named === "string" && named) return { ok: false, error: "consent", provider: named };
         }
         throw e;
       }
@@ -238,8 +238,8 @@ function AiAnswer({ q }: { q: string }) {
   const data = res.data;
   const html = useMemo(() => (data?.ok && data.answer ? linkRefsInHtml(answerHtml(data.answer, data.sources ?? []), slugs) : ""), [data, slugs]);
   if (q.trim().length < 2 || dismissed) return null;
-  if (data?.error === "consent") {
-    const provider = data.provider ?? "Google";
+  if (data?.error === "consent" && data.provider) {
+    const provider = data.provider;
     return (
       <section className="srch__group srch__ai" aria-label="AI answer">
         <div className="consent" role="group" aria-labelledby="search-consent-title">
