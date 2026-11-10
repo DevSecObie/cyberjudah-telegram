@@ -149,6 +149,15 @@ test('auto only considers configured providers, and honors empirical typical cos
   assert.equal((await api.autoModel(env, 'Explain the history', 0, 77, DEFAULT, api.freeModels(env), false)).id, 'openai/gpt-6-astra');
 });
 
+test('a more capable free research model wins over a lower-tier affordable paid one', async t => {
+  const {env} = setup(t);
+  await funded(env, 10_000);
+  const free = api.freeModels(env);
+  const m = await api.autoModel(env, 'What does that mean?', 0, 77, DEFAULT, free, false);
+  assert.equal(m.tier, 'frontier');
+  assert.ok(free.has(m.id));
+});
+
 for (const stream of [true,false]) {
   test(`${stream ? 'NDJSON' : 'JSON'} auto respects consent and exact-model cost confirmation before AI or holds`, async t => {
     const {env,sql} = setup(t);

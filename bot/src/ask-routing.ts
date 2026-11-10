@@ -59,14 +59,14 @@ export async function autoModel(env: Env, q: string, turns: number, uid: number,
     return fast.find((m) => m.id === byDefault.id && m.tools) ?? fast.find((m) => m.tools) ?? fast[0] ?? freeChoices[0] ?? byDefault;
   }
   const research = models.filter((m) => m.tools).sort(capability);
-  const paid = research.filter((m) => !free.has(m.id));
-  if (unlimited || env.ASK_BILLING !== "on") return paid[0] ?? research[0] ?? byDefault;
+  if (unlimited || env.ASK_BILLING !== "on") return research[0] ?? byDefault;
   const owner = await ownerOfUser(env, uid);
   // Match account preparation (migration, expiry and stale holds) before reading spendable funds.
   await prepare(env, owner, { uid });
   const balance = (await wallet(env, owner)).total_mc;
   const cfg = creditsConfig(env);
-  for (const m of paid) {
+  for (const m of research) {
+    if (free.has(m.id)) return m;
     const typical = (await typicalMc(env, m.id).catch(() => null)) ?? estimateMc(m, cfg, { claudeViaCloudflare: unifiedBilling(env) }).typicalMc;
     if (balance >= typical) return m;
   }
