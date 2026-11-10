@@ -1,0 +1,1 @@
+- Added `docs/ASK-POLICY.md` (policy-v1, a draft awaiting owner approval): the Ask AI's answer, retrieval, source, privacy and cost rules, each mapped to where it is enforced and tested, with OWASP LLM 2025 and Agentic 2026 coverage and a release gate.

@@ -11,6 +11,7 @@ app/e2e/.shots/
 .expo
 # Playwright CLI page snapshots, written wherever it runs
 .playwright-cli/
+bot/evals/results/
 
 # Downloaded and prepared licensed audio
 .cache/
