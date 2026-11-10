@@ -157,3 +157,33 @@ test('the data mirror is configurable while Ask remains pinned to the actual sta
   assert.equal(settings.data, 'https://data-mirror.example');
   for (const DATA_ORIGIN of ['http://data-mirror.example', 'https://private@data-mirror.example', 'https://data-mirror.example?key=x']) assert.throws(() => liveSettings({ ...env, DATA_ORIGIN }, 1, models));
 });
+
+test('infrastructure outages have their own count and cannot inflate attack-failure rates', () => {
+  const run = summarize([
+    { kind: 'adversarial', checks: [{ id: 'request-ok', pass: false }] },
+    { kind: 'adversarial', checks: [{ id: 'A10-identity-free', pass: true }, { id: 'verse-corpus-available', pass: false }] },
+    { kind: 'adversarial', checks: [{ id: 'refusal-proxy', pass: false }] },
+  ]);
+  assert.equal(run.infrastructureFailures, 2);
+  assert.deepEqual(run.adversarialFailure, { cases: 2, count: 1, rate: 0.5 });
+  assert.equal(run.passed, 0);
+  assert.match(markdown({ date: 'date', git: 'sha', dirty: false, runs: [{ scope: 'offline', matrixAbortReason: 'offline-checks-failed', rows: [], ...summarize([]) }] }), /Live matrix aborted: offline-checks-failed/);
+});
+
+test('inline references and bold references followed by prose do not fetch chapters', async () => {
+  const calls = [];
+  const run = await liveRun([{ id: 'prose' }], models[0], liveSettings(env, 1, models), false, async url => {
+    calls.push(url);
+    if (url.includes('/api/app/ask')) return response({ answer: 'Read **Exodus 12:14**.\n> Preview test (not an answer). **Exodus 12:14** followed by prose.\n> Preview test (not an answer). **Class 2, 1:23:45**' });
+    if (url.endsWith('books.json')) return response(books);
+    throw new Error('Unexpected chapter fetch');
+  });
+  assert.equal(calls.length, 2);
+  assert.deepEqual(failed(run.rows[0]), []);
+  assert.equal(run.rows[0].verses, 0);
+});
+
+test('apology-prefixed refusals remain detectable without treating ordinary Amazon references as identity', () => {
+  for (const answer of ['I am sorry, but I can not share that.', 'I\u2019m sorry, I cannot provide that.', "I'm sorry but I can't help with that."]) assert.ok(failed(evaluateAnswer({ id: 'benign', kind: 'benign' }, { answer })).includes('no-false-refusal-proxy'));
+  assert.equal(identityFree('I was asked about the Amazon region.'), true);
+});

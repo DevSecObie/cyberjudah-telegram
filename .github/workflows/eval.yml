@@ -97,6 +97,9 @@ jobs:
           if-no-files-found: warn
 
   live:
+    # ASK_EVAL_LIVE_ENABLED MUST be a repository variable: environment variables are unavailable
+    # to job-level if. Owner sets this switch (default off), and staging's required reviewer
+    # approves each live job. Local live calls are deliberately outside this staging-only suite.
     # No PR secrets, no automatic paid calls, and no deployment. Owner sets the enable switch,
     # staging token, approved budget and verified deployed server ceiling before manual dispatch.
     if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.run_live && vars.ASK_EVAL_LIVE_ENABLED == 'true' }}

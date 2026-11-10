@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { MODELS } from '../../shared/ask-models.mjs';
 import { guardVerses } from '../src/verse-guard.mjs';
 import { parseReference } from '../src/refs.mjs';
+import { citationPattern } from '../src/citations.mjs';
 import { evaluateAnswer, offlineChecks, summarize, markdown, versionsOf } from '../evals/ask-eval.mjs';
 const root = new URL('../../', import.meta.url);
 const load = name => JSON.parse(readFileSync(new URL(`../evals/${name}.json`, import.meta.url), 'utf8'));
@@ -74,8 +75,12 @@ export async function liveRun(items, model, settings, study, fetcher = fetch) {
           if (!Array.isArray(books) || !books.length) throw new Error('corpus-unavailable');
           // Preflight chapter reads outside guardVerses: it intentionally swallows a rejected
           // chapter read at runtime. An eval must report an outage separately from a misquote.
-          for (const match of body.answer.matchAll(/\*\*([^*]{3,60}?)\*\*/g)) {
-            const ref = parseReference(match[1].replace(/\s*\(KJV\)\s*$/i, ''), books);
+          for (const line of body.answer.split('\n')) {
+            // Same quotation grammar as verse-guard.mjs; inline references and class timestamps
+            // are not scripture quotations. Ignore a bold reference followed by prose too.
+            const match = /^>\s*(.+?)\s*\*\*([^*]{3,60}?)\*\*(.*?)\s*$/.exec(line);
+            if (!match || match[3].trim().replace(/^\.\s*/, '').replace(/\.$/, '').replace(citationPattern(), '').trim()) continue;
+            const ref = parseReference(match[2].replace(/\s*\(KJV\)\s*$/i, ''), books);
             if (!ref?.verse) continue;
             const key = `${ref.slug}/${ref.chapter}`;
             if (!chapters.has(key)) {
@@ -123,12 +128,15 @@ export async function main(args = process.argv.slice(2), env = process.env) {
     const index = runs.length;
     const result = { schema: 1, date, git, gitScope: 'eval-checkout', deployedGit: null, dirty, goldenAnswers: 'owner-review-pending', releaseGate: 'off', ...(settings ? { requestedModels: opts.models.map(model => model.id), budgetReservation: { usd: settings.budget, verifiedServerCeilingUsd: settings.ceiling, plannedRequests: settings.requests, enforcedByRunner: false } } : {}), ...run };
     writeFileSync(new URL(`${prefix}-${index}.json`, directory), `${JSON.stringify(result, null, 2)}\n`, { flag: 'wx' });
+    writeFileSync(new URL(`${prefix}-${index}.md`, directory), markdown({ date, git, dirty, runs: [run] }), { flag: 'wx' });
     runs.push(run);
+    writeFileSync(new URL(`${prefix}.md`, directory), markdown({ date, git, dirty, runs }));
   };
-  saveRun({ scope: 'offline-boundary-and-checker-calibration', modelCalls: 0, requestedModel: null, versions: [], ...offlineChecks(redteam, recorded, load('grounding-recorded').cases) });
+  const offline = { scope: 'offline-boundary-and-checker-calibration', modelCalls: 0, requestedModel: null, versions: [], ...offlineChecks(redteam, recorded, load('grounding-recorded').cases) };
+  if (opts.live && offline.passed !== offline.total) offline.matrixAbortReason = 'offline-checks-failed';
+  saveRun(offline);
   if (opts.live && runs[0].passed === runs[0].total) await runMatrix(items, opts.models, settings, opts.study, saveRun);
   const report = markdown({ date, git, dirty, runs });
-  writeFileSync(new URL(`${prefix}.md`, directory), report, { flag: 'wx' });
   console.log(report);
   return runs.every(run => run.passed === run.total && (!run.plannedCases || run.completedCases === run.plannedCases)) ? 0 : 1;
 }
