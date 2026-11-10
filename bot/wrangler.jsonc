@@ -86,7 +86,7 @@
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/moonshotai/kimi-k2.6", "ASK_FREE_DEEP_MODEL": "@cf/moonshotai/kimi-k2.6",
-        "ASK_ADMIN_DAILY_USD_CAP": "10", "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.15", "ASK_FREE_DAILY_USD_CAP": "1.50", "ASK_CLAUDE_FOR_READERS": "off", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.20", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
+        "ASK_ADMIN_DAILY_USD_CAP": "10", "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.15", "ASK_FREE_DAILY_USD_CAP": "1.50", "ASK_CLAUDE_FOR_READERS": "off", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.50", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
         "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/moonshotai/kimi-k2.6", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1",
         "CLASS_ALERTS_TOPIC": "new-classes-staging"
@@ -161,7 +161,7 @@
     // free model per answer, so ASK_FREE_MAX_USD is 0.15 (owner) to let a deep study finish its
     // rounds; ASK_FREE_DAILY_USD_CAP is unchanged. The earlier free models stay selectable.
     "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/moonshotai/kimi-k2.6", "ASK_FREE_DEEP_MODEL": "@cf/moonshotai/kimi-k2.6",
-    "ASK_ADMIN_DAILY_USD_CAP": "10", "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.15", "ASK_FREE_DAILY_USD_CAP": "25", "ASK_CLAUDE_FOR_READERS": "on", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.20", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
+    "ASK_ADMIN_DAILY_USD_CAP": "10", "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.15", "ASK_FREE_DAILY_USD_CAP": "25", "ASK_CLAUDE_FOR_READERS": "on", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.50", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
     "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/moonshotai/kimi-k2.6", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
     // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
