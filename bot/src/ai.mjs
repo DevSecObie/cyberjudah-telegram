@@ -1,5 +1,6 @@
 import { groundedSystem, libraryData, untrustedData } from "./grounding.mjs";
 import { citationReport } from "./citations.mjs";
+import { RANKED, OVERLAP_LIFT, capPerSource, teacherLift } from "./ranking.mjs";
 
 /**
  * The parts of the AI features that need no bindings: how a passage becomes a vector's
@@ -100,8 +101,13 @@ export function splitFollowups(text) {
 const WORD = /[a-z0-9']+/g;
 const STOP = new Set(["about", "after", "again", "also", "because", "before", "being", "does", "from", "have", "into", "keep", "that", "their", "them", "then", "there", "these", "they", "this", "what", "when", "where", "which", "with", "would", "your"]);
 
-/** Reject short or repetitive search hits before they can become answer evidence. */
+/**
+ * Reject short or repetitive search hits before they can become answer evidence, then order them.
+ * Passages ranked by v2 (ranking.mjs, ASK_RANKING=v2) are ordered by the reranker's score plus the
+ * same small lifts, with at most PER_SOURCE from one recording or page; v1 passages as before.
+ */
 export function answerCandidates(question, passages, limit = 10) {
+  if (passages.length && passages.every((p) => p[RANKED])) return answerCandidatesV2(question, passages, limit);
   const terms = new Set((question.toLowerCase().match(WORD) ?? []).filter((w) => w.length >= 4 && !STOP.has(w)));
   return passages
     .filter((p) => {
@@ -118,6 +124,25 @@ export function answerCandidates(question, passages, limit = 10) {
     .sort((a, b) => b.rank - a.rank || a.order - b.order)
     .slice(0, limit)
     .map(({ p }) => p);
+}
+
+function answerCandidatesV2(question, passages, limit) {
+  const terms = new Set((question.toLowerCase().match(WORD) ?? []).filter((w) => w.length >= 4 && !STOP.has(w)));
+  const ranked = passages
+    .filter((p) => {
+      const words = p.text.toLowerCase().match(WORD) ?? [];
+      return p.text.trim().length >= 60 && words.length >= 10 && new Set(words).size >= 6;
+    })
+    .map((p, order) => {
+      const hay = new Set(`${p.title} ${p.sub ?? ""} ${p.text}`.toLowerCase().match(WORD) ?? []);
+      const overlap = [...terms].filter((w) => hay.has(w)).length;
+      // The reranker's score; when it failed, every passage is level and the fused order (order) decides.
+      // The Bishops' and Deacons' teaching comes first: a small lift (ASK-POLICY A6), so it makes the cut when it is relevant.
+      return { p, order, rank: (p[RANKED].rerank ?? 0) + Math.min(overlap, 3) * OVERLAP_LIFT + teacherLift(p.teacher) };
+    })
+    .sort((a, b) => b.rank - a.rank || a.order - b.order)
+    .map(({ p }) => p);
+  return capPerSource(ranked).slice(0, limit);
 }
 
 /**

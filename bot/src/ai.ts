@@ -6,7 +6,8 @@ import { parseReference } from "./refs.mjs";
 import { guardVerses } from "./verse-guard.mjs";
 import { approvedFor, approvedSources } from "./approved-answers";
 import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
-import { runSearch } from "./search";
+import { keywordPool, runSearch } from "./search";
+import { DENSE_TOP_K, KEYWORD_POOL, RERANK_POOL, markRanked, passageKey, questionParts, rankingV2, rerankText, rrf, scoreBucket } from "./ranking.mjs";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
@@ -65,6 +66,8 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }, hos
  * keyword matches from the library search, together, reranked by whether they answer it.
  */
 export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend, signal?: AbortSignal): Promise<(Passage & { score: number })[]> {
+  // Ranking v2 (RAG Phase 2, ranking.mjs): behind ASK_RANKING=v2, off by default.
+  if (rankingV2(env)) return retrieveV2(env, text, topK, spend, signal);
   const [vectorRes, keywordRes, hosts] = await Promise.all([
     // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
     // so a question is still answered (and Claude can still research) rather than failing whole.
@@ -85,24 +88,78 @@ export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend,
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
   // What this search cost: the question embedded, one vector query, and what the reranker read.
   spend?.search({ query: text, contexts: all.length > 1 ? all.map((p) => `${p.title}\n${p.text}`.slice(0, 2000)) : [] });
-  return withTeachers(env, await rerank(env, text, all, topK, signal));
+  const ranked = await rerankScored(env, text, all, topK, (p) => `${p.title}\n${p.text}`.slice(0, 2000), signal);
+  const out = ranked.order ? ranked.order.map((r) => all[r.id]) : all.slice(0, topK);
+  logRetrieval({ ranking: "v1", parts: 0, dense: close.length, keyword: keyed.length, both: keyed.length - (all.length - close.length), pool: all.length, rerank: ranked.status, rerank_ms: ranked.ms, top: scoreBucket(ranked.order?.[0]?.score), final: out.length });
+  return withTeachers(env, out);
 }
 
 /**
- * The closest passages read against the question by a reranker, which orders them by whether
- * they answer it rather than by how near their words sit; the vector order stands when the
- * reranker is unavailable.
+ * How a search went, in numbers only (RAG Phase 1 item 5): how many passages each search found,
+ * how many both found, how many the reranker read, whether it answered and how long it took, its
+ * best score as a coarse bucket, and how many were kept. Never a question, a passage, an address or
+ * an id, so nothing in it can name a reader or what they asked.
  */
-async function rerank<T extends Passage>(env: Env, question: string, passages: T[], topK: number, signal?: AbortSignal): Promise<T[]> {
-  if (passages.length <= 1) return passages.slice(0, topK);
+function logRetrieval(fields: { ranking: "v1" | "v2"; parts: number; dense: number; keyword: number; both: number; pool: number; rerank: string; rerank_ms: number; top: string; final: number }) {
+  console.log(JSON.stringify({ event: "ask_retrieval", ...fields }));
+}
+
+const NO_MATCHES = { matches: [] as VectorizeMatches["matches"] };
+
+/**
+ * Ranking v2 (ranking.mjs, docs/ASK-RANKING.md): the question, and each of its parts when it has
+ * several, searched by meaning (50 each) and by words (the best 50 by bm25 across every kind); the
+ * lists fused by reciprocal rank; the reranker reads the best RERANK_POOL of them (each passage's
+ * start and its sentences that match the question) and its scores are kept on the passages for
+ * answerCandidates. When the reranker fails, the fused order stands. The same evidence rules as v1:
+ * passages of under twenty words and unlinkable sources are dropped before any citation number.
+ */
+async function retrieveV2(env: Env, text: string, topK: number, spend?: Spend, signal?: AbortSignal): Promise<(Passage & { score: number })[]> {
+  const queries = [text, ...questionParts(text)];
+  const [denseRes, keywordRes, hosts] = await Promise.all([
+    embed(env, queries, signal)
+      .then((vectors) => Promise.all(queries.map((_q, i) => (vectors[i] ? env.VEC.query(vectors[i], { topK: DENSE_TOP_K, returnMetadata: "all" }) : NO_MATCHES))))
+      .catch((e: Error) => { console.error(JSON.stringify({ event: "retrieve_vector_failed", message: e.message?.slice(0, 120) })); return queries.map(() => NO_MATCHES); }),
+    Promise.all(queries.map((q) => keywordPool(env.DB, q, KEYWORD_POOL).catch(() => null))),
+    approvedOutsideHosts(env).catch(() => []),
+  ]);
+  const said = (t: unknown) => String(t ?? "").split(/\s+/).length >= 20;
+  const dense = denseRes.map((res) => dedupeMatches(res.matches.filter((m) => said((m.metadata as Record<string, unknown> | undefined)?.text)))
+    .flatMap((m) => { const passage = passageOf(m, hosts); return passage ? [recordRetrieval(passage, "vector", m.score)] : []; }));
+  const keyed = keywordRes.map((hits) => (hits ?? []).filter((h) => h.text && said(h.text)).flatMap((h) => {
+    const url = retrievedSourceUrl(h, hosts);
+    return url ? [recordRetrieval({ kind: h.kind, title: h.title, url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")] : [];
+  }));
+  // Each query's two lists, side by side: a passage both find, or several parts find, rises.
+  const fused = rrf(queries.flatMap((_q, i) => [dense[i], keyed[i]]));
+  const pool = fused.slice(0, RERANK_POOL).map(({ p }) => p);
+  const denseKeys = new Set(dense.flat().map(passageKey)), keyedKeys = new Set(keyed.flat().map(passageKey));
+  // What this search cost: each query embedded and searched, and what the reranker read.
+  queries.forEach((q, i) => spend?.search({ query: q, contexts: i === 0 && pool.length > 1 ? pool.map((p) => rerankText(text, p)) : [] }));
+  const ranked = await rerankScored(env, text, pool, topK, (p) => rerankText(text, p), signal);
+  const out = ranked.order ? ranked.order.map((r) => markRanked(pool[r.id], r.score)) : pool.slice(0, topK).map((p) => markRanked(p, null));
+  logRetrieval({ ranking: "v2", parts: queries.length - 1, dense: denseKeys.size, keyword: keyedKeys.size, both: [...keyedKeys].filter((k) => denseKeys.has(k)).length, pool: pool.length, rerank: ranked.status, rerank_ms: ranked.ms, top: scoreBucket(ranked.order?.[0]?.score), final: out.length });
+  return withTeachers(env, out);
+}
+
+/**
+ * The reranker's order and scores for the passages (best first, at most topK), or null when it
+ * could not be had (an error, or an empty reply): the caller keeps its own order then, and the
+ * numbers-only telemetry counts it as a fallback. One passage or none needs no reranking.
+ */
+async function rerankScored<T extends Passage>(env: Env, question: string, passages: T[], topK: number, textOf: (p: T) => string, signal?: AbortSignal): Promise<{ order: { id: number; score: number }[] | null; status: "ok" | "fallback" | "skipped"; ms: number }> {
+  const t0 = Date.now();
+  if (passages.length <= 1) return { order: passages.length ? [{ id: 0, score: NaN }] : [], status: "skipped", ms: 0 };
   try {
     // The published type leaves `query` out; the model takes it.
-    const input = { query: question, contexts: passages.map((p) => ({ text: `${p.title}\n${p.text}`.slice(0, 2000) })), top_k: topK };
+    const input = { query: question, contexts: passages.map((p) => ({ text: textOf(p) })), top_k: topK };
     const res = await (env.AI as unknown as { run(model: string, input: unknown, options?: unknown): Promise<unknown> }).run(RERANK_MODEL, input, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { response?: { id?: number; score?: number }[] };
-    const order = (res.response ?? []).filter((r) => typeof r.id === "number" && passages[r.id!]).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-    if (!order.length) return passages.slice(0, topK);
-    return order.slice(0, topK).map((r) => passages[r.id!]);
-  } catch { return passages.slice(0, topK); }
+    const order = (res.response ?? []).filter((r) => typeof r.id === "number" && passages[r.id!]).map((r) => ({ id: r.id!, score: Number(r.score ?? 0) })).sort((a, b) => b.score - a.score);
+    if (!order.length) return { order: null, status: "fallback", ms: Date.now() - t0 };
+    return { order: order.slice(0, topK), status: "ok", ms: Date.now() - t0 };
+  } catch {
+    return { order: null, status: "fallback", ms: Date.now() - t0 };
+  }
 }
 
 export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number } | { ok: false; reason: string };

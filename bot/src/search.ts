@@ -86,6 +86,38 @@ export async function runSearch(db: D1Database, q: string, only: string | readon
   }
 }
 
+/**
+ * The best keyword matches across every kind, ranked by bm25 alone (Ask's ranking v2, ranking.mjs),
+ * rather than the top few of each kind: a pool for fusion with the search by meaning. The same
+ * passes as runSearch: every word (strict); when that finds fewer than `limit`, any word (loose)
+ * fills the pool; with nothing at all, words as beginnings. Rows carry their whole text. Null when
+ * the search failed (nothing about the query is logged).
+ */
+export async function keywordPool(db: D1Database, q: string, limit: number): Promise<SearchHit[] | null> {
+  const t0 = Date.now();
+  const parsed = parseQuery(q);
+  if (!parsed.phrases.length && !parsed.terms.length) return [];
+  const strict = ftsExpr(parsed, "AND", "none");
+  const loose = parsed.terms.length + parsed.phrases.length > 1 ? ftsExpr(parsed, "OR", "none") : null;
+  const begins = parsed.terms.some((t) => t.length >= 3) ? ftsExpr(parsed, "AND", "all") : null;
+  const rank = "bm25(search_docs, 0, 4.0, 0, 0, 1.0, 0, 0)";
+  const kinds = KINDS.map((k) => `'${k}'`).join(", ");
+  const select = `SELECT kind, title, url, sub, snippet(search_docs, 4, '', '', '…', 18) AS snippet, text FROM search_docs WHERE search_docs MATCH ?1 AND kind IN (${kinds}) ORDER BY ${rank} LIMIT ?2`;
+  try {
+    const pass = async (expr: string) => dedupe((await db.prepare(select).bind(expr, limit).all<Row>()).results ?? []);
+    let hits = await pass(strict);
+    if (loose && hits.length < limit) {
+      const seen = new Set(hits.map((h) => `${h.kind}|${h.url}`));
+      hits = [...hits, ...(await pass(loose)).filter((h) => !seen.has(`${h.kind}|${h.url}`)).map((h) => ({ ...h, loose: true }))].slice(0, limit);
+    }
+    if (!hits.length && begins && begins !== strict) hits = (await pass(begins)).map((h) => ({ ...h, loose: true }));
+    return hits;
+  } catch {
+    console.error(JSON.stringify({ event: "search_failed", elapsedMs: Date.now() - t0 }));
+    return null;
+  }
+}
+
 function dedupe(rows: Row[]): SearchHit[] {
   const seen = new Set<string>();
   const out: SearchHit[] = [];

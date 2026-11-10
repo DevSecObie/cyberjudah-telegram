@@ -1,0 +1,21 @@
+import type { Passage } from "./ai.mjs";
+
+export function rankingV2(env: { ASK_RANKING?: string } | undefined): boolean;
+export const RRF_K: number;
+export const DENSE_TOP_K: number;
+export const KEYWORD_POOL: number;
+export const RERANK_POOL: number;
+export const PER_SOURCE: number;
+export const MAX_PARTS: number;
+export const TEACHER_LIFT: { bishop: number; deacon: number };
+export const OVERLAP_LIFT: number;
+export const RANKED: unique symbol;
+export function markRanked<T extends object>(p: T, rerank: number | null | undefined): T;
+export function passageKey(p: Pick<Passage, "kind" | "url" | "sub">): string;
+export function rrf<T extends Pick<Passage, "kind" | "url" | "sub">>(lists: readonly (readonly T[])[], k?: number): { p: T; fused: number }[];
+export function questionParts(question: string): string[];
+export function rerankText(question: string, p: Pick<Passage, "title" | "text" | "date">, max?: number, start?: number): string;
+export function sourceOf(p: Pick<Passage, "kind" | "url" | "video">): string;
+export function capPerSource<T extends Pick<Passage, "kind" | "url" | "video">>(passages: readonly T[], n?: number): T[];
+export function teacherLift(teacher: string | undefined): number;
+export function scoreBucket(score: number | null | undefined): string;
