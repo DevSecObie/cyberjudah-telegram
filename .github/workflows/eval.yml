@@ -1,0 +1,131 @@
+name: ask-eval
+
+on:
+  pull_request:
+    paths:
+      - 'bot/src/ai*'
+      - 'bot/src/*policy*'
+      - 'bot/src/model*'
+      - 'bot/src/library*'
+      - 'bot/src/*ask*'
+      - 'bot/src/agent*'
+      - 'bot/src/*ground*'
+      - 'bot/src/*source*'
+      - 'bot/src/*pdf*'
+      - 'bot/src/reader*'
+      - 'bot/src/citations*'
+      - 'bot/src/verse-guard*'
+      - 'bot/wrangler.jsonc'
+      - 'bot/evals/**'
+      - 'bot/scripts/eval*'
+      - 'bot/scripts/embed*'
+      - 'bot/scripts/load-search*'
+      - 'bot/tests/ask-eval*'
+      - 'bot/data/**'
+      - 'shared/**'
+      - 'docs/ASK-*'
+      - '.github/workflows/eval.yml'
+      - 'package*.json'
+      - 'bot/package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'bot/src/ai*'
+      - 'bot/src/*policy*'
+      - 'bot/src/model*'
+      - 'bot/src/library*'
+      - 'bot/src/*ask*'
+      - 'bot/src/agent*'
+      - 'bot/src/*ground*'
+      - 'bot/src/*source*'
+      - 'bot/src/*pdf*'
+      - 'bot/src/reader*'
+      - 'bot/src/citations*'
+      - 'bot/src/verse-guard*'
+      - 'bot/wrangler.jsonc'
+      - 'bot/evals/**'
+      - 'bot/scripts/eval*'
+      - 'bot/scripts/embed*'
+      - 'bot/scripts/load-search*'
+      - 'bot/tests/ask-eval*'
+      - 'bot/data/**'
+      - 'shared/**'
+      - 'docs/ASK-*'
+      - '.github/workflows/eval.yml'
+      - 'package*.json'
+      - 'bot/package.json'
+  workflow_dispatch:
+    inputs:
+      run_live:
+        description: Owner-approved live calls against the existing staging deployment
+        type: boolean
+        default: false
+      models:
+        description: Comma-separated catalog IDs (required for live; at most eight)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node --test bot/tests/ask-eval.test.mjs
+      - run: node bot/scripts/eval-grounding.mjs
+      - run: node bot/scripts/eval-ask.mjs --offline
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: ask-eval-offline
+          path: bot/evals/results/
+          retention-days: 14
+          if-no-files-found: warn
+
+  live:
+    # No PR secrets, no automatic paid calls, and no deployment. Owner sets the enable switch,
+    # staging token, approved budget and verified deployed server ceiling before manual dispatch.
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.run_live && vars.ASK_EVAL_LIVE_ENABLED == 'true' }}
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: staging
+    concurrency:
+      group: ask-eval-staging
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Run the owner-approved staging matrix
+        run: node bot/scripts/eval-ask.mjs --live --models "$ASK_EVAL_MODELS"
+        env:
+          ASK_EVAL_LIVE_ENABLED: ${{ vars.ASK_EVAL_LIVE_ENABLED }}
+          ASK_URL: ${{ vars.ASK_EVAL_STAGING_URL }}
+          ASK_TOKEN: ${{ secrets.ASK_EVAL_STAGING_TOKEN }}
+          ASK_EVAL_MODELS: ${{ inputs.models }}
+          ASK_EVAL_BUDGET_USD: ${{ vars.ASK_EVAL_BUDGET_USD }}
+          ASK_EVAL_SERVER_CEILING_USD: ${{ vars.ASK_EVAL_SERVER_CEILING_USD }}
+          ASK_EVAL_MAX_REQUESTS: ${{ vars.ASK_EVAL_MAX_REQUESTS }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: ask-eval-staging
+          path: bot/evals/results/
+          retention-days: 14
+          if-no-files-found: warn
