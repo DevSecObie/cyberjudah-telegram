@@ -12,6 +12,7 @@ import { keyedHash } from "./privacy.mjs";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
 import { recordAskEvent } from "./ask-events";
+import { answerVersions } from "./ask-versions";
 
 type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string; adminId?: number } };
 const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -123,7 +124,8 @@ appAsk.post('/', async c => {
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
       // A study answer records its own outcome (app-study-answer.ts); everything else, and every refusal, here.
       if (surface === 'app' || !result.ok) await recordAskEvent(c.env, { traceId, surface, model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, detail: result.ok ? undefined : result.detail, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
-      return result;
+      // What the answer was made with (ask-versions.ts): its prompts, policy, library and the model that wrote it.
+      return result.ok ? { ...result, versions: await answerVersions(c.env, result.model, surface) } : result;
     } catch (error) {
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: 'failed', model: model.id, elapsedMs: Date.now()-startedAt }));
       await recordAskEvent(c.env, { traceId, surface, model: model.id, outcome: 'failed', detail: String((error as Error)?.message ?? '').slice(0, 200), elapsedMs: Date.now() - startedAt });
@@ -146,7 +148,7 @@ appAsk.post('/', async c => {
           if (result.ok) {
             // Never transmit retrieved passage text in the sources payload.
             const sources = result.sources.map(({ text, ...source }) => ({ ...source, ...(result.ui ? { excerpt: text.slice(0, 1000) } : {}) }));
-            send({ done: true, answer: result.answer, sources, unsupported_refs: result.unsupported_refs ?? [], followups: result.followups ?? [], model: result.model, ...(result.ui ? { ui: result.ui, teachingFound: result.teachingFound } : {}) });
+            send({ done: true, answer: result.answer, sources, unsupported_refs: result.unsupported_refs ?? [], followups: result.followups ?? [], model: result.model, versions: result.versions, ...(result.ui ? { ui: result.ui, teachingFound: result.teachingFound } : {}) });
           } else send({ error: result.reason });
         } catch { send({ error: 'unavailable' }); }
         finally { clearInterval(beat); if (open) { open = false; controller.close(); } }

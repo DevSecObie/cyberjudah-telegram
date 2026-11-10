@@ -17,6 +17,7 @@ export { withTeachers } from "./class-attribution";
 import { backupOnce, backupPieces } from "./backup-answer";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
+import { answerVersions, corpusRelease } from "./ask-versions";
 import { alertClaudeFunds, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
@@ -445,7 +446,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   // The same first question, already answered this week by this model and mode: given at once (answer-cache.ts).
   const mode = options.study ? "study" : "app";
-  const key = await cacheKey(question, history, model.id, `${mode}:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `${mode}:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version, await corpusRelease(env));
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
   if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
@@ -492,7 +493,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const model = options.model ? models.find(m => m.id === options.model) : deep ?? readerDefault ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
   if (!model) return { ok: false, reason: "model-unavailable" };
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
-  const key = await cacheKey(question, history, model.id, `agent:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `agent:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version, await corpusRelease(env));
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
   let meter: Meter;
@@ -743,7 +744,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   if (question.length < 2) return reply(400, { error: "too-short" });
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approved = approvedFor(question, history);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true, versions: await answerVersions(env, "approved") }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
@@ -774,7 +775,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
-      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => send({ ...value, answer_id: await issueAnswerReceipt(env, userId, value.sources) });
+      // Each finished line names what the answer was made with (ask-versions.ts); a fixed sentence,
+      // written by no model, names the model "none".
+      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => send({ ...value, answer_id: await issueAnswerReceipt(env, userId, value.sources), versions: await answerVersions(env, typeof value.model === "string" ? value.model : "none") });
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.

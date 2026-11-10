@@ -15,6 +15,7 @@ import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { bluegreenLoad } from "./bluegreen-load.mjs";
 import { d1Query } from "./d1-query.mjs";
+import { libraryMark, writeCorpusMark } from "./corpus-mark.mjs";
 
 const args = process.argv.slice(2);
 const local = args.includes("--local");
@@ -66,5 +67,8 @@ if (local) {
   const dbs = await fetch(`${api}?name=${encodeURIComponent(DB)}`, { headers }).then((r) => r.json());
   const id = dbs.result?.find((d) => d.name === DB)?.uuid;
   if (!id) throw new Error(`no D1 database named ${DB}`);
-  await bluegreenLoad(sql.toString("utf8"), d1Query(`${api}/${id}/query`, headers), { log: (m) => console.error(m) });
+  const run = d1Query(`${api}/${id}/query`, headers);
+  await bluegreenLoad(sql.toString("utf8"), run, { log: (m) => console.error(m) });
+  // The library now live: Ask answers name it (corpus_marks, src/ask-versions.ts).
+  await writeCorpusMark(run, "library", libraryMark(sql));
 }

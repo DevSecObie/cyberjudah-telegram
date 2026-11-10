@@ -40,6 +40,9 @@ test('Firebase caller gets Telegram-compatible streaming without any Telegram id
   assert.equal(events[0].delta,'An answer');
   assert.equal(events.at(-1).done,true);
   assert.deepEqual(events.at(-1).unsupported_refs,[]);
+  assert.deepEqual(Object.keys(events.at(-1).versions).sort(),['corpus','model','policy','prompt']);
+  assert.equal(events.at(-1).versions.model,'@cf/free','the model that wrote the answer');
+  assert.equal(events.at(-1).versions.policy,'policy-v1');
   assert.equal(events.at(-1).sources[0].text,undefined);
   assert.notEqual(env.calls.at(-1).account,'victim');
   assert.notEqual(env.calls.at(-1).account,'firebase-alice');

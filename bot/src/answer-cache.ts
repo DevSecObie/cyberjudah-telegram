@@ -2,19 +2,18 @@ import type { Env } from "./env";
 import type { Turn } from "./ai.mjs";
 import { hasToolMarkup } from "./agent-open";
 import { isCoverageGap } from "./grounding.mjs";
+import { PROMPT_VERSION } from "./ask-versions";
 
 /**
  * Answers already written, kept for a week (KV, ask_cache:…). When the same first question is
- * asked again, word for word apart from case and punctuation, with the same model, mode and
- * release, the kept answer is given at once with no model call and no cost. Only first questions
+ * asked again, word for word apart from case and punctuation, with the same prompts, library
+ * (corpus release), model, mode and release, the kept answer is given at once with no model call and no cost. Only first questions
  * (no conversation before them) that found teaching are kept, so nothing personal to one
  * conversation is ever reused. A reader's "wrong" or "harmful" report on a kept answer removes it,
  * so the next reader gets a fresh one.
  */
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
-// Refresh older answers when the conversational prompt changes; old entries expire normally.
-const PROMPT_REVISION = "depth-quote-citations-source-links-20261107";
 
 export const normalizeQuestion = (q: string) => q.toLowerCase().replace(/[’']/g, "").replace(/[^\p{L}\p{N} ]+/gu, " ").replace(/\s+/g, " ").trim();
 
@@ -23,12 +22,16 @@ async function sha256(s: string) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** The cache key for a question, or null when it must not be cached (a follow-up, or too short). */
-export async function cacheKey(question: string, history: Turn[], model: string, mode: string, release: string): Promise<string | null> {
+/**
+ * The cache key for a question, or null when it must not be cached (a follow-up, or too short).
+ * A new prompt version (ask-versions.ts) or corpus release starts new keys, so an answer written
+ * before the change is never given after it; old entries expire normally.
+ */
+export async function cacheKey(question: string, history: Turn[], model: string, mode: string, release: string, corpus: string): Promise<string | null> {
   if (history.length) return null;
   const q = normalizeQuestion(question);
   if (q.split(" ").length < 2) return null;
-  return `ask_cache:${PROMPT_REVISION}:${release}:${mode}:${model}:${await sha256(q)}`;
+  return `ask_cache:${PROMPT_VERSION}:${corpus}:${release}:${mode}:${model}:${await sha256(q)}`;
 }
 
 export async function cachedAnswer<T>(env: Env, key: string | null): Promise<T | null> {

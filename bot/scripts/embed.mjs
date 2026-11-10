@@ -18,6 +18,7 @@
  */
 import { chunkRecord, docRecord, EMBED_MODEL, hash } from "../src/ai.mjs";
 import { chunkSegments, videoOfThumb } from "../src/transcripts.mjs";
+import { indexMark, writeCorpusMark } from "./corpus-mark.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
@@ -158,3 +159,6 @@ if (stale.length && !DRY) {
   console.error(`${stale.length} stale passages removed from the index`);
 }
 console.error(`done: ${seen} passages seen, ${done} embedded this run${DRY ? " (dry)" : ""}`);
+// A run that changed the index gives it a new build mark, which Ask answers name (src/ask-versions.ts);
+// a run that changed nothing keeps the last one, so kept answers stay valid.
+if (!DRY && (done > 0 || stale.length)) await writeCorpusMark(sql, "index", indexMark());
