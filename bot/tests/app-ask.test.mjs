@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { createHmac } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 const out = new URL('./.build/app-ask.mjs', import.meta.url).pathname;
@@ -108,17 +109,35 @@ test('answer reports are limited per address as well as per account, keyed by a 
   const quota = new Map(), stored = [];
   const e = { ...env, quota, SUBS: { put: async (k) => { stored.push(k); }, get: async () => null, delete: async () => {} } };
   const report = (reader, ip) => appAsk.request('https://example.test/report', { method: 'POST', headers: { authorization: `Bearer reader-${reader}`, 'content-type': 'application/json', 'cf-connecting-ip': ip }, body: JSON.stringify({ reason: 'wrong' }) }, e, ctx);
-  // An unsigned (connecting) address may be shared: 300 a day, each from a different account.
-  for (let i = 0; i < 300; i++) assert.equal((await report(`r${i}`, '203.0.113.9')).status, 200, `report ${i}`);
-  const over = await report('r-next', '203.0.113.9');
-  assert.equal(over.status, 429);
-  assert.deepEqual(await over.json(), { error: 'limit' });
-  assert.equal((await report('r-other', '198.51.100.4')).status, 200, 'another address is counted on its own');
-  assert.equal(stored.length, 301, 'a refused report is not stored');
-  const keys = [...quota.keys()].filter((k) => k.startsWith('app_report_ip:'));
-  assert.equal(keys.length, 2);
-  assert.ok(keys.every((k) => !k.includes('203.0.113') && !k.includes('198.51.100')), 'no address is kept, only its keyed hash');
-  // The per-account limit still applies first.
-  for (let i = 0; i < 10; i++) assert.equal((await report('same', '192.0.2.1')).status, 200);
-  assert.equal((await report('same', '192.0.2.1')).status, 429);
+  const now = Date.now; Date.now = () => 1794052800000;
+  try {
+    // An unsigned (connecting) address may be the relay, shared by every reader: 60 a minute, each from a different account.
+    for (let i = 0; i < 60; i++) assert.equal((await report(`r${i}`, '203.0.113.9')).status, 200, `report ${i}`);
+    const over = await report('r-next', '203.0.113.9');
+    assert.equal(over.status, 429);
+    assert.deepEqual(await over.json(), { error: 'limit' });
+    assert.equal(quota.get([...quota.keys()].find((k) => k.startsWith('app_report:') && k.includes('r-next')) ?? 'none'), undefined, 'a refused address spends no reader allowance');
+    assert.equal((await report('r-other', '198.51.100.4')).status, 200, 'another address is counted on its own');
+    // The next minute the shared address answers again: it is never shut for the day.
+    Date.now = () => 1794052800000 + 60_000;
+    assert.equal((await report('r-later', '203.0.113.9')).status, 200);
+    assert.equal(stored.length, 62, 'a refused report is not stored');
+    const keys = [...quota.keys()].filter((k) => k.startsWith('app_report_ip:'));
+    assert.ok(keys.length >= 2);
+    assert.ok(keys.every((k) => !k.includes('203.0.113') && !k.includes('198.51.100')), 'no address is kept, only its keyed hash');
+    // The per-account limit still applies.
+    for (let i = 0; i < 10; i++) assert.equal((await report('same', '192.0.2.1')).status, 200);
+    assert.equal((await report('same', '192.0.2.1')).status, 429);
+  } finally { Date.now = now; }
+});
+
+test("a reader's own signed address is limited to 30 reports a day, apart from the relay", async () => {
+  const quota = new Map();
+  const e = { ...env, quota, MINIAPP_CLIENT_IP_KEY: 'relay-key', SUBS: { put: async () => {}, get: async () => null, delete: async () => {} } };
+  const signed = (ip) => { const ts = Math.floor(Date.now() / 1000); return { 'cf-connecting-ip': '203.0.113.9', 'x-cj-client-ip': ip, 'x-cj-client-ts': String(ts), 'x-cj-client-sig': createHmac('sha256', 'relay-key').update(`${ip}|${ts}|POST|/report`).digest('hex') }; };
+  const report = (reader, headers) => appAsk.request('https://example.test/report', { method: 'POST', headers: { authorization: `Bearer reader-${reader}`, 'content-type': 'application/json', ...headers }, body: JSON.stringify({ reason: 'wrong' }) }, e, ctx);
+  for (let i = 0; i < 30; i++) assert.equal((await report(`s${i}`, signed('198.51.100.7'))).status, 200, `report ${i}`);
+  assert.equal((await report('s-next', signed('198.51.100.7'))).status, 429, 'the day is spent for that reader address');
+  assert.equal((await report('s-other', signed('198.51.100.8'))).status, 200, 'another reader behind the same relay is not affected');
+  assert.ok(![...quota.keys()].some((k) => k.includes('198.51.100') || k.includes('203.0.113')));
 });

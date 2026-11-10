@@ -50,8 +50,8 @@ appAsk.get('/models', c => {
     billing: { purchasesEnabled: false },
   });
 });
-/** Answer reports a day from one address (OWASP LLM10): a signed address is one reader's, an unsigned one may be many. */
-const REPORTS_PER_ADDRESS = { signed: 30, unsigned: 300 } as const;
+/** Answer reports from one address (OWASP LLM10): a signed address is one reader's; an unsigned one may be many readers' (the relay). */
+const REPORTS_PER_ADDRESS = { signedPerDay: 30, unsignedPerMinute: 60 } as const;
 appAsk.post('/report', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 1024) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
@@ -60,11 +60,20 @@ appAsk.post('/report', async c => {
   try { body = JSON.parse(raw); } catch { return c.json({ error: 'bad-request' }, 400); }
   if (!body || !['wrong', 'harmful'].includes(String(body.reason))) return c.json({ error: 'bad-request' }, 400);
   const day = new Date().toISOString().slice(0, 10);
-  if (!await takeQuotaKey(c.env, `app_report:${c.get('account')}:${day}`, 10)) return c.json({ error: 'limit' }, 429);
-  // Per address too, so many new accounts from one place cannot flood reports (each may drop a
-  // cached answer). Only a keyed hash of the address is kept; an unsigned address can be shared.
+  // Per address as well as per account, so many new accounts from one place cannot flood reports
+  // (each may drop a cached answer). Checked first, so a refused address spends no reader's allowance.
+  // A signed address is one reader's: limited by the day. An unsigned one may be the Mini App relay,
+  // shared by every reader: limited by the minute only, so it can never be shut for the day.
+  // Only a keyed hash of the address is kept.
   const { ip, signed } = await clientAddress(c.req.raw, c.env);
-  if (ip && !await takeQuotaKey(c.env, `app_report_ip:${await keyedHash(c.env, 'app-report-ip', ip)}:${day}`, REPORTS_PER_ADDRESS[signed ? 'signed' : 'unsigned'])) return c.json({ error: 'limit' }, 429);
+  if (ip) {
+    const address = await keyedHash(c.env, 'app-report-ip', ip);
+    const allowed = signed
+      ? await takeQuotaKey(c.env, `app_report_ip:${address}:${day}`, REPORTS_PER_ADDRESS.signedPerDay)
+      : await takeQuotaKey(c.env, `app_report_ip:${address}:${Math.floor(Date.now() / 60000)}:${day}`, REPORTS_PER_ADDRESS.unsignedPerMinute);
+    if (!allowed) return c.json({ error: 'limit' }, 429);
+  }
+  if (!await takeQuotaKey(c.env, `app_report:${c.get('account')}:${day}`, 10)) return c.json({ error: 'limit' }, 429);
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
   const model = appAskModels(c.env, undefined, true).find(m => m.id === body.model)?.id ?? 'default';

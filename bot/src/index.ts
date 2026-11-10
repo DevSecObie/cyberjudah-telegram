@@ -510,7 +510,8 @@ app.delete("/api/chats/:id", async (c) => {
 });
 app.get("/api/similar", async (c) => {
   // Each call embeds the query and reranks (model calls): limited like the semantic search (OWASP LLM10).
-  if (!(await takeSearchQuota(c.env, c.req.raw, c.get("tma").user!.id, "similar"))) return c.json({ error: "limit" }, 429);
+  // A query too short to search (similar() answers it with nothing, no model call) spends no allowance.
+  if ((c.req.query("q") ?? "").trim().length >= 2 && !(await takeSearchQuota(c.env, c.req.raw, c.get("tma").user!.id, "similar"))) return c.json({ error: "limit" }, 429);
   const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
   return c.json(res, res.ok ? 200 : 503);
 });
