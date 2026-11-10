@@ -1,0 +1,31 @@
+name: Retrieval evaluation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  recorded:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Check the scoring, replay and capture boundaries
+        run: node --test bot/tests/retrieval-*.test.mjs
+      # No credentials, live capture, answer model, or network fallback. Missing captures fail.
+      - name: Gate recall@10 and nDCG@10 at every stage and question type
+        run: |
+          npm run eval:retrieval --workspace bot
+          # Once Phase 2 is in the checkout, gate its enabled path too.
+          if [ -f bot/src/ranking.mjs ]; then
+            ASK_RANKING=v2 npm run eval:retrieval --workspace bot
+          fi

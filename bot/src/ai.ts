@@ -65,9 +65,11 @@ const passageOf = (m: { metadata?: Record<string, unknown>; score: number }, hos
  * The passages for a question: the twenty closest in meaning from the index and the best
  * keyword matches from the library search, together, reranked by whether they answer it.
  */
-export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend, signal?: AbortSignal): Promise<(Passage & { score: number })[]> {
+export type RetrievalObserver = (stage: "dense" | "fts" | "merge" | "rerank", passages: readonly (Passage & { score: number })[]) => void;
+export const INITIAL_RETRIEVAL = Object.freeze({ rerank: 12, context: 8 });
+export async function retrieve(env: Env, text: string, topK: number = INITIAL_RETRIEVAL.rerank, spend?: Spend, signal?: AbortSignal, observe?: RetrievalObserver): Promise<(Passage & { score: number })[]> {
   // Ranking v2 (RAG Phase 2, ranking.mjs): behind ASK_RANKING=v2, off by default.
-  if (rankingV2(env)) return retrieveV2(env, text, topK, spend, signal);
+  if (rankingV2(env)) return retrieveV2(env, text, topK, spend, signal, observe);
   const [vectorRes, keywordRes, hosts] = await Promise.all([
     // Search by meaning falls back to the keyword search alone if Workers AI or Vectorize fails,
     // so a question is still answered (and Claude can still research) rather than failing whole.
@@ -84,14 +86,19 @@ export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend,
     const url = retrievedSourceUrl(h, hosts);
     return url ? [recordRetrieval({ kind: h.kind, title: h.title, url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")] : [];
   }) : [];
+  observe?.("dense", close.map((p) => ({ ...p })));
+  observe?.("fts", keyed.map((p) => ({ ...p })));
   const seen = new Set(close.map((p) => `${p.kind}|${p.url}|${p.sub ?? ""}`));
   const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
+  observe?.("merge", all.map((p) => ({ ...p })));
   // What this search cost: the question embedded, one vector query, and what the reranker read.
   spend?.search({ query: text, contexts: all.length > 1 ? all.map((p) => `${p.title}\n${p.text}`.slice(0, 2000)) : [] });
   const ranked = await rerankScored(env, text, all, topK, (p) => `${p.title}\n${p.text}`.slice(0, 2000), signal);
   const out = ranked.order ? ranked.order.map((r) => all[r.id]) : all.slice(0, topK);
   logRetrieval({ ranking: "v1", parts: 0, dense: close.length, keyword: keyed.length, both: keyed.length - (all.length - close.length), pool: all.length, rerank: ranked.status, rerank_ms: ranked.ms, top: scoreBucket(ranked.order?.[0]?.score), final: out.length });
-  return withTeachers(env, out);
+  const attributed = await withTeachers(env, out);
+  observe?.("rerank", attributed.map((p) => ({ ...p })));
+  return attributed;
 }
 
 /**
@@ -114,7 +121,7 @@ const NO_MATCHES = { matches: [] as VectorizeMatches["matches"] };
  * answerCandidates. When the reranker fails, the fused order stands. The same evidence rules as v1:
  * passages of under twenty words and unlinkable sources are dropped before any citation number.
  */
-async function retrieveV2(env: Env, text: string, topK: number, spend?: Spend, signal?: AbortSignal): Promise<(Passage & { score: number })[]> {
+async function retrieveV2(env: Env, text: string, topK: number, spend?: Spend, signal?: AbortSignal, observe?: RetrievalObserver): Promise<(Passage & { score: number })[]> {
   const queries = [text, ...questionParts(text)];
   const [denseRes, keywordRes, hosts] = await Promise.all([
     embed(env, queries, signal)
@@ -130,16 +137,22 @@ async function retrieveV2(env: Env, text: string, topK: number, spend?: Spend, s
     const url = retrievedSourceUrl(h, hosts);
     return url ? [recordRetrieval({ kind: h.kind, title: h.title, url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")] : [];
   }));
+  // Eval-only standalone modality ranks use the same RRF over deterministic query parts.
+  observe?.("dense", rrf(dense).map(({ p }) => ({ ...p })));
+  observe?.("fts", rrf(keyed).map(({ p }) => ({ ...p })));
   // Each query's two lists, side by side: a passage both find, or several parts find, rises.
   const fused = rrf(queries.flatMap((_q, i) => [dense[i], keyed[i]]));
   const pool = fused.slice(0, RERANK_POOL).map(({ p }) => p);
+  observe?.("merge", pool.map((p) => ({ ...p })));
   const denseKeys = new Set(dense.flat().map(passageKey)), keyedKeys = new Set(keyed.flat().map(passageKey));
   // What this search cost: each query embedded and searched, and what the reranker read.
   queries.forEach((q, i) => spend?.search({ query: q, contexts: i === 0 && pool.length > 1 ? pool.map((p) => rerankText(text, p)) : [] }));
   const ranked = await rerankScored(env, text, pool, topK, (p) => rerankText(text, p), signal);
   const out = ranked.order ? ranked.order.map((r) => markRanked(pool[r.id], r.score)) : pool.slice(0, topK).map((p) => markRanked(p, null));
   logRetrieval({ ranking: "v2", parts: queries.length - 1, dense: denseKeys.size, keyword: keyedKeys.size, both: [...keyedKeys].filter((k) => denseKeys.has(k)).length, pool: pool.length, rerank: ranked.status, rerank_ms: ranked.ms, top: scoreBucket(ranked.order?.[0]?.score), final: out.length });
-  return withTeachers(env, out);
+  const attributed = await withTeachers(env, out);
+  observe?.("rerank", attributed.map((p) => ({ ...p })));
+  return attributed;
 }
 
 /**

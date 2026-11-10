@@ -50,6 +50,7 @@ export function topicOverlap(question, text) {
 }
 
 /** A conservative coverage proxy, not an entailment classifier or a library-wide absence claim. */
+export const COVERAGE_THRESHOLDS = Object.freeze({ overlap: 0.25, cosine: 0.68 });
 export function coverageDecision(question, sources) {
   if (SMALL_TALK.test(question.trim())) return { enough: true, reason: 'small-talk', usable: 0 };
   const needed = topics(question);
@@ -75,7 +76,7 @@ export function coverageDecision(question, sources) {
     const overlap = needed.length ? needed.filter(word => found.has(word)).length / needed.length : 0;
     bestOverlap = Math.max(bestOverlap, overlap);
   }
-  const enough = usable > 0 && (bestOverlap >= 0.25 || (bestCosine !== null && bestCosine >= 0.68));
+  const enough = usable > 0 && (bestOverlap >= COVERAGE_THRESHOLDS.overlap || (bestCosine !== null && bestCosine >= COVERAGE_THRESHOLDS.cosine));
   return { enough, reason: enough ? 'retrieved-evidence' : 'thin-retrieval', usable, overlap: bestOverlap, cosine: bestCosine };
 }
 

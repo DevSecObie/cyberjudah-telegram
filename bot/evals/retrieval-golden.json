@@ -1,0 +1,1328 @@
+{
+  "version": 1,
+  "approval": "proposed, awaiting owner approval",
+  "relevanceUnit": "library-reference-url",
+  "grades": {
+    "2": "answers it (proposed)",
+    "1": "related (proposed)"
+  },
+  "provenance": {
+    "questions": [
+      "grounding-recorded.json",
+      "ask-questions.json"
+    ],
+    "source": "public CyberJudah library.sqlite",
+    "sourceSha256": "99526e7806d61ac2ff38658d85d7ea502ac49aca356de7239fbe64811da39124",
+    "sourceBuilt": "2026-11-07T01:31:23.731Z",
+    "method": "Questions copied from existing evaluation fixtures. Grade 2 follows existing extractive support references or proposed named references; grade 1 follows library cross-reference records. No answers are included.",
+    "limitations": [
+      "Owner approval is pending for every judgment and coverage label.",
+      "Reference URL is the relevance unit; note sub-sections and caption windows are not separately judged.",
+      "Judgments are incomplete: an unjudged candidate is not proven irrelevant.",
+      "The set emphasizes named references and laws; expand after owner review before claiming general retrieval quality.",
+      "Coverage calibration uses proposed support groups, not an independently verified answerability oracle."
+    ]
+  },
+  "references": {
+    "/bible/1-kings/14#v21": {
+      "table": "verses",
+      "key": 9240
+    },
+    "/bible/1-maccabees/2#v50": {
+      "table": "verses",
+      "key": 35383
+    },
+    "/bible/2-esdras/13#v40": {
+      "table": "verses",
+      "key": 32217
+    },
+    "/bible/2-esdras/13#v41": {
+      "table": "verses",
+      "key": 32218
+    },
+    "/bible/2-esdras/13#v42": {
+      "table": "verses",
+      "key": 32219
+    },
+    "/bible/2-esdras/13#v43": {
+      "table": "verses",
+      "key": 32220
+    },
+    "/bible/2-esdras/13#v44": {
+      "table": "verses",
+      "key": 32221
+    },
+    "/bible/2-esdras/13#v45": {
+      "table": "verses",
+      "key": 32222
+    },
+    "/bible/2-timothy/2#v15": {
+      "table": "verses",
+      "key": 29843
+    },
+    "/bible/deuteronomy/10#v12": {
+      "table": "verses",
+      "key": 5199
+    },
+    "/bible/deuteronomy/28#v68": {
+      "table": "verses",
+      "key": 5680
+    },
+    "/bible/deuteronomy/5#v11": {
+      "table": "verses",
+      "key": 5065
+    },
+    "/bible/deuteronomy/5#v12": {
+      "table": "verses",
+      "key": 5066
+    },
+    "/bible/deuteronomy/5#v16": {
+      "table": "verses",
+      "key": 5070
+    },
+    "/bible/deuteronomy/5#v17": {
+      "table": "verses",
+      "key": 5071
+    },
+    "/bible/deuteronomy/5#v18": {
+      "table": "verses",
+      "key": 5072
+    },
+    "/bible/deuteronomy/5#v19": {
+      "table": "verses",
+      "key": 5073
+    },
+    "/bible/deuteronomy/5#v20": {
+      "table": "verses",
+      "key": 5074
+    },
+    "/bible/deuteronomy/5#v21": {
+      "table": "verses",
+      "key": 5075
+    },
+    "/bible/deuteronomy/5#v6": {
+      "table": "verses",
+      "key": 5060
+    },
+    "/bible/deuteronomy/5#v8": {
+      "table": "verses",
+      "key": 5062
+    },
+    "/bible/deuteronomy/6#v5": {
+      "table": "verses",
+      "key": 5092
+    },
+    "/bible/exodus/20#v12": {
+      "table": "verses",
+      "key": 2064
+    },
+    "/bible/exodus/20#v13": {
+      "table": "verses",
+      "key": 2065
+    },
+    "/bible/exodus/20#v14": {
+      "table": "verses",
+      "key": 2066
+    },
+    "/bible/exodus/20#v15": {
+      "table": "verses",
+      "key": 2067
+    },
+    "/bible/exodus/20#v16": {
+      "table": "verses",
+      "key": 2068
+    },
+    "/bible/exodus/20#v17": {
+      "table": "verses",
+      "key": 2069
+    },
+    "/bible/exodus/20#v2": {
+      "table": "verses",
+      "key": 2054
+    },
+    "/bible/exodus/20#v4": {
+      "table": "verses",
+      "key": 2056
+    },
+    "/bible/exodus/20#v7": {
+      "table": "verses",
+      "key": 2059
+    },
+    "/bible/exodus/20#v8": {
+      "table": "verses",
+      "key": 2060
+    },
+    "/bible/genesis/14#v18": {
+      "table": "verses",
+      "key": 355
+    },
+    "/bible/genesis/2#v24": {
+      "table": "verses",
+      "key": 55
+    },
+    "/bible/genesis/2#v7": {
+      "table": "verses",
+      "key": 38
+    },
+    "/bible/genesis/3#v1": {
+      "table": "verses",
+      "key": 57
+    },
+    "/bible/genesis/3#v14": {
+      "table": "verses",
+      "key": 70
+    },
+    "/bible/genesis/4#v1": {
+      "table": "verses",
+      "key": 81
+    },
+    "/bible/genesis/4#v17": {
+      "table": "verses",
+      "key": 97
+    },
+    "/bible/genesis/4#v22": {
+      "table": "verses",
+      "key": 102
+    },
+    "/bible/genesis/4#v25": {
+      "table": "verses",
+      "key": 105
+    },
+    "/bible/genesis/5#v1": {
+      "table": "verses",
+      "key": 107
+    },
+    "/bible/genesis/5#v18": {
+      "table": "verses",
+      "key": 124
+    },
+    "/bible/hebrews/7#v1": {
+      "table": "verses",
+      "key": 30066
+    },
+    "/bible/hebrews/7#v3": {
+      "table": "verses",
+      "key": 30068
+    },
+    "/bible/isaiah/1#v18": {
+      "table": "verses",
+      "key": 17673
+    },
+    "/bible/james/1#v22": {
+      "table": "verses",
+      "key": 30289
+    },
+    "/bible/john/11#v35": {
+      "table": "verses",
+      "key": 26559
+    },
+    "/bible/john/14#v15": {
+      "table": "verses",
+      "key": 26684
+    },
+    "/bible/john/8#v32": {
+      "table": "verses",
+      "key": 26414
+    },
+    "/bible/joshua/1#v8": {
+      "table": "verses",
+      "key": 5860
+    },
+    "/bible/leviticus/11#v7": {
+      "table": "verses",
+      "key": 3005
+    },
+    "/bible/leviticus/23#v2": {
+      "table": "verses",
+      "key": 3405
+    },
+    "/bible/leviticus/23#v4": {
+      "table": "verses",
+      "key": 3407
+    },
+    "/bible/leviticus/23#v5": {
+      "table": "verses",
+      "key": 3408
+    },
+    "/bible/leviticus/23#v6": {
+      "table": "verses",
+      "key": 3409
+    },
+    "/bible/matthew/5#v17": {
+      "table": "verses",
+      "key": 23252
+    },
+    "/bible/micah/6#v8": {
+      "table": "verses",
+      "key": 22657
+    },
+    "/bible/proverbs/3#v5": {
+      "table": "verses",
+      "key": 16461
+    },
+    "/bible/proverbs/4#v7": {
+      "table": "verses",
+      "key": 16498
+    },
+    "/bible/psalms/119#v105": {
+      "table": "verses",
+      "key": 16004
+    },
+    "/bible/psalms/119#v11": {
+      "table": "verses",
+      "key": 15910
+    },
+    "/bible/sirach/1#v1": {
+      "table": "verses",
+      "key": 33549
+    },
+    "/bible/wisdom-of-solomon/1#v1": {
+      "table": "verses",
+      "key": 33113
+    },
+    "/cases/01-primeval/abel": {
+      "table": "cases",
+      "key": "abel"
+    },
+    "/cases/01-primeval/adam-and-eve": {
+      "table": "cases",
+      "key": "adam-and-eve"
+    },
+    "/cases/01-primeval/cain": {
+      "table": "cases",
+      "key": "cain"
+    },
+    "/cases/01-primeval/enoch": {
+      "table": "cases",
+      "key": "enoch"
+    },
+    "/cases/01-primeval/lamech": {
+      "table": "cases",
+      "key": "lamech"
+    },
+    "/classes/2012/2012-10-24-the-three-trials-of-faith": {
+      "table": "notes",
+      "key": 1327
+    },
+    "/classes/2021/2021-05-15-sabbath-morning-class-if-thou-come-to-serve-the-lord": {
+      "table": "notes",
+      "key": 1360
+    },
+    "/classes/2022/2022-04-06-the-power-hour-passover-commentary-removing-the-leaven": {
+      "table": "notes",
+      "key": 1369
+    },
+    "/classes/2025/2025-11-22-mind-control-the-power-of-prayer": {
+      "table": "notes",
+      "key": 1416
+    },
+    "/classes/2026/2026-03-01-war-the-pain-of-repentance": {
+      "table": "notes",
+      "key": 1477
+    },
+    "/classes/2026/2026-05-23-character-integrity-the-hidden-strength-behind-wisdom": {
+      "table": "notes",
+      "key": 1531
+    },
+    "/law/01-the-ten-commandments/1a#1A.1": {
+      "table": "laws",
+      "key": "1A.1"
+    },
+    "/law/01-the-ten-commandments/1a#1A.10": {
+      "table": "laws",
+      "key": "1A.10"
+    },
+    "/law/01-the-ten-commandments/1a#1A.2": {
+      "table": "laws",
+      "key": "1A.2"
+    },
+    "/law/01-the-ten-commandments/1a#1A.3": {
+      "table": "laws",
+      "key": "1A.3"
+    },
+    "/law/01-the-ten-commandments/1a#1A.4": {
+      "table": "laws",
+      "key": "1A.4"
+    },
+    "/law/01-the-ten-commandments/1a#1A.5": {
+      "table": "laws",
+      "key": "1A.5"
+    },
+    "/law/01-the-ten-commandments/1a#1A.6": {
+      "table": "laws",
+      "key": "1A.6"
+    },
+    "/law/01-the-ten-commandments/1a#1A.7": {
+      "table": "laws",
+      "key": "1A.7"
+    },
+    "/law/01-the-ten-commandments/1a#1A.8": {
+      "table": "laws",
+      "key": "1A.8"
+    },
+    "/law/01-the-ten-commandments/1a#1A.9": {
+      "table": "laws",
+      "key": "1A.9"
+    },
+    "/law/14-food-and-health-laws/14b#14B.4": {
+      "table": "laws",
+      "key": "14B.4"
+    },
+    "/precepts/abomination": {
+      "table": "precepts",
+      "key": "abomination"
+    },
+    "/precepts/abortion": {
+      "table": "precepts",
+      "key": "abortion"
+    },
+    "/precepts/acceptable": {
+      "table": "precepts",
+      "key": "acceptable"
+    },
+    "/precepts/add-nor-remove": {
+      "table": "precepts",
+      "key": "add-nor-remove"
+    },
+    "/precepts/adultery": {
+      "table": "precepts",
+      "key": "adultery"
+    },
+    "/study/1-john/2": {
+      "table": "notes",
+      "key": 56
+    },
+    "/study/genesis/50": {
+      "table": "notes",
+      "key": 547
+    }
+  },
+  "queries": [
+    {
+      "id": "recorded-01",
+      "type": "named-verse",
+      "q": "What does Exodus 20:8 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-01",
+      "judgments": {
+        "/bible/exodus/20#v8": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/exodus/20#v8"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-02",
+      "type": "named-verse",
+      "q": "What does Exodus 20:12 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-02",
+      "judgments": {
+        "/bible/exodus/20#v12": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/exodus/20#v12"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-03",
+      "type": "named-verse",
+      "q": "What does Deuteronomy 6:5 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-03",
+      "judgments": {
+        "/bible/deuteronomy/6#v5": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/deuteronomy/6#v5"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-04",
+      "type": "named-verse",
+      "q": "What does Deuteronomy 10:12 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-04",
+      "judgments": {
+        "/bible/deuteronomy/10#v12": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/deuteronomy/10#v12"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-05",
+      "type": "named-verse",
+      "q": "What does Psalms 119:105 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-05",
+      "judgments": {
+        "/bible/psalms/119#v105": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/psalms/119#v105"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-06",
+      "type": "named-verse",
+      "q": "What does Psalms 119:11 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-06",
+      "judgments": {
+        "/bible/psalms/119#v11": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/psalms/119#v11"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-07",
+      "type": "named-verse",
+      "q": "What does Proverbs 4:7 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-07",
+      "judgments": {
+        "/bible/proverbs/4#v7": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/proverbs/4#v7"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-08",
+      "type": "named-verse",
+      "q": "What does Proverbs 3:5 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-08",
+      "judgments": {
+        "/bible/proverbs/3#v5": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/proverbs/3#v5"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-09",
+      "type": "named-verse",
+      "q": "What does Micah 6:8 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-09",
+      "judgments": {
+        "/bible/micah/6#v8": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/micah/6#v8"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-10",
+      "type": "named-verse",
+      "q": "What does Isaiah 1:18 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-10",
+      "judgments": {
+        "/bible/isaiah/1#v18": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/isaiah/1#v18"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-11",
+      "type": "named-verse",
+      "q": "What does Matthew 5:17 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-11",
+      "judgments": {
+        "/bible/matthew/5#v17": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/matthew/5#v17"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-12",
+      "type": "named-verse",
+      "q": "What does John 8:32 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-12",
+      "judgments": {
+        "/bible/john/8#v32": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/john/8#v32"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-13",
+      "type": "named-verse",
+      "q": "What does John 11:35 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-13",
+      "judgments": {
+        "/bible/john/11#v35": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/john/11#v35"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-14",
+      "type": "named-verse",
+      "q": "What does John 14:15 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-14",
+      "judgments": {
+        "/bible/john/14#v15": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/john/14#v15"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-15",
+      "type": "named-verse",
+      "q": "What does 2 Timothy 2:15 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-15",
+      "judgments": {
+        "/bible/2-timothy/2#v15": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/2-timothy/2#v15"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-16",
+      "type": "named-verse",
+      "q": "What does James 1:22 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-16",
+      "judgments": {
+        "/bible/james/1#v22": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/james/1#v22"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-17",
+      "type": "named-verse",
+      "q": "What does Joshua 1:8 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-17",
+      "judgments": {
+        "/bible/joshua/1#v8": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/joshua/1#v8"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-18",
+      "type": "named-verse",
+      "q": "What does Sirach 1:1 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-18",
+      "judgments": {
+        "/bible/sirach/1#v1": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/sirach/1#v1"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-19",
+      "type": "named-verse",
+      "q": "What does Wisdom of Solomon 1:1 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-19",
+      "judgments": {
+        "/bible/wisdom-of-solomon/1#v1": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/wisdom-of-solomon/1#v1"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-20",
+      "type": "named-verse",
+      "q": "What does 1 Maccabees 2:50 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-20",
+      "judgments": {
+        "/bible/1-maccabees/2#v50": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/1-maccabees/2#v50"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-21",
+      "type": "law",
+      "q": "What does library law 1A.1 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-21",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.1": 2,
+        "/bible/exodus/20#v2": 1,
+        "/bible/deuteronomy/5#v6": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.1"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-22",
+      "type": "law",
+      "q": "What does library law 1A.2 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-22",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.2": 2,
+        "/bible/exodus/20#v4": 1,
+        "/bible/deuteronomy/5#v8": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.2"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-23",
+      "type": "law",
+      "q": "What does library law 1A.3 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-23",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.3": 2,
+        "/bible/exodus/20#v7": 1,
+        "/bible/deuteronomy/5#v11": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.3"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-24",
+      "type": "law",
+      "q": "What does library law 1A.4 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-24",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.4": 2,
+        "/bible/exodus/20#v8": 1,
+        "/bible/deuteronomy/5#v12": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.4"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-25",
+      "type": "law",
+      "q": "What does library law 1A.5 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-25",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.5": 2,
+        "/bible/exodus/20#v12": 1,
+        "/bible/deuteronomy/5#v16": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.5"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-26",
+      "type": "law",
+      "q": "What does library law 1A.6 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-26",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.6": 2,
+        "/bible/exodus/20#v13": 1,
+        "/bible/deuteronomy/5#v17": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.6"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-27",
+      "type": "law",
+      "q": "What does library law 1A.7 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-27",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.7": 2,
+        "/bible/exodus/20#v14": 1,
+        "/bible/deuteronomy/5#v18": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.7"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-28",
+      "type": "law",
+      "q": "What does library law 1A.8 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-28",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.8": 2,
+        "/bible/exodus/20#v15": 1,
+        "/bible/deuteronomy/5#v19": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.8"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-29",
+      "type": "law",
+      "q": "What does library law 1A.9 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-29",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.9": 2,
+        "/bible/exodus/20#v16": 1,
+        "/bible/deuteronomy/5#v20": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.9"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-30",
+      "type": "law",
+      "q": "What does library law 1A.10 say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-30",
+      "judgments": {
+        "/law/01-the-ten-commandments/1a#1A.10": 2,
+        "/bible/exodus/20#v17": 1,
+        "/bible/deuteronomy/5#v21": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/01-the-ten-commandments/1a#1A.10"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-31",
+      "type": "class",
+      "q": "What does the recorded note say about sabbath?",
+      "sourceQuestion": "grounding-recorded.json#recorded-31",
+      "judgments": {
+        "/classes/2021/2021-05-15-sabbath-morning-class-if-thou-come-to-serve-the-lord": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/classes/2021/2021-05-15-sabbath-morning-class-if-thou-come-to-serve-the-lord"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-32",
+      "type": "feast",
+      "q": "What does the recorded note say about passover?",
+      "sourceQuestion": "grounding-recorded.json#recorded-32",
+      "judgments": {
+        "/classes/2022/2022-04-06-the-power-hour-passover-commentary-removing-the-leaven": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/classes/2022/2022-04-06-the-power-hour-passover-commentary-removing-the-leaven"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-33",
+      "type": "class",
+      "q": "What does the recorded note say about prayer?",
+      "sourceQuestion": "grounding-recorded.json#recorded-33",
+      "judgments": {
+        "/classes/2025/2025-11-22-mind-control-the-power-of-prayer": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/classes/2025/2025-11-22-mind-control-the-power-of-prayer"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-34",
+      "type": "class",
+      "q": "What does the recorded note say about faith?",
+      "sourceQuestion": "grounding-recorded.json#recorded-34",
+      "judgments": {
+        "/classes/2012/2012-10-24-the-three-trials-of-faith": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/classes/2012/2012-10-24-the-three-trials-of-faith"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-35",
+      "type": "class",
+      "q": "What does the recorded note say about repentance?",
+      "sourceQuestion": "grounding-recorded.json#recorded-35",
+      "judgments": {
+        "/classes/2026/2026-03-01-war-the-pain-of-repentance": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/classes/2026/2026-03-01-war-the-pain-of-repentance"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-36",
+      "type": "class",
+      "q": "What does the recorded note say about forgiveness?",
+      "sourceQuestion": "grounding-recorded.json#recorded-36",
+      "judgments": {
+        "/study/genesis/50": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/study/genesis/50"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-37",
+      "type": "class",
+      "q": "What does the recorded note say about commandments?",
+      "sourceQuestion": "grounding-recorded.json#recorded-37",
+      "judgments": {
+        "/study/1-john/2": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/study/1-john/2"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-38",
+      "type": "class",
+      "q": "What does the recorded note say about wisdom?",
+      "sourceQuestion": "grounding-recorded.json#recorded-38",
+      "judgments": {
+        "/classes/2026/2026-05-23-character-integrity-the-hidden-strength-behind-wisdom": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/classes/2026/2026-05-23-character-integrity-the-hidden-strength-behind-wisdom"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-39",
+      "type": "person",
+      "q": "What does the library record about Adam and Eve?",
+      "sourceQuestion": "grounding-recorded.json#recorded-39",
+      "judgments": {
+        "/cases/01-primeval/adam-and-eve": 2,
+        "/bible/genesis/2#v7": 1,
+        "/bible/genesis/3#v1": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/cases/01-primeval/adam-and-eve"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-40",
+      "type": "person",
+      "q": "What does the library record about Abel?",
+      "sourceQuestion": "grounding-recorded.json#recorded-40",
+      "judgments": {
+        "/cases/01-primeval/abel": 2,
+        "/bible/genesis/4#v1": 1,
+        "/bible/genesis/4#v25": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/cases/01-primeval/abel"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-41",
+      "type": "person",
+      "q": "What does the library record about Cain?",
+      "sourceQuestion": "grounding-recorded.json#recorded-41",
+      "judgments": {
+        "/cases/01-primeval/cain": 2,
+        "/bible/genesis/4#v1": 1,
+        "/bible/genesis/3#v14": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/cases/01-primeval/cain"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-42",
+      "type": "person",
+      "q": "What does the library record about Lamech?",
+      "sourceQuestion": "grounding-recorded.json#recorded-42",
+      "judgments": {
+        "/cases/01-primeval/lamech": 2,
+        "/bible/genesis/4#v17": 1,
+        "/bible/genesis/2#v24": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/cases/01-primeval/lamech"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-43",
+      "type": "person",
+      "q": "What does the library record about Enoch?",
+      "sourceQuestion": "grounding-recorded.json#recorded-43",
+      "judgments": {
+        "/cases/01-primeval/enoch": 2,
+        "/bible/genesis/5#v1": 1,
+        "/bible/genesis/5#v18": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/cases/01-primeval/enoch"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-44",
+      "type": "precept",
+      "q": "What does Titus 1:16, listed for Abomination, say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-44",
+      "judgments": {
+        "/precepts/abomination": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/precepts/abomination"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-45",
+      "type": "precept",
+      "q": "What does Wisdom of Solomon 14:23, listed for Abortion, say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-45",
+      "judgments": {
+        "/precepts/abortion": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/precepts/abortion"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-46",
+      "type": "precept",
+      "q": "What does Romans 12:2, listed for Acceptable, say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-46",
+      "judgments": {
+        "/precepts/acceptable": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/precepts/acceptable"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-47",
+      "type": "precept",
+      "q": "What does Deuteronomy 4:2, listed for Add nor Remove, say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-47",
+      "judgments": {
+        "/precepts/add-nor-remove": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/precepts/add-nor-remove"
+        ]
+      ]
+    },
+    {
+      "id": "recorded-48",
+      "type": "precept",
+      "q": "What does Exodus 20:14, listed for Adultery, say?",
+      "sourceQuestion": "grounding-recorded.json#recorded-48",
+      "judgments": {
+        "/precepts/adultery": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/precepts/adultery"
+        ]
+      ]
+    },
+    {
+      "id": "named-verse",
+      "type": "named-verse",
+      "q": "What does Deuteronomy 28:68 mean?",
+      "sourceQuestion": "ask-questions.json#named-verse",
+      "judgments": {
+        "/bible/deuteronomy/28#v68": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/deuteronomy/28#v68"
+        ]
+      ]
+    },
+    {
+      "id": "named-verse-apocrypha",
+      "type": "named-verse",
+      "q": "Explain 2 Esdras 13:40-45.",
+      "sourceQuestion": "ask-questions.json#named-verse-apocrypha",
+      "judgments": {
+        "/bible/2-esdras/13#v40": 2,
+        "/bible/2-esdras/13#v41": 2,
+        "/bible/2-esdras/13#v42": 2,
+        "/bible/2-esdras/13#v43": 2,
+        "/bible/2-esdras/13#v44": 2,
+        "/bible/2-esdras/13#v45": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/2-esdras/13#v40",
+          "/bible/2-esdras/13#v41",
+          "/bible/2-esdras/13#v42",
+          "/bible/2-esdras/13#v43",
+          "/bible/2-esdras/13#v44",
+          "/bible/2-esdras/13#v45"
+        ]
+      ]
+    },
+    {
+      "id": "person",
+      "type": "person",
+      "q": "Who was Naamah?",
+      "sourceQuestion": "ask-questions.json#person",
+      "judgments": {
+        "/bible/genesis/4#v22": 2,
+        "/bible/1-kings/14#v21": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/genesis/4#v22"
+        ]
+      ],
+      "judgmentNote": "Proposed Genesis reference; alternate recorded name remains related. Owner disambiguation pending."
+    },
+    {
+      "id": "law",
+      "type": "law",
+      "q": "What does the law say about eating swine?",
+      "sourceQuestion": "ask-questions.json#law",
+      "judgments": {
+        "/law/14-food-and-health-laws/14b#14B.4": 2,
+        "/bible/leviticus/11#v7": 1
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/law/14-food-and-health-laws/14b#14B.4"
+        ]
+      ]
+    },
+    {
+      "id": "feasts",
+      "type": "feast",
+      "q": "What are the high holy days in Leviticus 23?",
+      "sourceQuestion": "ask-questions.json#feasts",
+      "judgments": {
+        "/bible/leviticus/23#v2": 2,
+        "/bible/leviticus/23#v4": 2,
+        "/bible/leviticus/23#v5": 2,
+        "/bible/leviticus/23#v6": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/leviticus/23#v2",
+          "/bible/leviticus/23#v4",
+          "/bible/leviticus/23#v5",
+          "/bible/leviticus/23#v6"
+        ]
+      ]
+    },
+    {
+      "id": "multi-part",
+      "type": "multi-part",
+      "q": "Who was Melchizedek, and why does Hebrews compare Christ to him?",
+      "sourceQuestion": "ask-questions.json#multi-part",
+      "judgments": {
+        "/bible/genesis/14#v18": 2,
+        "/bible/hebrews/7#v1": 2,
+        "/bible/hebrews/7#v3": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/genesis/14#v18"
+        ],
+        [
+          "/bible/hebrews/7#v1",
+          "/bible/hebrews/7#v3"
+        ]
+      ]
+    },
+    {
+      "id": "follow-up",
+      "type": "follow-up",
+      "q": "what did he bring out to Abram?",
+      "sourceQuestion": "ask-questions.json#follow-up",
+      "judgments": {
+        "/bible/genesis/14#v18": 2
+      },
+      "coverageLabel": "supported",
+      "supportGroups": [
+        [
+          "/bible/genesis/14#v18"
+        ]
+      ],
+      "history": [
+        {
+          "role": "user",
+          "content": "Who was Melchizedek, and why does Hebrews compare Christ to him?"
+        }
+      ]
+    },
+    {
+      "id": "gap",
+      "type": "gap",
+      "q": "What did the classes teach about the population of Mars colonies?",
+      "sourceQuestion": "ask-questions.json#gap",
+      "judgments": {},
+      "coverageLabel": "gap"
+    },
+    {
+      "id": "off-topic",
+      "type": "gap",
+      "q": "Write me a python script to sort a list.",
+      "sourceQuestion": "ask-questions.json#off-topic",
+      "judgments": {},
+      "coverageLabel": "gap"
+    },
+    {
+      "id": "greeting",
+      "type": "small-talk",
+      "q": "Shalom!",
+      "sourceQuestion": "ask-questions.json#greeting",
+      "judgments": {},
+      "coverageLabel": "not-applicable"
+    },
+    {
+      "id": "thanks",
+      "type": "small-talk",
+      "q": "thank you brother",
+      "sourceQuestion": "ask-questions.json#thanks",
+      "judgments": {},
+      "coverageLabel": "not-applicable"
+    },
+    {
+      "id": "gap-uncovered",
+      "type": "gap",
+      "q": "What is the library's recommendation for servicing a spacecraft engine?",
+      "sourceQuestion": "grounding-recorded.json#gap-uncovered",
+      "judgments": {},
+      "coverageLabel": "gap"
+    }
+  ]
+}

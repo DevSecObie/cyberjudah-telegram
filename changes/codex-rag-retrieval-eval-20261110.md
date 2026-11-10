@@ -1,0 +1,1 @@
+- Add a proposed retrieval golden set, offline per-stage scoring and calibration harness, bounded manual staging capture, and a recorded recall/nDCG regression gate.
