@@ -8,7 +8,7 @@ import { financialDb } from './helpers/financial-db.mjs';
 // shape; Aura-2 lacks four Aura-1 voices, so a reader's saved choice of one is read by the closest.
 const out = new URL('./.build/app-voice-models.mjs', import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/app-voice.ts"; export { VOICES, VOICE_ALIASES, voiceId, VOICE_MODEL } from "./src/ai.mjs";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
-const { listen, speak, LISTEN_MODEL, VOICES, VOICE_ALIASES, voiceId, VOICE_MODEL } = await import(out);
+const { listen, speak, speechPieces, AURA_MAX_CHARS, LISTEN_MODEL, VOICES, VOICE_ALIASES, voiceId, VOICE_MODEL } = await import(out);
 
 const audioStore = () => { const kept = new Map(); return { kept, async get(k) { return kept.has(k) ? { body: kept.get(k) } : null; }, async put(k, v) { kept.set(k, v); } }; };
 
@@ -20,7 +20,7 @@ test('speech is heard by Nova-3: the audio goes with its type and the transcript
   assert.equal(calls[0].id, '@cf/deepgram/nova-3');
   assert.equal(LISTEN_MODEL, '@cf/deepgram/nova-3');
   assert.equal(calls[0].input.audio.contentType, 'audio/webm');
-  assert.deepEqual([...calls[0].input.audio.body], [1, 2, 3]);
+  assert.deepEqual([...new Uint8Array(await new Response(calls[0].input.audio.body).arrayBuffer())], [1, 2, 3], 'the audio is sent as a stream of the same bytes');
   // No type given: Deepgram is left to detect the container.
   await listen(env, 'acct-a', new Uint8Array([4]).buffer);
   assert.equal(calls[1].input.audio.contentType, 'application/octet-stream');
@@ -40,7 +40,7 @@ test('answers are read by Aura-2; a retired Aura-1 voice is read by the closest 
     assert.ok(!VOICES.some(v => v.id === old), `${old} is no longer offered`);
   }
   assert.equal(voiceId('asteria'), 'asteria');
-  assert.equal(voiceId('nobody'), undefined);
+  for (const name of ['nobody', 'constructor', 'toString', '__proto__', 'hasOwnProperty']) assert.equal(voiceId(name), undefined, name);
   const res = await speak(env, 'acct-a', 'Placeholder answer words to read aloud.', 'stella');
   assert.equal(res.status, 200);
   assert.equal(calls[0].id, '@cf/deepgram/aura-2-en');
@@ -52,4 +52,20 @@ test('answers are read by Aura-2; a retired Aura-1 voice is read by the closest 
   assert.equal((await speak(env, 'acct-a', 'Placeholder answer words to read aloud.', 'thalia')).status, 200);
   assert.equal(calls.length, 1);
   assert.equal((await speak(env, 'acct-a', 'Placeholder answer words to read aloud.', 'nobody')).status, 400);
+});
+
+test('an answer longer than Aura-2 reads at once is read in parts, cut after sentences, and joined as one MP3', async t => {
+  const sentence = 'Placeholder fixture sentence for reading aloud. ';
+  const pieces = speechPieces(sentence.repeat(60));
+  assert.ok(pieces.length >= 2 && pieces.every(p => p.length <= AURA_MAX_CHARS && p.endsWith('.')), pieces.map(p => p.length).join());
+  assert.equal(pieces.join(' '), sentence.repeat(60).trim());
+  assert.deepEqual(speechPieces('x'.repeat(4100)).map(p => p.length), [2000, 2000, 100], 'text with no break is cut at the limit');
+  const { env } = financialDb(t), calls = [];
+  env.AUDIO = audioStore();
+  env.AI = { run: async (id, input) => { calls.push(input.text.length); return new Uint8Array([calls.length]); } };
+  env.ASK_FREE_DAILY_USD_CAP = '1'; // room for one long answer's reservation
+  const res = await speak(env, 'acct-a', sentence.repeat(60), 'asteria');
+  assert.equal(res.status, 200);
+  assert.ok(calls.length >= 2 && calls.every(n => n <= AURA_MAX_CHARS));
+  assert.deepEqual([...new Uint8Array(await res.arrayBuffer())], calls.map((_, i) => i + 1), 'the parts are joined in order');
 });

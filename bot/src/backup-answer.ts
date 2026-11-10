@@ -70,10 +70,11 @@ export async function backupOnce(env: Env, messages: Msg[], admin = false, sourc
   if (typeof budget === "string") return budget;
   let usage: object | undefined, complete = false;
   try {
-    const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3 }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { response?: string; usage?: object };
+    const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3 }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { response?: string; usage?: object; choices?: { message?: { content?: string } }[] };
     usage = res.usage;
     complete = true;
-    return (res.response ?? "").trim();
+    // Workers AI's own shape ({ response }) or the chat-completions one (Kimi K2.6: choices[0].message).
+    return String(res.response ?? res.choices?.[0]?.message?.content ?? "").trim();
   } finally { await budget.finish(usage, complete); }
 }
 

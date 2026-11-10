@@ -11,6 +11,8 @@ import { MAX_OPEN_OUTPUT, MAX_RESEARCH_MS, WRITING_RESERVE_MS, writingDue, withi
 
 const DEEPSEEK_V4 = /^@cf\/deepseek-ai\/deepseek-v4/;
 const GEMMA_4 = /^@cf\/google\/gemma-4/;
+/** Kimi K2 on Workers AI turns its reasoning off with reasoning_effort "none" (its default is "high"). */
+const KIMI_K2 = /^@cf\/moonshotai\/kimi-k2/;
 
 /**
  * Ask's research with any model other than Claude, through Cloudflare's AI binding and the AI
@@ -76,7 +78,7 @@ export async function researchOpen(
     if (outputLimit !== null) input = { ...(input as Record<string, unknown>), [outputKey]: outputLimit };
     // An answer keeps each model's full reasoning; only a short mechanical step (a research plan)
     // is asked not to think first, which saves its time without making the answer shallower.
-    if (options.think === false && DEEPSEEK_V4.test(model.id)) input = { ...(input as Record<string, unknown>), reasoning_effort: "none" };
+    if (options.think === false && (DEEPSEEK_V4.test(model.id) || KIMI_K2.test(model.id))) input = { ...(input as Record<string, unknown>), reasoning_effort: "none" };
     else if (options.think === false && GEMMA_4.test(model.id)) input = { ...(input as Record<string, unknown>), chat_template_kwargs: { enable_thinking: false } };
     try {
       // Not logged: the request carries the reader's question (providers.ts viaGateway).

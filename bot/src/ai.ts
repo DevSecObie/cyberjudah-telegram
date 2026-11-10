@@ -206,7 +206,7 @@ export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: nu
 
 /**
  * The free tier answers at the owner's expense, with the same default research guard
- * (ASK_FREE_MAX_ROUNDS, 3 by default, at most 25) and a hard per-answer ceiling (ASK_FREE_MAX_USD, five cents).
+ * (ASK_FREE_MAX_ROUNDS, 3 by default, at most 25) and a hard per-answer ceiling (ASK_FREE_MAX_USD: five cents when unset; wrangler.jsonc sets fifteen for Kimi K2.6).
  * Without the ceiling, one answer's budget is the paid per-request maximum.
  */
 const freeMaxRounds = (env: Env) => { const rounds = Number(env.ASK_FREE_MAX_ROUNDS ?? 3); return researchRounds(Number.isFinite(rounds) ? rounds : 3); };

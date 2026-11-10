@@ -20,7 +20,7 @@ export const VOICES = [
 ];
 export const VOICE_ALIASES = { stella: "thalia", perseus: "odysseus", angus: "jupiter", helios: "apollo" };
 /** The Aura-2 voice for a voice id, a retired Aura-1 id included; undefined for anything else. */
-export const voiceId = (v) => (VOICES.some((x) => x.id === v) ? v : VOICE_ALIASES[v]);
+export const voiceId = (v) => (VOICES.some((x) => x.id === v) ? v : Object.hasOwn(VOICE_ALIASES, v) ? VOICE_ALIASES[v] : undefined);
 export const MAX_PASSAGE = 1400;
 
 /** FNV-1a over the text, as a short stable hash for "has this changed since it was embedded". */
