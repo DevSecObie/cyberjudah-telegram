@@ -57,10 +57,11 @@ const KEEPABLE = /!\[([^\[\]\n]*)\]\(([^()\s<>"']+)\)/g;
 // with no ">" on its line (an unfinished tag, or "Jacob<Israel") loses only that "<", so nothing
 // tag-like reaches a reader and no text past the line is touched; "a < b" with a space is untouched.
 // An unclosed comment hides the rest of its own line (never more).
-const HTML_COMMENT = /<!--[\s\S]*?-->|<!--[^\n]*/g;
+const HTML_COMMENT = /&lt;!--[\s\S]*?-->|&lt;!--[^\n]*/g;
 const HTML_TAG = /<[A-Za-z/!?][^>\n]*>/g;
+const ENCODED_TAG = /&lt;[A-Za-z/!?][^>\n]*>/g;
 const KEEP_TAG = /^(?:<br\s*\/?>|<https?:\/\/[^\s<>"]+>|<mailto:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}>|<[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}>)$/i;
-const OPEN_TAG = /<(?=[A-Za-z/!?])/g;
+const OPEN_TAG = /&lt;(?=[A-Za-z/!?])/g;
 
 // Any other image written whole on one line (titled, empty, angle-bracketed, by reference): its alt text.
 const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\[[^\[\]\n]*\])/g;
@@ -78,14 +79,18 @@ export function onlyGivenPictures(answer: string, allowed: Set<string>): { text:
   const nonce = crypto.randomUUID().slice(0, 8), marked = new RegExp(`\uE000${nonce}:(\\d+)\uE001`, "g");
   const mark = (whole: string) => { kept.push(whole); return `\uE000${nonce}:${kept.length - 1}\uE001`; };
   let text = answer.replace(KEEPABLE, (whole, alt: string, src: string) => {
-    if (allowed.has(src) && isAppPicture(src)) return mark(whole);
+    if (allowed.has(src) && isAppPicture(src)) return mark(whole.replace(/</g, "&lt;"));
     dropped++;
     return alt.trim();
   });
   text = text.replace(OTHER_IMAGE, (_whole, alt: string) => { dropped++; return alt.trim(); });
   text = text.replace(/!\[/g, () => { dropped++; return "["; });
+  text = text.replace(/&lt;/g, mark);
+  text = text.replace(HTML_TAG, tag => KEEP_TAG.test(tag) ? mark(tag) : tag);
+  // Escape before removing markup: deletion cannot re-form a raw tag or comment.
+  text = text.replace(/</g, "&lt;");
   text = text.replace(HTML_COMMENT, () => { dropped++; return ""; });
-  text = text.replace(HTML_TAG, (tag) => (KEEP_TAG.test(tag) ? mark(tag) : (dropped++, "")));
+  text = text.replace(ENCODED_TAG, () => { dropped++; return ""; });
   text = text.replace(OPEN_TAG, () => { dropped++; return ""; });
   text = text.replace(marked, (_m, i: string) => kept[Number(i)]);
   return { text, dropped };
@@ -110,7 +115,7 @@ export async function checkedVerses(env: Env, answer: string): Promise<{ text: s
 const ownPictures = (answer: string) => [...answer.matchAll(KEEPABLE)].map((m) => `Picture: ${m[2]}`);
 
 /** The final step's version: a kept answer marked with it has passed this very step (answer-cache.ts). */
-export const FINAL_STEP = 2;   // 2: outside pages allow no pictures; tags end at their line
+export const FINAL_STEP = 3;
 
 /** The answer as readers may see it and as it may be kept: pictures limited, verses checked. */
 export async function finalAnswer(env: Env, answer: string, options: FinalOptions = {}): Promise<string> {

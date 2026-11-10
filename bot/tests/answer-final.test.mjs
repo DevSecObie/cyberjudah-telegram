@@ -13,7 +13,7 @@ await build({ entryPoints: [new URL("../src/answer-final.ts", import.meta.url).p
     `export async function books(env) { env.lookups.push("books"); return [{ book: "Exodus", slug: "exodus", chapters: 40 }]; }
      export async function chapter(env, slug, ch) { env.lookups.push(slug + "/" + ch); if (env.unreadable) throw new Error("R2 down"); return { verses: [{ verse: 14, text: "Placeholder verse text for the test." }] }; }` }));
 } }] });
-const { finalAnswer, checkedVerses, onlyGivenPictures, picturesIn, passageEvidence, pictureLines, pictureStream, guardedStream } = await import(out);
+const { finalAnswer, checkedVerses, onlyGivenPictures, picturesIn, passageEvidence, pictureLines, pictureStream, guardedStream, FINAL_STEP } = await import(out);
 const env = () => ({ lookups: [] });
 
 test("a picture a tool gave is kept; any other image becomes its alt text", async () => {
@@ -132,7 +132,17 @@ test("tags are removed whole: '/' separators, '<' inside values, ? and ! forms; 
   for (const bad of ["<img/src=https://e.example/x?d=1>", "<svg/onload=alert(1)>", '<img alt="<" src=https://e.example/p>', "<?xml x?>", "<!doctype html>", "<!-- c -->", "</div>"])
     assert.equal(onlyGivenPictures(`A ${bad} B`, new Set()).text, "A  B", bad);
   assert.equal(onlyGivenPictures("A <img src=https://e.example/p B", new Set()).text, "A img src=https://e.example/p B", "an unfinished tag loses its <");
-  assert.equal(onlyGivenPictures("a<br>b<br/>c <https://cyberjudah.io/bs> a < b", new Set()).text, "a<br>b<br/>c <https://cyberjudah.io/bs> a < b");
+  assert.equal(onlyGivenPictures("a<br>b<br/>c <https://cyberjudah.io/bs> a < b", new Set()).text, "a<br>b<br/>c <https://cyberjudah.io/bs> a &lt; b");
+});
+
+test("removing malformed markup cannot reconstruct raw tags or comment openers", () => {
+  for (const input of ["<<div\ndata-note=sample>", "<<!-- -->!-- sample", "<<div", "<div<div>div>", "<\n!-- sample -->"]) {
+    const once = onlyGivenPictures(input, new Set()).text;
+    assert.doesNotMatch(once, /</, input);
+    assert.equal(onlyGivenPictures(once, new Set()).text, once, input);
+  }
+  const image = onlyGivenPictures('![<div>caption</div>](/brand/placeholder.png)', new Set(['/brand/placeholder.png'])).text;
+  assert.equal(image, '![&lt;div>caption&lt;/div>](/brand/placeholder.png)');
 });
 
 test("a stray '<' or an unclosed comment never deletes text past its own line", () => {
@@ -296,7 +306,7 @@ test("a kept answer passes the final step again when it is given from the cache"
   const ask = () => answerAppAgent(env, "Why do we keep the Passover?", "acct-cache", [], ["Cloudflare (Workers AI)"], {});
   assert.equal((await ask()).ok, true);
   const [[key, value]] = [...env.SUBS.m.entries()].filter(([k]) => k.startsWith("ask_cache:"));
-  assert.equal(JSON.parse(value).final_step, 2, "kept with the final step's version");
+  assert.equal(JSON.parse(value).final_step, FINAL_STEP, "kept with the final step's version");
   // An answer kept before the final step existed (no version mark): it carries an outside image.
   const old = JSON.parse(value);
   delete old.final_step;
