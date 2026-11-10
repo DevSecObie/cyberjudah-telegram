@@ -92,9 +92,16 @@ publishedStudies.delete("/:id", async c => {
   return c.json({ published: false });
 });
 
-/** The study id in what an admin sent: the id itself, or its /app/published/ link (a trailing slash, query or fragment is fine). */
-export const studyIdIn = (text: string): string | null =>
-  /(?:^|\/app\/published\/)([A-Za-z0-9_-]{6,64})\/?(?:[?#]\S*)?$/.exec(text.trim().split(/\s+/)[0] ?? "")?.[1] ?? null;
+/**
+ * The study id in what an admin sent: its /app/published/ link anywhere (a trailing slash, query or
+ * fragment is fine; so a pasted "Study: <link>" line works), or else the id itself as the first word.
+ */
+const LINK_ID = new RegExp(`^\\S*/app/published/(${ID.source.slice(1, -1)})/?(?:[?#]\\S*)?$`);
+export const studyIdIn = (text: string): string | null => {
+  const words = text.trim().split(/\s+/);
+  for (const word of words) { const id = LINK_ID.exec(word)?.[1]; if (id) return id; }
+  return ID.test(words[0] ?? "") ? words[0] : null;
+};
 
 const takenDown = async (env: Env, id: string) => !!(await env.DB.prepare("SELECT 1 FROM published_takedowns WHERE id=?").bind(id).first());
 
@@ -141,7 +148,7 @@ main{max-width:680px;margin:0 auto;padding:32px 16px 64px}header{border-bottom:1
 h1{font-size:30px;line-height:1.2;margin:0 0 8px}.by{color:var(--muted);font:15px/1.4 -apple-system,system-ui,sans-serif;margin:0}
 blockquote{margin:16px 0;padding:4px 16px;border-left:3px solid var(--accent);color:var(--fg)}a{color:var(--accent)}
 hr{border:0;border-top:1px solid var(--rule);margin:24px 0}footer{margin-top:40px;color:var(--muted);font:14px/1.4 -apple-system,system-ui,sans-serif}footer p{margin:0 0 8px}
-.credit{margin-top:48px;text-align:center;font-size:13px}.credit img{height:24px;width:24px;vertical-align:middle;margin-left:6px}.credit a{display:inline-block;margin-top:16px}`;
+.credit{margin-top:48px;text-align:center;font-size:13px}.credit img{height:24px;width:24px;vertical-align:middle;margin-left:6px}.credit>a{display:inline-block;margin-top:16px}.credit>p:last-child{margin-top:16px}`;
 
 /** Where a reader reports a study, as the Terms say (Bible Strong's wording): by email with its link. Bible Strong's page itself has no report line; the link is the owner's addition. */
 export const REPORT_ADDRESS = "privacy@cyberjudah.io";

@@ -58,7 +58,7 @@ test('an admin takes down one study by its link (trailing slash), and only that 
 });
 
 test('the id is read from the id itself or its link, nothing else', () => {
-  for (const [text, id] of [['study-abc123', 'study-abc123'], ['https://cyberjudah.io/app/published/study-abc123', 'study-abc123'], ['https://cyberjudah.io/app/published/study-abc123/?x=1#top', 'study-abc123'], ['  study-abc123  please', 'study-abc123'],
+  for (const [text, id] of [['study-abc123', 'study-abc123'], ['https://cyberjudah.io/app/published/study-abc123', 'study-abc123'], ['https://cyberjudah.io/app/published/study-abc123/?x=1#top', 'study-abc123'], ['  study-abc123  please', 'study-abc123'], ['Study: https://cyberjudah.io/app/published/study-abc123', 'study-abc123'], ['https://evil.test/x/app/other/study-abc123', null], ['please https://cyberjudah.io/app/published/study-abc123', 'study-abc123'], ['Study: study-abc123', null],
     ['https://cyberjudah.io/app/other/study-abc123', null], ['bad id!', null], ['abc', null], ['', null]]) assert.equal(api.studyIdIn(text), id, text);
 });
 
