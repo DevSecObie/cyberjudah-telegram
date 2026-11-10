@@ -40,7 +40,7 @@ test("every prompt id is unique, well formed and in the changelog, and the versi
   }
   assert.equal(PROMPT_VERSION, ids.join("."));
   assert.equal(promptVersion("app"), PROMPT_VERSION);
-  assert.match(promptVersion("study"), new RegExp(`^${PROMPT_VERSION.replace(/\./g, "\\.")}\\+teacher-grounded-study-`));
+  assert.ok(promptVersion("study").startsWith(`${PROMPT_VERSION}+teacher-grounded-study-`));
   assert.equal(ANSWER_POLICY, "policy-v1");
 });
 
