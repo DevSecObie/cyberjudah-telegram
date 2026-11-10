@@ -469,7 +469,11 @@ test("a reader listed in SEARCH_AI_QUOTA_EXEMPT skips the per-reader count; othe
   assert.equal((await exempt.request("king of Salem", "Google")).status, 200);
   const other = routeFixture(t, env, 7);
   assert.equal((await other.request("priest of the most high", "Google")).status, 200);
-  assert.equal((await other.request("bread and wine", "Google")).status, 429);
+  const refused = await other.request("bread and wine", "Google");
+  assert.equal(refused.status, 429);
+  // The reader's own count is per UTC day: Retry-After is the time left until midnight UTC.
+  const wait = Number(refused.headers.get("retry-after")), left = Math.ceil((86400_000 - (Date.now() % 86400_000)) / 1000);
+  assert.ok(wait >= 1 && Math.abs(wait - left) <= 2, `retry-after ${wait}, ${left} s to midnight UTC`);
 });
 
 // ASK-POLICY C2 / OWASP LLM10: a per-address limit for every reader, the exempt reader and admins

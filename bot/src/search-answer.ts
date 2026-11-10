@@ -40,7 +40,8 @@ searchAnswers.get("/", async (c) => {
   const limit = Math.max(1, Math.floor(Number(c.env.SEARCH_AI_DAILY_LIMIT ?? 20)));
   // Production and staging list the release check's synthetic reader here, so repeated release checks don't spend its daily allowance.
   const exempt = (c.env.SEARCH_AI_QUOTA_EXEMPT ?? "").split(",").map((s) => s.trim()).includes(String(uid));
-  if (!exempt && !isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429);
+  // The reader's own count is per UTC day: Retry-After says how long until it starts again.
+  if (!exempt && !isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429, { "retry-after": String(Math.max(1, Math.ceil((86400_000 - (Date.now() % 86400_000)) / 1000))) });
   // The address after the reader's own count, so a reader already refused spends none of it.
   const wait = await takeAddressQuota(c.req.raw, c.env, "search_ai_ip", SEARCH_PER_ADDRESS);
   if (wait) return c.json({ ok: false, error: "limit" }, 429, { "retry-after": String(wait) });

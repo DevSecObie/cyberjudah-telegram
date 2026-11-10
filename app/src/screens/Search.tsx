@@ -222,7 +222,8 @@ function AiAnswer({ q }: { q: string }) {
   const res = useQuery({
     queryKey: ["search-ai", q, consent],
     enabled: q.trim().length >= 2 && !dismissed,
-    staleTime: 120_000,
+    // A limit notice is not kept like an answer: the same search asks again once the wait is over.
+    staleTime: (query) => ((query.state.data as SearchAi | undefined)?.notice ? 0 : 120_000),
     retry: false,
     queryFn: async () => {
       try { return await api<SearchAi>(`/api/search/answer?q=${encodeURIComponent(q.trim())}`, { headers: { "x-ai-consent": consent.join(",") } }); }

@@ -8,6 +8,8 @@ export function searchLimitMessage(status: number, error?: string, retryAfter?: 
   if (error === "free-paused") return "Free answers have reached their shared daily budget. Try again later.";
   if (error !== "limit") return undefined;
   const wait = retrySeconds(retryAfter, now);
+  // A wait of a minute or less is the shared per-minute limit (many readers behind one address), not the reader's day.
+  if (wait !== undefined && wait <= 60) return "Too many searches right now. Try again in a minute.";
   return `You've reached today's search limit. Try again ${wait === undefined ? "later" : `in ${waitText(wait)}`}.`;
 }
 
@@ -18,11 +20,11 @@ export function retrySeconds(value: string | null | undefined, now = Date.now())
   if (/^\d+$/.test(v)) return Math.max(1, Number(v));
   if (!/[a-z]/i.test(v)) return undefined; // not a delay and not an HTTP date ("-2" would parse as a year)
   const at = Date.parse(v);
-  return Number.isNaN(at) ? undefined : Math.max(1, Math.ceil((at - now) / 1000));
+  // A date already past (or a skewed clock) says nothing reliable: "later".
+  return Number.isNaN(at) || at <= now ? undefined : Math.ceil((at - now) / 1000);
 }
 
 function waitText(s: number): string {
-  if (s <= 60) return "a minute";
   if (s < 3600) return `${Math.ceil(s / 60)} minutes`;
   const h = Math.ceil(s / 3600);
   return h === 1 ? "an hour" : `about ${h} hours`;

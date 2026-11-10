@@ -10,7 +10,9 @@ test('a 429 limit says the search limit was reached, with the wait from Retry-Af
   assert.equal(searchLimitMessage(429, 'limit'), "You've reached today's search limit. Try again later.");
   assert.equal(searchLimitMessage(429, 'limit', null), "You've reached today's search limit. Try again later.");
   assert.equal(searchLimitMessage(429, 'limit', 'soon'), "You've reached today's search limit. Try again later.");
-  assert.equal(searchLimitMessage(429, 'limit', '42'), "You've reached today's search limit. Try again in a minute.");
+  assert.equal(searchLimitMessage(429, 'limit', '42'), 'Too many searches right now. Try again in a minute.', 'the shared per-minute limit is not called today\'s');
+  assert.equal(searchLimitMessage(429, 'limit', '60'), 'Too many searches right now. Try again in a minute.');
+  assert.equal(searchLimitMessage(429, 'limit', '61'), "You've reached today's search limit. Try again in 2 minutes.");
   assert.equal(searchLimitMessage(429, 'limit', '600'), "You've reached today's search limit. Try again in 10 minutes.");
   assert.equal(searchLimitMessage(429, 'limit', '3600'), "You've reached today's search limit. Try again in an hour.");
   assert.equal(searchLimitMessage(429, 'limit', '30000'), "You've reached today's search limit. Try again in about 9 hours.");
@@ -26,11 +28,12 @@ test('other refusals get no sentence and keep their own handling', () => {
   for (const [status, error] of [[428, 'consent'], [503, 'unavailable'], [429, undefined], [429, 'other'], [400, 'limit']]) assert.equal(searchLimitMessage(status, error, '60'), undefined, `${status} ${error}`);
 });
 
-test('Retry-After is read as seconds or an HTTP date, never below one second', () => {
+test('Retry-After is read as seconds (at least one) or a future HTTP date', () => {
   assert.equal(retrySeconds('0'), 1);
   assert.equal(retrySeconds(' 12 '), 12);
   assert.equal(retrySeconds('-2'), undefined);
   assert.equal(retrySeconds(''), undefined);
   assert.equal(retrySeconds('Tue, 10 Nov 2026 12:00:10 GMT', Date.parse('2026-11-10T12:00:00Z')), 10);
-  assert.equal(retrySeconds('Tue, 10 Nov 2026 11:00:00 GMT', Date.parse('2026-11-10T12:00:00Z')), 1);
+  assert.equal(retrySeconds('Tue, 10 Nov 2026 11:00:00 GMT', Date.parse('2026-11-10T12:00:00Z')), undefined, 'a past date (or a skewed clock) is "later"');
+  assert.equal(searchLimitMessage(429, 'limit', 'Tue, 10 Nov 2026 11:00:00 GMT', Date.parse('2026-11-10T12:00:00Z')), "You've reached today's search limit. Try again later.");
 });
