@@ -7,6 +7,7 @@ import { build } from "esbuild";
 import { SYSTEM, RESEARCH, APP, buildPrompt } from "../src/ai.mjs";
 import { DATA_POLICY } from "../src/grounding.mjs";
 import { indexMark, libraryMark, writeCorpusMark } from "../scripts/corpus-mark.mjs";
+import { isCorpusMark } from "../src/corpus-marks.mjs";
 
 const out = new URL("./.build/ask-versions.mjs", import.meta.url).pathname;
 await build({ entryPoints: [new URL("../src/ask-versions.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
@@ -78,13 +79,14 @@ test("a malformed mark, or one of the wrong kind, is never stamped, and the mark
   assert.equal(await corpusRelease({ DB: swapped }, 0), UNKNOWN_CORPUS);
 });
 
-test("marks that cannot be read make the corpus unavailable, and that is never kept for the minute", async () => {
+test("marks that cannot be read make the corpus unavailable, kept ten seconds rather than the minute", async () => {
   const DB = d1(); DB.db.exec("CREATE TABLE corpus_marks (kind TEXT PRIMARY KEY, id TEXT NOT NULL, at INTEGER NOT NULL)");
   DB.db.exec("INSERT INTO corpus_marks VALUES ('library','lib-3226601ac088',1),('index','idx-20261110T0412Z',2)");
   DB.fail = true;
   assert.equal(await corpusRelease({ DB }, 0), UNAVAILABLE_CORPUS);
   DB.fail = false;
-  assert.equal(await corpusRelease({ DB }, 1), "lib-3226601ac088/idx-20261110T0412Z", "the next answer reads again");
+  assert.equal(await corpusRelease({ DB }, 5_000), UNAVAILABLE_CORPUS, "a failing D1 is not asked again at once");
+  assert.equal(await corpusRelease({ DB }, 10_001), "lib-3226601ac088/idx-20261110T0412Z", "ten seconds later it is read again");
 });
 
 test("an answer's versions name its prompts, policy, corpus and the model that wrote it", async () => {
@@ -94,7 +96,9 @@ test("an answer's versions name its prompts, policy, corpus and the model that w
 
 test("the load and embed scripts write well-formed marks, and a failed write only warns", async () => {
   assert.match(libraryMark(Buffer.from("INSERT INTO search_docs VALUES (1);")), /^lib-[0-9a-f]{12}$/);
-  assert.equal(indexMark(new Date("2026-11-10T04:12:59Z")), "idx-20261110T0412Z");
+  assert.equal(indexMark(new Date("2026-11-10T04:12:59Z"), "ab12"), "idx-20261110T041259Z-ab12");
+  assert.notEqual(indexMark(new Date(0)), indexMark(new Date(0)), "two runs in the same second get different marks");
+  assert.ok(isCorpusMark("index", indexMark()));
   const sql = [];
   assert.ok(await writeCorpusMark(async (q) => { sql.push(q); }, "index", "idx-20261110T0412Z", 5, () => {}));
   assert.match(sql[1], /^INSERT OR REPLACE INTO corpus_marks \(kind, id, at\) VALUES \('index', 'idx-20261110T0412Z', 5\)$/);

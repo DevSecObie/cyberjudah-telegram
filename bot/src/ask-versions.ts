@@ -52,6 +52,7 @@ export const UNKNOWN_CORPUS = "lib-unknown/idx-unknown";
 export const UNAVAILABLE_CORPUS = "lib-unavailable/idx-unavailable";
 /** How long an isolate keeps the marks it read: a new load or build is named within a minute. */
 const CORPUS_TTL_MS = 60_000;
+const UNAVAILABLE_TTL_MS = 10_000;
 const corpusCache = new WeakMap<object, { at: number; value: Promise<string> }>();
 
 async function readCorpus(env: Pick<Env, "DB">): Promise<string> {
@@ -69,13 +70,14 @@ async function readCorpus(env: Pick<Env, "DB">): Promise<string> {
   }
 }
 
-/** The corpus release, read at most once a minute per isolate. A failed read is not kept. */
+/** The corpus release, read at most once a minute per isolate. A failed read is kept for ten seconds only. */
 export function corpusRelease(env: Pick<Env, "DB">, now = Date.now()): Promise<string> {
   if (!env.DB || typeof env.DB !== "object") return Promise.resolve(UNKNOWN_CORPUS);
   const kept = corpusCache.get(env.DB);
   if (kept && now - kept.at < CORPUS_TTL_MS) return kept.value;
   const value = readCorpus(env).catch(() => {
-    if (corpusCache.get(env.DB)?.value === value) corpusCache.delete(env.DB);
+    // Kept only briefly, so a struggling D1 is not asked again by every step of every answer.
+    corpusCache.set(env.DB, { at: now - CORPUS_TTL_MS + UNAVAILABLE_TTL_MS, value: Promise.resolve(UNAVAILABLE_CORPUS) });
     return UNAVAILABLE_CORPUS;
   });
   corpusCache.set(env.DB, { at: now, value });

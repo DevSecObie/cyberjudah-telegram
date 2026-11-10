@@ -2,14 +2,15 @@
  * Corpus release marks (src/ask-versions.ts corpusRelease): one row per kind in D1 corpus_marks,
  * so every Ask answer can name the library and index it searched. load-search.mjs marks the
  * library ("lib-" + the loaded search file's SHA-256, cut to 12) after its blue-green switch;
- * embed.mjs marks the index ("idx-" + the run's UTC minute) after a run that changed it. Only
+ * embed.mjs marks the index ("idx-" + the run's UTC second and a random tail) after a run that changed it. Only
  * these ids and the time are kept: nothing about readers.
  */
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { isCorpusMark } from "../src/corpus-marks.mjs";
 
 export const libraryMark = (bytes) => `lib-${createHash("sha256").update(bytes).digest("hex").slice(0, 12)}`;
-export const indexMark = (date = new Date()) => `idx-${date.toISOString().slice(0, 16).replace(/[-:]/g, "")}Z`;
+/** The run's UTC second and a short random tail, so two runs never share a mark. */
+export const indexMark = (date = new Date(), tail = randomBytes(2).toString("hex")) => `idx-${date.toISOString().slice(0, 19).replace(/[-:]/g, "")}Z-${tail}`;
 
 /** Writes one mark through a SQL runner (a function taking one SQL string). A failure only warns: the load or embed itself stands. */
 export async function writeCorpusMark(run, kind, id, now = Date.now(), log = console.error) {

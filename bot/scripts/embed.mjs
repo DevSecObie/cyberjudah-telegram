@@ -160,12 +160,15 @@ try {
   if (pending.length) await schedule(pending);
   await Promise.all(inflight);
   if (stale.length && !DRY) {
-    await deleteIds(stale);
+    // Marked before deleting: a delete that fails part way has still changed the index.
     indexChanged = true;
+    await deleteIds(stale);
     for (let i = 0; i < stale.length; i += 500) await sql(`DELETE FROM embedded WHERE id IN (${stale.slice(i, i + 500).map(lit).join(",")})`);
     console.error(`${stale.length} stale passages removed from the index`);
   }
 } finally {
+  // Any upsert still in flight after a failure lands before the mark, never after it.
+  await Promise.allSettled(inflight);
   if (!DRY && indexChanged) await writeCorpusMark(sql, "index", indexMark());
 }
 console.error(`done: ${seen} passages seen, ${done} embedded this run${DRY ? " (dry)" : ""}`);
