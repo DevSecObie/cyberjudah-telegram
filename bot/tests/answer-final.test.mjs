@@ -132,17 +132,73 @@ test("tags are removed whole: '/' separators, '<' inside values, ? and ! forms; 
   for (const bad of ["<img/src=https://e.example/x?d=1>", "<svg/onload=alert(1)>", '<img alt="<" src=https://e.example/p>', "<?xml x?>", "<!doctype html>", "<!-- c -->", "</div>"])
     assert.equal(onlyGivenPictures(`A ${bad} B`, new Set()).text, "A  B", bad);
   assert.equal(onlyGivenPictures("A <img src=https://e.example/p B", new Set()).text, "A img src=https://e.example/p B", "an unfinished tag loses its <");
-  assert.equal(onlyGivenPictures("a<br>b<br/>c <https://cyberjudah.io/bs> a < b", new Set()).text, "a<br>b<br/>c <https://cyberjudah.io/bs> a &lt; b");
+  assert.equal(onlyGivenPictures("a<br>b<br/>c <https://cyberjudah.io/bs> a < b", new Set()).text, "a<br>b<br/>c <https://cyberjudah.io/bs> a < b");
 });
 
 test("removing malformed markup cannot reconstruct raw tags or comment openers", () => {
-  for (const input of ["<<div\ndata-note=sample>", "<<!-- -->!-- sample", "<<div", "<div<div>div>", "<\n!-- sample -->"]) {
+  const opener = /<[A-Za-z/!?]/;
+  for (const input of ["<<div\ndata-note=sample>", "<<!-- -->!-- sample", "<<div", "<div<div>div>", "<\n!-- sample -->",
+    "<<script>script>x</script>", "<!<!-- x -->-- hidden -->", "<im<b>g src=https://e.example/p>", "&l<b>t;div>", "&l<t;a", "&l<b>t;!-- c -->", "< <<b>a", "<<<<b>b>c>"]) {
     const once = onlyGivenPictures(input, new Set()).text;
-    assert.doesNotMatch(once, /</, input);
+    assert.doesNotMatch(once, opener, input);
+    assert.ok(!once.includes("\uE002"), `${input}: no placeholder is left`);
     assert.equal(onlyGivenPictures(once, new Set()).text, once, input);
   }
-  const image = onlyGivenPictures('![<div>caption</div>](/brand/placeholder.png)', new Set(['/brand/placeholder.png'])).text;
-  assert.equal(image, '![&lt;div>caption&lt;/div>](/brand/placeholder.png)');
+});
+
+test("runs of '<', joined images and private-use characters can't make a tag, comment or image", () => {
+  const ok = new Set(["/brand/placeholder.png"]);
+  for (const [input, want] of [
+    ["<<![a](/brand/placeholder.png)", "![a](/brand/placeholder.png)"],
+    ["<<<![a](/brand/placeholder.png) b", "![a](/brand/placeholder.png) b"],
+    ["< <![a](/brand/placeholder.png)", "< ![a](/brand/placeholder.png)"],
+    ["!<b>[x](https://e.example/x)", "x"],
+    ["!<b>[x](/brand/placeholder.png)", "x"],
+    ["a \uE002b> \uE000x:0\uE001 c", "a b> x:0 c"],
+    ["!!![x](https://e.example/x) and !!![y", "!!x and [y"],
+  ]) {
+    const out = onlyGivenPictures(input, ok).text;
+    assert.equal(out, want, input);
+    assert.doesNotMatch(out.replace(/!\[a\]\(\/brand\/placeholder\.png\)/g, ""), /<[A-Za-z/!?]|!\[/, input);
+  }
+  // A caption keeps no tag at all, not even an autolink or <br>.
+  assert.equal(onlyGivenPictures("![<https://e.example/x> a<br>b](/brand/placeholder.png)", ok).text, "![ ab](/brand/placeholder.png)");
+});
+
+test("a long run of nested pieces is cleaned in one pass", () => {
+  const k = 20000, input = "&l".repeat(k) + "<b>" + "t;".repeat(k) + "a";
+  const t = Date.now(), r = onlyGivenPictures(input, new Set());
+  assert.ok(Date.now() - t < 500, `${Date.now() - t} ms`);
+  assert.equal(r.dropped, 1);
+  assert.doesNotMatch(r.text, /</);
+});
+
+test("streamed: a sent '<' or '!' never joins what the held text becomes", () => {
+  const ok = ["Picture: /brand/placeholder.png"];
+  for (const input of ["x <<!-- c -->!-- y\n", "<<b>a\n", "<<b>/x\n", "<<![a](/brand/placeholder.png)\n", "!<b>[x](https://e.example/x)\n", "a <", "<b>b\n",
+    "x!![foo\nbar](https://e.example/x.png)\n", "x!!<b>[foo\nbar](https://e.example/x.png)\n", "!![a", "Wow!!! fine\n"]) {
+    for (const cut of [1, 2, 3, input.length]) {
+      const g = pictureStream(() => ok);
+      const parts = [];
+      for (let i = 0; i < input.length; i += cut) parts.push(input.slice(i, i + cut));
+      const out = parts.map((d) => g.push(d)).join("") + g.flush();
+      assert.doesNotMatch(out.replace(/!\[a\]\(\/brand\/placeholder\.png\)/g, ""), /<[A-Za-z/!?]|!\[/, `${JSON.stringify(input)} in pieces of ${cut}: ${JSON.stringify(out)}`);
+    }
+  }
+});
+
+test("a '<' that starts no tag stays as written, and text entities are left alone", () => {
+  for (const plain of ["a < b", "1 <2", "x<", "<3 and <= and << and <-", "a &lt;b> stays", "&amp;lt; too"])
+    assert.equal(onlyGivenPictures(plain, new Set()).text, plain, plain);
+});
+
+test("a kept picture's caption stays as written, without markup; a '<' before it can't make '<!'", () => {
+  const ok = new Set(["/brand/placeholder.png"]);
+  assert.equal(onlyGivenPictures("![1 < 2 caption](/brand/placeholder.png)", ok).text, "![1 < 2 caption](/brand/placeholder.png)");
+  assert.equal(onlyGivenPictures("![<div>caption</div>](/brand/placeholder.png)", ok).text, "![caption](/brand/placeholder.png)");
+  const joined = onlyGivenPictures("<![x](/brand/placeholder.png)", ok).text;
+  assert.equal(joined, "![x](/brand/placeholder.png)");
+  assert.equal(onlyGivenPictures("a <![x](/brand/placeholder.png) b", ok).text, "a ![x](/brand/placeholder.png) b");
 });
 
 test("a stray '<' or an unclosed comment never deletes text past its own line", () => {
@@ -164,8 +220,9 @@ test("an outside web page's text never allows a picture", () => {
 });
 
 test("a kept picture's mark can't be forged by text in the answer", () => {
+  // Private-use characters (the marks' own) are removed from the answer first.
   const text = "Text \u00000\u0000 and \uE000x:0\uE001\n![Ok](/people/placeholder.jpg)";
-  assert.equal(onlyGivenPictures(text, new Set(["/people/placeholder.jpg"])).text, text);
+  assert.equal(onlyGivenPictures(text, new Set(["/people/placeholder.jpg"])).text, "Text \u00000\u0000 and x:0\n![Ok](/people/placeholder.jpg)");
 });
 
 test("stream guard: a ! or < that can't start an image or tag doesn't hold the line", () => {
