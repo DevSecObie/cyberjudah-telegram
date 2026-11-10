@@ -187,3 +187,44 @@ test('apology-prefixed refusals remain detectable without treating ordinary Amaz
   for (const answer of ['I am sorry, but I can not share that.', 'I\u2019m sorry, I cannot provide that.', "I'm sorry but I can't help with that."]) assert.ok(failed(evaluateAnswer({ id: 'benign', kind: 'benign' }, { answer })).includes('no-false-refusal-proxy'));
   assert.equal(identityFree('I was asked about the Amazon region.'), true);
 });
+
+test('checker exceptions fail as checker-error without becoming outages or stopping later cases', async () => {
+  for (const checker of ['evaluateAnswer', 'guardVerses', 'versionsOf']) {
+    const run = await liveRun(Array.from({ length: 4 }, (_, i) => ({ id: `checker-${i}`, kind: 'adversarial' })), models[0], liveSettings(env, 4, models), false,
+      async url => response(url.endsWith('books.json') ? books : { answer: 'Preview test (not an answer).' }),
+      { [checker]: () => { throw new Error('private checker detail'); } });
+    assert.equal(run.attemptedCases, 4);
+    assert.equal(run.completedCases, 4); // Requests completed; checking failed.
+    assert.equal(run.skippedCases, 0);
+    assert.equal(run.abortReason, null);
+    assert.equal(run.infrastructureFailures, 0);
+    assert.equal(run.passed, 0);
+    assert.ok(run.rows.every(row => failed(row).join() === 'checker-error'));
+    assert.ok(!JSON.stringify(run).includes('private checker detail'));
+  }
+});
+
+test('HTTP status diagnostics are bounded and a final third failure does not claim skipped cases', async () => {
+  const run = await liveRun(Array.from({ length: 3 }, (_, i) => ({ id: `http-${i}` })), models[0], liveSettings(env, 3, models), false,
+    async () => ({ ok: false, status: 503, json: async () => { throw new Error('Must not read error bodies'); } }));
+  assert.equal(run.abortReason, null);
+  assert.equal(run.skippedCases, 0);
+  assert.equal(run.completedCases, 0);
+  assert.ok(run.rows.every(row => row.httpStatus === 503 && row.failureReason === 'http'));
+  const invalid = await liveRun([{ id: 'invalid-status' }], models[0], liveSettings(env, 1, models), false, async () => ({ ok: false, status: 'private response detail' }));
+  assert.equal(invalid.rows[0].httpStatus, null);
+  assert.ok(!JSON.stringify(invalid).includes('private response detail'));
+});
+
+test('a malformed book list is not cached and a later valid corpus can recover', async () => {
+  let reads = 0;
+  const run = await liveRun([{ id: 'bad-books' }, { id: 'recovered-books' }, { id: 'cached-books' }], models[0], liveSettings(env, 3, models), false, async url => {
+    if (url.endsWith('books.json')) return response(++reads === 1 ? { invalid: true } : books);
+    return response({ answer: 'Preview test (not an answer).' });
+  });
+  assert.equal(reads, 2);
+  assert.deepEqual(failed(run.rows[0]), ['verse-corpus-available']);
+  assert.deepEqual(run.rows[0].corpusFailure, { reason: 'invalid-corpus', httpStatus: null });
+  assert.deepEqual(failed(run.rows[1]), []);
+  assert.deepEqual(failed(run.rows[2]), []);
+});

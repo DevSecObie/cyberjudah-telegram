@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-/** Offline by default. Live staging requires the owner's explicit budget and server ceiling. */
+/** Offline by default. CLI live mode uses env acknowledgments, not an identity/approval check.
+ * Owner-approved budget/ceiling are required before use. CI additionally gates on staging review.
+ */
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
@@ -54,59 +56,93 @@ export function liveSettings(env, count, models) {
   return { base: url.origin, data: data.origin, token: env.ASK_TOKEN, budget, ceiling, requests };
 }
 
-async function json(fetcher, url, init = {}) {
-  const response = await fetcher(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(90_000) });
-  if (!response.ok) throw new Error('request-failed');
-  return response.json();
+class ReadFailure extends Error {
+  constructor(reason, status) {
+    const httpStatus = Number.isInteger(status) && status >= 100 && status <= 599 ? status : null;
+    super(httpStatus ? `${reason} (HTTP ${httpStatus})` : reason);
+    this.reason = reason;
+    this.status = httpStatus;
+  }
 }
 
-export async function liveRun(items, model, settings, study, fetcher = fetch) {
+async function json(fetcher, url, init = {}) {
+  let response;
+  try { response = await fetcher(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(90_000) }); }
+  catch { throw new ReadFailure('network'); }
+  if (!response.ok) throw new ReadFailure('http', response.status);
+  try { return await response.json(); }
+  catch { throw new ReadFailure('invalid-json', response.status); }
+}
+
+export async function liveRun(items, model, settings, study, fetcher = fetch, overrides = {}) {
+  const evaluators = { evaluateAnswer, guardVerses, versionsOf, ...overrides };
   const rows = [], versions = [], chapters = new Map();
   let books, consecutiveFailures = 0, completedCases = 0;
   const data = settings.data ?? 'https://data.cyberjudah.io';
   for (const item of items) {
     const start = Date.now();
+    let body;
     try {
-      const body = await json(fetcher, `${settings.base}/api/app/ask`, { method: 'POST', headers: { authorization: `Bearer ${settings.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ q: item.q, history: item.history ?? [], consent: [...new Set([model.provider, 'Cloudflare (Workers AI)'])], model: model.id, ...(study ? { ui: 'study-v1' } : {}) }) });
-      if (typeof body?.answer !== 'string' || !body.answer.trim()) throw new Error('request-failed');
-      const row = evaluateAnswer(item, body);
+      body = await json(fetcher, `${settings.base}/api/app/ask`, { method: 'POST', headers: { authorization: `Bearer ${settings.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ q: item.q, history: item.history ?? [], consent: [...new Set([model.provider, 'Cloudflare (Workers AI)'])], model: model.id, ...(study ? { ui: 'study-v1' } : {}) }) });
+      if (typeof body?.answer !== 'string' || !body.answer.trim()) throw new ReadFailure('invalid-answer');
+    } catch (error) {
+      // Retain bounded failure categories/status, never server bodies or exception messages.
+      rows.push({ id: item.id, kind: item.kind ?? 'question', checks: [{ id: 'request-ok', pass: false, score: 0 }], failureReason: error instanceof ReadFailure ? error.reason : 'request-construction', httpStatus: error instanceof ReadFailure ? error.status : null, ms: Date.now() - start });
+      if (++consecutiveFailures >= 3) break;
+      continue;
+    }
+    completedCases++;
+    consecutiveFailures = 0;
+
+    // Checkers must never be classified as request outages or trip the request-failure cap.
+    let row, checker = 'answer';
+    try {
+      row = evaluators.evaluateAnswer(item, body);
+      checker = 'corpus-preflight';
+      let corpusAvailable = true;
       try {
-          books ??= await json(fetcher, `${data}/api/kjv/books.json`);
-          if (!Array.isArray(books) || !books.length) throw new Error('corpus-unavailable');
-          // Preflight chapter reads outside guardVerses: it intentionally swallows a rejected
-          // chapter read at runtime. An eval must report an outage separately from a misquote.
-          for (const line of body.answer.split('\n')) {
-            // Same quotation grammar as verse-guard.mjs; inline references and class timestamps
-            // are not scripture quotations. Ignore a bold reference followed by prose too.
-            const match = /^>\s*(.+?)\s*\*\*([^*]{3,60}?)\*\*(.*?)\s*$/.exec(line);
-            if (!match || match[3].trim().replace(/^\.\s*/, '').replace(/\.$/, '').replace(citationPattern(), '').trim()) continue;
-            const ref = parseReference(match[2].replace(/\s*\(KJV\)\s*$/i, ''), books);
-            if (!ref?.verse) continue;
-            const key = `${ref.slug}/${ref.chapter}`;
-            if (!chapters.has(key)) {
-              const value = await json(fetcher, `${data}/api/kjv/${key}.json`);
-              if (!Array.isArray(value?.verses)) throw new Error('corpus-unavailable');
-              chapters.set(key, value);
-            }
+        if (!books) {
+          const candidate = await json(fetcher, `${data}/api/kjv/books.json`);
+          if (!Array.isArray(candidate) || !candidate.length) throw new ReadFailure('invalid-corpus');
+          books = candidate;
+        }
+        // Preflight reads outside guardVerses, which swallows rejected chapter reads at runtime.
+        for (const line of body.answer.split('\n')) {
+          const match = /^>\s*(.+?)\s*\*\*([^*]{3,60}?)\*\*(.*?)\s*$/.exec(line);
+          if (!match || match[3].trim().replace(/^\.\s*/, '').replace(/\.$/, '').replace(citationPattern(), '').trim()) continue;
+          const ref = parseReference(match[2].replace(/\s*\(KJV\)\s*$/i, ''), books);
+          if (!ref?.verse) continue;
+          const key = `${ref.slug}/${ref.chapter}`;
+          if (!chapters.has(key)) {
+            const value = await json(fetcher, `${data}/api/kjv/${key}.json`);
+            if (!Array.isArray(value?.verses)) throw new ReadFailure('invalid-corpus');
+            chapters.set(key, value);
           }
-          const guard = await guardVerses(body.answer, books, async (slug, ch) => chapters.get(`${slug}/${ch}`));
-          const exact = !guard.fixed && !guard.removed;
-          row.checks.push({ id: 'verse-exact', pass: exact, score: Number(exact) });
-          row.verses = guard.checked;
-      } catch { row.checks.push({ id: 'verse-corpus-available', pass: false, score: 0 }); }
-      row.versions = versionsOf(body.versions, body.model);
+        }
+      } catch (error) {
+        if (!(error instanceof ReadFailure)) throw error;
+        row.checks.push({ id: 'verse-corpus-available', pass: false, score: 0 });
+        row.corpusFailure = { reason: error.reason, httpStatus: error.status };
+        corpusAvailable = false;
+      }
+      if (corpusAvailable) {
+        checker = 'verse-guard';
+        const guard = await evaluators.guardVerses(body.answer, books, async (slug, ch) => chapters.get(`${slug}/${ch}`));
+        const exact = !guard.fixed && !guard.removed;
+        row.checks.push({ id: 'verse-exact', pass: exact, score: Number(exact) });
+        row.verses = guard.checked;
+      }
+      checker = 'versions';
+      row.versions = evaluators.versionsOf(body.versions, body.model);
       row.writerOutcome = row.versions.model === 'unavailable' ? 'unavailable' : row.versions.model === 'approved' ? 'approved' : [model.id, model.native].includes(row.versions.model) ? 'requested' : 'different-writer';
       versions.push(row.versions);
-      rows.push({ ...row, ms: Date.now() - start });
-      completedCases++;
-      consecutiveFailures = 0;
     } catch {
-      // Never persist errors, questions, answers, URLs, user IDs or credentials.
-      rows.push({ id: item.id, kind: item.kind ?? 'question', checks: [{ id: 'request-ok', pass: false, score: 0 }], ms: Date.now() - start });
-      if (++consecutiveFailures >= 3) break;
+      row = { id: item.id, kind: item.kind ?? 'question', checker, checks: [{ id: 'checker-error', pass: false, score: 0 }] };
     }
+    rows.push({ ...row, ms: Date.now() - start });
   }
-  return { scope: 'live-staging', requestedModel: model.id, study, plannedCases: items.length, attemptedCases: rows.length, completedCases, skippedCases: items.length - rows.length, abortReason: consecutiveFailures >= 3 ? 'consecutive-request-failures' : null, versions, ...summarize(rows), rows };
+  const skippedCases = items.length - rows.length;
+  return { scope: 'live-staging', requestedModel: model.id, study, plannedCases: items.length, attemptedCases: rows.length, completedCases, skippedCases, abortReason: skippedCases > 0 ? 'consecutive-request-failures' : null, versions, ...summarize(rows), rows };
 }
 
 export async function runMatrix(items, models, settings, study, saveRun, fetcher = fetch) {
