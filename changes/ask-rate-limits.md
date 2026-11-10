@@ -4,4 +4,5 @@
 - App Ask's answer reports (`/api/app/ask/report`) were limited per account (10 a day). Each report may drop a cached answer, and accounts are cheap to make, so they are now also limited per address, checked first:
   - a reader's own signed address: 30 a day;
   - an unsigned address, which may be the Mini App relay shared by every reader: 60 a minute, so it can never be shut for the day.
+- Search answers (`/api/search/answer`, ASK-POLICY C2) had only a per-reader limit, and the release check's exempt reader and admins skipped even that. They now also have a per-address limit for every reader, checked before the reader's own count: a reader's own signed address 100 a day, an unsigned one (possibly the shared relay) 60 a minute. A cached answer still costs nothing and counts nothing.
 - Only keyed hashes of addresses are kept in the counters, never the addresses. `docs/OPERATIONS.md` and `docs/operations/ask-ai-pipeline.md` list the new counters.

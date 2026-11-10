@@ -1,8 +1,18 @@
 import { Hono } from "hono";
 import type { Env } from "./env";
 import type { InitData } from "./initdata.mjs";
-import { answerSearch, searchModel, takeQuota } from "./ai";
+import { answerSearch, searchModel, takeQuota, takeQuotaKey } from "./ai";
 import { isAdmin } from "./edit";
+import { clientAddress } from "./client-ip";
+import { keyedHash } from "./privacy.mjs";
+
+/**
+ * Search answers from one address (ASK-POLICY C2, OWASP LLM10), for every reader, admins and the
+ * release check's exempt reader included: a reader's own signed address by the day; an unsigned one,
+ * which may be the Mini App relay shared by every reader, by the minute only, so it is never shut
+ * for the day. Only a keyed hash of the address is kept.
+ */
+const SEARCH_PER_ADDRESS = { signedPerDay: 100, unsignedPerMinute: 60 } as const;
 
 /** Mounted after the Worker's Telegram authentication middleware. */
 export const searchAnswers = new Hono<{ Bindings: Env; Variables: { tma: InitData } }>();
@@ -31,6 +41,15 @@ searchAnswers.get("/", async (c) => {
   const limit = Math.max(1, Math.floor(Number(c.env.SEARCH_AI_DAILY_LIMIT ?? 20)));
   // Production and staging list the release check's synthetic reader here, so repeated release checks don't spend its daily allowance.
   const exempt = (c.env.SEARCH_AI_QUOTA_EXEMPT ?? "").split(",").map((s) => s.trim()).includes(String(uid));
+  // The address first, so a refused address spends no reader's allowance.
+  const { ip, signed } = await clientAddress(c.req.raw, c.env);
+  if (ip) {
+    const address = await keyedHash(c.env, "search-ai-ip", ip), day = new Date().toISOString().slice(0, 10);
+    const allowed = signed
+      ? await takeQuotaKey(c.env, `search_ai_ip:${address}:${day}`, SEARCH_PER_ADDRESS.signedPerDay)
+      : await takeQuotaKey(c.env, `search_ai_ip:${address}:${Math.floor(Date.now() / 60000)}:${day}`, SEARCH_PER_ADDRESS.unsignedPerMinute);
+    if (!allowed) return c.json({ ok: false, error: "limit" }, 429);
+  }
   if (!exempt && !isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429);
   const r = await answerSearch(c.env, q, uid, consent);
   if (!r.ok) return c.json({ ok: false, error: r.reason }, r.reason === "too-short" ? 400 : r.reason === "consent" ? 428 : r.reason === "free-paused" ? 429 : 503);
