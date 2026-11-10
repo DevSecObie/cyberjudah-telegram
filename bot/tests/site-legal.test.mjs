@@ -97,7 +97,7 @@ for (const [path, name, file] of [['/privacy', 'PRIVACY_TEXT', 'privacy.md'], ['
     const html = page.replace(/<a href="mailto:[^"]+">([^<]+)<\/a>/g, '$1');
     let at = 0;
     for (const line of approved.split('\n').filter((l) => l.trim())) {
-      const content = line.replace(/^#{1,6} /, '').replace(/^- /, '').replace(/^\d+\. /, '');
+      const content = line.trim().replace(/^#{1,6} /, '').replace(/^- /, '').replace(/^\d+\. /, '');
       const expected = esc(content).replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(\S(?:.*?\S)?)\*/g, '<em>$1</em>');
       const found = html.indexOf(expected, at);
       assert.ok(found >= 0, `missing or out of order: ${content.slice(0, 60)}`);
@@ -146,4 +146,19 @@ test('link URLs and words are never rewritten by emphasis or mailto, and one lev
   assert.ok(starred.includes('<em>this</em>'));
   assert.ok(m.legalHtml('[Docs](https://en.wikipedia.org/wiki/Foo_(bar)).').includes('<a href="https://en.wikipedia.org/wiki/Foo_(bar)">Docs</a>.'));
   assert.ok(m.legalHtml('Write to privacy@cyberjudah.io.').includes('<a href="mailto:privacy@cyberjudah.io">privacy@cyberjudah.io</a>.'));
+});
+
+test('an indented paragraph after a list item stays inside that item, and the list keeps its numbering', () => {
+  const html = m.legalHtml('1. **One.** First.\n2. **Two.** Second.\n\n   More of two.\n\n   And more.\n3. **Three.** Third.\n\nAfter.');
+  assert.equal(html, '<ol><li><strong>One.</strong> First.</li><li><strong>Two.</strong> Second.<p>More of two.</p><p>And more.</p></li><li><strong>Three.</strong> Third.</li></ol>\n<p>After.</p>');
+  // A wrapped line of that paragraph stays in it.
+  assert.equal(m.legalHtml('1. One\n\n   Two\n   wrapped\n2. Three'), '<ol><li>One<p>Two<br>wrapped</p></li><li>Three</li></ol>');
+  // Unindented text after a blank line still ends the list, as before.
+  assert.equal(m.legalHtml('1. One\n\nPlain.\n2. Two'), '<ol><li>One</li></ol>\n<p>Plain.</p>\n<ol start="2"><li>Two</li></ol>');
+});
+
+test('/terms: Bible Strong\'s three publishing paragraphs sit inside item 3, before item 4', async () => {
+  const page = await (await get('/terms')).text();
+  assert.match(page, /<li><strong>Your notes and shared studies\.<\/strong> You retain your rights[^<]*<p>Only publish content[^<]*<\/p><p>To report content, email our contact address[^<]*<\/p><\/li><li><strong>No warranty\.<\/strong>/);
+  assert.doesNotMatch(page, /Le Studio|Bible Strong|stays yours/);
 });
