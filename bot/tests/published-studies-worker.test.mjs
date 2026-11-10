@@ -173,7 +173,7 @@ test('every published page has a plain "Report this study" mailto with only its 
     const links = [...html.matchAll(/<a href="(mailto:[^"]*)">Report this study<\/a>/g)];
     assert.equal(links.length, 1, 'one visible report link');
     // The attribute is HTML-escaped; unescaped it is a mailto to the contact address.
-    const href = links[0][1].replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'");
+    const href = links[0][1].replace(/&(amp|quot|lt|gt|#39);/g, (_, e) => ({ amp: '&', quot: '"', lt: '<', gt: '>', '#39': "'" })[e]);
     const url = new URL(href);
     assert.equal(url.protocol, 'mailto:');
     assert.equal(url.pathname, 'privacy@cyberjudah.io');
@@ -257,7 +257,7 @@ test('a title with an emoji at the subject cut still renders its page', async ()
     assert.equal((await put(mf, 'study-emoji1', 'reader-one', { title, body: 'text' })).status, 200);
     const res = await view(mf, 'study-emoji1');
     assert.equal(res.status, 200);
-    const href = /<a href="(mailto:[^"]*)">Report this study<\/a>/.exec(await res.text())[1].replace(/&amp;/g, '&');
+    const href = /<a href="(mailto:[^"]*)">Report this study<\/a>/.exec(await res.text())[1].replace(/&(amp|quot|lt|gt|#39);/g, (_, e) => ({ amp: '&', quot: '"', lt: '<', gt: '>', '#39': "'" })[e]);
     assert.equal(new URL(href).searchParams.get('subject'), `Report: ${'a'.repeat(149)}\u{1F600}`);
   } finally { await mf.dispose(); }
 });
