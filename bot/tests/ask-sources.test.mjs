@@ -67,7 +67,8 @@ test('a misconfigured primary backup stays free when the reader cancels its text
   } }, VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://cyberjudah.io/recorded-fixture', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
   const owner = await ownerOfUser(env, 77);
   await grantPayment(env, owner, { charge: 'backup-cancel', kind: 'pack', stars: 10, mc: 2_000_000 });
-  const pending = [], response = await askStream(env, 'Read recorded material', 77, { waitUntil: promise => pending.push(promise) }, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 2_000_000 } });
+  // The reader agreed to the backup's provider too: only then may the backup answer (backup-answer.ts mayUseBackup).
+  const pending = [], response = await askStream(env, 'Read recorded material', 77, { waitUntil: promise => pending.push(promise) }, [], undefined, false, model.id, [model.provider, 'Cloudflare (Workers AI)'], { caps: { [model.id]: 2_000_000 } });
   assert.equal(response.status, 200);
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
   let text = '';
@@ -291,7 +292,7 @@ test('a backup answer names its model only when a model wrote it; the no-budget 
     Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_DAILY_USD_CAP: budget, ASK_FREE_MAX_USD: '0.05', AI: { run: async (id) => id.includes('bge-m3') ? { data: [[1, 2]] } : new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ response: 'Backup words [1].', usage: { prompt_tokens: 100, completion_tokens: 10 } })}\n\n`)); c.close(); } }) },
       VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://cyberjudah.io/recorded-fixture', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
     delete env.AI_GATEWAY; delete env.ANTHROPIC_API_KEY;
-    const lines = (await (await askStream(env, 'Read recorded material', 77, undefined, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 500_000 } })).text()).trim().split('\n').map(JSON.parse);
+    const lines = (await (await askStream(env, 'Read recorded material', 77, undefined, [], undefined, false, model.id, [model.provider, 'Cloudflare (Workers AI)'], { caps: { [model.id]: 500_000 } })).text()).trim().split('\n').map(JSON.parse);
     const done = lines.find(l => l.done);
     assert.ok(done, `${budget}: ${JSON.stringify(lines.slice(-2))}`);
     assert.equal(done.sources.length > 0, true, `${budget}: the backup path, not the nothing-found sentence`);
@@ -302,5 +303,25 @@ test('a backup answer names its model only when a model wrote it; the no-budget 
       assert.equal(done.answer, 'Backup words [1].');
       assert.equal(done.model, '@cf/meta/llama-3.3-70b-instruct-fp8-fast');
     }
+  }
+});
+
+// A reader who agreed only to Claude's provider is never sent to Workers AI when Claude cannot answer
+// (OWASP LLM02; the consent promise): the question reaches no backup model, and the reader is told.
+test('without agreement to the backup provider, no backup answer is written and the question is not sent to it', async t => {
+  for (const stream of [true, false]) {
+    const { env } = financialDb(t), model = modelOf('claude-sonnet-5-5'), sent = [];
+    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, AI: { run: async (id) => { if (id.includes('bge-m3')) return { data: [[1, 2]] }; sent.push(id); return new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ response: 'Backup words [1].' })}\n\n`)); c.close(); } }); } },
+      VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://cyberjudah.io/recorded-fixture', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
+    delete env.AI_GATEWAY; delete env.ANTHROPIC_API_KEY;
+    if (stream) {
+      const lines = (await (await askStream(env, 'Read recorded material', 77, undefined, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 500_000 } })).text()).trim().split('\n').map(JSON.parse);
+      assert.equal(lines.find(l => l.done), undefined, 'no answer');
+      assert.deepEqual(lines.at(-1), { error: 'unavailable' });
+      assert.ok(!lines.some(l => typeof l.delta === 'string' && l.delta.includes('Backup words')));
+    } else {
+      assert.deepEqual(await ask(env, 'Read recorded material', 77, undefined, [], [model.provider]), { ok: false, reason: 'unavailable' });
+    }
+    assert.deepEqual(sent, [], `${stream ? 'askStream' : 'ask'}: the backup model was never called`);
   }
 });
