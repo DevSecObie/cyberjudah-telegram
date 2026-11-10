@@ -12,6 +12,7 @@ import { keyedHash } from "./privacy.mjs";
 import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
 import { recordAskEvent } from "./ask-events";
+import { isAllowlistedModel, modelAllowlistMode, MODEL_NOT_ALLOWED } from "../../shared/ask-allowlist.mjs";
 
 type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string; adminId?: number } };
 const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -44,7 +45,7 @@ appAsk.get('/models', c => {
   const offered = offeredModels(c);
   // The advertised default is the model a request without one is answered by (the POST route below).
   return c.json({
-    default: offered[0]?.id ?? freeModel(c.env).id, maxQuestionLength: 4000,
+    default: offered[0]?.id ?? (modelAllowlistMode(c.env) === 'enforce' ? null : freeModel(c.env).id), maxQuestionLength: 4000,
     models: offered.map(({ id, name, provider, what }) => ({ id, name, provider, what })),
     billing: { purchasesEnabled: false },
   });
@@ -93,6 +94,7 @@ appAsk.post('/', async c => {
   try { body = JSON.parse(raw); } catch { return c.json({ error: 'bad-request' }, 400); }
   if (!body || typeof body !== 'object' || typeof body.q !== 'string') return c.json({ error: 'bad-request' }, 400);
   if (body.q.trim().length < 2 || body.q.length > 4000) return c.json({ error: body.q.length > 4000 ? 'too-long' : 'too-short' }, 400);
+  if (typeof body.model === 'string' && body.model && modelAllowlistMode(c.env) === 'enforce' && !isAllowlistedModel(body.model)) return c.json(MODEL_NOT_ALLOWED, 403);
   const offered = offeredModels(c);
   const model = offered.find(m => m.id === (body.model || offered[0]?.id || freeModel(c.env).id));
   if (!model) return c.json({ error: 'model-unavailable' }, 400);
