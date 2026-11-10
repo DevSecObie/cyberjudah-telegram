@@ -14,7 +14,7 @@ import { studyFields, type StudyFields } from "./study-plan";
 import { MAX_RESEARCH_ROUNDS, MAX_RESEARCH_MS, adminBudgetPool, researchRounds, researchSignal, timeLeft } from "./research-policy.mjs";
 import { withTeachers } from "./class-attribution";
 export { withTeachers } from "./class-attribution";
-import { backupOnce, backupPieces } from "./backup-answer";
+import { backupOnce, backupPieces, mayUseBackup } from "./backup-answer";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
 import { alertClaudeFunds, claudeRefusedUnbilled, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
@@ -324,10 +324,14 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
       if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
       return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
     }
-    if (meter) await finishMeter(env, meter, "backup");
+    // The backup sends the question to its own provider: only with the reader's agreement to it.
+    // Without it nothing is written by a model, so nothing is held: the meter settles as empty.
+    const backupAllowed = mayUseBackup(consent);
+    if (meter) await finishMeter(env, meter, backupAllowed ? "backup" : "empty");
     const passages = first;
     if (assessCoverage(env, retrievalText(question, history), passages).blocked && passages.length) { const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`))); return { ok: true, q: question, answer: gap.answer, sources: await askSourcesOf(env, gap.answer, gap.sources), unsupported_refs: [], ms: Date.now() - t0 }; }
     if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], unsupported_refs: [], ms: Date.now() - t0 };
+    if (!backupAllowed) return { ok: false, reason: "unavailable" };
     const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal));
     return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
   } catch (e) {
@@ -814,10 +818,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               if (signal.aborted || !claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
               await alertClaudeFunds(env, e);
+              backup = true;
+              // Decided before the meter settles: without the reader's agreement to the backup's
+              // provider no backup answer is written, so the free reservation is released ("empty").
+              if (!mayUseBackup(consent)) { await finish("empty"); send({ reset: true }); send({ error: "busy" }); return; }
               await finish("backup");
               send({ reset: true });
               send({ status: "Answering with the backup model" });
-              backup = true;
             }
             if (ran) {
               const { text, passages, actions, cut, refused, grounded } = ran;
@@ -858,6 +865,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             await finish("empty"); await keep(gap.answer, sources, []);
             send({ reset: true }); send({ delta: gap.answer }); await done({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
           }
+          // The backup sends the question to its own provider: only with the reader's agreement to it.
+          // Without it nothing is sent, and the reader is told honestly that no answer could be written.
+          if (!mayUseBackup(consent)) { await finish("empty"); send({ error: backup ? "busy" : "unavailable" }); return; }
           let answer = "";
           const wrote: { model?: string } = {};
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; send({ delta: piece }); }
