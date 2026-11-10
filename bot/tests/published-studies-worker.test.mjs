@@ -190,28 +190,40 @@ test('every published page has a plain "Report this study" mailto with only its 
   } finally { await mf.dispose(); }
 });
 
-test('a study an admin took down 404s, cannot be published again under its id, and other studies stay', async () => {
+test('a study an admin took down 404s, says so, cannot be published again under its id, and other studies stay', async () => {
   const mf = worker();
   try {
-    for (const id of ['study-down01', 'study-keep01']) assert.equal((await put(mf, id, 'reader-one', { title: id, body: 'text' })).status, 200);
-    assert.deepEqual(await (await takedown(mf, 'study-down01')).json(), { removed: true });
-    assert.equal((await view(mf, 'study-down01')).status, 404);
-    assert.equal((await mf.dispatchFetch('https://cyberjudah.test/api/published-studies/study-down01')).status, 404);
+    for (const id of ['study-down01', 'study-keep01', 'study-unpub1']) assert.equal((await put(mf, id, 'reader-one', { title: id, body: 'text' })).status, 200);
+    assert.deepEqual(await (await takedown(mf, 'study-down01')).json(), { removed: 'removed' });
+    let res = await view(mf, 'study-down01');
+    assert.equal(res.status, 404);
+    assert.match(await res.text(), /This study was taken down\./);
+    res = await mf.dispatchFetch('https://cyberjudah.test/api/published-studies/study-down01');
+    assert.equal(res.status, 404);
+    assert.deepEqual(await res.json(), { published: false, taken_down: true });
     assert.equal((await view(mf, 'study-keep01')).status, 200);
-    const res = await put(mf, 'study-down01', 'reader-one', { title: 'again', body: 'text' });
+    res = await put(mf, 'study-down01', 'reader-one', { title: 'again', body: 'text' });
     assert.equal(res.status, 403);
     assert.equal((await res.json()).error, 'taken_down');
+    assert.equal((await put(mf, 'study-down01', 'reader-two', { title: 'other', body: 'text' })).status, 403, 'nobody can use the id');
     assert.equal((await view(mf, 'study-down01')).status, 404);
+    assert.deepEqual(await (await takedown(mf, 'study-down01')).json(), { removed: 'already' });
+
+    // Reported, then unpublished by its writer before the admin acts: the takedown still blocks the id.
+    assert.equal((await del(mf, 'study-unpub1', 'reader-one')).status, 200);
+    assert.deepEqual(await (await takedown(mf, 'study-unpub1')).json(), { removed: 'blocked' });
+    assert.equal((await put(mf, 'study-unpub1', 'reader-one', { title: 'back', body: 'text' })).status, 403);
+
     // Kept: only the id and when; nothing about the writer or a reporter.
     const db = await mf.getD1Database('DB');
-    const rows = (await db.prepare('SELECT * FROM published_takedowns').all()).results;
-    assert.deepEqual(rows.map(r => Object.keys(r).sort()), [['at', 'id']]);
-    assert.equal(rows[0].id, 'study-down01');
-    // A missing or malformed id removes nothing and keeps nothing.
-    assert.deepEqual(await (await takedown(mf, 'study-never1')).json(), { removed: false });
-    assert.deepEqual(await (await takedown(mf, 'bad id!')).json(), { removed: false });
-    assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM published_takedowns').first()).n, 1);
-    assert.equal((await put(mf, 'study-never1', 'reader-two', { title: 't', body: 'b' })).status, 200);
+    const rows = (await db.prepare('SELECT * FROM published_takedowns ORDER BY id').all()).results;
+    assert.deepEqual(rows.map(r => Object.keys(r).sort()), [['at', 'id'], ['at', 'id']]);
+    assert.deepEqual(rows.map(r => r.id), ['study-down01', 'study-unpub1']);
+    // A malformed id removes nothing and keeps nothing; a page that was never taken down keeps the old wording.
+    assert.deepEqual(await (await takedown(mf, 'bad id!')).json(), { removed: 'invalid' });
+    assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM published_takedowns').first()).n, 2);
+    assert.match(await (await view(mf, 'study-never1')).text(), /its writer took it down/);
+    assert.deepEqual(await (await mf.dispatchFetch('https://cyberjudah.test/api/published-studies/study-never1')).json(), { published: false });
   } finally { await mf.dispose(); }
 });
 

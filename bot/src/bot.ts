@@ -183,8 +183,13 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     const id = studyIdIn(ctx.match || "");
     if (!id) return ctx.reply("Send /takedown followed by the study's id or its link.");
     const removed = await takeDownStudy(env, id).catch((e: unknown) => { console.error(JSON.stringify({ event: "study_takedown_failed", message: String((e as Error)?.message ?? e).slice(0, 200) })); return null; });
-    if (removed) console.log(JSON.stringify({ event: "study_taken_down", id }));
-    await ctx.reply(removed === null ? "The study could not be taken down. Try again." : removed ? "Taken down. Its page shows \"Study not found\" within a minute, and it cannot be published again." : "No published study has that id.");
+    if (removed === "removed" || removed === "blocked") console.log(JSON.stringify({ event: "study_taken_down", id, was_published: removed === "removed" }));
+    await ctx.reply(removed === null ? "The study could not be taken down. Try again." : {
+      removed: "Taken down. Its page says so within a minute, and it cannot be published again under that id.",
+      blocked: "No study is published under that id now. It is blocked, so it cannot be published under it.",
+      already: "That study was already taken down.",
+      invalid: "That is not a study id. Send /takedown followed by the study's id or its link.",
+    }[removed]);
   });
 
   bot.command("support", (ctx) =>

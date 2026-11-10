@@ -38,7 +38,7 @@ export function legalHtml(text: string): string {
   let para: string[] = [], list: { tag: "ul" | "ol"; start: number; items: string[][] } | null = null;
   const flush = () => {
     if (para.length) out.push(`<p>${para.map(inline).join("<br>")}</p>`);
-    if (list) out.push(`<${list.tag}${list.tag === "ol" && list.start !== 1 ? ` start="${list.start}"` : ""}>${list.items.map(([first, ...more]) => `<li>${inline(first)}${more.map((m) => `<p>${inline(m)}</p>`).join("")}</li>`).join("")}</${list.tag}>`);
+    if (list) out.push(`<${list.tag}${list.tag === "ol" && list.start !== 1 ? ` start="${list.start}"` : ""}>${list.items.map(([first, ...more]) => `<li>${inline(first)}${more.map((m) => `<p>${m.split("\n").map(inline).join("<br>")}</p>`).join("")}</li>`).join("")}</${list.tag}>`);
     para = []; list = null;
   };
   const indented = (l: string | undefined) => !!l && /^ {2,}\S/.test(l);
@@ -49,7 +49,11 @@ export function legalHtml(text: string): string {
       if (list && !para.length && indented(lines.slice(i + 1).find((l) => l.trim()))) continue;
       flush();
     }
-    else if (list && !para.length && indented(line) && lines[i - 1] !== undefined && !lines[i - 1].trim()) list.items[list.items.length - 1].push(line.trim());
+    else if (list && !para.length && indented(line) && i > 0 && (!lines[i - 1].trim() || (indented(lines[i - 1]) && list.items[list.items.length - 1].length > 1))) {
+      // A new paragraph of the item after a blank line; a wrapped line of that paragraph otherwise.
+      const item = list.items[list.items.length - 1];
+      if (!lines[i - 1].trim()) item.push(line.trim()); else item[item.length - 1] += `\n${line.trim()}`;
+    }
     else if (heading) { flush(); const level = Math.min(3, heading[1].length - base + 1); out.push(`<h${level}>${inline(heading[2])}</h${level}>`); }
     else if (bullet || numbered) {
       const tag = bullet ? "ul" : "ol";

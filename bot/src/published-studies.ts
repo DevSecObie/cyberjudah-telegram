@@ -16,9 +16,11 @@ const ID = /^[A-Za-z0-9_-]{6,64}$/;
 type Row = { id: string; owner: string; title: string; author: string; body: string; updated: string };
 
 async function schema(env: Env) {
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS published_studies (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL, author TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL)").run();
-  // The ids an admin took down (takeDownStudy): only the id and when, so the study cannot be published again under it.
-  await env.DB.prepare("CREATE TABLE IF NOT EXISTS published_takedowns (id TEXT PRIMARY KEY, at TEXT NOT NULL)").run();
+  await env.DB.batch([
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS published_studies (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL, author TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL)"),
+    // The ids an admin took down (takeDownStudy): only the id and when, so nothing can be published under it again.
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS published_takedowns (id TEXT PRIMARY KEY, at TEXT NOT NULL)"),
+  ]);
 }
 
 async function ownerOf(c: { req: { header(name: string): string | undefined }; env: Env }) {
@@ -50,7 +52,8 @@ publishedStudies.get("/:id", async c => {
   if (!ID.test(id)) return c.json({ error: "not_found" }, 404);
   await schema(c.env);
   const row = await c.env.DB.prepare("SELECT updated FROM published_studies WHERE id=?").bind(id).first<{ updated: string }>();
-  return row ? c.json({ published: true, updated: row.updated }) : c.json({ published: false }, 404);
+  if (row) return c.json({ published: true, updated: row.updated });
+  return c.json(await takenDown(c.env, id) ? { published: false, taken_down: true } : { published: false }, 404);
 });
 
 publishedStudies.put("/:id", async c => {
@@ -64,13 +67,13 @@ publishedStudies.put("/:id", async c => {
   const title = clean(payload?.title, 200), author = clean(payload?.author, 120), body = typeof payload?.body === "string" ? payload.body : "";
   if (!title || !body.trim() || body.length > MAX_BODY) return c.json({ error: "invalid_study" }, 400);
   await schema(c.env);
-  if (await c.env.DB.prepare("SELECT 1 FROM published_takedowns WHERE id=?").bind(id).first()) return c.json({ error: "taken_down" }, 403);
   const updated = new Date().toISOString();
   // Insert, or update only a row this same reader owns: another reader's study is never replaced.
+  // One statement checks the takedowns too, so a takedown landing mid-request cannot be undone.
   const result = await c.env.DB.prepare(
-    "INSERT INTO published_studies(id,owner,title,author,body,updated) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,author=excluded.author,body=excluded.body,updated=excluded.updated WHERE published_studies.owner=excluded.owner",
-  ).bind(id, owner, title, author, body, updated).run();
-  if (!result.meta.changes) return c.json({ error: "not_your_study" }, 403);
+    "INSERT INTO published_studies(id,owner,title,author,body,updated) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM published_takedowns WHERE id=?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,author=excluded.author,body=excluded.body,updated=excluded.updated WHERE published_studies.owner=excluded.owner",
+  ).bind(id, owner, title, author, body, updated, id).run();
+  if (!result.meta.changes) return c.json({ error: await takenDown(c.env, id) ? "taken_down" : "not_your_study" }, 403);
   return c.json({ published: true, updated, path: `/app/published/${id}` });
 });
 
@@ -93,21 +96,26 @@ publishedStudies.delete("/:id", async c => {
 export const studyIdIn = (text: string): string | null =>
   /(?:^|\/app\/published\/)([A-Za-z0-9_-]{6,64})\/?(?:[?#]\S*)?$/.exec(text.trim().split(/\s+/)[0] ?? "")?.[1] ?? null;
 
+const takenDown = async (env: Env, id: string) => !!(await env.DB.prepare("SELECT 1 FROM published_takedowns WHERE id=?").bind(id).first());
+
 /**
  * An admin takes a study down (the bot's /takedown, ADMIN_IDS only): its row goes, so its page shows
- * "Study not found", and its id is kept in published_takedowns so it cannot be published again.
- * Only that one study is touched; the writer keeps their own copy in the app. Reports reach the
- * admins by email (the page's "Report this study" link); nothing here records them.
+ * that it was taken down, and its id is kept in published_takedowns, even when the writer had already
+ * unpublished it, so nothing can be published under it again. Only that one study is touched; the
+ * writer keeps their own copy in the app. Reports reach the admins by email (the page's "Report this
+ * study" link); nothing here records them.
+ * "removed": it was published and is now down; "blocked": it was not published, its id is now
+ * blocked; "already": it was taken down before; "invalid": not a study id.
  */
-export async function takeDownStudy(env: Env, id: string): Promise<boolean> {
-  if (!ID.test(id)) return false;
+export async function takeDownStudy(env: Env, id: string): Promise<"removed" | "blocked" | "already" | "invalid"> {
+  if (!ID.test(id)) return "invalid";
   await schema(env);
-  // One transaction: the id is kept (only when the study is there) before its row goes.
-  const [, removed] = await env.DB.batch([
-    env.DB.prepare("INSERT OR IGNORE INTO published_takedowns(id,at) SELECT ?,? WHERE EXISTS (SELECT 1 FROM published_studies WHERE id=?)").bind(id, new Date().toISOString(), id),
+  // One transaction: the id is kept, then its row goes.
+  const [kept, removed] = await env.DB.batch([
+    env.DB.prepare("INSERT OR IGNORE INTO published_takedowns(id,at) VALUES(?,?)").bind(id, new Date().toISOString()),
     env.DB.prepare("DELETE FROM published_studies WHERE id=?").bind(id),
   ]);
-  return (removed.meta.changes ?? 0) > 0;
+  return (removed.meta.changes ?? 0) > 0 ? "removed" : (kept.meta.changes ?? 0) > 0 ? "blocked" : "already";
 }
 
 const escape = (value: string) => value.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
@@ -161,7 +169,7 @@ publishedStudyPage.get("/:id", async c => {
   if (!ID.test(id)) return missing();
   await schema(c.env);
   const row = await c.env.DB.prepare("SELECT id,owner,title,author,body,updated FROM published_studies WHERE id=?").bind(id).first<Row>();
-  if (!row) return missing();
+  if (!row) return await takenDown(c.env, id) ? page(404, "Study not found", "<h1>Study not found</h1><p>This study was taken down.</p>") : missing();
   const date = new Date(row.updated).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
   const by = [row.author, date].filter(Boolean).map(escape).join(" · ");
   const link = `${new URL(c.req.url).origin}/app/published/${id}`;

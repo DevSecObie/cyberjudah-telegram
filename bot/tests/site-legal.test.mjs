@@ -151,6 +151,8 @@ test('link URLs and words are never rewritten by emphasis or mailto, and one lev
 test('an indented paragraph after a list item stays inside that item, and the list keeps its numbering', () => {
   const html = m.legalHtml('1. **One.** First.\n2. **Two.** Second.\n\n   More of two.\n\n   And more.\n3. **Three.** Third.\n\nAfter.');
   assert.equal(html, '<ol><li><strong>One.</strong> First.</li><li><strong>Two.</strong> Second.<p>More of two.</p><p>And more.</p></li><li><strong>Three.</strong> Third.</li></ol>\n<p>After.</p>');
+  // A wrapped line of that paragraph stays in it.
+  assert.equal(m.legalHtml('1. One\n\n   Two\n   wrapped\n2. Three'), '<ol><li>One<p>Two<br>wrapped</p></li><li>Three</li></ol>');
   // Unindented text after a blank line still ends the list, as before.
   assert.equal(m.legalHtml('1. One\n\nPlain.\n2. Two'), '<ol><li>One</li></ol>\n<p>Plain.</p>\n<ol start="2"><li>Two</li></ol>');
 });

@@ -49,9 +49,12 @@ test('an admin takes down one study by its link (trailing slash), and only that 
   assert.match(replies[0], /^Taken down\./);
   assert.deepEqual(sql.prepare('SELECT id FROM published_takedowns').all().map(r => r.id), ['study-down01']);
   await send(ADMIN, '/takedown study-down01');
-  assert.equal(replies[1], 'No published study has that id.');
+  assert.equal(replies[1], 'That study was already taken down.');
+  await send(ADMIN, '/takedown study-gone01');
+  assert.match(replies[2], /^No study is published under that id now\. It is blocked/);
   await send(ADMIN, '/takedown');
-  assert.match(replies[2], /followed by the study's id or its link/);
+  assert.match(replies[3], /followed by the study's id or its link/);
+  assert.deepEqual(live(), ['study-keep01']);
 });
 
 test('the id is read from the id itself or its link, nothing else', () => {
