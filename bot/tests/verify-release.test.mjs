@@ -24,7 +24,7 @@ function fixture({ answerStatus = 200, sources = [{ n: 1 }], model = "google/gem
     const provider = MODELS.find(m => m.id === expectedModel)?.provider;
     if (headers["x-ai-consent"] !== provider && !(cachedConsent && answered)) return json({ provider }, 428);
     calls++; answered = true;
-    return json({ ok: true, answer: "A cited answer [1]", sources, model, provider: MODELS.find(m => m.id === expectedModel)?.provider ?? "Google", error: "free-paused", ...answer }, answerStatus);
+    return json({ ok: true, answer: "A cited answer [1]", sources, model, provider, error: "free-paused", ...answer }, answerStatus);
   } } };
 }
 test("release verification signs a synthetic reader and makes only one consented provider request", async () => {
