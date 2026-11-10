@@ -40,7 +40,7 @@ export { freeSpendToday, freePaused } from "./free-budget";
 /**
  * The AI features, all through Workers AI and the Vectorize index of the teachings:
  * embeddings (bge-m3), retrieval of the closest passages, an answer grounded in them with
- * citations (llama 3.3 70b), search by meaning, and the reading voices (Deepgram Aura),
+ * citations (ANSWER_MODEL, Kimi K2.6), search by meaning, and the reading voices (Deepgram Aura),
  * each verse generated once and kept in R2.
  */
 export async function embed(env: Env, texts: string[], signal?: AbortSignal): Promise<number[][]> {
@@ -397,8 +397,8 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
  */
 /** Native apps only expose the configured hosted free models until store entitlements exist. */
 /**
- * Claude for every signed-in app reader (the owner's choice, 2026-10-31): Haiku answers by default
- * and Sonnet answers deep questions, paid from the owner's console. It is off unless
+ * Claude for every signed-in app reader (the owner's choice, 2026-10-31): CLAUDE_MODEL_LIGHT answers by default
+ * and CLAUDE_MODEL answers deep questions (both Opus 5.5 since 2026-11-10, so the two are one entry), paid from the owner's console. It is off unless
  * ASK_CLAUDE_FOR_READERS is "on", the ANTHROPIC_API_KEY secret (or Unified Billing) is set, and
  * ASK_CLAUDE_DAILY_USD_CAP is above zero. Its spending has its own daily cap, separate from the free
  * models' allowance, and each answer is held to ASK_CLAUDE_MAX_USD; when either runs out the free
@@ -491,7 +491,8 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const adminClaude = !!options.adminId && isAdmin(env, options.adminId) && paid.length > 0;
   const isDeep = !options.model && routeOf(question, history) === "deep";
   const deep = isDeep && !paid.length && env.ASK_FREE_DEEP_MODEL ? models.find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
-  // A reader's default with Claude on: Haiku (paid[0]), or Sonnet (paid[1]) for a deep question.
+  // A reader's default with Claude on: CLAUDE_MODEL_LIGHT (paid[0]), or CLAUDE_MODEL (paid[1]) for a deep
+  // question. Both are Opus now (owner, 2026-11-10); the split stays for when they differ again.
   const readerDefault = !adminClaude && paid.length ? (isDeep ? paid[1] ?? paid[0] : paid[0]) : undefined;
   const model = options.model ? models.find(m => m.id === options.model) : deep ?? readerDefault ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
   if (!model) return { ok: false, reason: "model-unavailable" };
@@ -621,7 +622,10 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
         ? "Write a fresh answer using only the supplied library passages. Cite each supported claim using its source_n as [n], for example [1]. Use only IDs in that registry. If the passages do not answer the question, say so; do not guess."
         : undefined;
       return withDeadline(researchOpen(env, { ...model, format: "plain" }, system, messages,
-        [], new Map(), async () => ({ content: "No tools are available." }), emit ?? (() => undefined), 1, spend, !!emit, instruction), left);
+        [], new Map(), async () => ({ content: "No tools are available." }), emit ?? (() => undefined), 1, spend, !!emit, instruction,
+        // Search's one answer has a fixed deadline (SEARCH_ANSWER_DEADLINE_MS): a reasoning model is
+        // asked not to think first, so it answers within it (Kimi K2.6 reasons at "high" by default).
+        requireSearchCitations ? { think: false } : {}), left);
     };
     const clean = async (text: string) => {
       const { answer, followups } = splitFollowups(text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
@@ -673,7 +677,7 @@ type Msg = { role: "system" | "user" | "assistant"; content: string };
 const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 /**
  * The model an answer uses when the reader has not chosen one: an admin's (CLAUDE_MODEL_ADMIN,
- * Claude Opus 5.5 when unset) or every other reader's (CLAUDE_MODEL, Claude Sonnet when unset).
+ * Claude Opus 5.5 when unset) or every other reader's (CLAUDE_MODEL; Claude Sonnet when unset, Opus as configured).
  */
 export const defaultModelId = (env: Env, userId: number) => (isAdmin(env, userId) ? env.CLAUDE_MODEL_ADMIN || "claude-opus-5-5" : env.CLAUDE_MODEL || CLAUDE_DEFAULT);
 
@@ -898,8 +902,6 @@ export async function similar(env: Env, q: string, limit = 20): Promise<Similar>
   }
 }
 
-/** A reading voice the model has, a retired Aura-1 voice id included (ai.mjs voiceId). */
-export const isVoice = (v: string) => voiceId(v) !== undefined;
 /** The model's short name in R2 keys, so audio from an earlier voice model is never served as this one's. */
 export const VOICE_KEY = VOICE_MODEL.split("/").pop()!;
 export const toBytes = async (out: unknown): Promise<Uint8Array | null> => {

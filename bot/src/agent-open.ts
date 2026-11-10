@@ -177,7 +177,7 @@ export async function researchOpen(
     for (let round = 0; round < maxRounds; round++) {
       const stopped = stopReason(round), last = !!stopped;
       const res = await call({ messages: convo, tools: defs, ...(last ? { tool_choice: "none" } : {}) });
-      const { text, usage, cut, toolCalls } = chatText(res);
+      const { text, usage, cut, toolCalls, reasoning } = chatText(res);
       units += unitsFor(usage, model); calls++; spend?.call(usage, model);
       if (!toolCalls.length || last) {
         if (text || !hadToolMarkup(res)) {
@@ -192,7 +192,7 @@ export async function researchOpen(
         units += unitsFor(again.usage, model); calls++; spend?.call(again.usage, model);
         return finish(again.text, again.cut, false, stopped);
       }
-      convo.push({ role: "assistant", content: text || "", tool_calls: toolCalls.map((c) => ({ id: c.id, type: "function", function: { name: c.name, arguments: c.arguments } })) });
+      convo.push({ role: "assistant", content: text || "", ...(reasoning ? { reasoning_content: reasoning } : {}), tool_calls: toolCalls.map((c) => ({ id: c.id, type: "function", function: { name: c.name, arguments: c.arguments } })) });
       for (const c of toolCalls) convo.push({ role: "tool", tool_call_id: c.id, content: await tool(c.name, c.arguments) });
       const note = options.researchNote?.();
       if (note) convo.push({ role: "user", content: note });
@@ -219,7 +219,7 @@ export async function researchOpen(
  * The text, tool calls and usage of a chat answer, in either shape Cloudflare returns: OpenAI's
  * (`choices[0].message`) or Workers AI's own (`response`, `tool_calls`).
  */
-export function chatText(res: Record<string, unknown>): { text: string; toolCalls: ToolCall[]; usage: Record<string, unknown> | undefined; cut: boolean } {
+export function chatText(res: Record<string, unknown>): { text: string; toolCalls: ToolCall[]; usage: Record<string, unknown> | undefined; cut: boolean; reasoning?: string } {
   const read = chatTextRaw(res);
   if (!hasToolMarkup(read.text)) return read;
   // Some models (DeepSeek V4 on Workers AI) can write their tool calls into the answer text as
@@ -267,7 +267,7 @@ export function stripToolMarkup(text: string): string {
   return text.replace(MARKUP, "").trim();
 }
 
-function chatTextRaw(res: Record<string, unknown>): { text: string; toolCalls: ToolCall[]; usage: Record<string, unknown> | undefined; cut: boolean } {
+function chatTextRaw(res: Record<string, unknown>): { text: string; toolCalls: ToolCall[]; usage: Record<string, unknown> | undefined; cut: boolean; reasoning?: string } {
   const usage = res.usage as Record<string, unknown> | undefined;
   const choice = Array.isArray(res.choices) ? (res.choices[0] as Record<string, unknown> | undefined) : undefined;
   if (choice) {
@@ -275,6 +275,8 @@ function chatTextRaw(res: Record<string, unknown>): { text: string; toolCalls: T
     const calls = Array.isArray(msg.tool_calls) ? (msg.tool_calls as Record<string, unknown>[]) : [];
     return {
       text: typeof msg.content === "string" ? msg.content : "",
+      // A thinking model (Kimi K2) expects its reasoning back with its own tool-call turn.
+      ...(typeof msg.reasoning_content === "string" && msg.reasoning_content ? { reasoning: msg.reasoning_content } : {}),
       toolCalls: calls.map((c, i) => { const f = (c.function ?? {}) as Record<string, unknown>; return { id: String(c.id ?? `call_${i}`), name: String(f.name ?? ""), arguments: typeof f.arguments === "string" ? f.arguments : JSON.stringify(f.arguments ?? {}) }; }),
       usage,
       cut: choice.finish_reason === "length",

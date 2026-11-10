@@ -13,10 +13,13 @@ import { citationPattern } from "./citations.mjs";
  * what it says and in which voice, so hearing it again costs nothing. No audio or text is logged.
  */
 export const LISTEN_MODEL = "@cf/deepgram/nova-3";
-const LISTEN_MAX_BYTES = 2_000_000; // about a minute of compressed speech
+const LISTEN_MAX_BYTES = 2_000_000; // a minute of normal compressed speech; up to ~17 minutes at a very low bitrate
 const SPEAK_MAX_CHARS = 3000;
 // Workers AI prices (per minute of audio heard, per thousand characters read), with headroom.
-const LISTEN_USD = 0.008, SPEAK_USD_PER_KCHAR = 0.04;
+const SPEAK_USD_PER_KCHAR = 0.04;
+/** Nova-3 is $0.0052 a minute. A recording's length is estimated from its size at a low speech bitrate
+ *  (16 kbit/s, 120 kB a minute), with headroom, so a long low-bitrate recording is reserved in full. */
+export const listenUsd = (bytes: number) => Math.max(0.002, Math.ceil(bytes / 120_000) * 0.0052 * 1.25);
 const day = () => new Date().toISOString().slice(0, 10);
 
 /** The most Aura-2 reads in one request (Deepgram's limit is 2,000 characters). */
@@ -46,16 +49,17 @@ export async function listen(env: Env, account: string, audio: ArrayBuffer, cont
   if (!audio.byteLength) return { ok: false, status: 400, error: "no-audio" };
   if (audio.byteLength > LISTEN_MAX_BYTES) return { ok: false, status: 413, error: "too-large" };
   if (!(await takeQuotaKey(env, `ask_listen:${account}:${day()}`, 60))) return { ok: false, status: 429, error: "limit" };
-  const hold = await reserveFreeBudget(env, crypto.randomUUID(), LISTEN_USD).catch(() => null);
+  const usdHeard = listenUsd(audio.byteLength);
+  const hold = await reserveFreeBudget(env, crypto.randomUUID(), usdHeard).catch(() => null);
   if (!hold) return { ok: false, status: 429, error: "free-paused" };
   try {
     // Nova-3 takes the audio as it came, with its type (Deepgram detects a container it is not told).
     const res = await env.AI.run(LISTEN_MODEL as never, { audio: { body: new Response(audio).body, contentType: contentType || "application/octet-stream" }, language: "en", smart_format: true, punctuate: true } as never, viaGateway(env)) as { results?: { channels?: { alternatives?: { transcript?: string }[] }[] } };
-    await settleFreeBudget(env, hold, LISTEN_USD);
+    await settleFreeBudget(env, hold, usdHeard);
     const text = String(res?.results?.channels?.[0]?.alternatives?.[0]?.transcript ?? "").trim().slice(0, 4000);
     return text ? { ok: true, text } : { ok: false, status: 422, error: "not-heard" };
   } catch {
-    await settleFreeBudget(env, hold, LISTEN_USD).catch(() => undefined);
+    await settleFreeBudget(env, hold, usdHeard).catch(() => undefined);
     return { ok: false, status: 503, error: "unavailable" };
   }
 }
@@ -76,12 +80,11 @@ export async function speak(env: Env, account: string, text: string, voice: stri
   if (!hold) return Response.json({ error: "free-paused" }, { status: 429 });
   try {
     // Aura-2 reads at most AURA_MAX_CHARS a request: a longer answer is read in parts, joined as one MP3.
-    const parts: Uint8Array[] = [];
-    for (const piece of speechPieces(words)) {
+    const parts = await Promise.all(speechPieces(words).map(async (piece) => {
       const part = await toBytes(await env.AI.run(VOICE_MODEL as never, { text: piece, speaker, encoding: "mp3" } as never, viaGateway(env)));
       if (!part?.length) throw new Error("no audio");
-      parts.push(part);
-    }
+      return part;
+    }));
     await settleFreeBudget(env, hold, usd);
     const bytes = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
     parts.reduce((at, p) => (bytes.set(p, at), at + p.length), 0);

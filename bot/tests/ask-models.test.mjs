@@ -155,6 +155,16 @@ test("a step asked not to think: DeepSeek V4 and Kimi K2 reason at none and Gemm
   }
 });
 
+test("a thinking model's reasoning goes back with its own tool-call turn (Kimi K2 expects it)", async () => {
+  const { sent } = await research("@cf/moonshotai/kimi-k2.6", [
+    { choices: [{ message: { role: "assistant", content: "", reasoning_content: "Placeholder plan to search.", tool_calls: [{ id: "k1", type: "function", function: { name: "search_library", arguments: "{\"query\":\"passover\"}" } }] }, finish_reason: "tool_calls" }], usage: { prompt_tokens: 100, completion_tokens: 5 } },
+    { choices: [{ message: { role: "assistant", content: "Placeholder answer [1]." }, finish_reason: "stop" }], usage: { prompt_tokens: 120, completion_tokens: 8 } },
+  ]);
+  const turn = sent[1].input.messages.find((m) => m.role === "assistant" && m.tool_calls);
+  assert.equal(turn.reasoning_content, "Placeholder plan to search.");
+  assert.ok(!sent[1].input.messages.some((m) => m.role === "assistant" && !m.tool_calls && "reasoning_content" in m));
+});
+
 // DeepSeek V4 on Workers AI can write its tool calls into the text as DSML markup (seen on the
 // Preview phone, 2026-11-02: "Who are the twelve tribes today?" showed the markup as the answer).
 const B = "｜";

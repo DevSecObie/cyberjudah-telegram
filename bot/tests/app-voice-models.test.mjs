@@ -8,7 +8,7 @@ import { financialDb } from './helpers/financial-db.mjs';
 // shape; Aura-2 lacks four Aura-1 voices, so a reader's saved choice of one is read by the closest.
 const out = new URL('./.build/app-voice-models.mjs', import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/app-voice.ts"; export { VOICES, VOICE_ALIASES, voiceId, VOICE_MODEL } from "./src/ai.mjs";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
-const { listen, speak, speechPieces, AURA_MAX_CHARS, LISTEN_MODEL, VOICES, VOICE_ALIASES, voiceId, VOICE_MODEL } = await import(out);
+const { listen, listenUsd, speak, speechPieces, AURA_MAX_CHARS, LISTEN_MODEL, VOICES, VOICE_ALIASES, voiceId, VOICE_MODEL } = await import(out);
 
 const audioStore = () => { const kept = new Map(); return { kept, async get(k) { return kept.has(k) ? { body: kept.get(k) } : null; }, async put(k, v) { kept.set(k, v); } }; };
 
@@ -68,4 +68,10 @@ test('an answer longer than Aura-2 reads at once is read in parts, cut after sen
   assert.equal(res.status, 200);
   assert.ok(calls.length >= 2 && calls.every(n => n <= AURA_MAX_CHARS));
   assert.deepEqual([...new Uint8Array(await res.arrayBuffer())], calls.map((_, i) => i + 1), 'the parts are joined in order');
+});
+
+test('a recording is reserved by its length, estimated from its size, so a long low-bitrate one is covered', () => {
+  assert.equal(listenUsd(10), 0.0065);
+  assert.ok(listenUsd(2_000_000) >= 17 * 0.0052, 'the largest accepted recording reserves at least 17 minutes');
+  assert.ok(listenUsd(2_000_000) <= 0.15, 'and stays within one free answer');
 });
