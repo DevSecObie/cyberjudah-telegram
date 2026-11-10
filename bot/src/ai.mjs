@@ -7,15 +7,20 @@ import { citationReport } from "./citations.mjs";
  * Shared by the Worker (src/ai.ts), the embedding job (scripts/embed.mjs) and the tests.
  */
 export const EMBED_MODEL = "@cf/baai/bge-m3";
-export const ANSWER_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-export const VOICE_MODEL = "@cf/deepgram/aura-1";
+export const ANSWER_MODEL = "@cf/moonshotai/kimi-k2.6";
+export const VOICE_MODEL = "@cf/deepgram/aura-2-en";
 export const RERANK_MODEL = "@cf/baai/bge-reranker-base";
+/** The reading voices (Aura-2). Four Aura-1 voices have no Aura-2 voice of the same name; a reader's
+ *  saved choice of one of them is read by the closest Aura-2 voice (VOICE_ALIASES). */
 export const VOICES = [
-  { id: "asteria", name: "Asteria", note: "warm, clear" }, { id: "luna", name: "Luna", note: "soft" }, { id: "stella", name: "Stella", note: "bright" },
+  { id: "asteria", name: "Asteria", note: "warm, clear" }, { id: "luna", name: "Luna", note: "soft" }, { id: "thalia", name: "Thalia", note: "bright" },
   { id: "athena", name: "Athena", note: "measured" }, { id: "hera", name: "Hera", note: "steady" },
-  { id: "orion", name: "Orion", note: "deep" }, { id: "arcas", name: "Arcas", note: "calm" }, { id: "perseus", name: "Perseus", note: "even" },
-  { id: "angus", name: "Angus", note: "low" }, { id: "orpheus", name: "Orpheus", note: "reader" }, { id: "helios", name: "Helios", note: "bright" }, { id: "zeus", name: "Zeus", note: "grave" },
+  { id: "orion", name: "Orion", note: "deep" }, { id: "arcas", name: "Arcas", note: "calm" }, { id: "odysseus", name: "Odysseus", note: "even" },
+  { id: "jupiter", name: "Jupiter", note: "low" }, { id: "orpheus", name: "Orpheus", note: "reader" }, { id: "apollo", name: "Apollo", note: "bright" }, { id: "zeus", name: "Zeus", note: "grave" },
 ];
+export const VOICE_ALIASES = { stella: "thalia", perseus: "odysseus", angus: "jupiter", helios: "apollo" };
+/** The Aura-2 voice for a voice id, a retired Aura-1 id included; undefined for anything else. */
+export const voiceId = (v) => (VOICES.some((x) => x.id === v) ? v : VOICE_ALIASES[v]);
 export const MAX_PASSAGE = 1400;
 
 /** FNV-1a over the text, as a short stable hash for "has this changed since it was embedded". */

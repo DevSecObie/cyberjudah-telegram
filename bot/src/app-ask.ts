@@ -73,7 +73,9 @@ appAsk.post('/listen', async c => {
   if (c.env.ASK_APP_ENABLED === 'off') return c.json({ error: 'unavailable' }, 503);
   const agreed = (c.req.header('x-ai-consent') ?? '').split(',').map(s => s.trim());
   if (!agreed.includes('Cloudflare (Workers AI)')) return c.json({ error: 'consent', provider: 'Cloudflare (Workers AI)' }, 428);
-  const r = await listen(c.env, c.get('account'), await c.req.arrayBuffer());
+  // The recording's own type (audio/webm, audio/mp4, …) tells the speech model how to read it.
+  const type = (c.req.header('content-type') ?? '').split(';')[0].trim().toLowerCase();
+  const r = await listen(c.env, c.get('account'), await c.req.arrayBuffer(), /^audio\/[a-z0-9.+-]{1,40}$/.test(type) ? type : '');
   return r.ok ? c.json({ text: r.text }) : c.json({ error: r.error }, r.status as 400);
 });
 appAsk.post('/speak', async c => {

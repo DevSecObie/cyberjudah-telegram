@@ -8,7 +8,7 @@ import { approvedFor, approvedSources } from "./approved-answers";
 import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
-import { ANSWER_MODEL, answerCandidates, buildPrompt, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
+import { ANSWER_MODEL, answerCandidates, buildPrompt, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, voiceId, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
 import { studyFields, type StudyFields } from "./study-plan";
 import { MAX_RESEARCH_ROUNDS, MAX_RESEARCH_MS, adminBudgetPool, researchRounds, researchSignal, timeLeft } from "./research-policy.mjs";
@@ -898,7 +898,10 @@ export async function similar(env: Env, q: string, limit = 20): Promise<Similar>
   }
 }
 
-export const isVoice = (v: string) => VOICES.some((x) => x.id === v);
+/** A reading voice the model has, a retired Aura-1 voice id included (ai.mjs voiceId). */
+export const isVoice = (v: string) => voiceId(v) !== undefined;
+/** The model's short name in R2 keys, so audio from an earlier voice model is never served as this one's. */
+export const VOICE_KEY = VOICE_MODEL.split("/").pop()!;
 export const toBytes = async (out: unknown): Promise<Uint8Array | null> => {
   if (out instanceof ReadableStream) return new Uint8Array(await new Response(out).arrayBuffer());
   if (out instanceof ArrayBuffer) return new Uint8Array(out);
@@ -910,8 +913,9 @@ export const toBytes = async (out: unknown): Promise<Uint8Array | null> => {
 
 /** One verse read by one voice, as MP3: from R2 when it was read before, else generated and kept. */
 export async function speakVerse(env: Env, slug: string, ch: number, verse: number, voice: string, userId: number, ctx?: Exec): Promise<Response> {
-  if (!isVoice(voice)) return Response.json({ ok: false, reason: "bad-voice" }, { status: 400 });
-  const key = `tts/aura-1/${voice}/${slug}/${ch}/${verse}.mp3`;
+  const speaker = voiceId(voice);
+  if (!speaker) return Response.json({ ok: false, reason: "bad-voice" }, { status: 400 });
+  const key = `tts/${VOICE_KEY}/${speaker}/${slug}/${ch}/${verse}.mp3`;
   const headers = { "content-type": "audio/mpeg", "cache-control": "private, max-age=31536000, immutable" };
   const kept = await env.AUDIO.get(key);
   if (kept) return new Response(kept.body, { headers });
@@ -922,7 +926,7 @@ export async function speakVerse(env: Env, slug: string, ch: number, verse: numb
   const v = c?.verses.find((x) => x.verse === verse);
   if (!v) return Response.json({ ok: false, reason: "not-found" }, { status: 404 });
   try {
-    const out = await env.AI.run(VOICE_MODEL, { text: v.text, speaker: voice as "asteria", encoding: "mp3" }, viaGateway(env, { log: true }));
+    const out = await env.AI.run(VOICE_MODEL as never, { text: v.text, speaker, encoding: "mp3" } as never, viaGateway(env, { log: true }));
     const bytes = await toBytes(out);
     if (!bytes?.length) throw new Error("no audio");
     const put = env.AUDIO.put(key, bytes, { httpMetadata: { contentType: "audio/mpeg" } });

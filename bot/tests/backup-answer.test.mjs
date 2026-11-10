@@ -8,7 +8,7 @@ import { callUsd } from '../../shared/credits.mjs';
 const out = new URL('./.build/backup-answer.mjs', import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/backup-answer.ts"; export {freeSpendToday} from "./src/free-budget.ts";', resolveDir: new URL('..', import.meta.url).pathname }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
 const { backupOnce, backupPieces, freeSpendToday } = await import(out);
-const model = modelOf('@cf/meta/llama-3.3-70b-instruct-fp8-fast');
+const model = modelOf('@cf/moonshotai/kimi-k2.6'); // the backup model (ai.mjs ANSWER_MODEL)
 const messages = [{ role: 'system', content: 'Use only the existing provided material.' }, { role: 'user', content: 'Existing recorded source words.' }];
 
 test('the expanded backup fits its model and sponsor reservation and settles measured usage', async t => {
