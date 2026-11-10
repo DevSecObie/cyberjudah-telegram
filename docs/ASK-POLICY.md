@@ -2,10 +2,10 @@
 
 The rules every Ask CyberJudah answer must keep, where each one is enforced and which test covers it. This is the "requirements" stage of the Ask AI's model development life cycle (MDLC): a change to a prompt, a model, the routing, the tools or the library is a release of the answering system, and it ships only when every rule below still holds.
 
-- **Version:** `policy-v1`, 2026-11-10. A change to a rule, or to where it's enforced, bumps the version and gets a line in the changelog at the end. Answers carry the version they were made under (`versions.policy`, MDLC WP1).
+- **Version:** `policy-v1`, 2026-11-10. A change to a rule, or to where it's enforced, bumps the version and gets a line in the changelog at the end. Once MDLC WP1 lands, answers carry the version they were made under (`versions.policy`).
 - **Wording:** the rules' own words are in the prompts (`bot/src/ai.mjs`); this file points to them by a short phrase you can search for, and never restates teaching. What the classes teach is in the library, not here.
 - **Paths:** all paths are from the repository root. One path is in the separate Mini App repository and is marked so.
-- **Frameworks:** the life cycle follows NIST AI RMF (govern, map, measure, manage). Risks are named from the **OWASP Top 10 for LLM Applications 2025** (the current edition) and, because the assistant uses tools, the **OWASP Top 10 for Agentic Applications 2026**; attack techniques from MITRE ATLAS. The threat model (`docs/ASK-THREAT-MODEL.md`, with `docs/ASK-PII-SCAN.md` and `docs/ASK-ALERTS.md`) comes with MDLC WP4 (PR #598). The OWASP coverage is mapped below.
+- **Frameworks:** the life cycle follows NIST AI RMF (govern, map, measure, manage). Risks are named from the **OWASP Top 10 for LLM Applications 2025** (the current edition) and, because the assistant uses tools, the **OWASP Top 10 for Agentic Applications 2026**; attack techniques from MITRE ATLAS. The threat model (`docs/ASK-THREAT-MODEL.md`, with `docs/ASK-PII-SCAN.md` and `docs/ASK-ALERTS.md`) come with MDLC WP4 (PR #598, pending; until it merges these three links don't resolve). The OWASP coverage is mapped below.
 - **Related:** `docs/ASK-GROUNDING.md` (grounding and citation contract), `docs/operations/ask-ai-pipeline.md` (control register), `docs/ASK-MODEL-ROUTING.md` (routing).
 
 Enforcement levels: **runtime-fix** (code corrects or removes it in every answer), **runtime-report** (code detects it and records it, the reader still sees it), **prompt** (the model is told; nothing checks it at runtime), **eval** (a test checks it before release), **none**.
@@ -35,7 +35,7 @@ The library is public, but the index is what the model treats as evidence, so it
 | R2 | **Corpus integrity and release:** each library/index build has a release id, imports are hash-checked, and answers name the release they used | partly: encyclopedia import is SHA-256-checked; release marker and stamping are MDLC WP1 |
 | R3 | **Change control on the corpus (anti-poisoning):** content reaches the index only through reviewed paths (CMS/GitHub review, class corrections feed); a new release is diffed against the last (counts per kind, removed or changed passages) and an unusual change holds the release | to build (MDLC WP4) |
 | R4 | **Validation and cleansing before embedding:** de-duplicate, drop fragments and filler, reject malformed rows | partly: `answerCandidates` drops short and repetitive hits at answer time; ingest-time checks **to verify** |
-| R5 | **PII scan before indexing:** transcripts and notes are scanned and findings reported (the report never holds the matched text); masking only on the owner's switch, since it changes what Ask can cite | designed (`docs/ASK-PII-SCAN.md`, MDLC WP4) |
+| R5 | **PII scan before indexing:** transcripts and notes are scanned and findings reported (the report never holds the matched text); masking only on the owner's switch, since it changes what Ask can cite | designed (`docs/ASK-PII-SCAN.md`, MDLC WP4, PR #598 pending) |
 | R6 | **Retrieved text is data, never instructions** (indirect prompt injection through passages, outside pages, PDFs, images) | in place: untrusted-data fencing and control-pattern stripping (`bot/src/grounding.mjs` `DATA_POLICY`); adversarial tests are MDLC WP3 |
 | R7 | **Access control at retrieval, in code:** a reader's own data (saved chats, reminders, uploads) is fetched only for that signed-in reader by the tool, never by instruction to the model | in place for the app tools (`bot/src/agent.ts`, signed sign-in); per-tool tests **to verify** |
 | R8 | **Vector store access:** the index is reached only through the Worker's binding; no endpoint returns raw vectors; passage search needs a reader session and is limited per reader and per address | in place for vectors (verified 2026-11-10: no route returns vector values); limits on every passage route being completed (OWASP LLM10) |
@@ -60,7 +60,7 @@ The library is public, but the index is what the model treats as evidence, so it
 | C2 | Rate limits per reader and per address (OWASP LLM10 unbounded consumption) | runtime: `takeQuota` (`bot/src/ai.ts`, `bot/src/search-answer.ts`) | `bot/tests/ask-ip-backstop.test.mjs`, `bot/tests/session-limits.test.mjs` |
 | C3 | Spending caps per answer and per day, output-length limits (denial of wallet) | runtime: USD caps (`bot/src/research-policy.mjs`, `bot/src/free-budget.ts`) | `bot/tests/financial-integrity.test.mjs`, `bot/tests/research-policy.test.mjs` |
 | C4 | Logs and events keep no question or answer text and no Telegram ids | runtime: `bot/src/privacy.mjs`, `bot/src/ask-events.ts` | `bot/tests/privacy.test.mjs`, `bot/tests/ask-events.test.mjs`; `docs/PRIVACY.md` |
-| C5 | Reader feedback can't poison the system: a "wrong"/"harmful" report drops one cached answer (`bot/src/app-ask.ts` report → `dropReported` in `bot/src/answer-cache.ts`) and nothing reads feedback into the prompts or the index; votes are limited per reader and per network (`bot/src/feedback.ts`), reports per account per day (`bot/src/app-ask.ts`) | in place | `bot/tests/feedback.test.mjs`, `bot/tests/app-ask.test.mjs` |
+| C5 | Reader feedback can't poison the system: a "wrong"/"harmful" report drops one cached answer and nothing reads feedback into the prompts or the index | runtime: `dropReported` (`bot/src/app-ask.ts` → `bot/src/answer-cache.ts`); votes limited per reader and per network (`bot/src/feedback.ts`), reports per account per day (`bot/src/app-ask.ts`) | `bot/tests/feedback.test.mjs`, `bot/tests/app-ask.test.mjs` |
 
 ## OWASP coverage
 
@@ -102,10 +102,10 @@ Guardrail testing has two halves, and both are required: **adversarial** tests (
 
 | Change | Must pass before it ships |
 |---|---|
-| A prompt in `bot/src/ai.mjs`, or `DATA_POLICY` | unit tests + recorded grounding eval (CI); **the question suite and the adversarial and benign sets** (`bot/scripts/eval-ask.mjs`, run by hand on staging with the owner's OK for its cost until MDLC WP3 automates it); prompt version bump + changelog line (WP1); owner Approve |
+| A prompt in `bot/src/ai.mjs`, or `DATA_POLICY` | unit tests + recorded grounding eval (CI); the question suite (`bot/scripts/eval-ask.mjs`, run by hand on staging with the owner's OK for its cost until MDLC WP3 automates it), and **the adversarial and benign sets once WP3 adds them**; prompt version bump + changelog line (WP1); **cached answers invalidated**: until WP1 puts the prompt version in the cache keys, bump the release strings in the keys by hand (`APP_STUDY_RELEASE.version` in `bot/src/app-study-release.ts`, the answer version in `bot/src/search-answer.ts`, `PROMPT_REVISION` in `bot/src/answer-cache.ts`); owner Approve |
 | A model (`bot/wrangler.jsonc` model vars, `shared/ask-models.json`, routing order) | as above, run for that model; the model on the allowlist (WP2) |
 | Routing (`bot/src/ask-routing.ts`, `shared/ask-models.mjs`) | `bot/tests/ask-routing.test.mjs`, `bot/tests/ask-models.test.mjs`; the Mini App's copy (`src/lib/route-model.ts` in the **ask-cyberjudah-telegram** repository) changed in step |
-| Tools or the outside-source whitelist | unit tests for the tool; the adversarial set |
+| Tools or the outside-source whitelist | unit tests for the tool; the adversarial set once WP3 adds it |
 | A library or index release | R2–R5, R10; the question suite on the new release |
 | This policy | owner review |
 
