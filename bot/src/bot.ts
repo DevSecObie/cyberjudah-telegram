@@ -15,6 +15,8 @@ import { fmtUsd } from "../../shared/credits.mjs";
 import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned } from "./remind";
 import { pid, seal } from "./privacy.mjs";
 import { deleteData, deletionToken, exportData, useDeletionToken, type Deleted } from "./mydata";
+import { isAdmin } from "./edit";
+import { studyIdIn, takeDownStudy } from "./published-studies";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -172,6 +174,22 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     if (!ctx.from) return;
     await tellAdmins(env, `Payment support asked for by ${ctx.from.first_name}${ctx.from.username ? ` (@${ctx.from.username})` : ""}, Telegram ID ${ctx.from.id}: "${(ctx.match || "").slice(0, 500)}"`).catch(() => undefined);
     await ctx.reply("Your request has reached the CyberJudah admins, who will reply to you here in Telegram. If something you paid for in Stars did not arrive, say what you bought and when (send /paysupport followed by the details).");
+  });
+
+  // An admin takes down a published study that was reported (by email, its page's "Report this study"
+  // link): /takedown <id or its /app/published/ link>. Not in the menu; anyone else gets no answer.
+  bot.command("takedown", async (ctx) => {
+    if (ctx.chat.type !== "private" || !ctx.from || !isAdmin(env, ctx.from.id)) return;
+    const id = studyIdIn(ctx.match || "");
+    if (!id) return ctx.reply("Send /takedown followed by the study's id or its link.");
+    const removed = await takeDownStudy(env, id).catch((e: unknown) => { console.error(JSON.stringify({ event: "study_takedown_failed", message: String((e as Error)?.message ?? e).slice(0, 200) })); return null; });
+    if (removed === "removed" || removed === "blocked") console.log(JSON.stringify({ event: "study_taken_down", id, was_published: removed === "removed" }));
+    await ctx.reply(removed === null ? "The study could not be taken down. Try again." : {
+      removed: "Taken down. Its page says so within a minute, and it cannot be published again under that id.",
+      blocked: "No study is published under that id now. It is blocked, so it cannot be published under it.",
+      already: "That study was already taken down.",
+      invalid: "That is not a study id. Send /takedown followed by the study's id or its link.",
+    }[removed]);
   });
 
   bot.command("support", (ctx) =>
