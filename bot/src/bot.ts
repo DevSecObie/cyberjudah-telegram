@@ -16,7 +16,7 @@ import { linkDevice, reminderButton, reminderKeyboard, stopFor, telegramReturned
 import { pid, seal } from "./privacy.mjs";
 import { deleteData, deletionToken, exportData, useDeletionToken, type Deleted } from "./mydata";
 import { isAdmin } from "./edit";
-import { takeDownStudy } from "./published-studies";
+import { studyIdIn, takeDownStudy } from "./published-studies";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 const MAX_INLINE = 50;
@@ -180,10 +180,11 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
   // link): /takedown <id or its /app/published/ link>. Not in the menu; anyone else gets no answer.
   bot.command("takedown", async (ctx) => {
     if (ctx.chat.type !== "private" || !ctx.from || !isAdmin(env, ctx.from.id)) return;
-    const id = (ctx.match || "").trim().replace(/^.*\/app\/published\//, "").replace(/[?#].*$/, "");
+    const id = studyIdIn(ctx.match || "");
     if (!id) return ctx.reply("Send /takedown followed by the study's id or its link.");
-    const removed = await takeDownStudy(env, id).catch(() => null);
-    await ctx.reply(removed === null ? "The study could not be taken down. Try again." : removed ? "Taken down: its page now shows \"Study not found\"." : "No published study has that id.");
+    const removed = await takeDownStudy(env, id).catch((e: unknown) => { console.error(JSON.stringify({ event: "study_takedown_failed", message: String((e as Error)?.message ?? e).slice(0, 200) })); return null; });
+    if (removed) console.log(JSON.stringify({ event: "study_taken_down", id }));
+    await ctx.reply(removed === null ? "The study could not be taken down. Try again." : removed ? "Taken down. Its page shows \"Study not found\" within a minute, and it cannot be published again." : "No published study has that id.");
   });
 
   bot.command("support", (ctx) =>

@@ -28,27 +28,34 @@ const inline = (s: string) => {
 const HEADING = /^(#{1,6}) (.*)$/;
 
 /** The pasted text as HTML, line by line: a heading line or a list item starts its own block even
- *  without a blank line before it; other lines join into paragraphs. Every character escaped. */
+ *  without a blank line before it; other lines join into paragraphs. An indented paragraph right
+ *  after a list item (blank line between) belongs to that item. Every character escaped. */
 export function legalHtml(text: string): string {
   const lines = text.replace(/\r\n?/g, "\n").split("\n").map((l) => l.trimEnd());
   const levels = lines.flatMap((l) => HEADING.test(l) ? [HEADING.exec(l)![1].length] : []);
   const base = levels.length ? Math.min(...levels) : 1;
   const out: string[] = [];
-  let para: string[] = [], list: { tag: "ul" | "ol"; start: number; items: string[] } | null = null;
+  let para: string[] = [], list: { tag: "ul" | "ol"; start: number; items: string[][] } | null = null;
   const flush = () => {
     if (para.length) out.push(`<p>${para.map(inline).join("<br>")}</p>`);
-    if (list) out.push(`<${list.tag}${list.tag === "ol" && list.start !== 1 ? ` start="${list.start}"` : ""}>${list.items.map((i) => `<li>${inline(i)}</li>`).join("")}</${list.tag}>`);
+    if (list) out.push(`<${list.tag}${list.tag === "ol" && list.start !== 1 ? ` start="${list.start}"` : ""}>${list.items.map(([first, ...more]) => `<li>${inline(first)}${more.map((m) => `<p>${inline(m)}</p>`).join("")}</li>`).join("")}</${list.tag}>`);
     para = []; list = null;
   };
-  for (const line of lines) {
+  const indented = (l: string | undefined) => !!l && /^ {2,}\S/.test(l);
+  for (const [i, line] of lines.entries()) {
     const heading = HEADING.exec(line), bullet = /^- (.*)$/.exec(line), numbered = /^(\d+)\. (.*)$/.exec(line);
-    if (!line.trim()) flush();
+    if (!line.trim()) {
+      // Keep the list open over a blank line when the next text is an indented paragraph of its last item.
+      if (list && !para.length && indented(lines.slice(i + 1).find((l) => l.trim()))) continue;
+      flush();
+    }
+    else if (list && !para.length && indented(line) && lines[i - 1] !== undefined && !lines[i - 1].trim()) list.items[list.items.length - 1].push(line.trim());
     else if (heading) { flush(); const level = Math.min(3, heading[1].length - base + 1); out.push(`<h${level}>${inline(heading[2])}</h${level}>`); }
     else if (bullet || numbered) {
       const tag = bullet ? "ul" : "ol";
       if (para.length || (list && list.tag !== tag)) flush();
       if (!list) list = { tag, start: numbered ? Number(numbered[1]) : 1, items: [] };
-      list.items.push(bullet ? bullet[1] : numbered![2]);
+      list.items.push([bullet ? bullet[1] : numbered![2]]);
     } else { if (list) flush(); para.push(line); }
   }
   flush();

@@ -7,13 +7,15 @@ import { Miniflare, convertV4MiniflareOptions } from 'miniflare';
 const { outputFiles } = await build({
   stdin: {
     contents: `import { Hono } from "hono";
-      import { publishedStudies, publishedStudyPage } from "./src/published-studies.ts";
+      import { publishedStudies, publishedStudyPage, takeDownStudy } from "./src/published-studies.ts";
       import { firebaseAuth } from "./src/firebase-auth.ts";
       const app = new Hono();
       app.use("*", async (c, next) => { c.env.FIREBASE_AUTH_LIMIT = { limit: async () => ({ success: true }) }; await next(); });
       app.route("/api/published-studies", publishedStudies);
       app.route("/app/published", publishedStudyPage);
       app.route("/api/firebase", firebaseAuth);
+      // Test only: the admin takedown the bot's /takedown runs (its admin check is tested in takedown-command.test.mjs).
+      app.delete("/test/takedown/:id", async c => c.json({ removed: await takeDownStudy(c.env, c.req.param("id")) }));
       export default app;`,
     resolveDir: new URL('..', import.meta.url).pathname,
   },
@@ -46,6 +48,7 @@ const del = (mf, id, uid) => mf.dispatchFetch(`https://cyberjudah.test/api/publi
   method: 'DELETE', headers: { authorization: `Bearer ${token(uid)}` },
 });
 const view = (mf, id) => mf.dispatchFetch(`https://cyberjudah.test/app/published/${id}`);
+const takedown = (mf, id) => mf.dispatchFetch(`https://cyberjudah.test/test/takedown/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
 test('both independent Worker stores remove native publications and links while preserving Telegram', async () => {
   const workers = [worker({ PRIVACY_KEY:'production-test-key' }), worker({ PRIVACY_KEY:'staging-test-key' })];
@@ -155,12 +158,8 @@ test('deleting the account takes down every study the reader published, and only
   } finally { await mf.dispose(); }
 });
 
-// Reporting, as Bible Strong does it: an email with the study's link (Terms, "Your notes and shared studies").
-const { signInitData } = await import('../src/initdata.mjs');
-const admin = { PRIVACY_KEY: 'test-privacy-key', BOT_TOKEN: '123456:test-bot-token', ADMIN_IDS: '1001, 1002' };
-const launch = (id, botToken = admin.BOT_TOKEN) => signInitData({ auth_date: String(Math.floor(Date.now() / 1000)), user: { id, first_name: 'Admin' } }, botToken);
-const takedown = async (mf, id, auth) => mf.dispatchFetch(`https://cyberjudah.test/api/published-studies/${id}/admin`, { method: 'DELETE', headers: auth ? { authorization: auth } : {} });
 
+// Reporting, as Bible Strong does it: an email with the study's link (Terms, "Your notes and shared studies").
 test('every published page has a plain "Report this study" mailto with only its link and title, and no added footer line', async () => {
   const mf = worker();
   try {
@@ -191,42 +190,39 @@ test('every published page has a plain "Report this study" mailto with only its 
   } finally { await mf.dispose(); }
 });
 
-test('an admin (ADMIN_IDS, signed Telegram launch data) takes a study down: its page 404s and other studies stay', async () => {
-  const mf = worker(admin);
+test('a study an admin took down 404s, cannot be published again under its id, and other studies stay', async () => {
+  const mf = worker();
   try {
     for (const id of ['study-down01', 'study-keep01']) assert.equal((await put(mf, id, 'reader-one', { title: id, body: 'text' })).status, 200);
-    assert.equal((await takedown(mf, 'study-down01')).status, 401, 'no launch data');
-    assert.equal((await takedown(mf, 'study-down01', `tma ${await launch(1001, '999:other-bot')}`)).status, 401, 'signed by another bot');
-    assert.equal((await takedown(mf, 'study-down01', `Bearer ${token('reader-two')}`)).status, 401, 'a Firebase reader is not an admin');
-    assert.equal((await takedown(mf, 'study-down01', `tma ${await launch(2002)}`)).status, 403, 'a Telegram user not in ADMIN_IDS');
-    assert.equal((await view(mf, 'study-down01')).status, 200, 'nothing was removed by the refused calls');
-
-    let res = await takedown(mf, 'study-down01', `tma ${await launch(1002)}`);
-    assert.equal(res.status, 200);
-    assert.deepEqual(await res.json(), { removed: true });
+    assert.deepEqual(await (await takedown(mf, 'study-down01')).json(), { removed: true });
     assert.equal((await view(mf, 'study-down01')).status, 404);
     assert.equal((await mf.dispatchFetch('https://cyberjudah.test/api/published-studies/study-down01')).status, 404);
     assert.equal((await view(mf, 'study-keep01')).status, 200);
-
-    res = await takedown(mf, 'study-down01', `tma ${await launch(1001)}`);
-    assert.deepEqual(await res.json(), { removed: false });
-    assert.equal((await takedown(mf, 'bad id!', `tma ${await launch(1001)}`)).status, 400);
+    const res = await put(mf, 'study-down01', 'reader-one', { title: 'again', body: 'text' });
+    assert.equal(res.status, 403);
+    assert.equal((await res.json()).error, 'taken_down');
+    assert.equal((await view(mf, 'study-down01')).status, 404);
+    // Kept: only the id and when; nothing about the writer or a reporter.
+    const db = await mf.getD1Database('DB');
+    const rows = (await db.prepare('SELECT * FROM published_takedowns').all()).results;
+    assert.deepEqual(rows.map(r => Object.keys(r).sort()), [['at', 'id']]);
+    assert.equal(rows[0].id, 'study-down01');
+    // A missing or malformed id removes nothing and keeps nothing.
+    assert.deepEqual(await (await takedown(mf, 'study-never1')).json(), { removed: false });
+    assert.deepEqual(await (await takedown(mf, 'bad id!')).json(), { removed: false });
+    assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM published_takedowns').first()).n, 1);
+    assert.equal((await put(mf, 'study-never1', 'reader-two', { title: 't', body: 'b' })).status, 200);
   } finally { await mf.dispose(); }
-  // With no ADMIN_IDS set, nobody is an admin.
-  const none = worker({ PRIVACY_KEY: 'test-privacy-key', BOT_TOKEN: admin.BOT_TOKEN });
-  try {
-    assert.equal((await put(none, 'study-noadm1', 'reader-one', { title: 't', body: 'b' })).status, 200);
-    assert.equal((await takedown(none, 'study-noadm1', `tma ${await launch(1001)}`)).status, 403);
-  } finally { await none.dispose(); }
 });
 
-test('/takedown in the bot is admin-only, private-chat only, and uses the same takedown', async () => {
-  const { readFileSync } = await import('node:fs');
-  const src = readFileSync(new URL('../src/bot.ts', import.meta.url), 'utf8');
-  const handler = /bot\.command\("takedown", async \(ctx\) => \{([\s\S]*?)\n {2}\}\);/.exec(src)?.[1];
-  assert.ok(handler, '/takedown has a handler');
-  assert.match(handler.split('\n')[1], /ctx\.chat\.type !== "private" \|\| !ctx\.from \|\| !isAdmin\(env, ctx\.from\.id\)\) return;/, 'the admin check comes first');
-  assert.match(handler, /takeDownStudy\(env, id\)/);
-  const setup = readFileSync(new URL('../scripts/setup.mjs', import.meta.url), 'utf8');
-  assert.doesNotMatch(setup, /command: "takedown"/, 'not in the public command menu');
+test('a title with an emoji at the subject cut still renders its page', async () => {
+  const mf = worker();
+  try {
+    const title = 'a'.repeat(149) + '\u{1F600}' + 'b'.repeat(40);
+    assert.equal((await put(mf, 'study-emoji1', 'reader-one', { title, body: 'text' })).status, 200);
+    const res = await view(mf, 'study-emoji1');
+    assert.equal(res.status, 200);
+    const href = /<a href="(mailto:[^"]*)">Report this study<\/a>/.exec(await res.text())[1].replace(/&amp;/g, '&');
+    assert.equal(new URL(href).searchParams.get('subject'), `Report: ${'a'.repeat(149)}\u{1F600}`);
+  } finally { await mf.dispose(); }
 });

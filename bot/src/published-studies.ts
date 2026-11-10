@@ -4,8 +4,6 @@ import { Marked } from "marked";
 import { IdentityError, verifyFirebaseIdentity } from "./account-links";
 import type { Env } from "./env";
 import { keyedHash } from "./privacy.mjs";
-import { isAdminId } from "./edit.mjs";
-import { SENSITIVE_MAX_AGE, validateInitData } from "./initdata.mjs";
 
 /**
  * A study the app's reader chose to publish. The app sends its own study as Markdown with
@@ -19,6 +17,8 @@ type Row = { id: string; owner: string; title: string; author: string; body: str
 
 async function schema(env: Env) {
   await env.DB.prepare("CREATE TABLE IF NOT EXISTS published_studies (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL, author TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL)").run();
+  // The ids an admin took down (takeDownStudy): only the id and when, so the study cannot be published again under it.
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS published_takedowns (id TEXT PRIMARY KEY, at TEXT NOT NULL)").run();
 }
 
 async function ownerOf(c: { req: { header(name: string): string | undefined }; env: Env }) {
@@ -64,6 +64,7 @@ publishedStudies.put("/:id", async c => {
   const title = clean(payload?.title, 200), author = clean(payload?.author, 120), body = typeof payload?.body === "string" ? payload.body : "";
   if (!title || !body.trim() || body.length > MAX_BODY) return c.json({ error: "invalid_study" }, 400);
   await schema(c.env);
+  if (await c.env.DB.prepare("SELECT 1 FROM published_takedowns WHERE id=?").bind(id).first()) return c.json({ error: "taken_down" }, 403);
   const updated = new Date().toISOString();
   // Insert, or update only a row this same reader owns: another reader's study is never replaced.
   const result = await c.env.DB.prepare(
@@ -88,28 +89,26 @@ publishedStudies.delete("/:id", async c => {
   return c.json({ published: false });
 });
 
+/** The study id in what an admin sent: the id itself, or its /app/published/ link (a trailing slash, query or fragment is fine). */
+export const studyIdIn = (text: string): string | null =>
+  /(?:^|\/app\/published\/)([A-Za-z0-9_-]{6,64})\/?(?:[?#]\S*)?$/.exec(text.trim().split(/\s+/)[0] ?? "")?.[1] ?? null;
+
 /**
- * An admin takes a study down: its row goes, so its page shows "Study not found". Only that one
- * study's row is touched; the writer keeps their own copy in the app. Reports reach the admins by
- * email (the page's "Report this study" link), as Bible Strong does; nothing here records them.
+ * An admin takes a study down (the bot's /takedown, ADMIN_IDS only): its row goes, so its page shows
+ * "Study not found", and its id is kept in published_takedowns so it cannot be published again.
+ * Only that one study is touched; the writer keeps their own copy in the app. Reports reach the
+ * admins by email (the page's "Report this study" link); nothing here records them.
  */
 export async function takeDownStudy(env: Env, id: string): Promise<boolean> {
   if (!ID.test(id)) return false;
   await schema(env);
-  const result = await env.DB.prepare("DELETE FROM published_studies WHERE id=?").bind(id).run();
-  return (result.meta.changes ?? 0) > 0;
+  // One transaction: the id is kept (only when the study is there) before its row goes.
+  const [, removed] = await env.DB.batch([
+    env.DB.prepare("INSERT OR IGNORE INTO published_takedowns(id,at) SELECT ?,? WHERE EXISTS (SELECT 1 FROM published_studies WHERE id=?)").bind(id, new Date().toISOString(), id),
+    env.DB.prepare("DELETE FROM published_studies WHERE id=?").bind(id),
+  ]);
+  return (removed.meta.changes ?? 0) > 0;
 }
-
-/** The admin takedown over HTTP: Telegram launch data (Authorization: tma …, a day old at most) from an ADMIN_IDS account. */
-publishedStudies.delete("/:id/admin", async c => {
-  const id = c.req.param("id");
-  if (!ID.test(id)) return c.json({ error: "invalid_id" }, 400);
-  const launch = (c.req.header("authorization") ?? "").match(/^tma\s+(.+)$/i)?.[1];
-  const data = launch && c.env.BOT_TOKEN ? await validateInitData(launch, c.env.BOT_TOKEN, SENSITIVE_MAX_AGE) : null;
-  if (!data?.user) return c.json({ error: "unauthorized" }, 401);
-  if (!isAdminId(c.env.ADMIN_IDS, data.user.id)) return c.json({ error: "admin_only" }, 403);
-  return c.json({ removed: await takeDownStudy(c.env, id) });
-});
 
 const escape = (value: string) => value.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]!);
 
@@ -143,7 +142,7 @@ export const REPORT_ADDRESS = "privacy@cyberjudah.io";
  * no tracking). The reader's own mail app sends it; the page runs no script and records nothing.
  */
 export const reportLink = (link: string, title: string) =>
-  `mailto:${REPORT_ADDRESS}?subject=${encodeURIComponent(`Report: ${title.slice(0, 150)}`)}&body=${encodeURIComponent(`Study: ${link}\n\nReason:\n`)}`;
+  `mailto:${REPORT_ADDRESS}?subject=${encodeURIComponent(`Report: ${Array.from(title).slice(0, 150).join("")}`)}&body=${encodeURIComponent(`Study: ${link}\n\nReason:\n`)}`;
 
 const page = (status: number, title: string, inner: string, footer = "") => new Response(
   `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(title)}</title><style>${STYLE}</style></head><body><main>${inner}<footer><p>Written in the CyberJudah app.</p>${footer}</footer></main></body></html>`,
