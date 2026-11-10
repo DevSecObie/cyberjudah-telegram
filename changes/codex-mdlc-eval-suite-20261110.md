@@ -1,0 +1,1 @@
+- Add offline Ask evaluation reports and adversarial and benign guardrail checks for prompt injection (OWASP LLM01), disclosure (LLM02), tool abuse (LLM06) and unbounded requests (LLM10). Live staging model runs stay off by default.
