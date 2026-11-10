@@ -51,14 +51,22 @@ export const pictureLines = (text: string) => text.match(PICTURE) ?? [];
 
 // The one image form kept: ![alt](src) on one line, alt without brackets, src an exact allowed path.
 const KEEPABLE = /!\[([^\[\]\n]*)\]\(([^()\s<>"']+)\)/g;
-// HTML, removed whole: a comment, or anything from "<" then a letter, "/", "!" or "?" to the next ">"
-// (whatever its attributes hold, "<" and "/" separators included). Kept: an exact <br> and a markdown
-// autolink (<https://...>). A "<" left before a letter etc. with no ">" (an unfinished tag) is dropped,
-// so nothing tag-like reaches a reader; "a < b" with a space is untouched.
-const HTML_COMMENT = /<!--[\s\S]*?(?:-->|$)/g;
-const HTML_TAG = /<[A-Za-z/!?][^>]*>/g;
-const KEEP_TAG = /^(?:<br\s*\/?>|<https?:\/\/[^\s<>"]+>)$/i;
+// HTML, removed whole: a closed comment, or anything from "<" then a letter, "/", "!" or "?" to the next
+// ">" on the same line (whatever its attributes hold, "<" and "/" separators included). Kept: an exact <br>
+// and a markdown autolink (<https://...>, <mailto:...>, <name@host>). A "<" left before a letter etc.
+// with no ">" on its line (an unfinished tag, or "Jacob<Israel") loses only that "<", so nothing
+// tag-like reaches a reader and no text past the line is touched; "a < b" with a space is untouched.
+const HTML_COMMENT = /<!--[\s\S]*?-->/g;
+const HTML_TAG = /<[A-Za-z/!?][^>\n]*>/g;
+const KEEP_TAG = /^(?:<br\s*\/?>|<(?:https?:\/\/|mailto:)[^\s<>"]+>|<[^\s<>@"/]+@[^\s<>@"/]+>)$/i;
 const OPEN_TAG = /<(?=[A-Za-z/!?])/g;
+// The kept-piece mark's nonce: one per isolate, never known to an answer's writer. Made on first use
+// (Workers don't allow random values at global scope).
+let marking: { nonce: string; marked: RegExp } | null = null;
+const marks = () => {
+  if (!marking) { const nonce = crypto.randomUUID().slice(0, 8); marking = { nonce, marked: new RegExp(`\uE000${nonce}:(\\d+)\uE001`, "g") }; }
+  return marking;
+};
 // Any other image written whole on one line (titled, empty, angle-bracketed, by reference): its alt text.
 const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\[[^\[\]\n]*\])/g;
 
@@ -70,8 +78,8 @@ const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\
 export function onlyGivenPictures(answer: string, allowed: Set<string>): { text: string; dropped: number } {
   let dropped = 0;
   const kept: string[] = [];
-  // Kept pieces stand aside under a mark no answer can hold (private-use characters and a fresh nonce).
-  const nonce = crypto.randomUUID().slice(0, 8);
+  // Kept pieces stand aside under a mark no answer can hold (private-use characters and a nonce).
+  const { nonce, marked } = marks();
   const mark = (whole: string) => { kept.push(whole); return `\uE000${nonce}:${kept.length - 1}\uE001`; };
   let text = answer.replace(KEEPABLE, (whole, alt: string, src: string) => {
     if (allowed.has(src) && isAppPicture(src)) return mark(whole);
@@ -83,7 +91,7 @@ export function onlyGivenPictures(answer: string, allowed: Set<string>): { text:
   text = text.replace(HTML_COMMENT, () => { dropped++; return ""; });
   text = text.replace(HTML_TAG, (tag) => (KEEP_TAG.test(tag) ? mark(tag) : (dropped++, "")));
   text = text.replace(OPEN_TAG, () => { dropped++; return ""; });
-  text = text.replace(new RegExp(`\uE000${nonce}:(\\d+)\uE001`, "g"), (_m, i: string) => kept[Number(i)]);
+  text = text.replace(marked, (_m, i: string) => kept[Number(i)]);
   return { text, dropped };
 }
 
@@ -112,7 +120,7 @@ export const FINAL_STEP = 1;
 export async function finalAnswer(env: Env, answer: string, options: FinalOptions = {}): Promise<string> {
   if (!answer) return answer;
   const evidence = [...(options.evidence ?? []), ...(options.trustOwnPictures ? ownPictures(answer) : [])];
-  const { text, dropped } = /!\[|<[A-Za-z!/]/.test(answer) ? onlyGivenPictures(answer, picturesIn(evidence)) : { text: answer, dropped: 0 };
+  const { text, dropped } = /!\[|<[A-Za-z!/?]/.test(answer) ? onlyGivenPictures(answer, picturesIn(evidence)) : { text: answer, dropped: 0 };
   if (dropped) console.log(JSON.stringify({ event: "ask_picture_guard", dropped }));
   const r = await checkedVerses(env, text);
   if (options.status && !r.verified) options.status.verified = false;
@@ -120,7 +128,10 @@ export async function finalAnswer(env: Env, answer: string, options: FinalOption
 }
 
 /** Evidence for finalAnswer from a run's passages (their text and title). */
-export const passageEvidence = (passages: readonly { title?: string; text?: string }[] = []) => passages.flatMap((p) => [p.title, p.text]);
+export const passageEvidence = (passages: readonly { title?: string; text?: string; kind?: string }[] = []) =>
+  passages.filter((p) => !OUTSIDE.has(p.kind ?? "")).flatMap((p) => [p.title, p.text]);
+/** Passages from outside the app (outside_source's web pages): their text never allows a picture. */
+const OUTSIDE = new Set(["web"]);
 
 /**
  * Guards a streamed answer as it is sent: text goes out as it comes, except from where an image ("![")

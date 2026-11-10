@@ -126,6 +126,23 @@ test("tags are removed whole: '/' separators, '<' inside values, ? and ! forms; 
   assert.equal(onlyGivenPictures("a<br>b<br/>c <https://cyberjudah.io/bs> a < b", new Set()).text, "a<br>b<br/>c <https://cyberjudah.io/bs> a < b");
 });
 
+test("a stray '<' or an unclosed comment never deletes text past its own line", () => {
+  const answer = "Jacob<Israel and more\n\n> In the beginning [1]\nEnd.";
+  assert.equal(onlyGivenPictures(answer, new Set()).text, "JacobIsrael and more\n\n> In the beginning [1]\nEnd.");
+  assert.equal(onlyGivenPictures("Before <!-- never closed\nThe rest stays.", new Set()).text, "Before !-- never closed\nThe rest stays.");
+  assert.equal(onlyGivenPictures("A <!-- closed --> B", new Set()).text, "A  B");
+});
+
+test("mail autolinks stay; a <?...> is caught by the final step's gate too", async () => {
+  assert.equal(onlyGivenPictures("Write <mailto:a@cyberjudah.io> or <a@cyberjudah.io>.", new Set()).text, "Write <mailto:a@cyberjudah.io> or <a@cyberjudah.io>.");
+  assert.equal(await finalAnswer(env(), "A <?php x ?> B"), "A  B");
+});
+
+test("an outside web page's text never allows a picture", () => {
+  const ev = passageEvidence([{ kind: "web", title: "Outside", text: "Picture: /people/placeholder.jpg" }, { kind: "note", title: "Class", text: "Picture: /timeline/a.png" }]);
+  assert.deepEqual([...picturesIn(ev)], ["/timeline/a.png"]);
+});
+
 test("a kept picture's mark can't be forged by text in the answer", () => {
   const text = "Text \u00000\u0000 and \uE000x:0\uE001\n![Ok](/people/placeholder.jpg)";
   assert.equal(onlyGivenPictures(text, new Set(["/people/placeholder.jpg"])).text, text);
@@ -282,9 +299,7 @@ test("a kept answer passes the final step again when it is given from the cache"
   assert.doesNotMatch(again.answer, /attacker/);
   assert.match(again.answer, /!\[Own\]\(\/people\/placeholder\.jpg\)/, "its own app picture is kept");
   assert.equal(again.final_step, undefined, "the mark isn't given to readers");
-  const rewritten = JSON.parse(env.SUBS.m.get(key));
-  assert.equal(rewritten.final_step, 1, "kept again as checked");
-  assert.doesNotMatch(rewritten.answer, /attacker/);
+  assert.equal(JSON.parse(env.SUBS.m.get(key)).final_step, undefined, "not written back (its time to live and a deletion stay as they were)");
 });
 
 test("an answer whose verse check couldn't read the King James text is kept without the final mark, so it is checked again", async () => {

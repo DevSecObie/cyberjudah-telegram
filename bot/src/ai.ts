@@ -333,8 +333,9 @@ async function keptFinal<T extends { answer: string; sources: (Passage & { n: nu
   const status = { verified: true };
   const checked = await finalAnswer(env, kept.answer, { evidence: passageEvidence(kept.sources), trustOwnPictures: true, status });
   const given = (checked === kept.answer ? answer : { ...answer, answer: checked, ...citationMetadata(checked, kept.sources) }) as unknown as T;
-  // Kept again as checked, so the next reader's hit needn't check it (only when the check could read the KJV).
-  if (status.verified) await keepAnswer(env, key, { ...given, final_step: FINAL_STEP });
+  // Not written back: a re-put would reset the entry's time to live, and could bring back one that was
+  // deleted (a reported answer) in the meantime. An old entry is checked on each hit until it expires.
+  void key;
   return given;
 }
 
@@ -694,6 +695,7 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
       try {
         const ran = await write(true);
         retries = 1;
+        status.verified = true;       // the retry's own check decides (the first draft is gone)
         ({ answer, followups, drafted } = await clean(ran.text));
       } catch (e) {
         // Insufficient remaining reservation is an honest uncited result; transport failures
