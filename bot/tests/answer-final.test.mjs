@@ -11,9 +11,9 @@ await build({ entryPoints: [new URL("../src/answer-final.ts", import.meta.url).p
   b.onResolve({ filter: /^\.\/data$/ }, () => ({ path: "data", namespace: "fixture" }));
   b.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({ loader: "js", contents:
     `export async function books(env) { env.lookups.push("books"); return [{ book: "Exodus", slug: "exodus", chapters: 40 }]; }
-     export async function chapter(env, slug, ch) { env.lookups.push(slug + "/" + ch); return { verses: [{ verse: 14, text: "Placeholder verse text for the test." }] }; }` }));
+     export async function chapter(env, slug, ch) { env.lookups.push(slug + "/" + ch); if (env.unreadable) throw new Error("R2 down"); return { verses: [{ verse: 14, text: "Placeholder verse text for the test." }] }; }` }));
 } }] });
-const { finalAnswer, onlyGivenPictures, picturesIn, passageEvidence, pictureLines, pictureStream, guardedStream } = await import(out);
+const { finalAnswer, checkedVerses, onlyGivenPictures, picturesIn, passageEvidence, pictureLines, pictureStream, guardedStream } = await import(out);
 const env = () => ({ lookups: [] });
 
 test("a picture a tool gave is kept; any other image becomes its alt text", async () => {
@@ -57,6 +57,21 @@ test("a misquoted verse is corrected to the King James text in the final step", 
   assert.match(text, /^> Placeholder verse text for the test\. \*\*Exodus 12:14\*\*/m);
   assert.doesNotMatch(text, /made up/);
   assert.deepEqual(e.lookups, ["books", "exodus/12"]);
+});
+
+test("when a chapter can't be read, the quote stays as written and the check says it wasn't verified", async () => {
+  const quote = "Intro.\n> Words the model made up. **Exodus 12:14**\nEnd.";
+  const e = { ...env(), unreadable: true };
+  const r = await checkedVerses(e, quote);
+  assert.equal(r.text, quote);
+  assert.equal(r.verified, false);
+  const status = { verified: true };
+  assert.equal(await finalAnswer(e, quote, { status }), quote);
+  assert.equal(status.verified, false, "finalAnswer reports it");
+  const ok = { verified: true };
+  await finalAnswer(env(), quote, { status: ok });
+  assert.equal(ok.verified, true);
+  assert.equal((await checkedVerses(env(), "No quote here.")).verified, true);
 });
 
 test("an owner-approved answer's own app pictures are trusted, and only those", async () => {
@@ -243,4 +258,16 @@ test("a kept answer passes the final step again when it is given from the cache"
   assert.doesNotMatch(again.answer, /attacker/);
   assert.match(again.answer, /!\[Own\]\(\/people\/placeholder\.jpg\)/, "its own app picture is kept");
   assert.equal(again.final_step, undefined, "the mark isn't given to readers");
+});
+
+test("an answer whose verse check couldn't read the King James text is kept without the final mark, so it is checked again", async () => {
+  const draft = "Keep it [1].\n> Placeholder quote words here. **Exodus 12:14**";
+  const env = { DB: d1(), SUBS: kv(), PRIVACY_KEY: "test-key", AI_GATEWAY: "fixture", draft,
+    ASK_FREE_MODEL: "@cf/google/gemma-4-26b-a4b-it", ASK_FREE_MODELS: "@cf/google/gemma-4-26b-a4b-it",
+    AI: { run: async () => ({ data: [[0.1, 0.2]] }) }, VEC: { query: async () => ({ matches: [] }) } };
+  // No data store in this env: books() and chapter() can't be read.
+  const r = await answerAppAgent(env, "Why do we keep the Passover?", "acct-unread", [], ["Cloudflare (Workers AI)"], {});
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const [[, value]] = [...env.SUBS.m.entries()].filter(([k]) => k.startsWith("ask_cache:"));
+  assert.equal(JSON.parse(value).final_step, undefined, "not marked final: the next hit checks it again");
 });

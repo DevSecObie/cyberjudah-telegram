@@ -23,6 +23,8 @@ export type FinalOptions = {
   evidence?: Iterable<string | undefined | null>;
   /** An owner-approved answer: its own app picture paths are trusted (still only the app's picture files). */
   trustOwnPictures?: boolean;
+  /** Set false when the verse check couldn't read the King James text (the answer then isn't kept as final). */
+  status?: { verified: boolean };
 };
 
 /** The app's own picture files (kept in step with app/src/lib/safe-links.ts APP_PICTURE). */
@@ -74,14 +76,20 @@ export function onlyGivenPictures(answer: string, allowed: Set<string>): { text:
   return { text, dropped };
 }
 
-/** The answer with every quoted verse checked against the King James text (verse-guard.mjs). */
-export async function checkedVerses(env: Env, answer: string): Promise<string> {
-  if (!/^>/m.test(answer)) return answer;
+/** The answer with every quoted verse checked against the King James text (verse-guard.mjs), and
+ *  whether the check could read what it needed. It fails open: when the books or a chapter can't be
+ *  read, the quote stays as written and `verified` is false (so the answer isn't kept as final). */
+export async function checkedVerses(env: Env, answer: string): Promise<{ text: string; verified: boolean }> {
+  if (!/^>/m.test(answer)) return { text: answer, verified: true };
+  let failed = false;
   try {
-    const r = await guardVerses(answer, await books(env).catch(() => null), (slug, ch) => chapter(env, slug, ch));
+    const list = await books(env).catch(() => null);
+    if (!list) return { text: answer, verified: false };
+    const r = await guardVerses(answer, list, (slug, ch) => chapter(env, slug, ch).catch((e) => { failed = true; throw e; }));
     if (r.fixed || r.removed) console.log(JSON.stringify({ event: "ask_verse_guard", checked: r.checked, fixed: r.fixed, removed: r.removed }));
-    return r.text;
-  } catch { return answer; }
+    if (failed) console.log(JSON.stringify({ event: "ask_verse_guard_unread" }));
+    return { text: r.text, verified: !failed };
+  } catch { return { text: answer, verified: false }; }
 }
 
 const ownPictures = (answer: string) => [...answer.matchAll(KEEPABLE)].map((m) => `Picture: ${m[2]}`);
@@ -95,7 +103,9 @@ export async function finalAnswer(env: Env, answer: string, options: FinalOption
   const evidence = [...(options.evidence ?? []), ...(options.trustOwnPictures ? ownPictures(answer) : [])];
   const { text, dropped } = /!\[|<[A-Za-z!/]/.test(answer) ? onlyGivenPictures(answer, picturesIn(evidence)) : { text: answer, dropped: 0 };
   if (dropped) console.log(JSON.stringify({ event: "ask_picture_guard", dropped }));
-  return checkedVerses(env, text);
+  const r = await checkedVerses(env, text);
+  if (options.status && !r.verified) options.status.verified = false;
+  return r.text;
 }
 
 /** Evidence for finalAnswer from a run's passages (their text and title). */
