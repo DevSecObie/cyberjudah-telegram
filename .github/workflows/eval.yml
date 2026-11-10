@@ -65,7 +65,7 @@ on:
         type: boolean
         default: false
       models:
-        description: Comma-separated catalog IDs (required for live; at most eight)
+        description: Comma-separated Workers AI catalog IDs (required for live; at most eight)
         type: string
         default: ''
 

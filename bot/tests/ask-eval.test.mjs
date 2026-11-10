@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { options, liveSettings, liveRun, runMatrix } from '../scripts/eval-ask.mjs';
+import { options, liveSettings, liveRun, runMatrix, main } from '../scripts/eval-ask.mjs';
 import { evaluateAnswer, offlineChecks, summarize, versionsOf, identityFree, markdown, boundaryChecks } from '../evals/ask-eval.mjs';
 import { untrustedData } from '../src/grounding.mjs';
 import { MODELS } from '../../shared/ask-models.mjs';
 const load = name => JSON.parse(readFileSync(new URL(`../evals/${name}.json`, import.meta.url)));
 const redteam = load('redteam'), recorded = load('guardrail-recorded');
-const models = MODELS.slice(0, 2);
+const models = MODELS.filter(model => model.provider === 'Cloudflare (Workers AI)').slice(0, 2);
 const env = { ASK_EVAL_LIVE_ENABLED: 'true', ASK_URL: 'https://cyberjudah-telegram-staging.oisrae1.workers.dev', ASK_TOKEN: 'not-a-token', ASK_EVAL_BUDGET_USD: '1', ASK_EVAL_SERVER_CEILING_USD: '0.01', ASK_EVAL_MAX_REQUESTS: '100' };
 const books = [{ book: 'Exodus', slug: 'exodus', chapters: 40 }];
 const response = value => ({ ok: true, json: async () => value });
@@ -27,6 +27,32 @@ test('live gates fail closed for missing approval, token, budget, ceiling, produ
   assert.equal(liveSettings(env, 10, models).requests, 20);
   for (const changes of [{ ASK_EVAL_LIVE_ENABLED: '' }, { ASK_TOKEN: '' }, { ASK_EVAL_BUDGET_USD: 'NaN' }, { ASK_EVAL_SERVER_CEILING_USD: '' }, { ASK_EVAL_MAX_REQUESTS: '1' }, { ASK_EVAL_BUDGET_USD: '0.01' }, { ASK_URL: 'https://cyberjudah.io' }, { ASK_URL: env.ASK_URL + '/api' }, { ASK_URL: env.ASK_URL + '?key=private' }, { ASK_URL: 'https://cyberjudah-telegram-staging.example.workers.dev.evil.test' }]) assert.throws(() => liveSettings({ ...env, ...changes }, 10, models));
   assert.throws(() => liveSettings(env, 10, []));
+});
+
+test('live model policy checks the catalog provider for every model, including mixed lists', () => {
+  const outside = MODELS.filter(model => model.provider !== 'Cloudflare (Workers AI)');
+  assert.ok(outside.length && models.length === 2);
+  for (const model of MODELS) {
+    if (model.provider === 'Cloudflare (Workers AI)') assert.doesNotThrow(() => liveSettings(env, 1, [model]));
+    else assert.throws(() => liveSettings(env, 1, [model]), /Workers AI models only/);
+  }
+  for (const mixed of [[models[0], outside[0]], [outside[0], models[0]]]) assert.throws(() => liveSettings(env, 1, mixed), /Workers AI models only/);
+  assert.throws(() => liveSettings(env, 1, [{ ...outside[0], id: '@cf/claimed-free-model' }]), /Workers AI models only/);
+});
+
+test('the CLI and CI models input reject disallowed and unknown models before any request', async t => {
+  const outside = MODELS.find(model => model.provider !== 'Cloudflare (Workers AI)');
+  const before = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = async () => { requests++; throw new Error('Network forbidden'); };
+  t.after(() => { globalThis.fetch = before; });
+  for (const args of [
+    ['--live', '--model', outside.id],
+    ['--live', '--models', `${models[0].id},${outside.id}`],
+    ['--live', '--models', `${outside.id},${models[0].id}`],
+  ]) await assert.rejects(main(args, env), /Workers AI models only/);
+  await assert.rejects(main(['--live', '--models', `${models[0].id},unknown-model`], env), /Unknown model id/);
+  assert.equal(requests, 0);
 });
 
 test('recorded safety checker catches both attack bypasses and false refusals offline', () => {

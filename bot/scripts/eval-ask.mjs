@@ -13,6 +13,7 @@ import { citationPattern } from '../src/citations.mjs';
 import { evaluateAnswer, offlineChecks, summarize, markdown, versionsOf } from '../evals/ask-eval.mjs';
 const root = new URL('../../', import.meta.url);
 const load = name => JSON.parse(readFileSync(new URL(`../evals/${name}.json`, import.meta.url), 'utf8'));
+const LIVE_PROVIDER = 'Cloudflare (Workers AI)';
 
 export function options(args) {
   const out = { live: false, study: false, models: [] };
@@ -40,6 +41,7 @@ export function options(args) {
 export function liveSettings(env, count, models) {
   if (env.ASK_EVAL_LIVE_ENABLED !== 'true') throw new Error('Live eval is disabled. Owner approval is required.');
   if (!models.length) throw new Error('Live eval requires explicit --model or --models.');
+  if (models.some(model => model.provider !== LIVE_PROVIDER)) throw new Error('Live staging evals allow Workers AI models only.');
   let url;
   try { url = new URL(env.ASK_URL); } catch { throw new Error('Set the staging ASK_URL origin.'); }
   if (url.origin !== 'https://cyberjudah-telegram-staging.oisrae1.workers.dev' || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error('Only the staging Worker origin is permitted.');
@@ -83,7 +85,7 @@ export async function liveRun(items, model, settings, study, fetcher = fetch, ov
     const start = Date.now();
     let body;
     try {
-      body = await json(fetcher, `${settings.base}/api/app/ask`, { method: 'POST', headers: { authorization: `Bearer ${settings.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ q: item.q, history: item.history ?? [], consent: [...new Set([model.provider, 'Cloudflare (Workers AI)'])], model: model.id, ...(study ? { ui: 'study-v1' } : {}) }) });
+      body = await json(fetcher, `${settings.base}/api/app/ask`, { method: 'POST', headers: { authorization: `Bearer ${settings.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ q: item.q, history: item.history ?? [], consent: [...new Set([model.provider, LIVE_PROVIDER])], model: model.id, ...(study ? { ui: 'study-v1' } : {}) }) });
       if (typeof body?.answer !== 'string' || !body.answer.trim()) throw new ReadFailure('invalid-answer');
     } catch (error) {
       // Retain bounded failure categories/status, never server bodies or exception messages.
