@@ -244,3 +244,16 @@ test('a pronoun is not a word to define: meaning follow-ups are never quick, at 
   for (const q of ['what does mercy mean', 'what does Hebrew mean?', 'meaning of theophany', 'definition of mercy', 'define heresy', 'what is ithiel', "what's shiloh?"]) assert.equal(api.depthOf(q, 4), 'quick', `${q}: a word, including one that starts like a pronoun`);
   assert.equal(api.depthOf('the sabbath day'), 'quick', 'a short phrase with no pronoun stays quick');
 });
+
+test('the one-piece JSON answer names its versions, with the model that wrote it (#600)', async t => {
+  const { env } = setup(t);
+  await funded(env, 1_000_000);
+  const response = await request(env, { q: 'Explain the historical evidence', consent: ['Anthropic', 'Cloudflare (Workers AI)'] });
+  const body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.ok, true);
+  assert.equal(env.calls.length, 1);
+  assert.ok(body.versions && typeof body.versions === 'object', 'versions is present');
+  assert.deepEqual(Object.keys(body.versions).sort(), ['corpus', 'model', 'policy', 'prompt']);
+  assert.equal(body.versions.model, env.calls[0].model, 'versions names the model that wrote the answer');
+});
