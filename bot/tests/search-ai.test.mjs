@@ -711,14 +711,14 @@ test('an admin failure with complete usage releases its unused daily reservation
 
 // When Claude fails for a reader, the free model may answer only with the reader's agreement to its
 // provider, decided before Claude's meter settles. Without it nothing more is sent, and Claude's
-// reservation goes back to its pool when Claude refused before writing (429, 529: nothing billed);
-// after a server error it is kept whole, since tokens may have been billed. A fallback that runs keeps it.
+// reservation goes back to its pool when Claude refused outright (a 4xx: nothing billed); after a
+// server error, 529 overloaded included, it is kept whole, since tokens may have been billed. A fallback that runs keeps it.
 test("a failed Claude for a reader without agreement to the free provider releases Claude's reservation only when nothing was billed", async t => {
   let status = 429;
-  const claude = createServer((_req, res) => { res.writeHead(status, { "content-type": "application/json", "x-should-retry": "false" }); res.end(JSON.stringify({ type: "error", error: { type: status === 429 ? "rate_limit_error" : status === 529 ? "overloaded_error" : "api_error", message: "fixture" } })); });
+  const claude = createServer((_req, res) => { res.writeHead(status, { "content-type": "application/json", "x-should-retry": "false" }); res.end(JSON.stringify({ type: "error", error: { type: status === 429 ? "rate_limit_error" : status === 529 ? "overloaded_error" : status === 403 ? "permission_error" : "api_error", message: "fixture" } })); });
   await new Promise(resolve => claude.listen(0, "127.0.0.1", resolve));
   t.after(() => new Promise(resolve => claude.close(resolve)));
-  for (const [code, agreed, released] of [[429, false, true], [529, false, true], [500, false, false], [429, true, false]]) {
+  for (const [code, agreed, released] of [[429, false, true], [403, false, true], [529, false, false], [500, false, false], [429, true, false]]) {
     status = code;
     const sent = [];
     const e = { ...claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5" }), AI_GATEWAY: "default", ANTHROPIC_BASE_URL: `http://127.0.0.1:${claude.address().port}`,
