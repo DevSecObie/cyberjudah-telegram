@@ -1,72 +1,184 @@
 #!/usr/bin/env node
-/**
- * Ask CyberJudah's test set (evals/ask-questions.json), run against a deployed Ask, usually staging,
- * before a change ships. It asks each question as the app does and checks each answer mechanically:
- * that it answered, that every [n] it cites is a source it was given, that every verse it quotes is
- * the King James text word for word (src/verse-guard.mjs), that it names what it was asked about,
- * that it says plainly when the library has nothing, that greetings are short, and that no model or
- * company name or softening disclaimer appears. It writes a Markdown report; nothing is stored.
- *
- *   ASK_URL=https://cyberjudah-telegram-staging.<subdomain>.workers.dev \
- *   ASK_TOKEN=<a Firebase ID token of a test account> node scripts/eval-ask.mjs [--study] [--model id] > report.md
- *
- * The token is read from the environment only and never printed.
+/** Offline by default. CLI live mode uses env acknowledgments, not an identity/approval check.
+ * Owner-approved budget/ceiling are required before use. CI additionally gates on staging review.
  */
-import { readFileSync } from "node:fs";
-import { guardVerses } from "../src/verse-guard.mjs";
+import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { pathToFileURL } from 'node:url';
+import { randomUUID } from 'node:crypto';
+import { MODELS } from '../../shared/ask-models.mjs';
+import { guardVerses } from '../src/verse-guard.mjs';
+import { parseReference } from '../src/refs.mjs';
+import { citationPattern } from '../src/citations.mjs';
+import { evaluateAnswer, offlineChecks, summarize, markdown, versionsOf } from '../evals/ask-eval.mjs';
+const root = new URL('../../', import.meta.url);
+const load = name => JSON.parse(readFileSync(new URL(`../evals/${name}.json`, import.meta.url), 'utf8'));
+const LIVE_PROVIDER = 'Cloudflare (Workers AI)';
 
-const base = process.env.ASK_URL?.replace(/\/$/, "");
-const token = process.env.ASK_TOKEN;
-const data = process.env.DATA_ORIGIN || "https://data.cyberjudah.io";
-if (!base || !token) { console.error("Set ASK_URL and ASK_TOKEN."); process.exit(2); }
-const args = process.argv.slice(2);
-const study = args.includes("--study");
-const model = args.includes("--model") ? args[args.indexOf("--model") + 1] : undefined;
-const { questions } = JSON.parse(readFileSync(new URL("../evals/ask-questions.json", import.meta.url), "utf8"));
-
-const get = async (path) => { const r = await fetch(`${data}${path}`); return r.ok ? r.json() : null; };
-const books = await get("/api/kjv/books.json");
-const chapters = new Map();
-const chapter = async (slug, ch) => { const k = `${slug}/${ch}`; if (!chapters.has(k)) chapters.set(k, await get(`/api/kjv/${k}.json`)); return chapters.get(k); };
-
-// Names that must never appear in an answer (the product carries no AI model or company names), and
-// disclaimers that soften or hedge instead of teaching.
-const BANNED = [/\b(claude|chatgpt|gpt-?\d|openai|anthropic|llama|gemma|deepseek|gemini|qwen)\b/i, /\bas an ai\b/i, /\blanguage model\b/i, /\bsome (people|scholars|christians) believe\b/i, /\bchristian pastor\b/i, /\bBishop Nathanael\b/];
-const GAP = /(not (find|found|covered|in the library)|does not (cover|say|have)|doesn['’]t (cover|have|say)|nothing (on|about) (that|this)|isn['’]t (covered|in)|no (material|passages|teaching) (on|about)|what i('m| am) for|only answer)/i;
-
-const rows = [];
-for (const item of questions) {
-  const t0 = Date.now();
-  let res, body;
-  try {
-    res = await fetch(`${base}/api/app/ask`, { method: "POST", headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ q: item.q, history: item.history ?? [], consent: ["Cloudflare (Workers AI)"], ...(study ? { ui: "study-v1" } : {}), ...(model ? { model } : {}) }) });
-    body = await res.json().catch(() => null);
-  } catch (e) { body = { error: String(e.message ?? e).slice(0, 80) }; }
-  const ms = Date.now() - t0;
-  const answer = String(body?.answer ?? "");
-  const sources = Array.isArray(body?.sources) ? body.sources : [];
-  const fails = [];
-  if (!res?.ok || !answer) fails.push(`no answer (${res?.status ?? "network"} ${body?.error ?? ""})`);
-  const cited = [...answer.matchAll(/\[(\d{1,2})\]/g)].map((m) => Number(m[1]));
-  const numbers = new Set(sources.map((s) => s.n));
-  const stray = cited.filter((n) => !numbers.has(n));
-  if (stray.length) fails.push(`cites sources it was not given: ${[...new Set(stray)].join(", ")}`);
-  const guard = answer ? await guardVerses(answer, books, chapter) : { checked: 0, fixed: 0, removed: 0 };
-  if (guard.fixed || guard.removed) fails.push(`${guard.fixed + guard.removed} verse(s) not quoted word for word`);
-  for (const word of item.mention ?? []) if (!answer.toLowerCase().includes(word.toLowerCase())) fails.push(`does not mention “${word}”`);
-  for (const kind of item.cites ?? []) if (!sources.some((s) => s.kind === kind)) fails.push(`no ${kind} source`);
-  if (item.gap && !GAP.test(answer)) fails.push("does not say plainly that the library does not cover it");
-  if (item.short && answer.split(/\s+/).length > 80) fails.push(`too long for a greeting (${answer.split(/\s+/).length} words)`);
-  if (item.parts && (answer.match(/^#{2,3} /gm)?.length ?? 0) < item.parts && answer.split(/\n\n/).length < item.parts + 1) fails.push(`may not answer all ${item.parts} parts`);
-  for (const re of BANNED) if (re.test(answer)) fails.push(`contains a banned phrase (${re.source})`);
-  rows.push({ id: item.id, ms, words: answer.split(/\s+/).filter(Boolean).length, sources: sources.length, verses: guard.checked, fails });
+export function options(args) {
+  const out = { live: false, study: false, models: [] };
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--live') out.live = true;
+    else if (arg === '--offline') out.offline = true;
+    else if (arg === '--study') out.study = true;
+    else if (arg === '--model' || arg === '--models') {
+      if (out.models.length || !args[i + 1] || args[i + 1].startsWith('--')) throw new Error('Specify one --model or comma-separated --models list.');
+      out.models = args[++i].split(',').map(id => {
+        const model = MODELS.find(m => m.id === id || m.native === id);
+        if (!model) throw new Error('Unknown model id.');
+        return model;
+      });
+      if (arg === '--model' && out.models.length !== 1) throw new Error('--model takes one model.');
+    } else throw new Error('Unknown option. Use --offline or --live [--study] --models id,id.');
+  }
+  if (out.live && out.offline) throw new Error('Choose offline or live.');
+  if (out.models.length > 8 || new Set(out.models.map(m => m.id)).size !== out.models.length) throw new Error('Use 1–8 distinct models.');
+  if (!out.live && out.models.length) throw new Error('Model matrices require --live; offline checks do not evaluate models.');
+  return out;
 }
 
-const passed = rows.filter((r) => !r.fails.length).length;
-const median = [...rows.map((r) => r.ms)].sort((a, b) => a - b)[Math.floor(rows.length / 2)];
-console.log(`# Ask test set: ${passed}/${rows.length} passed${study ? " (study mode)" : ""}${model ? ` on ${model}` : ""}\n`);
-console.log(`Median time ${(median / 1000).toFixed(1)} s.\n`);
-console.log("| Question | Result | Time | Words | Sources | Verses checked |\n|---|---|---|---|---|---|");
-for (const r of rows) console.log(`| ${r.id} | ${r.fails.length ? `✗ ${r.fails.join("; ")}` : "✓"} | ${(r.ms / 1000).toFixed(1)} s | ${r.words} | ${r.sources} | ${r.verses} |`);
-process.exit(passed === rows.length ? 0 : 1);
+export function liveSettings(env, count, models) {
+  if (env.ASK_EVAL_LIVE_ENABLED !== 'true') throw new Error('Live eval is disabled. Owner approval is required.');
+  if (!models.length) throw new Error('Live eval requires explicit --model or --models.');
+  if (models.some(model => model.provider !== LIVE_PROVIDER)) throw new Error('Live staging evals allow Workers AI models only.');
+  let url;
+  try { url = new URL(env.ASK_URL); } catch { throw new Error('Set the staging ASK_URL origin.'); }
+  if (url.origin !== 'https://cyberjudah-telegram-staging.oisrae1.workers.dev' || url.username || url.password || url.search || url.hash || url.pathname !== '/') throw new Error('Only the staging Worker origin is permitted.');
+  let data;
+  try { data = new URL(env.DATA_ORIGIN || 'https://data.cyberjudah.io'); } catch { throw new Error('Invalid DATA_ORIGIN.'); }
+  if (data.protocol !== 'https:' || data.username || data.password || data.search || data.hash || data.pathname !== '/') throw new Error('DATA_ORIGIN must be an HTTPS origin.');
+  if (!env.ASK_TOKEN) throw new Error('Set ASK_TOKEN in the environment.');
+  const budget = Number(env.ASK_EVAL_BUDGET_USD), ceiling = Number(env.ASK_EVAL_SERVER_CEILING_USD), maxRequests = Number(env.ASK_EVAL_MAX_REQUESTS);
+  // The app endpoint has no budget field. The owner must verify the deployed ceiling includes
+  // fallback and tool costs. This reservation is not a runner-enforced dollar spending cap.
+  if (!Number.isFinite(budget) || budget <= 0 || !Number.isFinite(ceiling) || ceiling <= 0 || !Number.isSafeInteger(maxRequests) || maxRequests < 1 || maxRequests > 1000) throw new Error('Set positive budget, verified server ceiling and max requests (1–1000).');
+  const requests = count * models.length;
+  if (requests > maxRequests || requests * ceiling > budget + Number.EPSILON) throw new Error('Planned matrix exceeds the approved request or budget reservation.');
+  return { base: url.origin, data: data.origin, token: env.ASK_TOKEN, budget, ceiling, requests };
+}
+
+class ReadFailure extends Error {
+  constructor(reason, status) {
+    const httpStatus = Number.isInteger(status) && status >= 100 && status <= 599 ? status : null;
+    super(httpStatus ? `${reason} (HTTP ${httpStatus})` : reason);
+    this.reason = reason;
+    this.status = httpStatus;
+  }
+}
+
+async function json(fetcher, url, init = {}) {
+  let response;
+  try { response = await fetcher(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(90_000) }); }
+  catch { throw new ReadFailure('network'); }
+  if (!response.ok) throw new ReadFailure('http', response.status);
+  try { return await response.json(); }
+  catch { throw new ReadFailure('invalid-json', response.status); }
+}
+
+export async function liveRun(items, model, settings, study, fetcher = fetch, overrides = {}) {
+  const evaluators = { evaluateAnswer, guardVerses, versionsOf, ...overrides };
+  const rows = [], versions = [], chapters = new Map();
+  let books, consecutiveFailures = 0, completedCases = 0;
+  const data = settings.data ?? 'https://data.cyberjudah.io';
+  for (const item of items) {
+    const start = Date.now();
+    let body;
+    try {
+      body = await json(fetcher, `${settings.base}/api/app/ask`, { method: 'POST', headers: { authorization: `Bearer ${settings.token}`, 'content-type': 'application/json' }, body: JSON.stringify({ q: item.q, history: item.history ?? [], consent: [...new Set([model.provider, LIVE_PROVIDER])], model: model.id, ...(study ? { ui: 'study-v1' } : {}) }) });
+      if (typeof body?.answer !== 'string' || !body.answer.trim()) throw new ReadFailure('invalid-answer');
+    } catch (error) {
+      // Retain bounded failure categories/status, never server bodies or exception messages.
+      rows.push({ id: item.id, kind: item.kind ?? 'question', checks: [{ id: 'request-ok', pass: false, score: 0 }], failureReason: error instanceof ReadFailure ? error.reason : 'request-construction', httpStatus: error instanceof ReadFailure ? error.status : null, ms: Date.now() - start });
+      if (++consecutiveFailures >= 3) break;
+      continue;
+    }
+    completedCases++;
+    consecutiveFailures = 0;
+
+    // Checkers must never be classified as request outages or trip the request-failure cap.
+    let row, checker = 'answer';
+    try {
+      row = evaluators.evaluateAnswer(item, body);
+      checker = 'corpus-preflight';
+      let corpusAvailable = true;
+      try {
+        if (!books) {
+          const candidate = await json(fetcher, `${data}/api/kjv/books.json`);
+          if (!Array.isArray(candidate) || !candidate.length) throw new ReadFailure('invalid-corpus');
+          books = candidate;
+        }
+        // Preflight reads outside guardVerses, which swallows rejected chapter reads at runtime.
+        for (const line of body.answer.split('\n')) {
+          const match = /^>\s*(.+?)\s*\*\*([^*]{3,60}?)\*\*(.*?)\s*$/.exec(line);
+          if (!match || match[3].trim().replace(/^\.\s*/, '').replace(/\.$/, '').replace(citationPattern(), '').trim()) continue;
+          const ref = parseReference(match[2].replace(/\s*\(KJV\)\s*$/i, ''), books);
+          if (!ref?.verse) continue;
+          const key = `${ref.slug}/${ref.chapter}`;
+          if (!chapters.has(key)) {
+            const value = await json(fetcher, `${data}/api/kjv/${key}.json`);
+            if (!Array.isArray(value?.verses)) throw new ReadFailure('invalid-corpus');
+            chapters.set(key, value);
+          }
+        }
+      } catch (error) {
+        if (!(error instanceof ReadFailure)) throw error;
+        row.checks.push({ id: 'verse-corpus-available', pass: false, score: 0 });
+        row.corpusFailure = { reason: error.reason, httpStatus: error.status };
+        corpusAvailable = false;
+      }
+      if (corpusAvailable) {
+        checker = 'verse-guard';
+        const guard = await evaluators.guardVerses(body.answer, books, async (slug, ch) => chapters.get(`${slug}/${ch}`));
+        const exact = !guard.fixed && !guard.removed;
+        row.checks.push({ id: 'verse-exact', pass: exact, score: Number(exact) });
+        row.verses = guard.checked;
+      }
+      checker = 'versions';
+      row.versions = evaluators.versionsOf(body.versions, body.model);
+      row.writerOutcome = row.versions.model === 'unavailable' ? 'unavailable' : row.versions.model === 'approved' ? 'approved' : [model.id, model.native].includes(row.versions.model) ? 'requested' : 'different-writer';
+      versions.push(row.versions);
+    } catch {
+      row = { id: item.id, kind: item.kind ?? 'question', checker, checks: [{ id: 'checker-error', pass: false, score: 0 }] };
+    }
+    rows.push({ ...row, ms: Date.now() - start });
+  }
+  const skippedCases = items.length - rows.length;
+  return { scope: 'live-staging', requestedModel: model.id, study, plannedCases: items.length, attemptedCases: rows.length, completedCases, skippedCases, abortReason: skippedCases > 0 ? 'consecutive-request-failures' : null, versions, ...summarize(rows), rows };
+}
+
+export async function runMatrix(items, models, settings, study, saveRun, fetcher = fetch) {
+  for (const model of models) saveRun(await liveRun(items, model, settings, study, fetcher));
+}
+
+export async function main(args = process.argv.slice(2), env = process.env) {
+  const opts = options(args), redteam = load('redteam'), recorded = load('guardrail-recorded');
+  const items = [...load('ask-questions').questions, ...redteam.cases.filter(item => item.surface === 'question')];
+  const settings = opts.live ? liveSettings(env, items.length, opts.models) : null;
+  const date = new Date().toISOString();
+  const git = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  const dirty = !!execFileSync('git', ['status', '--porcelain', '--untracked-files=normal'], { cwd: root, encoding: 'utf8' }).trim();
+  const directory = new URL('../evals/results/', import.meta.url);
+  mkdirSync(directory, { recursive: true });
+  const prefix = `${date.replace(/[:.]/g, '-')}-${git.slice(0, 12)}-${randomUUID().slice(0, 8)}`;
+  const runs = [];
+  const saveRun = run => {
+    const index = runs.length;
+    const result = { schema: 1, date, git, gitScope: 'eval-checkout', deployedGit: null, dirty, goldenAnswers: 'owner-review-pending', releaseGate: 'off', ...(settings ? { requestedModels: opts.models.map(model => model.id), budgetReservation: { usd: settings.budget, verifiedServerCeilingUsd: settings.ceiling, plannedRequests: settings.requests, enforcedByRunner: false } } : {}), ...run };
+    writeFileSync(new URL(`${prefix}-${index}.json`, directory), `${JSON.stringify(result, null, 2)}\n`, { flag: 'wx' });
+    writeFileSync(new URL(`${prefix}-${index}.md`, directory), markdown({ date, git, dirty, runs: [run] }), { flag: 'wx' });
+    runs.push(run);
+    writeFileSync(new URL(`${prefix}.md`, directory), markdown({ date, git, dirty, runs }));
+  };
+  const offline = { scope: 'offline-boundary-and-checker-calibration', modelCalls: 0, requestedModel: null, versions: [], ...offlineChecks(redteam, recorded, load('grounding-recorded').cases) };
+  if (opts.live && offline.passed !== offline.total) offline.matrixAbortReason = 'offline-checks-failed';
+  saveRun(offline);
+  if (opts.live && runs[0].passed === runs[0].total) await runMatrix(items, opts.models, settings, opts.study, saveRun);
+  const report = markdown({ date, git, dirty, runs });
+  console.log(report);
+  return runs.every(run => run.passed === run.total && (!run.plannedCases || run.completedCases === run.plannedCases)) ? 0 : 1;
+}
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  try { process.exitCode = await main(); }
+  catch (error) { console.error(error.message); process.exitCode = 2; }
+}

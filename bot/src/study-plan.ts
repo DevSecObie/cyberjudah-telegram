@@ -240,19 +240,21 @@ export const nothingCovered = (plan: PlanPart[]): Coverage => ({ parts: plan.map
  * answer's own sources carry), why research ended, and, when a part is not covered, `partial` with
  * the unfinished parts. Optional and additive; within the Mini App's bounds.
  */
-export function studyFields(tracked: boolean, plan: PlanPart[], coverage: Coverage, cited?: Iterable<number>) {
+export type StudyFields = { plan?: { parts: Pick<PlanPart, "id" | "ask">[] }; coverage?: Coverage; partial?: true; unfinished?: Pick<PlanPart, "id" | "ask">[] };
+
+export function studyFields(tracked: boolean, plan: PlanPart[], coverage: Coverage, cited?: Iterable<number>, answer?: string): StudyFields {
   if (!tracked) return {};
   const keep = cited ? new Set(cited) : null;
-  const parts = coverage.parts.map((p) => {
+  const checked = answer === undefined ? coverage.parts : verifyAnswer(plan, coverage.parts, answer);
+  const parts = checked.map((p) => {
     const sources = (keep ? p.sources.filter((n) => keep.has(n)) : p.sources).slice(0, PART_MAX_SOURCES);
     return { ...p, sources, status: p.status === "covered" && !sources.length ? "partial" as const : p.status };
   });
   const open = parts.filter((p) => p.status !== "covered").map((p) => ({ id: p.id, ask: plan.find((x) => x.id === p.id)!.ask }));
-  const complete = coverage.complete && !open.length;
+  const complete = coverage.complete && !open.length && coverage.stopped === "covered";
   return {
     plan: { parts: plan.map(({ id, ask }) => ({ id, ask })) },
-    coverage: { ...coverage, parts, complete, stopped: complete ? "covered" as const : coverage.stopped === "covered" ? "not_found" as const : coverage.stopped },
+    coverage: { ...coverage, parts, complete, stopped: !complete && coverage.stopped === "covered" ? "not_found" as const : coverage.stopped },
     ...(complete ? {} : { partial: true, unfinished: open }),
   };
 }
-export type StudyFields = ReturnType<typeof studyFields>;

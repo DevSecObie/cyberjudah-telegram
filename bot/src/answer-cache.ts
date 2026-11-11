@@ -14,7 +14,16 @@ import { isCoverageGap } from "./grounding.mjs";
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
 // Refresh older answers when the conversational prompt changes; old entries expire normally.
-const PROMPT_REVISION = "depth-quote-citations-source-links-20261107";
+const PROMPT_REVISION = "study-completeness-v2";
+
+function incomplete(answer: unknown): boolean {
+  if (!answer || typeof answer !== "object") return false;
+  const value = answer as { partial?: boolean; cut?: boolean; unfinished?: unknown[]; coverage?: { complete?: boolean; stopped?: string; parts?: { status?: string }[] } };
+  if (value.partial === true || value.cut === true || value.unfinished?.length) return true;
+  if (!value.coverage) return false;
+  const coverage = value.coverage;
+  return coverage.complete !== true || coverage.stopped !== "covered" || !Array.isArray(coverage.parts) || !coverage.parts.length || coverage.parts.some(part => part?.status !== "covered");
+}
 
 export const normalizeQuestion = (q: string) => q.toLowerCase().replace(/[’']/g, "").replace(/[^\p{L}\p{N} ]+/gu, " ").replace(/\s+/g, " ").trim();
 
@@ -39,13 +48,15 @@ export async function cachedAnswer<T>(env: Env, key: string | null): Promise<T |
     // An answer kept before tool-call markup was removed (agent-open.ts chatText) is dropped,
     // so the reader gets a fresh answer and never the markup.
     if (hasToolMarkup(raw)) { await env.SUBS.delete(key).catch(() => undefined); return null; }
-    return JSON.parse(raw) as T;
+    const answer = JSON.parse(raw);
+    if (incomplete(answer)) { await env.SUBS.delete(key).catch(() => undefined); return null; }
+    return answer as T;
   } catch { return null; }
 }
 
 /** Keeps an answer, and links the trace id that served it so a report can remove it. */
 export async function keepAnswer(env: Env, key: string | null, answer: unknown, traceId?: string): Promise<void> {
-  if (!key || isCoverageGap(answer)) return;
+  if (!key || isCoverageGap(answer) || incomplete(answer)) return;
   const value = JSON.stringify(answer);
   if (value.length > MAX_BYTES || hasToolMarkup(value)) return;
   try {

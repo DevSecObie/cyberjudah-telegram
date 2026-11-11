@@ -19,6 +19,20 @@ await build({ stdin: { contents: 'export * from "./src/study-plan.ts"; export { 
 const api = await import(out);
 const BOOKS = [{ book: 'Exodus', slug: 'exodus', chapters: 40 }, { book: 'Psalms', slug: 'psalms', chapters: 150 }, { book: 'Leviticus', slug: 'leviticus', chapters: 27 }];
 
+test('final fields preserve a stopping limit even when all research parts were covered', () => {
+  const plan = [{ id: 'p1', ask: 'The Passover practice', refs: [] }];
+  const parts = [{ id: 'p1', status: 'covered', sources: [1] }];
+  for (const stopped of ['rounds', 'budget', 'deadline']) {
+    const result = api.studyFields(true, plan, { parts, complete: true, stopped }, [1]);
+    assert.equal(result.partial, true);
+    assert.equal(result.coverage.complete, false);
+    assert.equal(result.coverage.stopped, stopped);
+  }
+  const result = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered' }, [1], 'A different subject [1].');
+  assert.equal(result.partial, true, 'the final answer, not discarded follow-ups, must address the part');
+  assert.deepEqual(result.unfinished, [{ id: 'p1', ask: plan[0].ask }]);
+});
+
 test('a plan is taken whole when every part is a short restatement, and refused whole with the reasons otherwise', () => {
   const q = 'Explain the Sabbath in Exodus 20, the Passover and the dietary laws';
   const plan = (parts) => api.planFrom(q, { parts }, BOOKS, api.parseReference);

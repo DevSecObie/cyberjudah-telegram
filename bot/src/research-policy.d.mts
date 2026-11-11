@@ -10,4 +10,9 @@ export function researchSignal(signal?: AbortSignal, deadlineAt?: number): Abort
 export function writingDue(deadlineAt: number): boolean;
 export function timeLeft(deadlineAt: number): number;
 export function withinPhase<T>(work: () => Promise<T>, signal: AbortSignal): Promise<T>;
-export type ResearchControl = { signal?: AbortSignal; deadlineAt?: number };
+export type ResearchControl = {
+  signal?: AbortSignal;
+  deadlineAt?: number;
+  /** Filled with each tool result's text, for the answer's final step (answer-final.ts: which pictures a tool gave). */
+  evidence?: string[];
+};
