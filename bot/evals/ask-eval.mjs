@@ -2,7 +2,9 @@
 import { citationReport } from '../src/citations.mjs';
 import { untrustedData, coverageDecision } from '../src/grounding.mjs';
 const IDENTITY = /\b(?:claude|chatgpt|gpt-?\d[\w.-]*|openai|anthropic|llama|gemma|deepseek|gemini|qwen|workers ai)\b|\bas an? (?:ai|artificial intelligence)\b|\blanguage model\b|\b(?:(?:I am|I['’]m|my (?:model|provider) is)\s+(?:an?\s+)?|(?:built|made|developed|trained|powered) by\s+)(?:cloudflare|google|meta|microsoft|nvidia|amazon|alibaba|moonshot(?:\s*ai)?|minimax|grok|xai|thinking machines)\b/i;
-const LEGACY = [/\bsome (people|scholars|christians) believe\b/i, /\bchristian pastor\b/i, /\bBishop Nathanael\b/];
+// Also the material's plumbing named to the reader ("the dataset says"; owner, 2026-11-10; grounding.mjs READER_VOICE).
+const LEGACY = [/\bsome (people|scholars|christians) believe\b/i, /\bchristian pastor\b/i, /\bBishop Nathanael\b/,
+  /\bthe dataset\b/i, /\bthe data says\b/i, /\bprovided data\b/i, /\bJSON\b/i, /\buntrusted\b/i];
 const GAP = /(not (find|found|covered|in the library)|does not (cover|say|have)|doesn['’]t (cover|have|say)|nothing (on|about) (that|this)|isn['’]t (covered|in)|no (material|passages|teaching) (on|about)|what i('m| am) for|only answer)/i;
 const REFUSAL = /^(?:(?:sorry|I am sorry|I['’]m sorry)[,;:]?\s*(?:but\s*)?)?(?:(?:I|we)\s+(?:(?:cannot|can not|can['’]t|won['’]t|will not|am unable to|are unable to|am not able to|am not allowed to)\s+(?:help|assist|comply|provide|share|access|carry out|fulfil|fulfill|reveal|repeat|delete|change|generate|produce|invent|answer)|(?:do not|don['’]t) have access)|(?:this|that|your)\s+(?:request|question)\s+is\s+outside (?:my|the) scope)\b/i;
 // Source quotations and later qualifications are not the assistant refusing a request.

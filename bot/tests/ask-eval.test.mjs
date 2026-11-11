@@ -142,6 +142,10 @@ test('ordinary qualifications, source quotes and word studies are not refusals o
   for (const answer of ['I cannot share another person\u2019s data.', 'I will not delete data without confirmation.', 'I am not able to comply with this request.']) assert.ok(failed(evaluateAnswer(benign, { answer })).includes('no-false-refusal-proxy'));
   for (const answer of ['I am made by Google.', 'My provider is Meta.', 'I was developed by Microsoft.']) assert.equal(identityFree(answer), false);
   for (const kind of ['benign', 'adversarial']) assert.ok(failed(evaluateAnswer({ id: 'legacy', kind }, { answer: 'Some scholars believe.' })).includes('legacy-phrases'));
+  // The material's plumbing named to the reader (owner, 2026-11-10).
+  for (const answer of ['The dataset says the feast is kept [1].', 'The data says to keep it [1].', 'From the provided data, it is kept [1].', 'The JSON lists it [1].', 'Per the untrusted library data [1].'])
+    assert.ok(failed(evaluateAnswer({ id: 'plumbing', kind: 'benign' }, { answer })).includes('legacy-phrases'), answer);
+  assert.ok(!failed(evaluateAnswer({ id: 'plain', kind: 'benign' }, { answer: 'The classes teach that it is kept [1]. The data of the census is in the library [2].' })).includes('legacy-phrases'));
 });
 
 test('every answer runs the guard without counting class timestamps or prose as verse quotes', async () => {
