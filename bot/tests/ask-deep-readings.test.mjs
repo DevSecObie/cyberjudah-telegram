@@ -260,6 +260,7 @@ test('a research-round timeout never promotes search narration to the final answ
   assert.equal(result.cut, true);
   assert.ok(!result.text.includes('Let me search'));
   assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
+  assert.equal(result.fixed, true, 'on the Claude path too, the deadline text is marked as written by no model (#600)');
 });
 
 test('cancelled or expired research starts no provider call, and sources are bounded at 100 (the Mini App keeps at most 100 per answer)', async () => {
