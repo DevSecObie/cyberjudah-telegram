@@ -537,7 +537,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const model = options.model ? models.find(m => m.id === options.model) : deep ?? readerDefault ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
   if (!model) return { ok: false, reason: "model-unavailable" };
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
-  const key = await cacheKey(question, history, model.id, `agent:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `agent:opened-class-v1:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept)), ms: Date.now() - t0 }; }
   let meter: Meter;
