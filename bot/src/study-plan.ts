@@ -22,7 +22,10 @@ export type PartStatus = "covered" | "partial" | "missing";
 /** Why research ended: every part covered, or a limit (rounds, deadline, budget), or the model wrote the answer with parts still not found. */
 export type StopReason = "covered" | "rounds" | "deadline" | "budget" | "not_found";
 export type PlanPart = { id: string; ask: string; refs: Ref[] };
-export type Coverage = { parts: { id: string; status: PartStatus; sources: number[] }[]; complete: boolean; stopped: StopReason };
+export type Coverage = { parts: { id: string; status: PartStatus; sources: number[] }[]; complete: boolean; stopped: StopReason;
+  /** The research's own coverage only (agent.ts), not yet checked against an answer: the limit that ended it,
+   *  if one did, so the checked coverage names it when the answer leaves a part open (studyFields). Never sent. */
+  limit?: StopReason };
 type Ref = { slug: string; chapter: number; from?: number; to?: number; label: string };
 type Source = { n: number; kind: string; title: string; text: string };
 type Books = Parameters<typeof import("./refs.mjs").parseReference>[1];
@@ -228,10 +231,12 @@ export function studyFields(tracked: boolean, plan: PlanPart[], coverage: Covera
     return { ...p, sources, status: p.status === "covered" && !sources.length ? "partial" as const : p.status };
   });
   const open = parts.filter((p) => p.status !== "covered").map((p) => ({ id: p.id, ask: plan.find((x) => x.id === p.id)!.ask }));
-  const complete = coverage.complete && !open.length && coverage.stopped === "covered";
+  // Every part covered is complete, whatever stopped the research: an answer a limit cut short says so with
+  // `cut` and its stop reason, never as partial with no unfinished part (and is never kept: answer-cache.ts).
+  const complete = coverage.complete && !open.length;
   return {
     plan: { parts: plan.map(({ id, ask }) => ({ id, ask })) },
-    coverage: { ...coverage, parts, complete, stopped: !complete && coverage.stopped === "covered" ? "not_found" as const : coverage.stopped },
+    coverage: { parts, complete, stopped: !complete && coverage.stopped === "covered" ? coverage.limit ?? "not_found" : coverage.stopped },
     ...(complete ? {} : { partial: true, unfinished: open }),
   };
 }

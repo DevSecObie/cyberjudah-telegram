@@ -615,9 +615,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     const sources = sourcesOf(answer, ran.passages);
     const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer);
     const result: SearchAnswer = markUnverified({ ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 }, status);
-    // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
-    // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
-    if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
+    // An answer cut off or unfinished is shown as written, but never kept as a finished answer (keepAnswer
+    // refuses it: answer-cache.ts incomplete). One that used the reader's own data (agent.ts readerData) is
+    // never kept for other readers.
+    if (result.ok && result.sources.length && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);

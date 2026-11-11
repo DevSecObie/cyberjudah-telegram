@@ -356,16 +356,24 @@ export async function runAgent(
     if ('delta' in event && evidence().blocked) return;
     emit(event);
   };
-  // Each part's status, and why research ended: every part covered, a limit, or parts not found.
-  // An answer cut short by a limit names the limit, even when every part was covered.
-  const coverageOf = (stopBy?: StopReason, cutShort = false, answer?: string): Coverage => {
-    const parts = answer === undefined ? state() : verifyAnswer(plan, state(), answer);
+  // Each part's status as research left it, and why research ended: every part covered, a limit, or parts
+  // not found. An answer cut short by a limit names the limit, even when every part was covered. Checked
+  // against the final text later (study-plan.ts studyFields), which names `limit` if a part is left open.
+  const coverageOf = (stopBy?: StopReason, cutShort = false): Coverage => {
+    const parts = state();
     const complete = parts.every((p) => p.status === "covered");
-    return { parts, complete, stopped: cutShort && stopBy ? stopBy : complete ? "covered" : stopBy ?? "not_found" };
+    return { parts, complete, stopped: cutShort && stopBy ? stopBy : complete ? "covered" : stopBy ?? "not_found", ...(stopBy ? { limit: stopBy } : {}) };
+  };
+  /** A draft checked once: whether it answers every part, and the checklist note sending the model back. */
+  const reviewNote = (draft: string): string | undefined => {
+    const parts = verifyAnswer(plan, state(), draft);
+    if (parts.every((p) => p.status === "covered")) return undefined;
+    return `${checklistNote(plan, parts, readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.`;
   };
   const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }, stopBy?: StopReason) => {
-    // Worked out only for a tracked question; otherwise nothing is sent or saved.
-    const coverage = tracking() ? coverageOf(stopBy, result.cut, result.text) : nothingCovered(plan);
+    // Worked out only for a tracked question; otherwise nothing is sent or saved. Checked against the
+    // answer once, later, on its final text (study-plan.ts studyFields), not here on the draft.
+    const coverage = tracking() ? coverageOf(stopBy, result.cut) : nothingCovered(plan);
     if (!result.refused && evidence().blocked) {
       const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       emit({ reset: true }); emit({ delta: gap.answer });
@@ -392,9 +400,10 @@ export async function runAgent(
         signal, deadlineAt,
         researchNote: () => tracking() ? checklistNote(plan, state(), readings) : undefined,
         reviewAnswer: answer => {
-          if (!tracking() || reviewed || spend.over(0.5) || coverageOf(undefined, false, answer).complete) return undefined;
-          reviewed = true;
-          return `${checklistNote(plan, verifyAnswer(plan, state(), answer), readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.`;
+          if (!tracking() || reviewed || spend.over(0.5)) return undefined;
+          const note = reviewNote(answer);
+          if (note) reviewed = true;
+          return note;
         },
       });
       return finish(r, r.stopped ?? (r.cut ? "rounds" : undefined));
@@ -518,11 +527,12 @@ export async function runAgent(
       // The model answered with parts of its plan still open: it is sent back once to research
       // them or to say they were not found, while the limits allow another round.
       // Only with at least half the budget left, so the extra round never costs the answer.
-      if (!last && message.stop_reason === "end_turn" && said.trim() && tracking() && !nudged && !spend.over(0.5) && !coverageOf(undefined, false, said).complete) {
+      const note = !last && message.stop_reason === "end_turn" && said.trim() && tracking() && !nudged && !spend.over(0.5) ? reviewNote(said) : undefined;
+      if (note) {
         nudged = true; draft = said;
         if (said) emit({ reset: true });
         messages.push({ role: "assistant", content: message.content });
-        messages.push({ role: "user", content: `${checklistNote(plan, verifyAnswer(plan, state(), said), readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.` });
+        messages.push({ role: "user", content: note });
         continue;
       }
       text = said; cut = message.stop_reason === "max_tokens"; if (last) stopBy = lastWhy; ended = true;
