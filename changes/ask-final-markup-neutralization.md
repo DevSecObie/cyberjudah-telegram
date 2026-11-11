@@ -1,0 +1,1 @@
+- Ask escapes untrusted less-than characters before removing markup, so malformed tags and comments cannot join back into raw HTML. Approved pictures keep their path but their caption cannot restore raw markup. Existing text entities, line boundaries, approved breaks and autolinks are preserved; older cached finalizations are checked under the revised rule.
