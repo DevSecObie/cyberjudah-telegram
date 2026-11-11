@@ -57,6 +57,20 @@ test("Back stays in the tab chosen in the switcher", async ({ page }) => {
   await expect(async () => { await back(page); await expect(page).toHaveURL(/\/settings$/, { timeout: 500 }); }).toPass();
 });
 
+test("a page still loading when the switcher opens stays the place of the tab it was opened in", async ({ page }) => {
+  await setup(page, [{ id: "a", path: "/settings" }, { id: "b", path: "/search" }]);
+  await page.goto(`/settings${LAUNCH}`);
+  await expect(page.getByRole("button", { name: /^Credits/ })).toBeVisible();
+  // A slow connection: the Credits screen is still on its way when the switcher opens over it.
+  await page.route((url) => url.pathname.includes("/assets/"), async (r) => { await new Promise((ok) => setTimeout(ok, 400)); await r.continue(); });
+  await page.getByRole("button", { name: /^Credits/ }).click();
+  await expect(page).toHaveURL(/\/settings\/credits/);
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("button", { name: /^Tabs, / }).click();
+  await page.locator('.tabcard[data-tab-id="b"]').click();
+  await expect(page).toHaveURL(/\/search/);
+  await expect.poll(async () => (await tabPaths(page)).a).toBe("/settings/credits");
+});
+
 test("a bar button for the tab already showing leaves Back as it was for the next page", async ({ page }) => {
   await setup(page, [{ id: "a", path: "/search" }]);
   await page.goto(`/search${LAUNCH}`);
