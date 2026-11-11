@@ -359,11 +359,11 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
       const evidence: string[] = [];
       const ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS, evidence });
-      const { text, passages, grounded, cut } = ran;
+      const { text, passages, grounded, cut, fixed } = ran;
       const answer = await finalAnswer(env, splitFollowups(text).answer, { evidence: [...evidence, ...passageEvidence(passages)] });
       if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
       const sources = await askSourcesOf(env, answer, passages);
-      return { ok: true, q: question, answer, sources, ...citationMetadata(answer, passages), ...(cut ? { cut: true } : {}), ...studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer), ms: Date.now() - t0, ...(grounded !== false && answer.trim() ? { model: model.id } : {}) };
+      return { ok: true, q: question, answer, sources, ...citationMetadata(answer, passages), ...(cut ? { cut: true } : {}), ...studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer), ms: Date.now() - t0, ...(grounded !== false && !fixed && answer.trim() ? { model: model.id } : {}) };
     }
     // The backup sends the question to its own provider: only with the reader's agreement to it.
     // Without it nothing is written by a model, so nothing is held: the meter settles as empty.
@@ -618,9 +618,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     const sources = sourcesOf(answer, ran.passages);
     const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer);
     const answered: SearchAnswer = markUnverified({ ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 }, status);
-    // The agent's text became the fixed not-in-the-classes sentence: marked as a gap (not sent to the
-    // app), so app-ask records the writer as "none" while `model` stays the app's label (#600).
-    const result = ran.grounded === false ? markCoverageGap(answered) : answered;
+    // The agent's text became a fixed text no model wrote (the not-in-the-classes sentence, or the
+    // deadline's excerpts): marked as a gap (not sent to the app), so app-ask records the writer as
+    // "none" while `model` stays the app's label (#600).
+    const result = ran.grounded === false || ran.fixed ? markCoverageGap(answered) : answered;
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
     // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
     if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
@@ -886,7 +887,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               send({ status: "Answering with the backup model" });
             }
             if (ran) {
-              const { text, passages, actions, cut, refused, grounded } = ran;
+              const { text, passages, actions, cut, refused, grounded, fixed } = ran;
               const { answer: drafted, followups } = splitFollowups(text);
               // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer, not charged.
               if (refused && !drafted.trim()) { await finish("refused"); send({ error: "refused" }); return; }
@@ -901,9 +902,10 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n), answer);
               await keep(answer, sources, followups, steps, actions, cut, study);
               // The agent's model is named on its finished line, so an Auto answer can show it (the Mini App's
-              // label; kept as is, also when the agent's text became the fixed not-in-the-classes sentence).
+              // label; kept as is, also when the agent's text became a fixed text: the not-in-the-classes
+              // sentence or the deadline's excerpts).
               // versions.model names the writer: "none" for that sentence, as for the fixed sentences below.
-              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}), ...study }, grounded === false ? "none" : undefined);
+              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}), ...study }, grounded === false || fixed ? "none" : undefined);
               // What the answer cost, and the balance after it; the free model and admins pay nothing.
               if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
               else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });

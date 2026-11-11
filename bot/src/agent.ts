@@ -125,7 +125,7 @@ export async function runAgent(
   maxRounds = MAX_RESEARCH_ROUNDS,
   citeAppSources = false,
   control: ResearchControl = {},
-): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean; /** A tool read or acted on the signed-in reader's own data: never cache the answer. */ readerData: boolean }> {
+): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean; /** A tool read or acted on the signed-in reader's own data: never cache the answer. */ readerData: boolean; /** The text is the deadline's fixed template with quoted excerpts: no model wrote it (#600). */ fixed?: boolean }> {
   maxRounds = researchRounds(maxRounds);
   const deadlineAt = control.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
   const signal = researchSignal(control.signal, deadlineAt);
@@ -372,11 +372,13 @@ export async function runAgent(
       // The answer became 'not in the classes': no part is shown as covered by sources it no longer lists.
       return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false, plan, coverage: nothingCovered(plan), tracked: tracking(), readerData };
     }
-    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking(), readerData };
+    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking(), readerData, ...(timedOutText !== undefined && result.text === timedOutText ? { fixed: true } : {}) };
   };
+  // The deadline's fixed text, when it was used: an answer that is exactly it was written by no model.
+  let timedOutText: string | undefined;
   const timedOut = () => {
     const excerpts = passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)).slice(0, 3).map(source => `**${source.title.replace(/[*_\[\]]/g, '')}** [${source.n}]\n\n> ${source.text.slice(0, 1000).replace(/\n/g, '\n> ')}`);
-    return excerpts.length ? `Research reached its time limit. Here are the recorded excerpts I found:\n\n${excerpts.join('\n\n')}` : notInTheClasses([]).answer;
+    return (timedOutText = excerpts.length ? `Research reached its time limit. Here are the recorded excerpts I found:\n\n${excerpts.join('\n\n')}` : notInTheClasses([]).answer);
   };
   const messages: Anthropic.MessageParam[] = [
     ...promptHistory(history).map((m) => ({ role: m.role as "assistant" | "user", content: m.content })),

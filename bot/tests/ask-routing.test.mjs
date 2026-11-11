@@ -19,6 +19,7 @@ await build({
         if (env.failAnswer) throw new Error('fixture failed');
         emit({delta:'Existing library words [1].'});
         if (env.gapAnswer) return {text:'Fixture gap sentence.', passages:[], actions:[], cut:false, grounded:false};
+        if (env.fixedAnswer) return {text:'Fixture deadline excerpts [1].', passages:[{kind:'spoken',title:'Existing class',url:'/classes/existing',text:'Existing library words.'}], actions:[], cut:true, grounded:true, fixed:true};
         return {text:'Existing library words [1].', passages:[{kind:'spoken',title:'Existing class',url:'/classes/existing',text:'Existing library words.'}], actions:[],cut:false};
       }
     ` }));
@@ -336,5 +337,22 @@ for (const stream of [true, false]) {
     assert.equal(explicit.status, 200, await explicit.clone().text());
     await explicit.text();
     assert.equal(env.calls.at(-1).model, DEFAULT.id, 'depth never replaces a manually selected model');
+  });
+}
+
+for (const stream of [false, true]) {
+  test(`${stream ? 'a streamed' : 'a one-piece'} answer that is the deadline's fixed excerpts names no model in its versions (#600)`, async t => {
+    const { env } = setup(t, { fixedAnswer: true });
+    await funded(env, 200_000);
+    const body = stream
+      ? { q: 'Explain the historical evidence', model: 'auto', stream: true, request: 'fixed-request', consent: ['Anthropic'], caps: { 'anthropic/claude-opus-5.5': 200_000 } }
+      : { q: 'Explain the historical evidence', consent: ['Anthropic', 'Cloudflare (Workers AI)'] };
+    const response = await request(env, body);
+    assert.equal(response.status, 200, response.status === 200 ? '' : await response.clone().text());
+    const done = stream ? (await events(response)).find(e => e.done) : await response.json();
+    assert.ok(done, 'a finished answer');
+    assert.equal(done.versions.model, 'none', 'no model wrote the deadline text');
+    if (stream) assert.equal(done.model, env.calls[0].model, 'the Auto label is unchanged');
+    else assert.equal('model' in done, false);
   });
 }

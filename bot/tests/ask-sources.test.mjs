@@ -29,7 +29,7 @@ await build({
           await new Promise((_resolve, reject) => control.signal.addEventListener('abort', () => reject(control.signal.reason), { once: true }));
         }
         emit({ delta: env.fixtureAnswer });
-        return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false, ...(env.fixtureGrounded === false ? { grounded: false } : {}) };
+        return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false, ...(env.fixtureGrounded === false ? { grounded: false } : {}), ...(env.fixtureFixed ? { fixed: true, cut: true } : {}) };
       }
     ` }));
   } }],
@@ -372,4 +372,13 @@ test('the app agent marks a fixed not-in-the-classes answer as a gap, so its wri
     assert.equal(r.model, model.id, 'the model label is kept');
     assert.equal(isCoverageGap(r), grounded === false, `grounded ${grounded}`);
   }
+});
+
+test('the app agent marks the deadline\'s fixed excerpts as written by no model, and keeps its model label (#600)', async t => {
+  const { env } = financialDb(t), model = freeModel(env);
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Fixture deadline excerpts.', fixtureSources: [], fixtureFixed: true });
+  const r = await answerAppAgent(env, 'Explain the historical evidence', 'acct-fixed', [], [model.provider], { model: model.id });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, model.id);
+  assert.equal(isCoverageGap(r), true);
 });
