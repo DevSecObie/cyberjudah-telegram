@@ -16,12 +16,17 @@ import { parseReference } from "./refs.mjs";
 import { PLAN_TOOL, Readings, partId, namedRefs, nothingCovered, checklist, checklistNote, planFrom, verifyAnswer, type Coverage, type PlanPart, type StopReason } from "./study-plan";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
+import { pictureLines } from "./answer-final";
+
 import { freeSpend, type Spend } from "./spend";
 import { DEEP_TOOLS, readForAsk } from "./ask-readers";
 import { claudeThinking } from "./model-capacity.mjs";
 import { MAX_RESEARCH_ROUNDS, MAX_CLAUDE_OUTPUT, MAX_RESEARCH_MS, MAX_RESEARCH_SOURCES, WRITING_RESERVE_MS, writingDue, withinPhase, researchRounds, researchSignal, type ResearchControl } from "./research-policy.mjs";
 import { classAttributor } from "./class-attribution";
-import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlText } from "./grounding.mjs";
+import { groundedSystem, libraryData, untrustedData, assessCoverage, coverageDecision, hasControlText, SMALL_TALK } from "./grounding.mjs";
+
+/** The tools whose "Picture:" lines the answer may show (ask-tools.ts). */
+const PICTURE_TOOLS = new Set(["person", "timeline"]);
 
 /**
  * Ask CyberJudah with Claude doing its own research: it starts from the passages retrieval
@@ -120,7 +125,7 @@ export async function runAgent(
   maxRounds = MAX_RESEARCH_ROUNDS,
   citeAppSources = false,
   control: ResearchControl = {},
-): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean }> {
+): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean; /** A tool read or acted on the signed-in reader's own data: never cache the answer. */ readerData: boolean }> {
   maxRounds = researchRounds(maxRounds);
   const deadlineAt = control.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
   const signal = researchSignal(control.signal, deadlineAt);
@@ -138,13 +143,14 @@ export async function runAgent(
   // The research plan (study-plan.ts): until the model lists the parts, the question is one part,
   // with any Scripture it names to be read in full. Every tool-capable model uses the checklist.
   const readings = new Readings();
+  const toolEvidence: { kind: string; title: string; text: string }[] = [];
   const memo = new Map<string, boolean>();
   const checklistOn = model.tools;
   const researchQuestion = retrievalText(question, history);
   let plan: PlanPart[] = [{ id: partId(0), ask: researchQuestion.replace(/\s+/g, " ").trim().slice(0, 200), refs: namedRefs(researchQuestion, bookList, parseReference) }];
   let planned = false, planTries = 0;
-  // The checklist is kept for a question the model split into parts, or one that names Scripture.
-  const tracking = () => checklistOn && (planned || plan[0].refs.length > 0);
+  // Ordinary study questions cannot skip verification just by omitting plan_research.
+  const tracking = () => checklistOn && (planned || plan[0].refs.length > 0 || (!SMALL_TALK.test(question) && !coverageDecision(researchQuestion, toolEvidence).enough));
   const state = () => checklist(plan, passages, readings, memo);
   const seen = new Map<string, number>();
   const dirty = new Set<number>(), sent = new Map<number, string>();
@@ -176,6 +182,9 @@ export async function runAgent(
   };
   for (const p of first) add(p, true);
   const actions: SavedAction[] = [];
+  // Set when a tool read or acted on this signed-in person's own data (saved chats, reminder). Such an
+  // answer is that person's alone: the caller must never keep it in the shared answer cache.
+  let readerData = false;
   const line = (name: string, what: string, path: string) => {
     const kind = /^\/person\/[a-z0-9-]+$/.test(path) ? 'people' : /^\/timeline\/event\/[a-z0-9-]+$/.test(path) ? 'timeline' : undefined;
     // Telegram picture cards refer to the exact tool text already supplied, without new claims.
@@ -247,6 +256,7 @@ export async function runAgent(
     }
     if (name === "my_saved_chats") {
       if (!userId) return { content: "The person is not signed in, so there are no saved chats to look at.", error: true };
+      readerData = true;
       const query = str(input.query, 120);
       emit({ status: "Looking through your saved chats" });
       const hits = findChats(await listChats(env, userId), query, 8);
@@ -254,6 +264,7 @@ export async function runAgent(
     }
     if (name === "my_reminder") {
       if (!userId) return { content: "The person is not signed in.", error: true };
+      readerData = true;
       emit({ status: "Looking at your reading reminder" });
       const rec = await loadReminder(env, await tgRid(env, userId));
       return { content: `${describeReminder(rec ? publicView(rec) : null)} Settings: /settings/reminders` };
@@ -262,6 +273,7 @@ export async function runAgent(
       if (!userId) return { content: "The person is not signed in, so nothing can be proposed.", error: true };
       const p = proposeReminder(input, { inTelegram: true });
       if (p.error) return { content: p.error, error: true };
+      readerData = true;
       const action: SavedAction = { id: crypto.randomUUID().replace(/-/g, "").slice(0, 16), kind: "reminder", summary: p.summary!, settings: p.settings as Record<string, unknown> };
       actions.push(action);
       emit({ action });
@@ -276,6 +288,7 @@ export async function runAgent(
       for (const source of reading.sources ?? []) {
         const added = add(source);
         if (!added) continue;
+        if (!reading.isError && /^(read_note|read_transcript|commentary)$/.test(name)) readings.open({ ...source, n: added.n });
         // A full reading can extend an already cited search snippet without renumbering it.
         if (!added.fresh && source.text.length > passages[added.n - 1].text.length) { passages[added.n - 1] = { ...passages[added.n - 1], ...attribute(source), n: added.n }; dirty.add(added.n); }
         labels.push(sourceLabel(passages[added.n - 1]));
@@ -310,7 +323,6 @@ export async function runAgent(
   let checkedVersion = -1;
   let coverage: ReturnType<typeof assessCoverage>;
   const appTools = new Set(["app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change"]);
-  const toolEvidence: { kind: string; title: string; text: string }[] = [];
   const runWithEvidence = async (name: string, input: Record<string, unknown>) => {
     signal.throwIfAborted();
     if (writingDue(deadlineAt)) return { content: "Research time is reserved for writing the final answer from the registered sources.", error: true, source_registry: [] };
@@ -324,6 +336,11 @@ export async function runAgent(
         return { content: "Research time is reserved for writing the final answer from the registered sources.", error: true, source_registry: [] };
       }
       if (!result.error && appTools.has(name)) toolEvidence.push({ kind: "tool", title: name, text: result.content });
+      // The pictures the tools gave, for the answer's final step (answer-final.ts keeps only those): just
+      // their "Picture:" lines, however long the result, so a late picture is never cut off.
+      // Only from the tools that give the library's pictures (ask-tools.ts person, timeline): an outside
+      // page or a saved chat could otherwise name an app picture.
+      if (!result.error && PICTURE_TOOLS.has(name) && typeof result.content === "string") control.evidence?.push(...pictureLines(result.content));
       return { ...result, source_registry: passages.slice(before).map(source => ({ source_n: source.n, title: source.title, url: source.url })) };
     } finally { coverageVersion++; }
   };
@@ -354,9 +371,9 @@ export async function runAgent(
       const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       emit({ reset: true }); emit({ delta: gap.answer });
       // The answer became 'not in the classes': no part is shown as covered by sources it no longer lists.
-      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false, plan, coverage: nothingCovered(plan), tracked: tracking() };
+      return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false, plan, coverage: nothingCovered(plan), tracked: tracking(), readerData };
     }
-    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking() };
+    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking(), readerData };
   };
   const timedOut = () => {
     const excerpts = passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)).slice(0, 3).map(source => `**${source.title.replace(/[*_\[\]]/g, '')}** [${source.n}]\n\n> ${source.text.slice(0, 1000).replace(/\n/g, '\n> ')}`);
@@ -367,12 +384,14 @@ export async function runAgent(
     { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${libraryData(passages)}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
   ];
 
+  const systemText = groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\nSearch results and their titles are leads, not opened class explanations. Before relying on a class, use read_note, read_transcript or commentary to read its relevant words and surrounding context; read supporting Scripture separately. Preserve the recorded teacher, class and moment. Compare each explanation with what was actually read, distinguish interpretation from the source's words, and say what remains unverified. Citation and topic overlap are not proof of faithful interpretation.\n\n${APP}`);
+
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
     let reviewed = false;
     try {
-      const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, {
+      const r = await researchOpen(env, model, systemText, messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, {
         signal, deadlineAt,
         researchNote: () => tracking() ? checklistNote(plan, state(), readings) : undefined,
         reviewAnswer: answer => {
@@ -385,7 +404,7 @@ export async function runAgent(
     } catch (error) {
       if (!signal.aborted || signal.reason?.name !== 'TimeoutError') throw error;
       const text = timedOut();
-      emit({ reset: true }); emit({ delta: text });
+      emit({ reset: true }); modelEmit({ delta: text });
       return finish({ text, units: 0, calls: spend.calls, cut: true, refused: false }, "deadline");
     }
   }
@@ -397,7 +416,7 @@ export async function runAgent(
   // The instructions and tools are the same for every question and every round: cached once
   // (a breakpoint on the system prompt), and the conversation so far cached as it grows (the
   // request's automatic breakpoint on its last block), so each research round re-reads it cheaply.
-  const system: Anthropic.TextBlockParam[] = [{ type: "text", text: groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), cache_control: { type: "ephemeral" } }];
+  const system: Anthropic.TextBlockParam[] = [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }];
   // A budgeted request sets aside each call's own input before choosing how much it may write, as
   // a strict upper bound on its tokens, priced as a prompt-cache write (the dearest way Claude bills
   // input): the first call's tokens are counted by the API; each later call's are the last call's
@@ -408,7 +427,7 @@ export async function runAgent(
   // Why research stopped, when a limit stopped it; whether the model was sent back once to an open
   // part, and the answer it had written then (kept, so sending it back never loses a finished answer).
   let stopBy: StopReason | undefined, nudged = false, draft = "", ended = false;
-  const useDraft = () => { if (!draft.trim()) return false; text = draft; emit({ reset: true }); emit({ delta: text }); return true; };
+  const useDraft = () => { if (!draft.trim()) return false; text = draft; emit({ reset: true }); modelEmit({ delta: text }); return true; };
   for (let round = 0; round < maxRounds && attempts < maxRounds; round++) {
     if (signal.aborted && signal.reason?.name === 'TimeoutError') { if (!useDraft()) text = timedOut(); cut = true; stopBy = "deadline"; break; }
     signal.throwIfAborted();
@@ -458,7 +477,7 @@ export async function runAgent(
         const usage = stream.currentMessage?.usage;
         if (usage) { units += unitsFor(usage, model); calls++; spend.call(usage, model); }
         spend.unreported = true;
-        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : draft.trim() ? draft : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; stopBy = "deadline"; break; }
+        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : draft.trim() ? draft : timedOut(); emit({ reset: true }); modelEmit({ delta: text }); cut = true; stopBy = "deadline"; break; }
       }
       signal.throwIfAborted();
       // A tool input that could not be parsed at all (eager streaming): the round is asked

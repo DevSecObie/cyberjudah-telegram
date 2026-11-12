@@ -1,0 +1,1 @@
+- Ask Auto prefers the most capable affordable research model for substantive questions and follow-ups, keeps explicit word and verse lookups quick, and accepts the reader's Quick/Study preference without changing consent, cost confirmation or spending limits.

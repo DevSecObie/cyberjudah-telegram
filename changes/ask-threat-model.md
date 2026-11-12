@@ -1,0 +1,1 @@
+- Docs: Ask threat model (`docs/ASK-THREAT-MODEL.md`, STRIDE, OWASP LLM Top 10 2025 and MITRE ATLAS), with designs for a report-only PII scan of transcripts before indexing (`docs/ASK-PII-SCAN.md`) and for alert thresholds and privacy-safe Worker error tracking (`docs/ASK-ALERTS.md`). No code or behaviour change.
