@@ -1,0 +1,1 @@
+- Blue-green loads read the load file line by line when given one, so an index larger than a JavaScript string can hold (the teachings index) loads.
