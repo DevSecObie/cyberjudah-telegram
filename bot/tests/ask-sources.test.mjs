@@ -18,8 +18,8 @@ await build({
       import Anthropic from '@anthropic-ai/sdk';
       export async function runAgent(env, question, history, first, retrieve, emit, ctx, uid, model, spend, resources, rounds, cite, control) {
         env.fixtureQuestion = question;
-        // Claude is busy (rate limited), as Anthropic answers it: the backup path decides what happens.
-        if (env.fixtureBusy) throw new Anthropic.RateLimitError(429, { type: 'error', error: { type: 'rate_limit_error', message: 'fixture' } }, 'fixture rate limit', new Headers());
+        // Claude fails as Anthropic answers it (429 rate limited by default, or the status given): the backup path decides what happens.
+        if (env.fixtureBusy) { const status = env.fixtureBusy === true ? 429 : env.fixtureBusy; throw Anthropic.APIError.generate(status, { type: 'error', error: { type: status === 429 ? 'rate_limit_error' : 'api_error', message: 'fixture' } }, 'fixture failure', new Headers()); }
         emit({ status: 'Reading sources' });
         if (env.fixtureCancelMode) {
           spend.call({ input_tokens: 1000, output_tokens: 100 }, model);
@@ -29,11 +29,12 @@ await build({
           await new Promise((_resolve, reject) => control.signal.addEventListener('abort', () => reject(control.signal.reason), { once: true }));
         }
         emit({ delta: env.fixtureAnswer });
-        return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false };
+        return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false, ...(env.fixtureGrounded === false ? { grounded: false } : {}), ...(env.fixtureFixed ? { fixed: true, cut: true } : {}) };
       }
     ` }));
   } }],
 });
+import { isCoverageGap } from '../src/grounding.mjs';
 const { ask, askStream, freeModel, freeSpendToday, answerApp, answerAppAgent, grantPayment, ownerOfUser, wallet, worker } = await import(out);
 
 for (const mode of ['before', 'after', 'reset']) {
@@ -332,10 +333,12 @@ test('without agreement to the backup provider, no backup answer is written and 
 // t1w's repro (#603): Claude busy (429) on a free-tier Claude model, the reader agreed to Anthropic only.
 // The meter must settle as "empty" before any backup is chosen, so the day's free allowance gets its
 // reservation back; only an answer the backup actually writes keeps the whole reservation.
-test('a busy Claude without agreement to the backup releases the free reservation; with agreement the backup keeps it', async t => {
-  for (const agreed of [false, true]) {
+// A refused backup gives the reservation back only when Claude refused before writing (429: nothing
+// billed); after a server error (500) tokens may have been billed, so the whole reservation is kept.
+test('a busy Claude without agreement to the backup releases the free reservation only when nothing was billed; with agreement the backup keeps it', async t => {
+  for (const [code, agreed, released] of [[429, false, true], [500, false, false], [429, true, false]]) {
     const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5'), sent = [];
-    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_MODELS: model.id, ANTHROPIC_API_KEY: 'fixture-only', fixtureBusy: true,
+    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_MODELS: model.id, ANTHROPIC_API_KEY: 'fixture-only', fixtureBusy: code,
       AI: { run: async (id) => { if (id.includes('bge-m3')) return { data: [[1, 2]] }; if (id.includes('reranker')) return { response: [] }; sent.push(id); return new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ response: 'Backup words [1].' })}\n\n`)); c.close(); } }); } },
       VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://cyberjudah.io/recorded-fixture', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
     const consent = agreed ? [model.provider, 'Cloudflare (Workers AI)'] : [model.provider];
@@ -352,11 +355,33 @@ test('a busy Claude without agreement to the backup releases the free reservatio
       assert.equal(spent, holds.reduce((n, h) => n + h.reserved_micro, 0));
     } else {
       assert.equal(holds.length, 1, 'only the Ask meter reserved');
-      assert.ok(spent < holds[0].reserved_micro, `the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
+      if (released) assert.ok(spent < holds[0].reserved_micro, `${code}: the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
+      else assert.equal(spent, holds[0].reserved_micro, `${code}: the whole reservation is kept`);
       assert.deepEqual(lines.at(-1), { error: 'busy' });
       assert.equal(lines.find(l => l.done), undefined);
       assert.ok(!lines.some(l => l.status === 'Answering with the backup model'), 'no backup is announced');
       assert.deepEqual(sent, [], 'the backup model was never called');
     }
   }
+});
+
+test('the app agent marks a fixed not-in-the-classes answer as a gap, so its writer is "none", and keeps its model label (#600)', async t => {
+  const { env } = financialDb(t), model = freeModel(env);
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Fixture gap sentence.', fixtureSources: [] });
+  for (const grounded of [false, undefined]) {
+    env.fixtureGrounded = grounded;
+    const r = await answerAppAgent(env, 'Explain the historical evidence', 'acct-gap', [], [model.provider], { model: model.id });
+    assert.equal(r.ok, true, JSON.stringify(r));
+    assert.equal(r.model, model.id, 'the model label is kept');
+    assert.equal(isCoverageGap(r), grounded === false, `grounded ${grounded}`);
+  }
+});
+
+test('the app agent marks the deadline\'s fixed excerpts as written by no model, and keeps its model label (#600)', async t => {
+  const { env } = financialDb(t), model = freeModel(env);
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Fixture deadline excerpts.', fixtureSources: [], fixtureFixed: true });
+  const r = await answerAppAgent(env, 'Explain the historical evidence', 'acct-fixed', [], [model.provider], { model: model.id });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, model.id);
+  assert.equal(isCoverageGap(r), true);
 });

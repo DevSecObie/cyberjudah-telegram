@@ -28,9 +28,10 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
+import { answerVersions } from "./ask-versions";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeAskIpQuota, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
-import { semanticSearch } from "./semantic-search";
+import { semanticSearch, takeSearchQuota } from "./semantic-search";
 import { normalizeHistory, withStudyContext, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -86,7 +87,7 @@ const app = new Hono<App>();
 // Bundled native readers have local webview origins, and the web app lives at web.cyberjudah.io.
 // No cookie credentials are allowed
 // across origins; private endpoints still require their existing signed authorization.
-app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], exposeHeaders: ["Retry-After"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
@@ -301,7 +302,15 @@ app.post("/api/ask", async (c) => {
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
   if (!res.ok && res.reason === MODEL_NOT_ALLOWED.error) return c.json({ ...res, ...MODEL_NOT_ALLOWED }, 403);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  return c.json(res.ok ? { ...res, answer_id: await issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources) } : res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
+  if (res.ok) {
+    // Like every streamed finished line (ai.ts askStream), the one-piece answer names what it was made
+    // with (ask-versions.ts); "none" when a fixed sentence, written by no model, is the answer.
+    // The writer is sent only inside `versions`, so the reply keeps its shape.
+    const { model, ...answer } = res;
+    const [answer_id, versions] = await Promise.all([issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources), answerVersions(c.env, model ?? "none")]);
+    return c.json({ ...answer, answer_id, versions });
+  }
+  return c.json(res, res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
 });
 app.post('/api/feedback', async c => {
   c.header('cache-control', 'no-store');
@@ -512,6 +521,9 @@ app.delete("/api/chats/:id", async (c) => {
   return c.json({ ok }, ok ? 200 : 400);
 });
 app.get("/api/similar", async (c) => {
+  // Each call embeds the query and reranks (model calls): limited like the semantic search (OWASP LLM10).
+  // A query too short to search (similar() answers it with nothing, no model call) spends no allowance.
+  if ((c.req.query("q") ?? "").trim().length >= 2 && !(await takeSearchQuota(c.env, c.req.raw, c.get("tma").user!.id, "similar"))) return c.json({ error: "limit" }, 429);
   const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
   return c.json(res, res.ok ? 200 : 503);
 });

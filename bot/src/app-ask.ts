@@ -4,6 +4,7 @@ import type { Env } from "./env";
 import { IdentityError, linkedTelegram } from "./account-links";
 import { appReader } from "./app-identity";
 import { answerApp, answerAppAgent, appAskModels, freeModel, takeAskIpQuota, takeQuotaKey } from "./ai";
+import { takeAddressQuota, type AddressLimits } from "./address-quota";
 import { isAdmin } from "./edit";
 import { normalizeHistory, withReading } from "./ai.mjs";
 import { books } from "./data";
@@ -13,6 +14,8 @@ import { listen, speak } from "./app-voice";
 import { dropReported } from "./answer-cache";
 import { recordAskEvent } from "./ask-events";
 import { isAllowlistedModel, modelAllowlistMode, MODEL_NOT_ALLOWED } from "../../shared/ask-allowlist.mjs";
+import { answerVersions } from "./ask-versions";
+import { isCoverageGap } from "./grounding.mjs";
 
 type AppAsk = { Bindings: Env; Variables: { account: string; traceId: string; adminId?: number } };
 const tracePattern = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -50,6 +53,8 @@ appAsk.get('/models', c => {
     billing: { purchasesEnabled: false },
   });
 });
+/** Answer reports from one address (OWASP LLM10): a signed address is one reader's; an unsigned one may be many readers' (the relay). */
+const REPORTS_PER_ADDRESS: AddressLimits = { signedPerDay: 30, unsignedPerMinute: 60 };
 appAsk.post('/report', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 1024) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
@@ -59,6 +64,11 @@ appAsk.post('/report', async c => {
   if (!body || !['wrong', 'harmful'].includes(String(body.reason))) return c.json({ error: 'bad-request' }, 400);
   const day = new Date().toISOString().slice(0, 10);
   if (!await takeQuotaKey(c.env, `app_report:${c.get('account')}:${day}`, 10)) return c.json({ error: 'limit' }, 429);
+  // Per address as well as per account, so many new accounts from one place cannot flood reports
+  // (each may drop a cached answer). After the account's own count, so an account already refused
+  // spends none of its address's allowance. Only a keyed hash of the address is kept.
+  const wait = await takeAddressQuota(c.req.raw, c.env, 'app_report_ip', REPORTS_PER_ADDRESS);
+  if (wait) return c.json({ error: 'limit' }, 429, { 'retry-after': String(wait) });
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
   const model = appAskModels(c.env, undefined, true).find(m => m.id === body.model)?.id ?? 'default';
@@ -124,8 +134,11 @@ appAsk.post('/', async c => {
         : await answerAppAgent(c.env, question, c.get('account'), history, consent, { model: body.model ? model.id : undefined, emit, traceId, signal, adminId: c.get('adminId') });
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: result.ok ? 'complete' : result.reason, model: model.id, elapsedMs: Date.now()-startedAt }));
       // A study answer records its own outcome (app-study-answer.ts); everything else, and every refusal, here.
-      if (surface === 'app' || !result.ok) await recordAskEvent(c.env, { traceId, surface, model: result.ok ? result.model : model.id, outcome: result.ok ? 'complete' : result.reason, detail: result.ok ? undefined : result.detail, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
-      return result;
+      // A fixed sentence (nothing found, no cited answer) was written by no model: it names "none".
+      const writer = result.ok && (isCoverageGap(result) || result.state === 'no-cited-answer') ? 'none' : result.ok ? result.model : model.id;
+      if (surface === 'app' || !result.ok) await recordAskEvent(c.env, { traceId, surface, model: writer, outcome: result.ok ? 'complete' : result.reason, detail: result.ok ? undefined : result.detail, elapsedMs: Date.now() - startedAt, sources: result.ok ? result.sources.length : undefined });
+      // What the answer was made with (ask-versions.ts): its prompts, policy, library and the model that wrote it.
+      return result.ok ? { ...result, versions: await answerVersions(c.env, writer, surface) } : result;
     } catch (error) {
       console.log(JSON.stringify({ event: 'app_ask_request', traceId, outcome: 'failed', model: model.id, elapsedMs: Date.now()-startedAt }));
       await recordAskEvent(c.env, { traceId, surface, model: model.id, outcome: 'failed', detail: String((error as Error)?.message ?? '').slice(0, 200), elapsedMs: Date.now() - startedAt });
@@ -148,7 +161,7 @@ appAsk.post('/', async c => {
           if (result.ok) {
             // Never transmit retrieved passage text in the sources payload.
             const sources = result.sources.map(({ text, ...source }) => ({ ...source, ...(result.ui ? { excerpt: text.slice(0, 1000) } : {}) }));
-            send({ done: true, answer: result.answer, sources, unsupported_refs: result.unsupported_refs ?? [], followups: result.followups ?? [], model: result.model, plan: result.plan, coverage: result.coverage, partial: result.partial, unfinished: result.unfinished, cut: result.cut, ...(result.ui ? { ui: result.ui, teachingFound: result.teachingFound } : {}) });
+            send({ done: true, answer: result.answer, sources, unsupported_refs: result.unsupported_refs ?? [], followups: result.followups ?? [], model: result.model, versions: result.versions, plan: result.plan, coverage: result.coverage, partial: result.partial, unfinished: result.unfinished, cut: result.cut, ...(result.ui ? { ui: result.ui, teachingFound: result.teachingFound } : {}) });
           } else send({ error: result.reason });
         } catch { send({ error: 'unavailable' }); }
         finally { clearInterval(beat); if (open) { open = false; controller.close(); } }

@@ -51,7 +51,7 @@ function fixture(t, metadata) {
 
 test("real retrieval repairs an unchanged old vector and returns it as a valid Search source", async t => {
   const { env } = fixture(t, { url: "", video, t: 42.75 });
-  const result = await answerSearch(env, "Preview source test", 7);
+  const result = await answerSearch(env, "Preview source test", 7, ["Cloudflare (Workers AI)"]);
   assert.equal(result.ok, true);
   assert.equal(result.sources[0].url, `${watch}&t=42s`);
   assert.equal(result.sources[0].video, video);
@@ -72,7 +72,7 @@ test("the release-smoke verse path stays relative through the real passageOf ret
 test("unsafe or missing links without a recorded valid video are omitted before citation registration", async t => {
   const { env, calls } = fixture(t, { url: "javascript:alert(1)", video: "invalid" });
   assert.deepEqual(await retrieve(env, "Preview source test"), []);
-  const result = await answerSearch(env, "Preview source test", 7);
+  const result = await answerSearch(env, "Preview source test", 7, ["Cloudflare (Workers AI)"]);
   assert.equal(result.state, "no-cited-answer");
   assert.deepEqual(result.sources, []);
   assert.deepEqual(result.related.passages, []);
@@ -85,7 +85,7 @@ test("a rejected first hit cannot shift IDs or leak its unsafe link into the mod
     { id: "unsafe", score: 0.99, metadata: { kind: "spoken", title: "Rejected fixture", text, url: "javascript:alert(1)" } },
     { id: "recorded", score: 0.95, metadata: { kind: "spoken", title: "Preview test (not an answer)", text, video, t: 8 } },
   ] });
-  const result = await answerSearch(env, "Preview source test", 7);
+  const result = await answerSearch(env, "Preview source test", 7, ["Cloudflare (Workers AI)"]);
   assert.equal(result.sources.length, 1);
   assert.equal(result.sources[0].n, 1);
   assert.equal(result.sources[0].url, `${watch}&t=8s`);
