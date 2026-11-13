@@ -75,6 +75,16 @@ export function claudeUnavailable(e: unknown): boolean {
   return s === undefined || s === 401 || s === 402 || s === 403 || s === 408 || s === 409 || s === 429 || s >= 500;
 }
 
+/**
+ * Whether Claude refused the request outright, so nothing was billed for it: a 4xx (out of funds, a
+ * key refused, rate limited). The same rule as the agent's usage accounting (agent.ts): a server
+ * error (5xx, including 529 overloaded), a timeout or a lost connection may come after tokens were
+ * billed, and the SDK may have retried an earlier failure into this one, so only a 4xx counts.
+ */
+export function claudeRefusedUnbilled(e: unknown): boolean {
+  return e instanceof Anthropic.APIError && e.status !== undefined && e.status < 500;
+}
+
 /** Whether the failure means the money that pays for Claude has run out: the owner's console (400) or Cloudflare's credits (402). */
 export function claudeOutOfFunds(e: unknown): boolean {
   if (!(e instanceof Anthropic.APIError)) return false;
