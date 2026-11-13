@@ -17,7 +17,7 @@ export { withTeachers } from "./class-attribution";
 import { backupOnce, backupPieces, mayUseBackup } from "./backup-answer";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
-import { alertClaudeFunds, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
+import { alertClaudeFunds, claudeRefusedUnbilled, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
@@ -578,6 +578,20 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   let first: Passage[] = [];
   const guard = guardedStream<AgentEvent>(options.emit ?? (() => undefined), () => [...evidence, ...passageEvidence(first)]);
   const emit = guard.emit;
+  /**
+   * Claude could not write this answer: the free model answers instead, as a reader (the list and
+   * agreement the follow-up call itself checks), and only with the reader's own agreement to its
+   * provider. That is decided before the meter settles: without it nothing more is sent, the reader's
+   * draft is cleared, and the meter settles as `refused` says; with it the reservation is kept whole.
+   */
+  const fallBack = async (refused: "empty" | "failed", quotaTaken: boolean): Promise<SearchAnswer> => {
+    const readerModels = appAskModels(env, undefined, true);
+    const fallback = readerModels.find((m) => m.id === freeModel(env).id) ?? readerModels.find((m) => m.format !== "anthropic");
+    emit({ reset: true });
+    if (!fallback || !consent.includes(fallback.provider)) { await finishMeter(env, meter, refused, Date.now() - t0); return { ok: false, reason: fallback ? "consent" : "model-unavailable" }; }
+    await finishMeter(env, meter, "backup", Date.now() - t0);
+    return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback.id, adminId: undefined, quotaTaken });
+  };
   try {
     // The first search runs before the model does: its steps are shown (the app's "Researched" row)
     // even when the model answers from these passages without searching again.
@@ -591,20 +605,17 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
       ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), emit, undefined, undefined, model, spend, undefined, meter.maxRounds, false, { signal, deadlineAt: t0 + MAX_RESEARCH_MS, evidence });
     } catch (e) {
       if (signal.aborted || model.format !== "anthropic" || !claudeUnavailable(e)) throw e;
-      // Claude cannot answer now (out of money, overloaded, down): the free model answers instead.
+      // Claude cannot answer now (out of money, overloaded, down): the free model answers instead. Without
+      // the reader's agreement, Claude's reservation goes back only when Claude refused outright (nothing billed).
       await alertClaudeFunds(env, e);
-      await finishMeter(env, meter, "backup", Date.now() - t0);
-      emit({ reset: true });
-      // Only with the reader's own agreement to the free model's provider; a reader's quota is already counted.
-      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: !adminClaude });
+      return fallBack(claudeRefusedUnbilled(e) ? "empty" : "failed", !adminClaude);
     }
     const { answer: drafted, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
     if (!drafted.trim() && ran.cut && model.format === "anthropic" && !adminClaude) {
       // A reader's Claude answer ran out of what was set aside for it before writing: the free model
-      // answers instead, with the reader's own agreement to its provider and no second quota.
-      await finishMeter(env, meter, "backup", Date.now() - t0);
-      emit({ reset: true });
-      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
+      // answers instead, with no second quota. Without the reader's agreement Claude's whole reservation
+      // stays counted: it was spent, and a cut-off round's usage may not all have been reported.
+      return fallBack("failed", true);
     }
     if (!drafted.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, ran.cut ? "partial" : ran.grounded === false ? "empty" : "ok", Date.now() - t0);
@@ -866,9 +877,10 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
               await alertClaudeFunds(env, e);
               backup = true;
-              // Decided before the meter settles: without the reader's agreement to the backup's
-              // provider no backup answer is written, so the free reservation is released ("empty").
-              if (!mayUseBackup(consent)) { await finish("empty"); send({ reset: true }); send({ error: "busy" }); return; }
+              // Decided before the meter settles: without the reader's agreement to the backup's provider
+              // no backup answer is written. The free reservation goes back when Claude refused before
+              // writing (nothing billed), and is kept whole after a server error or lost connection.
+              if (!mayUseBackup(consent)) { await finish(claudeRefusedUnbilled(e) ? "empty" : "failed"); send({ reset: true }); send({ error: "busy" }); return; }
               await finish("backup");
               guard.emit({ reset: true });
               send({ status: "Answering with the backup model" });

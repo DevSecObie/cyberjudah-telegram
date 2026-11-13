@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
+import { createServer } from "node:http";
 import { financialDb } from "./helpers/financial-db.mjs";
 import { modelOf } from "../../shared/ask-models.mjs";
 import { verifyRelease } from "../scripts/verify-release.mjs";
@@ -717,4 +718,37 @@ test('an admin failure with complete usage releases its unused daily reservation
   const row = sql.prepare("SELECT usd_micro FROM free_spend_daily WHERE day LIKE 'admin:%'").get();
   assert.equal(row.usd_micro, Math.ceil(actual * 1e6 - 1e-6));
   assert.equal(await freeSpendToday(env), 0);
+});
+
+// When Claude fails for a reader, the free model may answer only with the reader's agreement to its
+// provider, decided before Claude's meter settles. Without it nothing more is sent, and Claude's
+// reservation goes back to its pool when Claude refused outright (a 4xx: nothing billed); after a
+// server error, 529 overloaded included, it is kept whole, since tokens may have been billed. A fallback that runs keeps it.
+test("a failed Claude for a reader without agreement to the free provider releases Claude's reservation only when nothing was billed", async t => {
+  let status = 429;
+  const claude = createServer((_req, res) => { res.writeHead(status, { "content-type": "application/json", "x-should-retry": "false" }); res.end(JSON.stringify({ type: "error", error: { type: status === 429 ? "rate_limit_error" : status === 529 ? "overloaded_error" : status === 403 ? "permission_error" : "api_error", message: "fixture" } })); });
+  await new Promise(resolve => claude.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise(resolve => claude.close(resolve)));
+  for (const [code, agreed, released] of [[429, false, true], [403, false, true], [529, false, false], [500, false, false], [429, true, false]]) {
+    status = code;
+    const sent = [];
+    const e = { ...claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5" }), AI_GATEWAY: "default", ANTHROPIC_BASE_URL: `http://127.0.0.1:${claude.address().port}`,
+      AI: { run: async (model) => { if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] }; sent.push(model); return { choices: [{ message: { role: "assistant", content: "Keep it for ever." }, finish_reason: "stop" }], usage: { prompt_tokens: 900, completion_tokens: 60 } }; } },
+      VEC: { query: async () => ({ matches: [] }) } };
+    const label = `${code}, ${agreed ? "agreed" : "not agreed"}`;
+    const events = [];
+    const r = await answerAppAgent(e, "Why do we keep the Passover?", `acct-claude-${code}-${agreed}`, [], agreed ? [...AGREED, "Anthropic"] : ["Anthropic"], { emit: x => events.push(x) });
+    const holds = (await e.DB.prepare("SELECT reserved_micro AS r, state FROM free_spend_holds WHERE day LIKE 'claude:%'").all()).results;
+    const spent = (await e.DB.prepare("SELECT COALESCE(SUM(usd_micro), 0) AS m FROM free_spend_daily WHERE day LIKE 'claude:%'").first()).m;
+    assert.equal(holds.length, 1, `${label}: Claude's pool was reserved once`);
+    assert.notEqual(holds[0].state, "held", `${label}: and settled`);
+    if (released) assert.ok(spent < holds[0].r, `${label}: Claude's reservation is released (${spent} of ${holds[0].r} micro-dollars kept)`);
+    else assert.equal(spent, holds[0].r, `${label}: Claude's whole reservation is kept`);
+    assert.ok(events.some(x => x.reset === true), `${label}: the reader is told to clear Claude's draft`);
+    if (agreed) assert.equal(r.ok, true, JSON.stringify(r));
+    else {
+      assert.deepEqual(r, { ok: false, reason: "consent" }, label);
+      assert.deepEqual(sent, [], `${label}: the free model was never called`);
+    }
+  }
 });
