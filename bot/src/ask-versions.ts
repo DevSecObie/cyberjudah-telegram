@@ -21,8 +21,8 @@ export const PROMPT_IDS = {
   research: { id: "research-v1", sha256: "48f208930ff56c363ffd92633c9269d03e69cb7502f475c8cac532f00963eac2" },
   /** ai.mjs APP */
   app: { id: "app-v1", sha256: "897ce4ad195426598367a6659b492f8c1f2240de28c642b3e6a43c907ac41891" },
-  /** grounding.mjs DATA_POLICY */
-  dataPolicy: { id: "data-policy-v1", sha256: "6ca5e4fe506e90b546ea59b381e4cadfa342e40a39a52cf175f0819b8d2fcf8f" },
+  /** grounding.mjs DATA_POLICY and READER_VOICE, which every grounded system prompt sends together */
+  dataPolicy: { id: "data-policy-v2", sha256: "da19905b10dea06cb01c6a6b6f78317aa8e641223c2a531cbb7f922ff13acbcc" },
   /** ai.mjs buildPrompt, as built for placeholder inputs (tests/ask-versions.test.mjs) */
   answer: { id: "answer-v2", sha256: "1b7a546efb04bb590f44fb0465ead3109a0f4e9847f2cef68873383ff5f4807c" },
   /** agent.ts TOOL_DEFS: names, descriptions and input schemas */

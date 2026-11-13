@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { build } from "esbuild";
 import { SYSTEM, RESEARCH, APP, buildPrompt } from "../src/ai.mjs";
-import { DATA_POLICY } from "../src/grounding.mjs";
+import { DATA_POLICY, READER_VOICE } from "../src/grounding.mjs";
 import { indexMark, libraryMark, writeCorpusMark } from "../scripts/corpus-mark.mjs";
 import { isCorpusMark } from "../src/corpus-marks.mjs";
 
@@ -24,7 +24,7 @@ const sha = (s) => createHash("sha256").update(s).digest("hex");
 const changelog = readFileSync(new URL("../../docs/ASK-PROMPT-CHANGELOG.md", import.meta.url), "utf8");
 
 test("each prompt's text matches the hash pinned with its id: a prompt change must bump its id", () => {
-  const texts = { system: SYSTEM, research: RESEARCH, app: APP, dataPolicy: DATA_POLICY, answer: answerPrompt, tools: toolText };
+  const texts = { system: SYSTEM, research: RESEARCH, app: APP, dataPolicy: `${DATA_POLICY}\n\n${READER_VOICE}`, answer: answerPrompt, tools: toolText };
   assert.deepEqual(Object.keys(PROMPT_IDS).sort(), Object.keys(texts).sort());
   for (const [key, text] of Object.entries(texts)) {
     assert.equal(sha(text), PROMPT_IDS[key].sha256, `${key} changed: bump PROMPT_IDS.${key}.id, update its sha256 in src/ask-versions.ts and add a line to docs/ASK-PROMPT-CHANGELOG.md`);
