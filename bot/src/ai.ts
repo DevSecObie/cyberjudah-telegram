@@ -841,8 +841,6 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const line = (o: unknown) => `${JSON.stringify(hasSourceList(o) ? boundedFrame(o as object) : o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
-  // An explicit choice is checked even when an approved answer avoids a provider call.
-  if (modelId && modelId !== "auto" && !checkModelAllowlist(env, modelId)) return reply(403, MODEL_NOT_ALLOWED);
   if (opts.request !== undefined && !ASK_REQUEST_ID.test(opts.request)) return reply(400, { error: "invalid-request" });
   const request = opts.request ?? crypto.randomUUID();
   const replay = (saved: AskRequest) => saved.state === "completed" && saved.done
@@ -856,12 +854,16 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     if (saved) return saved.fingerprint === identity.fingerprint ? replay(await publicAskRequest(env, saved)) : reply(409, { error: "request-conflict", request });
     if (await legacyAskRequest(env, identity.owner, request)) return reply(409, { error: "request-used", request });
   } catch { return reply(503, { error: "unavailable" }); }
+  // An explicit choice is checked even when an approved answer avoids a provider call. A saved
+  // request replays above first: it calls no model, and its answer was already given.
+  if (modelId && modelId !== "auto" && !checkModelAllowlist(env, modelId)) return reply(403, MODEL_NOT_ALLOWED);
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approvedRaw = approvedFor(question, history);
   const approved = approvedRaw && await approvedFinal(env, approvedRaw);
   const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId), opts.depth) : selected;
   // Enforce checks both the requested ID and the resolved model; shadow records a choice once.
-  if ((!modelId || modelId === "auto" || modelAllowlistMode(env) === "enforce") && !checkModelAllowlist(env, model.id)) return reply(403, MODEL_NOT_ALLOWED);
+  // An approved answer calls no model, so only an explicit choice (above) is checked for it, as on main.
+  if (!approved && (!modelId || modelId === "auto" || modelAllowlistMode(env) === "enforce") && !checkModelAllowlist(env, model.id)) return reply(403, MODEL_NOT_ALLOWED);
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.

@@ -335,10 +335,32 @@ test('approved answers retain one recoverable feedback ID with no inference or c
   assert.equal(replay[0].replay,true); assert.equal(replay[0].answer_id,done.answer_id);
   assert.equal(replay.find(e=>e.done).answer_id,done.answer_id);
   assert.equal(f.env.calls.length,0);
-  // No charge: an approved answer does no billing work at all, so the usage table may not even exist (#601).
-  const usageTable=f.sql.prepare("SELECT 1 FROM sqlite_master WHERE name = 'credit_usage'").get();
-  assert.equal(usageTable?f.sql.prepare('SELECT COUNT(*) AS n FROM credit_usage').get().n:0,0);
+  // No charge, and no billing tables made for it: the approved answer never reaches the meter (#601).
+  for (const name of ['credit_usage','credit_holds']) assert.equal(f.sql.prepare('SELECT 1 FROM sqlite_master WHERE name = ?').get(name),undefined,name);
   assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_answer_receipts').get().n,1);
+});
+
+// A model Ask knows that is not on the allowlist (shared/ask-allowlist.json).
+const UNLISTED = 'anthropic/claude-sonnet-5';
+test('approved answers are served under an enforced allowlist even when the default model is unlisted',async t=>{
+  const f=setup(t,{ASK_MODEL_ALLOWLIST_MODE:'enforce',CLAUDE_MODEL:UNLISTED});
+  const r=await req(f,body({q:'Approved fixture question?',model:undefined,consent:[],caps:{}}));
+  assert.equal(r.status,200);
+  assert.equal((await events(r)).find(e=>e.done).approved,true);
+  assert.equal(f.env.calls.length,0);
+});
+
+test('a saved request replays after its explicit model is refused by an enforced allowlist',async t=>{
+  const f=setup(t); await fund(f);
+  const value=body({model:UNLISTED,caps:{[UNLISTED]:200_000}});
+  const first=(await events(await req(f,value))).find(e=>e.done);
+  assert.ok(first?.answer_id);
+  await Promise.allSettled(f.jobs);
+  f.env.ASK_MODEL_ALLOWLIST_MODE='enforce';
+  const replay=await events(await req(f,value));
+  assert.equal(replay[0].replay,true); assert.equal(replay[0].answer_id,first.answer_id);
+  // A new request with that model is still refused.
+  assert.equal((await req(f,{...value,request:'recovery-fixture-2'})).status,403);
 });
 
 test('recovery receipts cannot be created for running, other-owner or removed requests',async t=>{
