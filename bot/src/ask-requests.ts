@@ -112,7 +112,8 @@ export async function publicAskRequest(env: Env, row: Row, now = Date.now(), rec
     if (usage) { result.usage = { charged_mc: usage.charged_mc }; result.settlement = "settled"; }
     else if (row.budget_request) {
       const hold = await env.DB.prepare("SELECT state FROM free_spend_holds WHERE request_id = ?").bind(row.budget_request).first<{ state: string }>();
-      if (hold?.state === "settled") { result.usage = { charged_mc: 0, free: true }; result.settlement = "settled"; }
+      // A free usage line only with billing on (ai.ts creditsOn; not imported here: ai.ts imports this file).
+      if (hold?.state === "settled") { if (env.ASK_BILLING === "on") result.usage = { charged_mc: 0, free: true }; result.settlement = "settled"; }
     }
   }
   // Replaying an old answer must not replace the client's balance with a historical snapshot.

@@ -384,6 +384,19 @@ test('(a) with billing off no free usage line is sent or kept, and the request i
   const replay=await events(await req(f,body())); assert.equal(replay.some(e=>e.usage),false,'nor on replay');
   const approved=await events(await req(f,body({q:'Approved fixture question?',request:'recovery-fixture-2',consent:[],caps:{}})));
   assert.ok(approved.some(e=>e.done)); assert.equal(approved.some(e=>e.usage),false,'nor for an approved answer');
+
+  // A free answer whose last write was lost is repaired from its settled hold on recovery: settled, still no usage line.
+  const g=setup(t,{ASK_BILLING:'off',ASK_FREE_MODELS:MODEL});
+  const prepare=g.env.DB.prepare; let writes=0;
+  g.env.DB.prepare=q=>{
+    const statement=prepare(q);
+    if(!q.startsWith('UPDATE ask_requests SET state = ?, payload = ?')) return statement;
+    return {...statement,bind(...args){const bound=statement.bind(...args); return {...bound,async run(){if(++writes===2)throw new Error('fixture lost result write');return bound.run();}};}};
+  };
+  await events(await req(g,body()));
+  const repaired=await (await recover(g)).json();
+  assert.equal(repaired.state,'completed'); assert.equal(repaired.settlement,'settled'); assert.equal(repaired.usage,undefined);
+  assert.equal((await events(await req(g,body()))).some(e=>e.usage),false,'nor on its replay');
 });
 
 test('(c) a storage failure while recording a refusal that billed nothing still gives the free hold back (#605/#618)',async t=>{
