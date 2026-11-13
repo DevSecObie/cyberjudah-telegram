@@ -27,7 +27,7 @@ const Context = defineComponent({ name: 'Context', description: 'A direct factua
 const Sources = defineComponent({ name: 'Sources', description: 'Actual source previews with thumbnails and native open actions. Cite only numbers provided in research.', props: z.object({ numbers: z.array(z.number().int().min(1).max(24)).min(1).max(12) }), component: () => null });
 const RelatedScriptures = defineComponent({ name: 'RelatedScriptures', description: 'KJV scripture cards with Read in context. Only references present in the supplied evidence; no generated verse text.', props: z.object({ references: z.array(z.string().min(3).max(80)).min(1).max(4) }), component: () => null });
 const Explore = defineComponent({ name: 'Explore', description: 'Open an existing app study tool. This only navigates on a user tap; it never reads or changes private data. The fixed native label describes the destination.', props: z.object({ resource: z.enum(STUDY_DESTINATIONS) }), component: () => null });
-const FollowUp = defineComponent({ name: 'FollowUp', description: 'An optional useful question the reader can ask next about the cited data.', props: z.object({ question: z.string().min(4).max(300) }), component: () => null });
+const FollowUp = defineComponent({ name: 'FollowUp', description: 'An optional useful question the reader can ask next about the cited material.', props: z.object({ question: z.string().min(4).max(300) }), component: () => null });
 const StudyAnswer = defineComponent({ name: 'StudyAnswer', description: 'A conversational answer with cited facts or established teaching, actual sources, and relevant study tools. Do not include everything for every question.', props: z.object({ children: z.array(z.union([Teaching.ref, Context.ref, Sources.ref, RelatedScriptures.ref, Explore.ref, FollowUp.ref])).max(16) }), component: () => null });
 // OpenUI mints a random instance ID. Workers permit this only inside a request,
 // so keep module evaluation side-effect free and cache after the first request.
@@ -45,7 +45,7 @@ export function getAppStudyPrompt() {
 } });
 }
 
-export const NO_TEACHING = "I couldn't find enough supporting information in CyberJudah's data to answer that yet.";
+export const NO_TEACHING = "I couldn't find enough supporting information in the CyberJudah library to answer that yet.";
 export function evidenceOf(source: Passage): StudySource['evidence'] {
   if (source.kind === 'verse') return 'scripture';
   // A video alone is not proof of a teaching; require the known class/transcript collection.

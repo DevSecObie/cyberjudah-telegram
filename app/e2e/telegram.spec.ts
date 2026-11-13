@@ -915,7 +915,10 @@ liveDataTest("the recordings search works as the site's: matches lit, a moment t
   await page.fill("#q", "Most High");
   await page.press("#q", "Enter");
   await expect(page).toHaveURL(/\/search\?q=Most%20High/);
-  await expect(page.locator(".hint").first()).toContainText(/Results 1–\d+ for/);
+  // What was said in class has its own tab; Top shows only its first few moments.
+  await page.getByRole("tab", { name: /^Said in class/ }).click();
+  await expect(page).toHaveURL(/in=spoken/);
+  await expect(page.locator(".hint").first()).toContainText(/Moments 1–\d+ for/);
   await expect(page.locator(".rec mark").first()).toHaveText(/most|high/i);
   await expect(page.locator(".rec__meta b").first()).toHaveText(/\d+:\d\d/);
   await page.click(".chip >> text=Sabbath class");
@@ -1645,6 +1648,23 @@ test("Strong's: a verse's words open the Hebrew or Greek behind them, with every
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2/);
 });
 
+test("Strong's: a word tapped while its cards are still loading is brought when they arrive", async ({ page }) => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route((url) => /\/api\/resources\/strongs\/[^/]+\/record$/.test(url.pathname) || /\/api\/strongs\/[HG]\d+\.json$/.test(url.pathname), async (r) => { await held; await r.continue(); });
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await longPressVerse(page, 1);
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".bs-vdetail__cards .bs-loading")).toBeVisible();
+  await page.getByRole("button", { name: "God", exact: true }).click();
+  await expect(page.getByRole("button", { name: "God", exact: true })).toHaveAttribute("aria-pressed", "true");
+  release();
+  await expect(page.getByRole("button", { name: "H430 · God", exact: true })).toBeInViewport();
+  await expect(page.getByRole("button", { name: "God", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "In the beginning", exact: true })).toHaveAttribute("aria-pressed", "false");
+});
+
 test("a verse's Comments list every class that read it aloud, from the transcripts, each opening the class at that second", async ({ page }) => {
   await page.goto(`/read/isaiah/61${LAUNCH}`);
   await expect(page.locator("#verset-1")).toBeVisible();
@@ -2053,7 +2073,7 @@ test("Search: results come in as you type, grouped, a reference opens the Bible,
   await expect(page.locator(".srch__none")).toContainText("Nothing found");
 });
 
-test("Search: the AI answer block asks once per submitted search, sits above the keyword results with its citations, and stays silent when the answer fails", async ({ page }) => {
+test("Search: the AI answer block asks once per submitted search, sits above the keyword results with its citations, stays silent when the answer fails, and names a limit refusal", async ({ page }) => {
   await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "", mode: "strict", counts: { verse: 1 }, ms: 1, hits: [
     { kind: "verse", title: "Genesis 14:18", url: "/bible/genesis/14#v18", sub: "", snippet: "And Melchizedek king of Salem brought forth bread and wine" },
   ] } }));
@@ -2111,14 +2131,25 @@ test("Search: the AI answer block asks once per submitted search, sits above the
   await page.locator(".srch__ai .srccard").nth(1).click();
   await expect(page).toHaveURL(/\/note\/classes\/2026\/superiority/);
   await page.goBack();
-  // A refused answer (the daily limit) leaves the keyword results alone and shows no block.
+  // A failed answer leaves the keyword results alone and shows no block.
   await page.unroute("**/api/search/answer?**");
-  await page.route("**/api/search/answer?**", (r) => r.fulfill({ status: 429, json: { ok: false, error: "limit" } }));
+  await page.route("**/api/search/answer?**", (r) => r.fulfill({ status: 500, json: { ok: false, error: "unavailable" } }));
   await page.fill("#q", "Salem");
   await page.press("#q", "Enter");
   await expect(page).toHaveURL(/q=Salem/);
   await expect(page.locator(".srch__hit").first()).toBeVisible();
   await expect(page.locator(".srch__ai")).toHaveCount(0);
+  // A refusal for the daily limit says so (#606, asked by t1v after QA), with no answer or sources;
+  // the keyword results stay.
+  await page.unroute("**/api/search/answer?**");
+  await page.route("**/api/search/answer?**", (r) => r.fulfill({ status: 429, json: { ok: false, error: "limit" } }));
+  await page.fill("#q", "Salem king");
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/q=Salem/);
+  await expect(page.locator(".srch__hit").first()).toBeVisible();
+  await expect(page.locator(".srch__ai .hint")).toHaveText("You've reached today's search limit. Try again later.");
+  await expect(page.locator(".srch__ai .msg__text")).toHaveCount(0);
+  await expect(page.locator(".srch__ai .srccard")).toHaveCount(0);
 });
 
 

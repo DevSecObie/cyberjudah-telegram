@@ -1,5 +1,7 @@
+export function topicOverlap(question: string, text: string): number;
 import type { Passage } from './ai.mjs';
 export const DATA_POLICY: string;
+export const READER_VOICE: string;
 export const SMALL_TALK: RegExp;
 export function groundedSystem(system: string): string;
 export function untrustedData(value: unknown, label?: string): string;

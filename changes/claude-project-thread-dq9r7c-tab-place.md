@@ -1,0 +1,1 @@
+- Tabs: a page still loading when the tab switcher (or another tab) is opened stays the place of the tab it was opened in, so going back to that tab shows it instead of the page before it.

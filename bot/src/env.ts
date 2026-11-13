@@ -76,6 +76,8 @@ export type Env = {
   SEARCH_AI_FREE_ONLY?: string;
   /** End-to-end tests only: "on" lets a request name its moment (x-e2e-now), to test the Sabbath pause on any day. Never set in wrangler.jsonc. */
   E2E_CLOCK?: string;
+  /** End-to-end tests only: "off" keeps /privacy and /terms as the Mini App's own screens. `wrangler dev` reports every request as cyberjudah.io (it takes the host from "routes"), so the host check alone would serve the site's legal pages there. Never set in wrangler.jsonc. */
+  SITE_LEGAL_PAGES?: string;
   /** Telegram user ids (comma-separated) allowed to edit notes from the app. They also receive the hourly health-check pages. */
   ADMIN_IDS?: string;
   /** Donations ("Support CyberJudah", billing.ts donationsConfig): "off" turns off the feature without a deploy (on when unset). The owner's own HTTPS donation link; empty until the owner sets it. */

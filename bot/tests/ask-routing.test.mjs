@@ -18,6 +18,8 @@ await build({
         spend.modelUsd += 0.001;
         if (env.failAnswer) throw new Error('fixture failed');
         emit({delta:'Existing library words [1].'});
+        if (env.gapAnswer) return {text:'Fixture gap sentence.', passages:[], actions:[], cut:false, grounded:false};
+        if (env.fixedAnswer) return {text:'Fixture deadline excerpts [1].', passages:[{kind:'spoken',title:'Existing class',url:'/classes/existing',text:'Existing library words.'}], actions:[], cut:true, grounded:true, fixed:true};
         return {text:'Existing library words [1].', passages:[{kind:'spoken',title:'Existing class',url:'/classes/existing',text:'Existing library words.'}], actions:[],cut:false};
       }
     ` }));
@@ -60,7 +62,7 @@ test('catalog routing metadata preserves every existing field and separates capa
 });
 
 test('question depth follows the Mini App rules, including definitions, references and study follow-ups', () => {
-  for (const q of ['John 8:32', '1 John 2:1–3?', 'Gen. 14', 'define righteousness', 'what does mercy mean?', 'meaning of “faith”', 'Judah']) assert.equal(api.depthOf(q), 'quick', q);
+  for (const q of ['John 8:32', '1 John 2:1–3?', 'Gen. 14', 'define righteousness', 'what does mercy mean?', 'meaning of “faith”']) assert.equal(api.depthOf(q), 'quick', q);
   for (const q of ['Why keep Passover?', 'Compare the accounts', 'Explain the historical evidence', 'What was said? Where can I read it?', 'Show me the relationship between the passages']) assert.equal(api.depthOf(q), 'deep', q);
   const followup = 'Can you tell me some more about that particular passage?';
   assert.equal(api.depthOf(followup, 2), 'normal');
@@ -73,7 +75,7 @@ test('question depth follows the Mini App rules, including definitions, referenc
 test('asking to read a passage is quick, as in the Mini App; asking what it means is not', () => {
   for (const q of ['read John 3:16', 'Show me Genesis 1:1-3', 'what does John 8:32 say?', 'quote Isaiah 45:7', 'please pull up 1 John 4:1.', 'open Rev. 13:1-8']) assert.equal(api.depthOf(q), 'quick', q);
   for (const q of ['What does Isaiah 45:7 mean?', 'What does John 8:32 mean', 'what does John 8:32 mean.', 'John 8:32 meaning', 'what is meant by Romans 6', 'Rev 1:1 signified', 'what signifieth this', 'read John 3:16 and explain it', 'Give me a study on the feast days']) assert.notEqual(api.depthOf(q), 'quick', q);
-  for (const q of ['what does mercy mean', 'define righteousness', 'the sabbath day', 'mercy meaning', 'grace meaning?', 'the meaning of grace', 'meaning of the word hallelujah', 'by all means']) assert.equal(api.depthOf(q), 'quick', `${q}: a word definition or short phrase stays quick`);
+  for (const q of ['what does mercy mean', 'define righteousness', 'mercy meaning', 'grace meaning?', 'the meaning of grace', 'meaning of the word hallelujah', 'what is the meaning of grace?']) assert.equal(api.depthOf(q), 'quick', `${q}: an explicit word definition stays quick`);
   assert.equal(api.depthOf('read John 3:16', 10), 'quick', 'a lookup stays quick deep into a conversation');
 });
 
@@ -85,7 +87,9 @@ test('auto counts earlier exchanges, not messages, as turns', async t => {
   const route = async (h) => { const r = await request(env, { q: followup, model: 'auto', stream: true, history: h, consent: ['Anthropic', 'Cloudflare (Workers AI)'], caps: { [DEFAULT.id]: 200_000, [BEST.id]: 200_000, 'anthropic/claude-opus-5.5': 200_000 } }); const body = await r.text(); assert.equal(r.status, 200, body); return env.calls.at(-1).model; };
   const deep = (await api.autoModel(env, followup, 4, 77, DEFAULT, api.freeModels(env), false)).id;
   assert.notEqual(deep, DEFAULT.id);
-  assert.equal(await route(history(2)), DEFAULT.id, 'the third question (four messages before it) is normal');
+  assert.equal(api.depthOf(followup, 2), 'normal', 'the third question has two earlier exchanges, not four');
+  assert.equal(api.depthOf(followup, 4), 'deep');
+  assert.equal(await route(history(2)), deep, 'ordinary follow-ups also get capable research');
   env.calls.length = 0;
   assert.equal(await route(history(4)), deep, 'the fifth question is deep');
 });
@@ -104,7 +108,7 @@ test('account models publish catalog tier/tools for every available model', asyn
   }
 });
 
-test('quick auto chooses fast free research, even for admins; normal stays on the account default', async t => {
+test('quick auto chooses fast free research, even for admins; other questions prefer capable research', async t => {
   const {env} = setup(t);
   const free = api.freeModels(env);
   for (const admin of [false,true]) {
@@ -113,7 +117,10 @@ test('quick auto chooses fast free research, even for admins; normal stays on th
     assert.equal(m.tools, true);
     assert.ok(free.has(m.id));
   }
-  assert.equal((await api.autoModel(env, 'Can you tell me about Judah?', 0, 77, DEFAULT, free, false)).id, DEFAULT.id);
+  await funded(env, 2_000_000);
+  for (const q of ['Can you tell me about Judah?', 'What does John 3:16 mean?', 'What does that mean?', 'Go on.']) {
+    assert.equal((await api.autoModel(env, q, 0, 77, DEFAULT, free, false)).id, BEST.id, q);
+  }
   const plain = modelOf('@cf/meta/llama-3.1-8b-instruct-fp8');
   assert.equal((await api.autoModel(env, 'John 8:32', 0, 77, BEST, new Set([plain.id]), false)).id, plain.id, 'restricted free menu still works');
 });
@@ -142,6 +149,15 @@ test('auto only considers configured providers, and honors empirical typical cos
   const owner = await api.ownerOfUser(env, 77);
   for (let i = 0; i < 5; i++) sql.prepare('INSERT INTO credit_usage (request_id,user_id,at,model,held_mc,charged_mc,absorbed_mc,cost_usd,status) VALUES (?, ?, ?, ?, 0, ?, 0, 0.01, ?)').run(`typical-${i}`,owner,Date.now(),'openai/gpt-6-astra',50_000,'ok');
   assert.equal((await api.autoModel(env, 'Explain the history', 0, 77, DEFAULT, api.freeModels(env), false)).id, 'openai/gpt-6-astra');
+});
+
+test('a more capable free research model wins over a lower-tier affordable paid one', async t => {
+  const {env} = setup(t);
+  await funded(env, 10_000);
+  const free = api.freeModels(env);
+  const m = await api.autoModel(env, 'What does that mean?', 0, 77, DEFAULT, free, false);
+  assert.equal(m.tier, 'frontier');
+  assert.ok(free.has(m.id));
 });
 
 for (const stream of [true,false]) {
@@ -239,3 +255,109 @@ test('JSON adapter handles split frames, drops partial answers on errors, and re
     assert.equal((await r.json()).ok, false);
   }
 });
+
+test('a pronoun is not a word to define: meaning follow-ups are never quick, at any turn', () => {
+  // Each of these matched DEFINE or the short-phrase rule before; none may be quick now.
+  const asks = ['what does it mean', 'what does this mean?', 'What does that mean', 'what does he mean', 'meaning of this', 'the meaning of that?', 'define it',
+    "what does 'this' mean", "what does 'it' mean?", "define 'that'", 'what does “it” mean', "what does it' mean", 'what does this-mean',
+    'what does them mean', 'define them', 'meaning of them', "what's there?", "what's here", "what's this", 'what is it', 'definition of this'];
+  for (const turns of [0, 1, 4]) for (const q of asks) assert.notEqual(api.depthOf(q, turns), 'quick', `${q} (turns ${turns})`);
+  for (const q of ['what does mercy mean', 'what does Hebrew mean?', 'meaning of theophany', 'definition of mercy', 'define heresy']) assert.equal(api.depthOf(q, 4), 'quick', `${q}: an explicit word definition`);
+});
+
+test('the one-piece JSON answer names its versions, with the model that wrote it (#600)', async t => {
+  const { env } = setup(t);
+  await funded(env, 1_000_000);
+  const response = await request(env, { q: 'Explain the historical evidence', consent: ['Anthropic', 'Cloudflare (Workers AI)'] });
+  const body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.ok, true);
+  assert.equal(env.calls.length, 1);
+  assert.ok(body.versions && typeof body.versions === 'object', 'versions is present');
+  assert.deepEqual(Object.keys(body.versions).sort(), ['corpus', 'model', 'policy', 'prompt']);
+  assert.equal(body.versions.model, env.calls[0].model, 'versions names the model that wrote the answer');
+  assert.equal('model' in body, false, 'the writer is sent only inside versions');
+});
+
+test('a one-piece answer no model wrote names no model in its versions (#600)', async t => {
+  const { env } = setup(t, { gapAnswer: true });
+  await funded(env, 1_000_000);
+  const response = await request(env, { q: 'Explain the historical evidence', consent: ['Anthropic', 'Cloudflare (Workers AI)'] });
+  const body = await response.json();
+  assert.equal(response.status, 200, JSON.stringify(body));
+  assert.equal(body.answer, 'Fixture gap sentence.');
+  assert.equal(body.versions.model, 'none', 'the agent replaced its text with a fixed sentence');
+  assert.equal('model' in body, false);
+});
+
+test('a streamed answer the agent replaced with a fixed sentence names no model in its versions, and keeps its Auto label (#600)', async t => {
+  const { env } = setup(t, { gapAnswer: true });
+  await funded(env, 200_000);
+  const response = await request(env, { q: 'Explain the historical evidence', model: 'auto', stream: true, request: 'gap-request', consent: ['Anthropic'], caps: { 'anthropic/claude-opus-5.5': 200_000 } });
+  assert.equal(response.status, 200, response.status === 200 ? '' : await response.clone().text());
+  const done = (await events(response)).find(e => e.done);
+  assert.equal(done.answer, 'Fixture gap sentence.');
+  assert.equal(done.versions.model, 'none', 'no model wrote the fixed sentence');
+  assert.equal(done.model, env.calls[0].model, 'the top-level model (the Mini App Auto label) is unchanged');
+});
+
+test('a streamed answer the agent wrote names its model in versions (#600)', async t => {
+  const { env } = setup(t);
+  await funded(env, 200_000);
+  const response = await request(env, { q: 'Explain the historical evidence', model: 'auto', stream: true, request: 'wrote-request', consent: ['Anthropic'], caps: { 'anthropic/claude-opus-5.5': 200_000 } });
+  assert.equal(response.status, 200, response.status === 200 ? '' : await response.clone().text());
+  const done = (await events(response)).find(e => e.done);
+  assert.ok(done, 'the stream has a finished line');
+  assert.equal(done.versions.model, env.calls[0].model);
+  assert.equal(done.model, env.calls[0].model);
+});
+
+test('short subjects are studies rather than implicit dictionary lookups', () => {
+  for (const q of ['What is salvation?', 'What is Passover?', 'What is faith', "what's shiloh?", 'what is ithiel', 'Who is Moses?']) {
+    assert.equal(api.depthOf(q), 'deep', q);
+  }
+  for (const q of ['Judah', 'the sabbath day', 'by all means']) assert.equal(api.depthOf(q), 'normal', q);
+  assert.equal(api.depthOf('What is salvation?', 0, 'quick'), 'quick');
+  assert.equal(api.depthOf('John 8:32', 0, 'study'), 'deep');
+});
+
+for (const stream of [true, false]) {
+  test(`${stream ? 'NDJSON' : 'JSON'} explicit depth routes Auto but cannot bypass consent or exact-model confirmation`, async t => {
+    const {env,sql} = setup(t);
+    await funded(env, 2_000_000);
+    for (const depth of ['invalid', null, {}, 3]) {
+      const r = await request(env, {q:'John 8:32',model:'auto',stream,depth});
+      assert.equal(r.status, 400);
+    }
+    const body = {q:'John 8:32',model:'auto',stream,depth:'study'};
+    assert.equal((await request(env, body)).status, 428);
+    assert.equal((await request(env, {...body,consent:['Anthropic']})).status, 409);
+    assert.equal(env.calls.length, 0);
+    assert.equal(sql.prepare('SELECT COUNT(*) n FROM credit_holds').get().n, 0);
+    const quick = await request(env, {q:'What is salvation?',model:'auto',stream,depth:'quick',consent:['Cloudflare (Workers AI)']});
+    assert.equal(quick.status, 200, await quick.clone().text());
+    await quick.text();
+    assert.equal(modelOf(env.calls.at(-1).model).tier, 'fast');
+    const explicit = await request(env, {...body,model:DEFAULT.id,consent:['Anthropic'],caps:{[DEFAULT.id]:2_000_000}});
+    assert.equal(explicit.status, 200, await explicit.clone().text());
+    await explicit.text();
+    assert.equal(env.calls.at(-1).model, DEFAULT.id, 'depth never replaces a manually selected model');
+  });
+}
+
+for (const stream of [false, true]) {
+  test(`${stream ? 'a streamed' : 'a one-piece'} answer that is the deadline's fixed excerpts names no model in its versions (#600)`, async t => {
+    const { env } = setup(t, { fixedAnswer: true });
+    await funded(env, 200_000);
+    const body = stream
+      ? { q: 'Explain the historical evidence', model: 'auto', stream: true, request: 'fixed-request', consent: ['Anthropic'], caps: { 'anthropic/claude-opus-5.5': 200_000 } }
+      : { q: 'Explain the historical evidence', consent: ['Anthropic', 'Cloudflare (Workers AI)'] };
+    const response = await request(env, body);
+    assert.equal(response.status, 200, response.status === 200 ? '' : await response.clone().text());
+    const done = stream ? (await events(response)).find(e => e.done) : await response.json();
+    assert.ok(done, 'a finished answer');
+    assert.equal(done.versions.model, 'none', 'no model wrote the deadline text');
+    if (stream) assert.equal(done.model, env.calls[0].model, 'the Auto label is unchanged');
+    else assert.equal('model' in done, false);
+  });
+}

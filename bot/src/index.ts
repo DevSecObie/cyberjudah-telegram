@@ -14,7 +14,7 @@ import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
 import { imageFile } from "./images";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Exec, Sub } from "./env";
@@ -29,10 +29,11 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
+import { answerVersions } from "./ask-versions";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeAskIpQuota, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
-import { semanticSearch } from "./semantic-search";
-import { normalizeHistory, VOICES } from "./ai.mjs";
+import { semanticSearch, takeSearchQuota } from "./semantic-search";
+import { normalizeHistory, withStudyContext, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { createBroadcastSender, withBroadcastLease } from "./broadcast";
@@ -77,6 +78,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
+import { LEGAL_HEADERS, LEGAL_HOST, legalPage } from "./site-legal";
 import { clientAddress, NETWORK_PER_MINUTE } from "./client-ip";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
@@ -85,7 +87,7 @@ const app = new Hono<App>();
 // Bundled native readers have local webview origins, and the web app lives at web.cyberjudah.io.
 // No cookie credentials are allowed
 // across origins; private endpoints still require their existing signed authorization.
-app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], exposeHeaders: ["Retry-After"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
@@ -281,25 +283,34 @@ app.post("/api/ask", async (c) => {
   if (!(await takeAskIpQuota(c.req.raw, c.env))) {
     return c.json({ error: "limit" }, 429);
   }
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; context?: unknown; stream?: boolean; chat?: string; retry?: boolean; model?: string; depth?: unknown; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
+  if (body?.depth !== undefined && body.depth !== "quick" && body.depth !== "study") return c.json({ error: "Invalid answer depth" }, 400);
   // The request's id (a retry of the same request holds once), and the most the reader accepted a
   // request may cost on each model (balance units, mc): the server takes the one for the model it resolves.
   const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
   const resourcePins = body?.resources === undefined ? undefined : ResourcePinsSchema.safeParse(body.resources);
   if (resourcePins && !resourcePins.success) return c.json({ error: "Invalid resource releases" }, 400);
-  const meterOpts = { clientStreaming: Boolean(body?.stream), resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps };
+  const meterOpts = { clientStreaming: Boolean(body?.stream), resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps, depth: body?.depth as "quick" | "study" | undefined };
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
-  const history = normalizeHistory(body?.history, 8);
-  if (body?.stream || typeof body?.model === "string" || typeof body?.request === "string") {
+  const history = withStudyContext(normalizeHistory(body?.history, 8), body?.context);
+  if (body?.stream || typeof body?.model === "string" || body?.depth !== undefined || typeof body?.request === "string") {
     const start = Date.now();
-    const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
+    const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : body?.depth ? "auto" : undefined, consent, meterOpts);
     return body?.stream ? response : askJson(response, String(body?.q ?? ""), start);
   }
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  return c.json(res.ok ? { ...res, answer_id: await issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources) } : res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
+  if (res.ok) {
+    // Like every streamed finished line (ai.ts askStream), the one-piece answer names what it was made
+    // with (ask-versions.ts); "none" when a fixed sentence, written by no model, is the answer.
+    // The writer is sent only inside `versions`, so the reply keeps its shape.
+    const { model, ...answer } = res;
+    const [answer_id, versions] = await Promise.all([issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources), answerVersions(c.env, model ?? "none")]);
+    return c.json({ ...answer, answer_id, versions });
+  }
+  return c.json(res, res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
 });
 app.post('/api/feedback', async c => {
   c.header('cache-control', 'no-store');
@@ -522,6 +533,9 @@ app.delete("/api/chats/:id", async (c) => {
   return c.json({ ok }, ok ? 200 : 400);
 });
 app.get("/api/similar", async (c) => {
+  // Each call embeds the query and reranks (model calls): limited like the semantic search (OWASP LLM10).
+  // A query too short to search (similar() answers it with nothing, no model call) spends no allowance.
+  if ((c.req.query("q") ?? "").trim().length >= 2 && !(await takeSearchQuota(c.env, c.req.raw, c.get("tma").user!.id, "similar"))) return c.json({ error: "limit" }, 429);
   const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
   return c.json(res, res.ok ? 200 : 503);
 });
@@ -700,6 +714,17 @@ app.get("/app/*", async (c, next) => {
 // The Bible Strong fork once lived at /app/strong; it is gone, and its old links open the app.
 app.get("/app/strong", (c) => c.redirect("/app/", 301));
 app.get("/app/strong/*", (c) => c.redirect("/app/", 301));
+
+// The privacy policy and terms the app's store listing links to (site-legal.ts): static HTML on
+// cyberjudah.io only, with the trailing-slash form sent to the same page. Anywhere else (workers.dev,
+// staging) these paths are the Mini App's own screens, so they go on to the assets. Separate from
+// the Mini App's /app/privacy and /app/terms. `wrangler dev` reports every request as cyberjudah.io
+// (it takes the host from "routes"), so the end-to-end tests turn the pages off (SITE_LEGAL_PAGES "off").
+const servesLegal = (c: Context<App>) => c.env.SITE_LEGAL_PAGES !== "off" && new URL(c.req.url).hostname === LEGAL_HOST;
+for (const which of ["privacy", "terms"] as const) {
+  app.get(`/${which}`, (c, next) => servesLegal(c) ? c.body(legalPage(which), 200, LEGAL_HEADERS) : next());
+  app.get(`/${which}/`, (c, next) => servesLegal(c) ? c.redirect(`/${which}`, 301) : next());
+}
 
 // Anything else is the Mini App (run_worker_first only routes the paths above here).
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));

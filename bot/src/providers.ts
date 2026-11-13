@@ -75,11 +75,23 @@ export function claudeUnavailable(e: unknown): boolean {
   return s === undefined || s === 401 || s === 402 || s === 403 || s === 408 || s === 409 || s === 429 || s >= 500;
 }
 
+/**
+ * Whether Claude refused the request outright, so nothing was billed for it: a 4xx (out of funds, a
+ * key refused, rate limited). The same rule as the agent's usage accounting (agent.ts): a server
+ * error (5xx, including 529 overloaded), a timeout or a lost connection may come after tokens were
+ * billed, and the SDK may have retried an earlier failure into this one, so only a 4xx counts.
+ */
+export function claudeRefusedUnbilled(e: unknown): boolean {
+  return e instanceof Anthropic.APIError && e.status !== undefined && e.status < 500;
+}
+
 /** Whether the failure means the money that pays for Claude has run out: the owner's console (400) or Cloudflare's credits (402). */
 export function claudeOutOfFunds(e: unknown): boolean {
   if (!(e instanceof Anthropic.APIError)) return false;
   return e.status === 402 || (e.status === 400 && /credit balance/i.test(e.message ?? ""));
 }
+
+const FUNDS_SINCE = "alert:claude_funds", FUNDS_TOLD = "alert:claude_funds:told", FUNDS_TRIED = "alert:claude_funds:tried";
 
 /**
  * While Claude's money is gone, paying readers get the backup model's answers and are not charged.
@@ -88,12 +100,21 @@ export function claudeOutOfFunds(e: unknown): boolean {
 export async function alertClaudeFunds(env: Env, e: unknown, now = Date.now()): Promise<void> {
   if (!claudeOutOfFunds(e)) return;
   try {
-    const key = "alert:claude_funds";
-    if (await env.SUBS.get(key)) return;
-    await env.SUBS.put(key, new Date(now).toISOString(), { expirationTtl: 6 * 3600 });
+    const stamp = new Date(now).toISOString(), window = { expirationTtl: 6 * 3600 };
+    // Three markers. `alert:claude_funds` says since when the money is out (the AskHealth screen reads
+    // it): written on any error that finds it gone, so it never lapses while errors go on. `…:told` is
+    // written only once an admin has the message (as for the free-budget alert), so a failed send is
+    // tried again instead of going quiet for six hours. `…:tried` spaces those tries ten minutes apart,
+    // so readers' questions do not each wait on Telegram (KV is not instant everywhere, so errors in
+    // the same few seconds may still each send; for an admin alert that is harmless).
+    const [told, since, tried] = await Promise.all([FUNDS_TOLD, FUNDS_SINCE, FUNDS_TRIED].map((k) => env.SUBS.get(k)));
+    if (!since) await env.SUBS.put(FUNDS_SINCE, stamp, window);
+    if (told || tried) return;
+    await env.SUBS.put(FUNDS_TRIED, stamp, { expirationTtl: 600 });
     const where = unifiedBilling(env) ? "The Cloudflare credits that pay for Claude have" : "The Claude console balance has";
     // Loaded here, not at the top, so this module stays importable without the Telegram client.
     const { tellAdmins } = await import("./health");
-    await tellAdmins(env, `Ask CyberJudah: ${where} run out. Paying readers are getting the backup model's answers, and are not charged for them, until it is topped up.\n\n${new Date(now).toISOString()}`);
+    const reached = await tellAdmins(env, `Ask CyberJudah: ${where} run out. Paying readers are getting the backup model's answers, and are not charged for them, until it is topped up.\n\n${stamp}`);
+    if (reached) await env.SUBS.put(FUNDS_TOLD, stamp, window);
   } catch (err) { console.error(JSON.stringify({ event: "claude_funds_alert_failed", message: String((err as Error)?.message ?? err).slice(0, 160) })); }
 }

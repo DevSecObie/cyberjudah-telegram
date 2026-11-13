@@ -147,6 +147,18 @@ export async function semanticHits(env: Env, options: Options, signal: AbortSign
 
 /** Mounted after existing TMA, browser-session and linked Firebase authentication. */
 export const semanticSearch = new Hono<{ Bindings: Env; Variables: { tma: InitData } }>();
+/**
+ * The limits on a search that embeds the query (a model call): per address (the reader's own signed
+ * address through the Mini App's Worker, client-ip.ts) per minute, and per person 10 a minute and
+ * 200 a day. Each scope ("semantic", "similar") counts on its own. Only keyed hashes are kept.
+ */
+export async function takeSearchQuota(env: Env, req: Request, uid: number, scope: 'semantic' | 'similar'): Promise<boolean> {
+  const owner = await pid(env, uid), day = new Date().toISOString().slice(0, 10), minute = Math.floor(Date.now() / 60000);
+  const { ip, signed } = await clientAddress(req, env);
+  if (ip && !await takeQuotaKey(env, `${scope}_ip:${await keyedHash(env, `${scope}-ip`, ip)}:${minute}:${day}`, NETWORK_PER_MINUTE[signed ? 'signed' : 'unsigned'])) return false;
+  return await takeQuotaKey(env, `${scope}_person:${owner}:${minute}:${day}`, 10) && await takeQuotaKey(env, `${scope}_day:${owner}:${day}`, 200);
+}
+
 semanticSearch.get('/', async c => {
   c.header('cache-control', 'private, no-store');
   const uid = c.get('tma')?.user?.id;
@@ -154,11 +166,7 @@ semanticSearch.get('/', async c => {
   const options = semanticOptions(new URL(c.req.url).searchParams);
   if (!options) return c.json({ error: 'bad-query' }, 400);
   try {
-    const owner = await pid(c.env, uid), day = new Date().toISOString().slice(0, 10), minute = Math.floor(Date.now() / 60000);
-    // Through the Mini App's Worker, the reader's own signed address (client-ip.ts), not the relay's.
-    const { ip, signed } = await clientAddress(c.req.raw, c.env);
-    if (ip && !await takeQuotaKey(c.env, `semantic_ip:${await keyedHash(c.env, 'semantic-ip', ip)}:${minute}:${day}`, NETWORK_PER_MINUTE[signed ? 'signed' : 'unsigned'])) return c.json({ error: 'limit' }, 429);
-    if (!await takeQuotaKey(c.env, `semantic_person:${owner}:${minute}:${day}`, 10) || !await takeQuotaKey(c.env, `semantic_day:${owner}:${day}`, 200)) return c.json({ error: 'limit' }, 429);
+    if (!await takeSearchQuota(c.env, c.req.raw, uid, 'semantic')) return c.json({ error: 'limit' }, 429);
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(options)));
     const hash = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
     const key = `${new URL(c.req.url).origin}/__semantic_cache/v1/${hash}`;

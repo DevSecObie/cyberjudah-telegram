@@ -248,7 +248,10 @@ test("The Final Captivity: a period's events by category, and an event's history
   await expect(page.locator(".fc-tribes")).toContainText("Gad");
   // An event about a leader shows the leader's portrait.
   await page.goto("/timeline/event/iuic-founded-2003");
-  await expect(page.locator("img.tl-event__pic")).toHaveAttribute("src", /timeline\/leaders\/bishop-nathanyel-256\.webp$/);
+  // Production may hold a photo an admin uploaded for the leader in place of the app's own.
+  await expect(page.locator("img.tl-event__pic")).toHaveAttribute("src", process.env.PLAYWRIGHT_BASE_URL
+    ? /timeline\/leaders\/bishop-nathanyel-256\.webp$|^\/api\/photos\/file\/photos\/leader\/bishop-nathanyel\//
+    : /timeline\/leaders\/bishop-nathanyel-256\.webp$/);
   await expect(page.locator("img.tl-event__pic")).toHaveJSProperty("complete", true);
   await shot(page, "fc-3-leader");
 });

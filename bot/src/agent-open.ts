@@ -6,7 +6,7 @@ import { unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import type { AgentEvent } from "./agent";
 import type { Spend } from "./spend";
 import { modelOutputLimit } from "./model-capacity.mjs";
-import { DATA_POLICY, groundedSystem, untrustedData } from "./grounding.mjs";
+import { DATA_POLICY, READER_VOICE, groundedSystem, untrustedData } from "./grounding.mjs";
 import { MAX_OPEN_OUTPUT, MAX_RESEARCH_MS, WRITING_RESERVE_MS, writingDue, withinPhase, researchRounds, researchSignal } from "./research-policy.mjs";
 
 const DEEPSEEK_V4 = /^@cf\/deepseek-ai\/deepseek-v4/;
@@ -26,14 +26,16 @@ const GEMMA_4 = /^@cf\/google\/gemma-4/;
  */
 type Run = (name: string, input: Record<string, unknown>) => Promise<{ content: string; error?: boolean }>;
 type Msg = { role: "user" | "assistant"; content: string };
-type Result = { text: string; units: number; calls: number; cut: boolean; refused: boolean };
+type Result = { text: string; units: number; calls: number; cut: boolean; refused: boolean; stopped?: "rounds" | "budget" | "deadline" };
 type Ai = { run: (model: string, input: unknown, options?: unknown) => Promise<unknown> };
 type ToolCall = { id: string; name: string; arguments: string };
 
 /** A failure from the model's side: shaped as an API connection error, so Ask's backup answers instead (providers.ts claudeUnavailable). */
-const unavailable = (e: unknown) => new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` });
+const unavailable = (e: unknown) => Object.assign(new Anthropic.APIConnectionError({ message: `Model unavailable: ${(e as Error)?.message?.slice(0, 160) ?? "no answer"}` }), { providerStatus: (e as { status?: number })?.status ?? 0 });
 /** Distinguish a local budget refusal from a failed provider request. */
 export class ModelBudgetError extends Error {}
+/** The conversation no longer leaves the model room to answer. */
+class ContextFullError extends Error {}
 
 export async function researchOpen(
   env: Env,
@@ -49,14 +51,16 @@ export async function researchOpen(
   streamPlain = false,
   plainInstruction = 'You have no tools here: answer from the passages given, and cite them by their numbers.',
   /** think: false asks a reasoning model not to think first, for short mechanical steps such as a research plan. */
-  options: { think?: boolean; signal?: AbortSignal; deadlineAt?: number } = {},
+  options: { think?: boolean; signal?: AbortSignal; deadlineAt?: number; researchNote?: () => string | undefined; reviewAnswer?: (answer: string) => string | undefined } = {},
 ): Promise<Result> {
   maxRounds = researchRounds(maxRounds);
   const deadlineAt = options.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
   const signal = researchSignal(options.signal, deadlineAt);
   const toolSignal = researchSignal(signal, deadlineAt - WRITING_RESERVE_MS);
   signal.throwIfAborted();
+  // Each rule is checked on its own, so a prompt that already has the data policy still gets the reader rule.
   if (!system.includes(DATA_POLICY)) system = groundedSystem(system);
+  else if (!system.includes(READER_VOICE)) system = `${system}\n\n${READER_VOICE}`;
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
   const call = async (input: unknown): Promise<Record<string, unknown>> => {
@@ -70,7 +74,7 @@ export async function researchOpen(
       if (room < 64 || spend.unreported) throw new ModelBudgetError("The answer has used its reserved budget.");
       outputLimit = outputLimit === null ? room : Math.min(outputLimit, room);
     }
-    if (outputLimit !== null && outputLimit < 64) throw new Error("This model's context window is full. Use a model with a larger context window.");
+    if (outputLimit !== null && outputLimit < 64) throw new ContextFullError("This model's context window is full. Use a model with a larger context window.");
     if (outputLimit !== null) input = { ...(input as Record<string, unknown>), [outputKey]: outputLimit };
     // An answer keeps each model's full reasoning; only a short mechanical step (a research plan)
     // is asked not to think first, which saves its time without making the answer shallower.
@@ -96,6 +100,15 @@ export async function researchOpen(
     catch (e) { signal.throwIfAborted(); return untrustedData({ error: (e as Error).message?.slice(0, 120) }, "tool_output"); }
   };
   let units = 0, calls = 0;
+  let draft = "";
+  // The limit the current round runs under, if any (set by stopReason; kept for a call that fails).
+  let roundStop: Result["stopped"];
+  const stopReason = (round: number): Result["stopped"] => (roundStop = writingDue(deadlineAt) ? "deadline" : spend?.over(0.7) ? "budget" : round === maxRounds - 1 ? "rounds" : undefined);
+  const finish = (text: string, cut: boolean, refused = false, stopped?: Result["stopped"]): Result => {
+    if (draft && (!text.trim() || cut) && !refused) { text = draft; cut = false; }
+    if (text) emit({ delta: text });
+    return { text, units, calls, cut, refused, ...(stopped ? { stopped } : {}) };
+  };
   emit({ status: "Studying the question" });
 
   if (model.format === "plain") {
@@ -106,76 +119,100 @@ export async function researchOpen(
     return { text, units, calls, cut, refused: false };
   }
 
-  if (model.format === "responses") {
-    const defs = tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.input_schema }));
-    const input: unknown[] = messages.map((m) => ({ role: m.role, content: m.content }));
-    for (let round = 0; round < maxRounds; round++) {
-      // Past 70% of the request's budget the research stops and the answer is written (agent.ts).
-      const last = round === maxRounds - 1 || !!spend?.over(0.7) || writingDue(deadlineAt);
-      const res = await call({ instructions: system, input, tools: defs, ...(last ? { tool_choice: "none" } : {}) });
-      units += unitsFor(res.usage as Record<string, unknown>, model); calls++; spend?.call(res.usage as Record<string, unknown>, model);
-      const output = Array.isArray(res.output) ? (res.output as Record<string, unknown>[]) : [];
-      const uses = output.filter((o) => o.type === "function_call");
-      const said = output.filter((o) => o.type === "message").flatMap((o) => (Array.isArray(o.content) ? (o.content as { type?: string; text?: string }[]) : [])).filter((c) => c.type === "output_text").map((c) => c.text ?? "").join("");
-      if (!uses.length || last) {
-        if (said) emit({ delta: said });
-        return { text: said, units, calls, cut: res.status === "incomplete", refused: false };
+  try {
+    if (model.format === "responses") {
+      const defs = tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.input_schema }));
+      const input: unknown[] = messages.map((m) => ({ role: m.role, content: m.content }));
+      for (let round = 0; round < maxRounds; round++) {
+        // Past 70% of the request's budget the research stops and the answer is written (agent.ts).
+        const stopped = stopReason(round), last = !!stopped;
+        const res = await call({ instructions: system, input, tools: defs, ...(last ? { tool_choice: "none" } : {}) });
+        units += unitsFor(res.usage as Record<string, unknown>, model); calls++; spend?.call(res.usage as Record<string, unknown>, model);
+        const output = Array.isArray(res.output) ? (res.output as Record<string, unknown>[]) : [];
+        const uses = output.filter((o) => o.type === "function_call");
+        const said = output.filter((o) => o.type === "message").flatMap((o) => (Array.isArray(o.content) ? (o.content as { type?: string; text?: string }[]) : [])).filter((c) => c.type === "output_text").map((c) => c.text ?? "").join("");
+        if (!uses.length || last) {
+          const cut = res.status === "incomplete";
+          const review = !last && !cut && said.trim() ? options.reviewAnswer?.(said) : undefined;
+          if (review) { draft = said; input.push(...output, { role: "user", content: review }); continue; }
+          return finish(said, cut, false, stopped);
+        }
+        input.push(...output);
+        for (const u of uses) input.push({ type: "function_call_output", call_id: u.call_id, output: await tool(String(u.name), u.arguments) });
+        const note = options.researchNote?.();
+        if (note) input.push({ role: "user", content: note });
+        emit({ status: "Writing the answer" });
       }
-      input.push(...output);
-      for (const u of uses) input.push({ type: "function_call_output", call_id: u.call_id, output: await tool(String(u.name), u.arguments) });
+      return { text: "", units, calls, cut: true, refused: false };
+    }
+
+    if (model.format === "messages") {
+      const convo: unknown[] = messages.map((m) => ({ role: m.role, content: m.content }));
+      for (let round = 0; round < maxRounds; round++) {
+        const stopped = stopReason(round), last = !!stopped;
+        const res = await call({ system, messages: convo, tools, ...(last ? { tool_choice: { type: "none" } } : {}) });
+        units += unitsFor(res.usage as Record<string, unknown>, model); calls++; spend?.call(res.usage as Record<string, unknown>, model);
+        const content = Array.isArray(res.content) ? (res.content as Record<string, unknown>[]) : [];
+        const said = content.filter((b) => b.type === "text").map((b) => String(b.text ?? "")).join("");
+        const uses = content.filter((b) => b.type === "tool_use");
+        if (res.stop_reason !== "tool_use" || !uses.length || last) {
+          const cut = res.stop_reason === "max_tokens", refused = res.stop_reason === "refusal";
+          const review = !last && !cut && !refused && said.trim() ? options.reviewAnswer?.(said) : undefined;
+          if (review) { draft = said; convo.push({ role: "assistant", content }, { role: "user", content: review }); continue; }
+          return finish(said, cut, refused, stopped);
+        }
+        convo.push({ role: "assistant", content });
+        const results = [];
+        for (const u of uses) results.push({ type: "tool_result", tool_use_id: u.id, content: await tool(String(u.name), u.input) });
+        const note = options.researchNote?.();
+        convo.push({ role: "user", content: note ? [...results, { type: "text", text: note }] : results });
+        emit({ status: "Writing the answer" });
+      }
+      return { text: "", units, calls, cut: true, refused: false };
+    }
+
+    // "chat": chat completions with function tools.
+    const defs = tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } }));
+    const convo: unknown[] = [{ role: "system", content: system }, ...messages];
+    for (let round = 0; round < maxRounds; round++) {
+      const stopped = stopReason(round), last = !!stopped;
+      const res = await call({ messages: convo, tools: defs, ...(last ? { tool_choice: "none" } : {}) });
+      const { text, usage, cut, toolCalls } = chatText(res);
+      units += unitsFor(usage, model); calls++; spend?.call(usage, model);
+      if (!toolCalls.length || last) {
+        if (text || !hadToolMarkup(res)) {
+          const review = !last && !cut && text.trim() ? options.reviewAnswer?.(text) : undefined;
+          if (review) { draft = text; convo.push({ role: "assistant", content: text }, { role: "user", content: review }); continue; }
+          return finish(text, cut, false, stopped);
+        }
+        // The model wrote only tool calls when it was told to answer: ask once more, with no tools
+        // offered, so the reader gets prose and never the call markup.
+        if (calls >= maxRounds || spend?.over(0.9)) return finish("", true, false, spend?.over(0.9) ? "budget" : "rounds");
+        const again = chatText(await call({ messages: [...convo, { role: "user", content: "Write the answer now from what you have read, in plain prose, citing the sources by their numbers. Do not call any tools." }] }));
+        units += unitsFor(again.usage, model); calls++; spend?.call(again.usage, model);
+        return finish(again.text, again.cut, false, stopped);
+      }
+      convo.push({ role: "assistant", content: text || "", tool_calls: toolCalls.map((c) => ({ id: c.id, type: "function", function: { name: c.name, arguments: c.arguments } })) });
+      for (const c of toolCalls) convo.push({ role: "tool", tool_call_id: c.id, content: await tool(c.name, c.arguments) });
+      const note = options.researchNote?.();
+      if (note) convo.push({ role: "user", content: note });
       emit({ status: "Writing the answer" });
     }
-    return { text: "", units, calls, cut: true, refused: false };
-  }
-
-  if (model.format === "messages") {
-    const convo: unknown[] = messages.map((m) => ({ role: m.role, content: m.content }));
-    for (let round = 0; round < maxRounds; round++) {
-      const last = round === maxRounds - 1 || !!spend?.over(0.7) || writingDue(deadlineAt);
-      const res = await call({ system, messages: convo, tools, ...(last ? { tool_choice: { type: "none" } } : {}) });
-      units += unitsFor(res.usage as Record<string, unknown>, model); calls++; spend?.call(res.usage as Record<string, unknown>, model);
-      const content = Array.isArray(res.content) ? (res.content as Record<string, unknown>[]) : [];
-      const said = content.filter((b) => b.type === "text").map((b) => String(b.text ?? "")).join("");
-      const uses = content.filter((b) => b.type === "tool_use");
-      if (res.stop_reason !== "tool_use" || !uses.length || last) {
-        if (said) emit({ delta: said });
-        return { text: said, units, calls, cut: res.stop_reason === "max_tokens", refused: res.stop_reason === "refusal" };
-      }
-      convo.push({ role: "assistant", content });
-      const results = [];
-      for (const u of uses) results.push({ type: "tool_result", tool_use_id: u.id, content: await tool(String(u.name), u.input) });
-      convo.push({ role: "user", content: results });
-      emit({ status: "Writing the answer" });
+    return finish("", true, false, "rounds");
+  } catch (error) {
+    if (!draft || (signal.aborted && signal.reason?.name !== "TimeoutError")) throw error;
+    if (error instanceof ModelBudgetError) return finish(draft, false, false, "budget");
+    if (signal.aborted && signal.reason?.name === "TimeoutError") return finish(draft, false, false, "deadline");
+    // A failed provider call on the repair round (rate limit, overload, a bad reply), or a conversation
+    // too long to answer in, never costs the reader the answer already written. Research ended on a
+    // limit, not because the library had nothing: the round's own limit (budget, deadline), or
+    // "rounds", so the reader may continue. Anything else (a fault in this code) is still raised.
+    if (error instanceof Anthropic.APIConnectionError || error instanceof ContextFullError) {
+      console.error(JSON.stringify({ event: "ask_sendback_failed", status: (error as { providerStatus?: number }).providerStatus ?? 0 }));
+      return finish(draft, false, false, roundStop ?? "rounds");
     }
-    return { text: "", units, calls, cut: true, refused: false };
+    throw error;
   }
-
-  // "chat": chat completions with function tools.
-  const defs = tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.input_schema } }));
-  const convo: unknown[] = [{ role: "system", content: system }, ...messages];
-  for (let round = 0; round < maxRounds; round++) {
-    const last = round === maxRounds - 1 || !!spend?.over(0.7) || writingDue(deadlineAt);
-    const res = await call({ messages: convo, tools: defs, ...(last ? { tool_choice: "none" } : {}) });
-    const { text, usage, cut, toolCalls } = chatText(res);
-    units += unitsFor(usage, model); calls++; spend?.call(usage, model);
-    if (!toolCalls.length || last) {
-      if (text || !hadToolMarkup(res)) {
-        if (text) emit({ delta: text });
-        return { text, units, calls, cut, refused: false };
-      }
-      // The model wrote only tool calls when it was told to answer: ask once more, with no tools
-      // offered, so the reader gets prose and never the call markup.
-      if (calls >= maxRounds || spend?.over(0.9)) return { text: "", units, calls, cut: true, refused: false };
-      const again = chatText(await call({ messages: [...convo, { role: "user", content: "Write the answer now from what you have read, in plain prose, citing the sources by their numbers. Do not call any tools." }] }));
-      units += unitsFor(again.usage, model); calls++; spend?.call(again.usage, model);
-      if (again.text) emit({ delta: again.text });
-      return { text: again.text, units, calls, cut: again.cut, refused: false };
-    }
-    convo.push({ role: "assistant", content: text || "", tool_calls: toolCalls.map((c) => ({ id: c.id, type: "function", function: { name: c.name, arguments: c.arguments } })) });
-    for (const c of toolCalls) convo.push({ role: "tool", tool_call_id: c.id, content: await tool(c.name, c.arguments) });
-    emit({ status: "Writing the answer" });
-  }
-  return { text: "", units, calls, cut: true, refused: false };
 }
 
 /**

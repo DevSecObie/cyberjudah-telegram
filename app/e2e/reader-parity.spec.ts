@@ -530,6 +530,7 @@ test("reader verse numbers can be hidden without hiding them from assistive tech
 });
 
 test("daily verses have five days, sharing and images on Home", async ({ page, browserName }) => {
+  test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "local only: the stubbed daily verses and Strong's index");
   await page.route(`${DATA}/search/{classes,captains}.json`, r => r.fulfill({ json: [] }));
   await page.route(`${DATA}/api/strongs/index.json`, r => r.fulfill({ json: [
     { n: "G1", lemma: "Α", xlit: "alpha", def: "Alpha", count: 100 },

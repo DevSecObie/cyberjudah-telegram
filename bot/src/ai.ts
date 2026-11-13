@@ -3,20 +3,22 @@ import { askIpKey, clientIp } from "./client-ip";
 import type { ResourcePins } from "../../shared/resources";
 import { books, chapter, dataJson } from "./data";
 import { parseReference } from "./refs.mjs";
-import { guardVerses } from "./verse-guard.mjs";
+import { FINAL_STEP, finalAnswer, guardedStream, passageEvidence } from "./answer-final";
 import { approvedFor, approvedSources } from "./approved-answers";
 import { cacheKey, cachedAnswer, keepAnswer, linkTrace } from "./answer-cache";
 import { runSearch } from "./search";
 import type { Env, Exec } from "./env";
 import { ANSWER_MODEL, answerCandidates, buildPrompt, referencesIn, retrievalText, routeOf, dedupeMatches, notInTheClasses, EMBED_MODEL, RERANK_MODEL, splitFollowups, VOICE_MODEL, VOICES, type Passage, type Turn } from "./ai.mjs";
 import { runAgent, type AgentEvent } from "./agent";
+import { studyFields, type StudyFields } from "./study-plan";
 import { MAX_RESEARCH_ROUNDS, MAX_RESEARCH_MS, adminBudgetPool, researchRounds, researchSignal, timeLeft } from "./research-policy.mjs";
 import { withTeachers } from "./class-attribution";
 export { withTeachers } from "./class-attribution";
-import { backupOnce, backupPieces } from "./backup-answer";
+import { backupOnce, backupPieces, mayUseBackup } from "./backup-answer";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
-import { alertClaudeFunds, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
+import { answerVersions, corpusRelease } from "./ask-versions";
+import { alertClaudeFunds, claudeRefusedUnbilled, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
@@ -30,7 +32,7 @@ import { withAskSourcePictures } from "./ask-source-pictures";
 import { withAskBookLinks } from "./ask-source-links";
 import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
 import { citationReport, citationTokenCount } from "./citations.mjs";
-import { autoModel } from "./ask-routing";
+import { autoModel, type AnswerDepth } from "./ask-routing";
 import { ASK_REQUEST_ID, claimAskRequest, findAskRequest, legacyAskRequest, publicAskRequest, releaseAskRequest, requestIdentity, saveAskRequest, startAskRequest, type AskRequest, type RequestResult } from "./ask-requests";
 import { approvedSources as approvedOutsideHosts } from "./source-policy";
 import { recordedMoment, retrievedSourceUrl } from "./retrieved-source-url";
@@ -105,7 +107,8 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
   } catch { return passages.slice(0, topK); }
 }
 
-export type Answer = { ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number } | { ok: false; reason: string };
+/** `model` is the model that wrote the answer; absent for a fixed sentence no model wrote (including the agent's "not in the classes" answer, grounded false). */
+export type Answer = ({ ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number; cut?: boolean; model?: string } & StudyFields) | { ok: false; reason: string };
 /** Ask answers a day per person (ASK_DAILY_LIMIT; a hundred when unset). */
 export function askLimit(env: Env): number {
   const n = Number(env.ASK_DAILY_LIMIT);
@@ -202,7 +205,7 @@ export const creditsOn = (env: Env) => env.ASK_BILLING === "on";
  */
 export type Meter = { owner: string; request: string; held: number; spend: Spend; model: AskModel; free: boolean; admin: boolean; maxRounds?: number; reservation?: FreeReservation };
 type MeterStart = { ok: true; meter: Meter } | { ok: false; status: number; body: Record<string, unknown> };
-export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean };
+export type MeterOpts = { resources?: ResourcePins; request?: string; maxMc?: number; caps?: Record<string, number>; signal?: AbortSignal; clientStreaming?: boolean; depth?: AnswerDepth };
 
 /**
  * The free tier answers at the owner's expense, with the same default research guard
@@ -301,6 +304,42 @@ async function begin(env: Env, uid: number, model: AskModel, opts: MeterOpts): P
   return startMeter(env, uid, model, opts);
 }
 
+/** An owner-approved answer, through the same final step as every other (answer-final.ts). Its own
+ *  pictures are trusted (still only the app's picture files). The result is kept for a minute per
+ *  answer rather than checked on every ask. The verse check passes an answer through unchanged when the
+ *  King James text can't be read, so that minute is the longest an unchecked approved answer is kept. */
+type Approved = NonNullable<ReturnType<typeof approvedFor>>;
+const APPROVED_TTL_MS = 60_000;
+const approvedChecked = new WeakMap<Approved, { at: number; answer: Promise<string> }>();
+async function approvedFinal(env: Env, approved: Approved) {
+  let hit = approvedChecked.get(approved);
+  if (!hit || Date.now() - hit.at > APPROVED_TTL_MS) {
+    const answer = finalAnswer(env, approved.answer, { evidence: passageEvidence(approvedSources(approved)), trustOwnPictures: true });
+    hit = { at: Date.now(), answer };
+    approvedChecked.set(approved, hit);
+    answer.catch(() => { if (approvedChecked.get(approved) === hit) approvedChecked.delete(approved); });
+  }
+  return { ...approved, answer: await hit.answer };
+}
+
+/** Answers whose verse check couldn't read the King James text: given, but never kept as final. */
+const unverified = new WeakSet<object>();
+const markUnverified = <T extends object>(result: T, status: { verified: boolean }): T => { if (!status.verified) unverified.add(result); return result; };
+const finalMark = (result: object) => (unverified.has(result) ? {} : { final_step: FINAL_STEP });
+
+/** A kept answer as it is given: one kept by this final step's version passes as it is; an older one
+ *  (kept before the final step, or before its rules last changed) goes through it again. Its own
+ *  pictures are trusted then, still only the app's picture files: the tools that gave them aren't kept. */
+async function keptFinal<T extends { answer: string; sources: (Passage & { n: number })[]; final_step?: number }>(env: Env, kept: T): Promise<T> {
+  const { final_step, ...answer } = kept;
+  if (final_step === FINAL_STEP) return answer as T;
+  const checked = await finalAnswer(env, kept.answer, { evidence: passageEvidence(kept.sources), trustOwnPictures: true });
+  const given = (checked === kept.answer ? answer : { ...answer, answer: checked, ...citationMetadata(checked, kept.sources) }) as unknown as T;
+  // Not written back: a re-put would reset the entry's time to live, and could bring back one that was
+  // deleted (a reported answer) in the meantime. An old entry is checked on each hit until it expires.
+  return given;
+}
+
 /** A question answered in one piece (the bot and older clients). It cannot ask first, so it is held to ASK_CONFIRM_ABOVE_USD at most. */
 export async function ask(env: Env, q: string, userId: number, ctx?: Exec, history: Turn[] = [], consent: string[] = [], resources?: ResourcePins, callerSignal?: AbortSignal): Promise<Answer> {
   const t0 = Date.now();
@@ -319,17 +358,25 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), timeLeft(t0 + MAX_RESEARCH_MS)), 8);
     signal.throwIfAborted();
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
-      const { text, passages, grounded, cut } = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
-      const answer = await checkedVerses(env, splitFollowups(text).answer);
+      const evidence: string[] = [];
+      const ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS, evidence });
+      const { text, passages, grounded, cut, fixed } = ran;
+      const answer = await finalAnswer(env, splitFollowups(text).answer, { evidence: [...evidence, ...passageEvidence(passages)] });
       if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
-      return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
+      const sources = await askSourcesOf(env, answer, passages);
+      return { ok: true, q: question, answer, sources, ...citationMetadata(answer, passages), ...(cut ? { cut: true } : {}), ...studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer), ms: Date.now() - t0, ...(grounded !== false && !fixed && answer.trim() ? { model: model.id } : {}) };
     }
-    if (meter) await finishMeter(env, meter, "backup");
+    // The backup sends the question to its own provider: only with the reader's agreement to it.
+    // Without it nothing is written by a model, so nothing is held: the meter settles as empty.
+    const backupAllowed = mayUseBackup(consent);
+    if (meter) await finishMeter(env, meter, backupAllowed ? "backup" : "empty");
     const passages = first;
     if (assessCoverage(env, retrievalText(question, history), passages).blocked && passages.length) { const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`))); return { ok: true, q: question, answer: gap.answer, sources: await askSourcesOf(env, gap.answer, gap.sources), unsupported_refs: [], ms: Date.now() - t0 }; }
     if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], unsupported_refs: [], ms: Date.now() - t0 };
-    const { answer } = splitFollowups(await answerOnce(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal));
-    return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
+    if (!backupAllowed) return { ok: false, reason: "unavailable" };
+    const wrote: { model?: string } = {};
+    const answer = await finalAnswer(env, splitFollowups(await answerOnce(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)).answer, { evidence: passageEvidence(passages) });
+    return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0, ...(wrote.model ? { model: wrote.model } : {}) };
   } catch (e) {
     // An answer that failed is not charged: the hold goes back.
     if (meter) await finishMeter(env, meter, "failed");
@@ -340,7 +387,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 
 type CitationDiagnostics = { sources_returned: number; citation_tokens_found: number; valid_ids: number; retries: number; model: string };
 export type SearchAnswer =
-  | { ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean; state?: "no-cited-answer"; related?: { label: "Related library passages"; passages: Passage[] }; citation_diagnostics?: CitationDiagnostics }
+  | ({ ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean; state?: "no-cited-answer"; related?: { label: "Related library passages"; passages: Passage[] }; citation_diagnostics?: CitationDiagnostics; cut?: boolean } & StudyFields)
   | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
@@ -352,8 +399,8 @@ export function searchModel(env: Env): AskModel | null {
 }
 
 /**
- * A library-grounded answer with at most one citation retry, funded by the same free reservation. A configured
- * external provider requires consent before retrieval or metering. No reader balance is held,
+ * A library-grounded answer with at most one citation retry, funded by the same free reservation. Every Search
+ * model, hosted on Cloudflare or not, requires the reader's agreement to its provider before retrieval or metering. No reader balance is held,
  * and no tools or web searches are offered to the model. Admin searches share the daily limit.
  */
 /**
@@ -378,7 +425,7 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const model = searchModel(env);
   if (!model) return { ok: false, reason: "unavailable" };
-  if (!model.id.startsWith("@cf/") && !consent.includes(model.provider)) return { ok: false, reason: "consent" };
+  if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const started = await startMeterFor(env, uid, model, {}, true);
   if (!started.ok) return { ok: false, reason: started.body.error === "free-paused" ? "free-paused" : "unavailable" };
   return boundedAnswer(env, model, started.meter, question, question, [], deadlineMs, t0, undefined, undefined, undefined, true);
@@ -434,7 +481,8 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
   // An answer the owner approved for this very question: given at once, with no model and no cost.
-  const approved = approvedFor(question, history);
+  const approvedRaw = approvedFor(question, history);
+  const approved = approvedRaw && await approvedFinal(env, approvedRaw);
   if (approved) return { ok: true, answer: approved.answer, sources: await withTeachers(env, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
   // With no choice, a deep question (routeOf) goes to the stronger free model when one is configured
   // (ASK_FREE_DEEP_MODEL) and approved; everything else to the fast default.
@@ -445,9 +493,9 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   // The same first question, already answered this week by this model and mode: given at once (answer-cache.ts).
   const mode = options.study ? "study" : "app";
-  const key = await cacheKey(question, history, model.id, `${mode}:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `${mode}:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version, await corpusRelease(env));
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
-  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept)), ms: Date.now() - t0 }; }
   if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
   const cfg = creditsConfig(env);
   const budget = Math.min(estimateMc(model, cfg, { rounds: options.study ? 2 : 1 }).maxMc * MC_USD, freeMaxUsd(env));
@@ -459,7 +507,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const meter: Meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: 1 };
   const result = await boundedAnswer(env, model, meter, question, retrievalText(question, history), history, deadlineMs, t0, options.emit, mode, options.traceId);
   // Only an answer that found and cited teaching is kept; "nothing found" is always asked again.
-  if (result.ok && result.sources.length && !isCoverageGap(result)) await keepAnswer(env, key, result, options.traceId);
+  if (result.ok && result.sources.length && !isCoverageGap(result)) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
   return result;
 }
 
@@ -480,7 +528,8 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
-  const approved = approvedFor(question, history);
+  const approvedRaw = approvedFor(question, history);
+  const approved = approvedRaw && await approvedFinal(env, approvedRaw);
   if (approved) return { ok: true, answer: approved.answer, sources: await withTeachers(env, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
   const models = appAskModels(env, options.adminId, true);
   const paid = models.filter((m) => m.format === "anthropic");
@@ -492,9 +541,9 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const model = options.model ? models.find(m => m.id === options.model) : deep ?? readerDefault ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
   if (!model) return { ok: false, reason: "model-unavailable" };
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
-  const key = await cacheKey(question, history, model.id, `agent:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `agent:opened-class-v1:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version, await corpusRelease(env));
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
-  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...kept, ms: Date.now() - t0 }; }
+  if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept)), ms: Date.now() - t0 }; }
   let meter: Meter;
   if (model.format === "anthropic" && adminClaude) {
     // An admin's linked account: the admin meter holds nothing and charges no one.
@@ -527,40 +576,67 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     meter = { owner: "", request: reservation.request, held: 0, spend: makeSpend({ budgetUsd: budget, rates: cfg.research }), model, free: true, admin: false, reservation, maxRounds: rounds };
   }
   const spend = meter.spend;
-  const emit = options.emit ?? (() => undefined);
+  // Every delta the reader sees is guarded as it streams (answer-final.ts guardedStream): no image or
+  // tag goes out before it's checked against the pictures this run's tools and passages gave.
+  const evidence: string[] = [];
+  let first: Passage[] = [];
+  const guard = guardedStream<AgentEvent>(options.emit ?? (() => undefined), () => [...evidence, ...passageEvidence(first)]);
+  const emit = guard.emit;
+  /**
+   * Claude could not write this answer: the free model answers instead, as a reader (the list and
+   * agreement the follow-up call itself checks), and only with the reader's own agreement to its
+   * provider. That is decided before the meter settles: without it nothing more is sent, the reader's
+   * draft is cleared, and the meter settles as `refused` says; with it the reservation is kept whole.
+   */
+  const fallBack = async (refused: "empty" | "failed", quotaTaken: boolean): Promise<SearchAnswer> => {
+    const readerModels = appAskModels(env, undefined, true);
+    const fallback = readerModels.find((m) => m.id === freeModel(env).id) ?? readerModels.find((m) => m.format !== "anthropic");
+    emit({ reset: true });
+    if (!fallback || !consent.includes(fallback.provider)) { await finishMeter(env, meter, refused, Date.now() - t0); return { ok: false, reason: fallback ? "consent" : "model-unavailable" }; }
+    await finishMeter(env, meter, "backup", Date.now() - t0);
+    return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback.id, adminId: undefined, quotaTaken });
+  };
   try {
     // The first search runs before the model does: its steps are shown (the app's "Researched" row)
     // even when the model answers from these passages without searching again.
     const searchText = retrievalText(question, history);
     emit({ status: `Searching the classes and library for “${question.slice(0, 160)}”` });
     const [found, verses] = await withDeadline(Promise.all([retrieve(env, searchText, 12, spend, signal), versesNamed(env, question)]), timeLeft(t0 + MAX_RESEARCH_MS));
-    const first = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
+    first = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
     for (const passage of first) emit({ status: `Reading ${passage.title.slice(0, 180)}` });
     let ran: Awaited<ReturnType<typeof runAgent>>;
     try {
-      ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), emit, undefined, undefined, model, spend, undefined, meter.maxRounds, false, { signal, deadlineAt: t0 + MAX_RESEARCH_MS });
+      ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), emit, undefined, undefined, model, spend, undefined, meter.maxRounds, false, { signal, deadlineAt: t0 + MAX_RESEARCH_MS, evidence });
     } catch (e) {
       if (signal.aborted || model.format !== "anthropic" || !claudeUnavailable(e)) throw e;
-      // Claude cannot answer now (out of money, overloaded, down): the free model answers instead.
+      // Claude cannot answer now (out of money, overloaded, down): the free model answers instead. Without
+      // the reader's agreement, Claude's reservation goes back only when Claude refused outright (nothing billed).
       await alertClaudeFunds(env, e);
-      await finishMeter(env, meter, "backup", Date.now() - t0);
-      emit({ reset: true });
-      // Only with the reader's own agreement to the free model's provider; a reader's quota is already counted.
-      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: !adminClaude });
+      return fallBack(claudeRefusedUnbilled(e) ? "empty" : "failed", !adminClaude);
     }
-    const { answer, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
-    if (!answer.trim() && ran.cut && model.format === "anthropic" && !adminClaude) {
+    const { answer: drafted, followups } = splitFollowups(ran.text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
+    if (!drafted.trim() && ran.cut && model.format === "anthropic" && !adminClaude) {
       // A reader's Claude answer ran out of what was set aside for it before writing: the free model
-      // answers instead, with the reader's own agreement to its provider and no second quota.
-      await finishMeter(env, meter, "backup", Date.now() - t0);
-      emit({ reset: true });
-      return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: freeFallback(env, models), adminId: undefined, quotaTaken: true });
+      // answers instead, with no second quota. Without the reader's agreement Claude's whole reservation
+      // stays counted: it was spent, and a cut-off round's usage may not all have been reported.
+      return fallBack("failed", true);
     }
-    if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
+    if (!drafted.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, ran.cut ? "partial" : ran.grounded === false ? "empty" : "ok", Date.now() - t0);
-    const result: SearchAnswer = { ok: true, answer, sources: sourcesOf(answer, ran.passages), ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0 };
+    // The final step (answer-final.ts); a reader who watched the draft stream in is given the final text.
+    const status = { verified: true };
+    const answer = await finalAnswer(env, drafted, { evidence: [...evidence, ...passageEvidence(ran.passages)], status });
+    guard.settle(answer, drafted);
+    const sources = sourcesOf(answer, ran.passages);
+    const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer);
+    const answered: SearchAnswer = markUnverified({ ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 }, status);
+    // The agent's text became a fixed text no model wrote (the not-in-the-classes sentence, or the
+    // deadline's excerpts): marked as a gap (not sent to the app), so app-ask records the writer as
+    // "none" while `model` stays the app's label (#600).
+    const result = ran.grounded === false || ran.fixed ? markCoverageGap(answered) : answered;
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
-    if (result.ok && result.sources.length && !ran.cut && ran.grounded !== false) await keepAnswer(env, key, result, options.traceId);
+    // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
+    if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
@@ -575,6 +651,12 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
  */
 async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: string, searchText: string, history: Turn[], deadlineMs: number, t0: number, emit?: (event: AppStudyEvent) => void, appMode?: "app" | "study", traceId?: string, requireSearchCitations = false): Promise<SearchAnswer> {
   const spend = meter.spend;
+  // Deltas are guarded as they stream (answer-final.ts guardedStream), and the reader is given the
+  // final text at the end (settle).
+  let passages: Passage[] = [];
+  const guard = emit && guardedStream<AppStudyEvent>(emit, () => passageEvidence(passages));
+  const status = { verified: true };
+  emit = guard?.emit;
   emit?.({ status: `Searching the classes and library for “${searchText.slice(0, 160)}”` });
   // One clock for retrieval and the model: it starts when retrieval does.
   const tRetrieve = Date.now();
@@ -584,15 +666,19 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     // The verses the question names, in exact King James text, ahead of what the classes said about
     // them: the free model has no read_scripture, and may quote only what it is given.
     const [found, verses] = await withDeadline(Promise.all([retrieve(env, searchText, 12, spend), versesNamed(env, question)]), deadlineMs);
-    const passages = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
+    passages = [...verses, ...answerCandidates(question, found, 8 - Math.min(verses.length, 2))];
     retrieveMs = Date.now() - tRetrieve;
     for (const passage of passages) emit?.({ status: `Reading ${passage.title.slice(0, 180)}` });
     if (appMode === "study") {
       // Await each metered inference before settling its reservation, even if the client
       // disconnects. A racing timeout must not settle while inference is still spending.
-      const result = await answerAppStudy(env, question, history, passages, model, spend, emit ?? (() => undefined), deadlineAt, traceId);
+      const study = await answerAppStudy(env, question, history, passages, model, spend, emit ?? (() => undefined), deadlineAt, traceId);
       await finishMeter(env, meter, "ok", Date.now() - t0);
-      return { ok: true, ...result, ...citationMetadata(result.answer, result.sources), model: model.id, provider: model.provider, ms: Date.now() - t0 };
+      // The study cards (ui) are checked by their own grammar (app-study-ui.ts: no generated verse text
+      // or image addresses); the answer text goes through the same final step as every answer.
+      const result = { ...study, answer: await finalAnswer(env, study.answer, { evidence: passageEvidence([...passages, ...study.sources]), status }) };
+      // No settle here: a study answer streams its cards (ui), not prose; `done` carries the final text.
+      return markUnverified({ ok: true, ...result, ...citationMetadata(result.answer, result.sources), model: model.id, provider: model.provider, ms: Date.now() - t0 }, status);
     }
     // Nothing found: a greeting or a thank-you is still answered, in a sentence; a real question is
     // told so plainly, with no model call, rather than answered from the model's own memory.
@@ -620,22 +706,27 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     };
     const clean = async (text: string) => {
       const { answer, followups } = splitFollowups(text.replace(/<think>[\s\S]*?<\/think>\s*/gi, ""));
-      return { answer: await checkedVerses(env, answer), followups };
+      return { answer: await finalAnswer(env, answer, { evidence: passageEvidence(passages), status }), followups, drafted: answer };
     };
-    let { answer, followups } = await clean((await write()).text);
-    let retries = 0;
+    let { answer, followups, drafted } = await clean((await write()).text);
+    let retries = 0, retried = false;
     const needsCitations = requireSearchCitations && !SMALL_TALK.test(question);
     if (needsCitations && !sourcesOf(answer, passages).length && !spend.unreported && Date.now() < deadlineAt) {
+      retried = true;               // set before it streams: a retry that fails part-way is still replaced
       try {
         const ran = await write(true);
         retries = 1;
-        ({ answer, followups } = await clean(ran.text));
+        status.verified = true;       // the retry's own check decides (the first draft is gone)
+        ({ answer, followups, drafted } = await clean(ran.text));
       } catch (e) {
         // Insufficient remaining reservation is an honest uncited result; transport failures
         // remain unavailable (503), so release checks never mistake an outage for grounding.
         if (!(e instanceof ModelBudgetError)) throw e;
       }
     }
+    // The reader who watched the draft stream in is given the final text (after a retry the stream
+    // carried two drafts, so it is always replaced).
+    guard?.settle(answer, drafted, retried);
     // Where the time goes, for tuning: finding the passages, and the model writing the answer.
     console.log(JSON.stringify({ event: "search_answer_timing", retrieveMs, modelMs: Date.now() - tModel, totalMs: Date.now() - t0 }));
     if (needsCitations && !sourcesOf(answer, passages).length) {
@@ -645,8 +736,8 @@ async function boundedAnswer(env: Env, model: AskModel, meter: Meter, question: 
     if (!answer.trim()) { await finishMeter(env, meter, "empty", Date.now() - t0); return { ok: false, reason: "empty" }; }
     await finishMeter(env, meter, "ok", Date.now() - t0);
     const sources = sourcesOf(answer, passages);
-    return { ok: true, answer, sources, ...citationMetadata(answer, passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0,
-      ...(requireSearchCitations ? { citation_diagnostics: searchCitationDiagnostics(model, answer, sources.length, retries) } : {}) };
+    return markUnverified({ ok: true, answer, sources, ...citationMetadata(answer, passages), followups, model: model.id, provider: model.provider, ms: Date.now() - t0,
+      ...(requireSearchCitations ? { citation_diagnostics: searchCitationDiagnostics(model, answer, sources.length, retries) } : {}) } as SearchAnswer, status);
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
     console.error(JSON.stringify({ event: e instanceof DeadlineError ? "search_answer_timeout" : "search_answer_failed", elapsedMs: Date.now() - t0, retrieveMs, message: (e as Error).message?.slice(0, 160) }));
@@ -673,22 +764,12 @@ const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 export const defaultModelId = (env: Env, userId: number) => (isAdmin(env, userId) ? env.CLAUDE_MODEL_ADMIN || "claude-opus-5-5" : env.CLAUDE_MODEL || CLAUDE_DEFAULT);
 
 /** Legacy/provider-outage answers use a separately budgeted Workers AI backup. */
-async function answerOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): Promise<string> {
-  return backupOnce(env, messages, admin, sources, signal);
+async function answerOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): Promise<string> {
+  return backupOnce(env, messages, admin, sources, signal, wrote);
 }
 
 async function* answerPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): AsyncGenerator<string> {
   yield* backupPieces(env, messages, admin, sources, signal, wrote);
-}
-
-/** The answer with every quoted verse checked against the King James text (verse-guard.mjs). */
-async function checkedVerses(env: Env, answer: string): Promise<string> {
-  if (!/^>/m.test(answer)) return answer;
-  try {
-    const r = await guardVerses(answer, await books(env).catch(() => null), (slug, ch) => chapter(env, slug, ch));
-    if (r.fixed || r.removed) console.log(JSON.stringify({ event: "ask_verse_guard", checked: r.checked, fixed: r.fixed, removed: r.removed }));
-    return r.text;
-  } catch { return answer; }
 }
 
 /** The exact King James text of the verses a question names (at most three references, twelve verses each). */
@@ -755,8 +836,9 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     if (await legacyAskRequest(env, identity.owner, request)) return reply(409, { error: "request-used", request });
   } catch { return reply(503, { error: "unavailable" }); }
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
-  const approved = approvedFor(question, history);
-  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId)) : selected;
+  const approvedRaw = approvedFor(question, history);
+  const approved = approvedRaw && await approvedFinal(env, approvedRaw);
+  const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId), opts.depth) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
@@ -767,7 +849,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     if (!claimed.created) return claimed.row.fingerprint === identity.fingerprint ? replay(await publicAskRequest(env, claimed.row)) : reply(409, { error: "request-conflict", request });
     claim = claimed.row;
     if (approved) {
-      const done = { done: true, request, answer_id: claim.answer_id, model: model.id, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true };
+      const done = { done: true, request, answer_id: claim.answer_id, model: model.id, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true, versions: await answerVersions(env, "approved") };
       await saveAskRequest(env, claim, "completed", { done, settlement: "settled", usage: { charged_mc: 0, free: true } });
       await issueAnswerReceipt(env, userId, done.sources, Date.now(), claim.answer_id);
       return new Response(line({ delta: approved.answer }) + line(done) + line({ usage: { charged_mc: 0, free: true } }), { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
@@ -818,15 +900,19 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
       let outcome: RequestResult | undefined;
       const usageOf = (used: Awaited<ReturnType<typeof finishMeter>>) => used ? { charged_mc: used.charged_mc, balance: used.balance } : !meter || meter.free ? { charged_mc: 0, free: true } : undefined;
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
-      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false) => {
+      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false, study: StudyFields = {}) => {
         if (!chatId) return;
-        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, request, answer_id: claim.answer_id, model: model.id }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, ...study, request, answer_id: claim.answer_id, model: model.id }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
       };
-      const complete = async (packet: Record<string, unknown>, status: Parameters<typeof finishMeter>[2], steps: string[] = [], actions: SavedAction[] = []) => {
+      // Each finished line names what the answer was made with (ask-versions.ts); a fixed sentence,
+      // written by no model, names the model "none". `writer` overrides the line's own `model` for
+      // versions only: that field still drives the Mini App's Auto label (t1v, #600).
+      const complete = async (packet: Record<string, unknown>, status: Parameters<typeof finishMeter>[2], steps: string[] = [], actions: SavedAction[] = [], study: StudyFields = {}, writer?: string) => {
         clearInterval(checkpointTimer); await checkpoint;
         const { model: packetModel, ...rest } = packet as Record<string, unknown> & { model?: unknown };
         const resolvedModel = packetModel === undefined ? model.id : packetModel;
-        const done = { ...rest, done: true, request, answer_id: claim.answer_id, ...(typeof resolvedModel === "string" ? { model: resolvedModel } : {}) };
+        const versions = await answerVersions(env, writer ?? (typeof resolvedModel === "string" ? resolvedModel : "none"));
+        const done = { ...rest, ...study, done: true, request, answer_id: claim.answer_id, ...(typeof resolvedModel === "string" ? { model: resolvedModel } : {}), versions };
         const prepared: RequestResult = { done, settlement: "pending" };
         // Save the whole answer before charging or claiming completion on the wire.
         await saveAskRequest(env, claim, "completed", prepared);
@@ -836,7 +922,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         const usage = usageOf(used);
         outcome = { done, ...(usage ? { usage } : {}), settlement: usage ? "settled" : "pending" };
         await saveAskRequest(env, claim, "completed", outcome);
-        await keep(String(packet.answer), packet.sources as unknown[], packet.followups as string[], steps, actions, packet.cut === true);
+        await keep(String(packet.answer), packet.sources as unknown[], packet.followups as string[], steps, actions, packet.cut === true, study);
         send(done); if (usage) send({ usage });
       };
       const fail = async (status: Parameters<typeof finishMeter>[2], error: string, chargePartial = false) => {
@@ -862,26 +948,41 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             // Claude researches first (searches and verses, reported as it goes), then writes.
             const steps: string[] = [];
             let ran: Awaited<ReturnType<typeof runAgent>> | null = null;
-            try { ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); send(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds, true, { signal, deadlineAt: startedAt + MAX_RESEARCH_MS }); }
+            const evidence: string[] = [];
+            // Every delta is guarded as it streams (answer-final.ts): no image or tag before it's checked.
+            const guard = guardedStream<unknown>(send, () => [...evidence, ...passageEvidence(first)]);
+            try { ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), (e: AgentEvent) => { if ("status" in e && /^(Searching|Reading|Looking)/.test(e.status)) steps.push(e.status); guard.emit(e); }, ctx, userId, model, spend, opts.resources, meter?.maxRounds, true, { signal, deadlineAt: startedAt + MAX_RESEARCH_MS, evidence }); }
             catch (e) {
               // Claude cannot answer now (overloaded, rate limited, down, or its key refused): the
               // backup model answers from the passages already found, and the reader is not charged.
               if (signal.aborted || !claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
               await alertClaudeFunds(env, e);
-              await finish("backup");
-              send({ reset: true });
-              send({ status: "Answering with the backup model" });
               backup = true;
+              // Decided before the meter settles: without the reader's agreement to the backup's provider
+              // no backup answer is written. The free reservation goes back when Claude refused before
+              // writing (nothing billed), and is kept whole after a server error or lost connection.
+              if (!mayUseBackup(consent)) { send({ reset: true }); await fail(claudeRefusedUnbilled(e) ? "empty" : "failed", "busy"); return; }
+              await finish("backup");
+              guard.emit({ reset: true });
+              send({ status: "Answering with the backup model" });
             }
             if (ran) {
-              const { text, passages, actions, cut, refused, grounded } = ran;
-              const { answer, followups } = splitFollowups(text);
+              const { text, passages, actions, cut, refused, grounded, fixed } = ran;
+              const { answer: drafted, followups } = splitFollowups(text);
               // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer, not charged.
-              if (refused && !answer.trim()) { await fail("refused", "refused"); return; }
-              if (!answer.trim()) { await fail("empty", "empty"); return; }
+              if (refused && !drafted.trim()) { await fail("refused", "refused"); return; }
+              if (!drafted.trim()) { await fail("empty", "empty"); return; }
+              // The final step (answer-final.ts): the reader who watched the draft stream in is given the final text.
+              const answer = await finalAnswer(env, drafted, { evidence: [...evidence, ...passageEvidence(passages)] });
+              guard.settle(answer, drafted);
               const sources = await askSourcesOf(env, answer, passages);
-              await complete({ answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) }, cut ? "partial" : grounded === false ? "empty" : "ok", steps, actions);
+              // Each part lists only sources the answer cites (the numbers its own sources carry).
+              const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n), answer);
+              // The agent's model is named on its finished line, so an Auto answer can show it (the Mini App's
+              // label; kept as is, also when the agent's text became a fixed text: the not-in-the-classes
+              // sentence or the deadline's excerpts). versions.model names the writer: "none" for that sentence.
+              await complete({ answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) }, cut ? "partial" : grounded === false ? "empty" : "ok", steps, actions, study, grounded === false || fixed ? "none" : undefined);
               return;
             }
           }
@@ -900,11 +1001,18 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
             const sources = await askSourcesOf(env, gap.answer, gap.sources);
             send({ reset: true }); send({ delta: gap.answer }); await complete({ answer: gap.answer, followups: [], sources, unsupported_refs: [], model: null }, "empty"); return;
           }
+          // The backup sends the question to its own provider: only with the reader's agreement to it.
+          // Without it nothing is sent, and the reader is told honestly that no answer could be written.
+          if (!mayUseBackup(consent)) { await fail("empty", backup ? "busy" : "unavailable"); return; }
           let answer = "";
           const wrote: { model?: string } = {};
-          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; send({ delta: piece }); }
-          const { answer: clean, followups } = splitFollowups(answer);
-          if (!clean.trim()) { await fail("empty", "empty"); return; }
+          const guard = guardedStream<unknown>(send, () => passageEvidence(passages));
+          for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; guard.emit({ delta: piece }); }
+          const { answer: draft, followups } = splitFollowups(answer);
+          if (!draft.trim()) { await fail("empty", "empty"); return; }
+          // The final step (answer-final.ts), as for every answer.
+          const clean = await finalAnswer(env, draft, { evidence: passageEvidence(passages) });
+          guard.settle(clean, draft);
           const sources = await askSourcesOf(env, clean, passages);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
           await complete({ answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(wrote.model ? { model: wrote.model } : { model: null }), ...(backup ? { backup: true } : {}) }, "backup");

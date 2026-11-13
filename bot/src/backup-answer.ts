@@ -11,6 +11,15 @@ import { viaGateway } from "./providers";
 import { MAX_OPEN_OUTPUT, adminBudgetPool } from "./research-policy.mjs";
 
 type Msg = { role: "system" | "user" | "assistant"; content: string };
+
+/** The provider the backup model sends the question to (Workers AI). */
+export const BACKUP_PROVIDER = modelOf(ANSWER_MODEL).provider;
+/**
+ * Whether the backup may write this reader's answer: only with their agreement to its provider, as
+ * for any model (Apple 5.1.2(i); Telegram Bot Developer Terms 4.3). A reader who agreed only to
+ * Claude's provider is never sent to Workers AI when Claude cannot answer.
+ */
+export const mayUseBackup = (consent: readonly string[]) => consent.includes(BACKUP_PROVIDER);
 class BackupBudgetUnavailable extends Error {}
 
 /** A longer backup still has to fit the sponsor's allowance before any provider call. */
@@ -55,7 +64,8 @@ async function admit(env: Env, messages: Msg[], admin: boolean, sources: Passage
   }
 }
 
-export async function backupOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): Promise<string> {
+/** One backup answer. `wrote.model` is set only when the model wrote it, never for the no-budget notice. */
+export async function backupOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): Promise<string> {
   signal?.throwIfAborted();
   const budget = await admit(env, messages, admin, sources);
   if (typeof budget === "string") return budget;
@@ -64,7 +74,9 @@ export async function backupOnce(env: Env, messages: Msg[], admin = false, sourc
     const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3 }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { response?: string; usage?: object };
     usage = res.usage;
     complete = true;
-    return (res.response ?? "").trim();
+    const text = (res.response ?? "").trim();
+    if (text) wrote.model = ANSWER_MODEL;
+    return text;
   } finally { await budget.finish(usage, complete); }
 }
 

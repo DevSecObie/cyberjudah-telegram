@@ -1,0 +1,1 @@
+- The daily production check skips the browser tests that run on stubbed data (they cannot stub production), accepts an uploaded leader photo on the timeline, and searches what was said in class from its own tab, as the search screen now shows it.

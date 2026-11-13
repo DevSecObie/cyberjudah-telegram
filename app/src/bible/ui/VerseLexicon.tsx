@@ -56,6 +56,8 @@ export function VerseLexicon({ verse, words, verses, onVerse, onOpen, onRead, ch
   const [current, setCurrent] = useState(0);
   const currentRef = useRef(0);
   const programmatic = useRef(false);
+  // A pill tapped while the cards are still loading: its card is brought once they arrive.
+  const [wanted, setWanted] = useState<number | null>(null);
   useLayoutEffect(() => {
     const el = box.current; if (!el) return;
     const measure = () => setSize({ width: el.clientWidth, height: el.clientHeight });
@@ -68,18 +70,29 @@ export function VerseLexicon({ verse, words, verses, onVerse, onOpen, onRead, ch
 
   // A new verse starts at its first card, the verse scrolled to its top.
   useEffect(() => {
-    currentRef.current = 0; programmatic.current = false; setCurrent(0);
+    currentRef.current = 0; programmatic.current = false; setCurrent(0); setWanted(null);
     verseScroll.current?.scrollTo({ top: 0 });
     strip.current?.scrollTo({ left: 0 });
   }, [verse]);
 
   const scrollToCard = (occurrenceIndex: number) => {
     const index = cards.findIndex((c) => c.o.occurrenceIndex === occurrenceIndex);
-    if (index === -1) return;
+    if (index === -1 || !strip.current) { setWanted(occurrenceIndex); return; }
+    setWanted(null);
     programmatic.current = true;
-    strip.current?.scrollTo({ left: index * step, behavior: "smooth" });
+    strip.current.scrollTo({ left: index * step, behavior: "smooth" });
     currentRef.current = index; setCurrent(index);
   };
+  const ready = cards.length > 0 && !pending && !failed;
+  useEffect(() => {
+    if (wanted === null || !ready) return;
+    const index = cards.findIndex((c) => c.o.occurrenceIndex === wanted);
+    setWanted(null);
+    if (index === -1 || !strip.current) return;
+    programmatic.current = true;
+    strip.current.scrollTo({ left: index * step });
+    currentRef.current = index; setCurrent(index);
+  }, [wanted, ready]);
   const scrollVerseTo = (occurrenceIndex: number) => {
     const pill = verseScroll.current?.querySelector<HTMLElement>(`[data-occurrence~="${occurrenceIndex}"]`);
     if (pill && verseScroll.current) verseScroll.current.scrollTo({ top: pill.offsetTop, behavior: "smooth" });
@@ -91,7 +104,7 @@ export function VerseLexicon({ verse, words, verses, onVerse, onOpen, onRead, ch
     currentRef.current = index; setCurrent(index);
     const o = cards[index]?.o; if (o) scrollVerseTo(o.occurrenceIndex);
   };
-  const selected = cards[current]?.o.occurrenceIndex;
+  const selected = wanted ?? cards[current]?.o.occurrenceIndex;
   const textStyle = { fontSize: getBibleTextFontSize(false, settings.fontSizeScale), lineHeight: scaleLineHeight(24, settings.lineHeight, settings.fontSizeScale) };
 
   return (

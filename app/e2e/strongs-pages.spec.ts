@@ -32,6 +32,7 @@ test("every number on a multi-number span opens its own word study", async ({ pa
 });
 
 test("a pinned concordance page retries without losing preceding results", async ({ page }) => {
+  test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "local only: stubbed concordance pages that fail on cue");
   const entry = await fixture("strongs/G3056.json");
   const remaining = entry.occurrences.slice(1), revision = "a".repeat(64);
   let fail = true;

@@ -18,6 +18,7 @@ import { Trouble } from "@/ui/trouble";
 import { ReportAnswer } from "@/ui/report";
 import { SearchBar, useSettled } from "@/ui/search-bar";
 import { agree, consented } from "@/lib/ai-consent";
+import { searchLimitMessage } from "@/lib/search-limit";
 import { useAppTheme } from "@/ui/theme";
 import { cssVars, PALETTES } from "@/bible/theme";
 
@@ -206,7 +207,7 @@ function Start({ recent, onPick, onForget, onClear }: { recent: string[]; onPick
 type LibraryQuery = ReturnType<typeof useLibrary>;
 type SpokenQuery = ReturnType<typeof useTeachingsSearch>;
 
-type SearchAi = { ok: boolean; answer?: string; sources?: Source[]; model?: string; provider?: string; error?: string };
+type SearchAi = { ok: boolean; answer?: string; sources?: Source[]; model?: string; provider?: string; error?: string; notice?: string };
 
 /**
  * The AI answer block: one free-tier answer over the library for the submitted search, above the
@@ -221,13 +222,20 @@ function AiAnswer({ q }: { q: string }) {
   const res = useQuery({
     queryKey: ["search-ai", q, consent],
     enabled: q.trim().length >= 2 && !dismissed,
-    staleTime: 120_000,
+    // A limit notice is not kept like an answer: the same search asks again once the wait is over.
+    staleTime: (query) => ((query.state.data as SearchAi | undefined)?.notice ? 0 : 120_000),
     retry: false,
     queryFn: async () => {
       try { return await api<SearchAi>(`/api/search/answer?q=${encodeURIComponent(q.trim())}`, { headers: { "x-ai-consent": consent.join(",") } }); }
       catch (e) {
-        // Google is the only external provider allowed for search; Ask's choices stay separate.
-        if (e instanceof ApiError && e.status === 428) return { ok: false, error: "consent", provider: "Google" };
+        // The server names the provider of the Search model (hosted on Cloudflare or Google); each needs the reader's agreement.
+        if (e instanceof ApiError && e.status === 428) {
+          const named = (e.body as { provider?: unknown } | undefined)?.provider;
+          if (typeof named === "string" && named) return { ok: false, error: "consent", provider: named };
+        }
+        // Refused for a limit (the reader's or the address's) or the paused free budget: say so, not a generic error.
+        const notice = e instanceof ApiError ? searchLimitMessage(e.status, e.error, e.retryAfter) : undefined;
+        if (notice) return { ok: false, error: "limit", notice };
         throw e;
       }
     },
@@ -235,14 +243,15 @@ function AiAnswer({ q }: { q: string }) {
   const data = res.data;
   const html = useMemo(() => (data?.ok && data.answer ? linkRefsInHtml(answerHtml(data.answer, data.sources ?? []), slugs) : ""), [data, slugs]);
   if (q.trim().length < 2 || dismissed) return null;
-  if (data?.error === "consent") {
+  if (data?.error === "consent" && data.provider) {
+    const provider = data.provider;
     return (
       <section className="srch__group srch__ai" aria-label="AI answer">
         <div className="consent" role="group" aria-labelledby="search-consent-title">
-          <div className="consent__head"><Icon name="shield" size={20} /><b id="search-consent-title">Let Google answer from the library?</b></div>
-          <p>Your search and matching library passages will be sent to Google. Your name and Telegram ID are not sent. This answer is free to you.</p>
+          <div className="consent__head"><Icon name="shield" size={20} /><b id="search-consent-title">Let {provider} answer from the library?</b></div>
+          <p>Your search and matching library passages will be sent to {provider}. Your name and Telegram ID are not sent. This answer is free to you.</p>
           <div className="consent__actions">
-            <button type="button" className="btn consent__go" onClick={() => { agree("Google"); setConsent([...new Set([...consent, "Google"])]); haptic("success"); }}>Agree and answer</button>
+            <button type="button" className="btn consent__go" onClick={() => { agree(provider); setConsent([...new Set([...consent, provider])]); haptic("success"); }}>Agree and answer</button>
             <button type="button" className="consent__alt" onClick={() => setDismissed(true)}>Just show results</button>
           </div>
           <p className="consent__foot">You can withdraw this in Settings → Privacy. <Link to="/privacy">Privacy policy</Link></p>
@@ -255,6 +264,14 @@ function AiAnswer({ q }: { q: string }) {
       <section className="srch__group srch__ai" aria-label="AI answer">
         <div className="srch__head"><h2><Icon name="spark" size={16} />AI answer</h2></div>
         <div className="msg__thinking" role="status"><span className="answer__dots" aria-hidden="true"><i /><i /><i /></span>Answering from the library…</div>
+      </section>
+    );
+  }
+  if (data?.notice) {
+    return (
+      <section className="srch__group srch__ai" aria-label="AI answer">
+        <div className="srch__head"><h2><Icon name="spark" size={16} />AI answer</h2></div>
+        <p className="hint" role="status">{data.notice}</p>
       </section>
     );
   }
