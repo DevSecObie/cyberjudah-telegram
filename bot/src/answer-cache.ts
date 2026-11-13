@@ -2,19 +2,22 @@ import type { Env } from "./env";
 import type { Turn } from "./ai.mjs";
 import { hasToolMarkup } from "./agent-open";
 import { isCoverageGap } from "./grounding.mjs";
+import { PROMPT_VERSION, UNAVAILABLE_CORPUS } from "./ask-versions";
 
 /**
  * Answers already written, kept for a week (KV, ask_cache:…). When the same first question is
- * asked again, word for word apart from case and punctuation, with the same model, mode and
- * release, the kept answer is given at once with no model call and no cost. Only first questions
+ * asked again, word for word apart from case and punctuation, with the same prompts, cache revision
+ * (PROMPT_REVISION), library (corpus release), model, mode and release, the kept answer is given at once with no model call and no cost. Only first questions
  * (no conversation before them) that found teaching are kept, so nothing personal to one
  * conversation is ever reused. A reader's "wrong" or "harmful" report on a kept answer removes it,
  * so the next reader gets a fresh one.
  */
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
-// Refresh older answers when the conversational prompt changes; old entries expire normally.
-const PROMPT_REVISION = "reader-voice-v1";   // grounding.mjs READER_VOICE (answers no longer name "the dataset")
+// What a kept answer must hold and how it reads (#610's study completeness check below, #615's reader
+// voice in grounding.mjs READER_VOICE). A change here starts new keys alongside the prompt version and
+// corpus release (#600), so answers kept before it are never served.
+const PROMPT_REVISION = "reader-voice-v1";
 
 function incomplete(answer: unknown): boolean {
   if (!answer || typeof answer !== "object") return false;
@@ -32,12 +35,18 @@ async function sha256(s: string) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** The cache key for a question, or null when it must not be cached (a follow-up, or too short). */
-export async function cacheKey(question: string, history: Turn[], model: string, mode: string, release: string): Promise<string | null> {
+/**
+ * The cache key for a question, or null when it must not be cached (a follow-up, or too short).
+ * A new prompt version (ask-versions.ts), cache revision (PROMPT_REVISION) or corpus release starts new keys, so an answer written
+ * before the change is never given after it; old entries expire normally.
+ */
+export async function cacheKey(question: string, history: Turn[], model: string, mode: string, release: string, corpus: string): Promise<string | null> {
   if (history.length) return null;
+  // The library could not be read: no kept answer can be shown to belong to it.
+  if (corpus === UNAVAILABLE_CORPUS) return null;
   const q = normalizeQuestion(question);
   if (q.split(" ").length < 2) return null;
-  return `ask_cache:${PROMPT_REVISION}:${release}:${mode}:${model}:${await sha256(q)}`;
+  return `ask_cache:${PROMPT_VERSION}:${PROMPT_REVISION}:${corpus}:${release}:${mode}:${model}:${await sha256(q)}`;
 }
 
 export async function cachedAnswer<T>(env: Env, key: string | null): Promise<T | null> {

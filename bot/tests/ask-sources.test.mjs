@@ -29,11 +29,12 @@ await build({
           await new Promise((_resolve, reject) => control.signal.addEventListener('abort', () => reject(control.signal.reason), { once: true }));
         }
         emit({ delta: env.fixtureAnswer });
-        return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false };
+        return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false, ...(env.fixtureGrounded === false ? { grounded: false } : {}), ...(env.fixtureFixed ? { fixed: true, cut: true } : {}) };
       }
     ` }));
   } }],
 });
+import { isCoverageGap } from '../src/grounding.mjs';
 const { ask, askStream, freeModel, freeSpendToday, answerApp, answerAppAgent, grantPayment, ownerOfUser, wallet, worker } = await import(out);
 
 for (const mode of ['before', 'after', 'reset']) {
@@ -362,4 +363,25 @@ test('a busy Claude without agreement to the backup releases the free reservatio
       assert.deepEqual(sent, [], 'the backup model was never called');
     }
   }
+});
+
+test('the app agent marks a fixed not-in-the-classes answer as a gap, so its writer is "none", and keeps its model label (#600)', async t => {
+  const { env } = financialDb(t), model = freeModel(env);
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Fixture gap sentence.', fixtureSources: [] });
+  for (const grounded of [false, undefined]) {
+    env.fixtureGrounded = grounded;
+    const r = await answerAppAgent(env, 'Explain the historical evidence', 'acct-gap', [], [model.provider], { model: model.id });
+    assert.equal(r.ok, true, JSON.stringify(r));
+    assert.equal(r.model, model.id, 'the model label is kept');
+    assert.equal(isCoverageGap(r), grounded === false, `grounded ${grounded}`);
+  }
+});
+
+test('the app agent marks the deadline\'s fixed excerpts as written by no model, and keeps its model label (#600)', async t => {
+  const { env } = financialDb(t), model = freeModel(env);
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Fixture deadline excerpts.', fixtureSources: [], fixtureFixed: true });
+  const r = await answerAppAgent(env, 'Explain the historical evidence', 'acct-fixed', [], [model.provider], { model: model.id });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, model.id);
+  assert.equal(isCoverageGap(r), true);
 });

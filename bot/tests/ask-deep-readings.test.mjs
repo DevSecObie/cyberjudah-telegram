@@ -312,6 +312,7 @@ test('a research-round timeout never promotes search narration to the final answ
   assert.equal(result.cut, true);
   assert.ok(!result.text.includes('Let me search'));
   assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
+  assert.equal(result.fixed, true, 'on the Claude path too, the deadline text is marked as written by no model (#600)');
 });
 
 test('cancelled or expired research starts no provider call, and sources are bounded at 100 (the Mini App keeps at most 100 per answer)', async () => {
@@ -324,6 +325,7 @@ test('cancelled or expired research starts no provider call, and sources are bou
   const sources = Array.from({ length: 300 }, (_, index) => ({ kind: 'note', title: `Recorded material ${index}`, url: `/study/${index}`, text: 'Existing recorded source words, unchanged.' }));
   const result = await runAgent(f.env, 'Read recorded material', [], sources, async () => [], () => {}, undefined, undefined, model);
   assert.equal(result.passages.length, 100);
+  assert.equal(result.fixed, undefined, 'a model-written answer is not marked fixed');
 });
 
 test('a hard deadline aborts the provider, returns marked verbatim evidence and starts no further research', async () => {
@@ -341,5 +343,6 @@ test('a hard deadline aborts the provider, returns marked verbatim evidence and 
   assert.equal(result.cut, true);
   assert.match(result.text, /Research reached its time limit/);
   assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
+  assert.equal(result.fixed, true, 'no model wrote the deadline text: its versions name no model (#600)');
   assert.equal(f.requests.length, 1);
 });

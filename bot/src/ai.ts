@@ -17,6 +17,7 @@ export { withTeachers } from "./class-attribution";
 import { backupOnce, backupPieces, mayUseBackup } from "./backup-answer";
 import { answerAppStudy, type AppStudyEvent } from "./app-study-answer";
 import { APP_STUDY_RELEASE } from "./app-study-release";
+import { answerVersions, corpusRelease } from "./ask-versions";
 import { alertClaudeFunds, claudeRefusedUnbilled, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
 import { pid } from "./privacy.mjs";
@@ -105,7 +106,8 @@ async function rerank<T extends Passage>(env: Env, question: string, passages: T
   } catch { return passages.slice(0, topK); }
 }
 
-export type Answer = ({ ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number; cut?: boolean } & StudyFields) | { ok: false; reason: string };
+/** `model` is the model that wrote the answer; absent for a fixed sentence no model wrote (including the agent's "not in the classes" answer, grounded false). */
+export type Answer = ({ ok: true; q: string; answer: string; sources: (Passage & { n: number })[]; unsupported_refs?: string[]; ms: number; cut?: boolean; model?: string } & StudyFields) | { ok: false; reason: string };
 /** Ask answers a day per person (ASK_DAILY_LIMIT; a hundred when unset). */
 export function askLimit(env: Env): number {
   const n = Number(env.ASK_DAILY_LIMIT);
@@ -357,11 +359,11 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
       const evidence: string[] = [];
       const ran = await runAgent(env, question, history, first, (t, k, readingSignal) => retrieve(env, t, k, spend, readingSignal ?? signal), () => undefined, ctx, undefined, model, spend, resources, meter?.maxRounds, true, { signal, deadlineAt: t0 + MAX_RESEARCH_MS, evidence });
-      const { text, passages, grounded, cut } = ran;
+      const { text, passages, grounded, cut, fixed } = ran;
       const answer = await finalAnswer(env, splitFollowups(text).answer, { evidence: [...evidence, ...passageEvidence(passages)] });
       if (meter) await finishMeter(env, meter, cut ? "partial" : grounded === false ? "empty" : answer.trim() ? "ok" : "empty");
       const sources = await askSourcesOf(env, answer, passages);
-      return { ok: true, q: question, answer, sources, ...citationMetadata(answer, passages), ...(cut ? { cut: true } : {}), ...studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer), ms: Date.now() - t0 };
+      return { ok: true, q: question, answer, sources, ...citationMetadata(answer, passages), ...(cut ? { cut: true } : {}), ...studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer), ms: Date.now() - t0, ...(grounded !== false && !fixed && answer.trim() ? { model: model.id } : {}) };
     }
     // The backup sends the question to its own provider: only with the reader's agreement to it.
     // Without it nothing is written by a model, so nothing is held: the meter settles as empty.
@@ -371,8 +373,9 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
     if (assessCoverage(env, retrievalText(question, history), passages).blocked && passages.length) { const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`))); return { ok: true, q: question, answer: gap.answer, sources: await askSourcesOf(env, gap.answer, gap.sources), unsupported_refs: [], ms: Date.now() - t0 }; }
     if (!passages.length) return { ok: true, q: question, answer: "The search did not find enough reliable material in the library to answer that question.", sources: [], unsupported_refs: [], ms: Date.now() - t0 };
     if (!backupAllowed) return { ok: false, reason: "unavailable" };
-    const answer = await finalAnswer(env, splitFollowups(await answerOnce(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal)).answer, { evidence: passageEvidence(passages) });
-    return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0 };
+    const wrote: { model?: string } = {};
+    const answer = await finalAnswer(env, splitFollowups(await answerOnce(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)).answer, { evidence: passageEvidence(passages) });
+    return { ok: true, q: question, answer, sources: await askSourcesOf(env, answer, passages), ...citationMetadata(answer, passages), ms: Date.now() - t0, ...(wrote.model ? { model: wrote.model } : {}) };
   } catch (e) {
     // An answer that failed is not charged: the hold goes back.
     if (meter) await finishMeter(env, meter, "failed");
@@ -489,7 +492,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   // The same first question, already answered this week by this model and mode: given at once (answer-cache.ts).
   const mode = options.study ? "study" : "app";
-  const key = await cacheKey(question, history, model.id, `${mode}:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `${mode}:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version, await corpusRelease(env));
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept)), ms: Date.now() - t0 }; }
   if (!(await takeQuotaKey(env, `ask_app:${account}:${new Date().toISOString().slice(0, 10)}`, askLimit(env)))) return { ok: false, reason: "limit" };
@@ -537,7 +540,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const model = options.model ? models.find(m => m.id === options.model) : deep ?? readerDefault ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
   if (!model) return { ok: false, reason: "model-unavailable" };
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
-  const key = await cacheKey(question, history, model.id, `agent:opened-class-v1:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version);
+  const key = await cacheKey(question, history, model.id, `agent:opened-class-v1:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version, await corpusRelease(env));
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
   if (kept?.ok) { await linkTrace(env, key, options.traceId); return { ...(await keptFinal(env, kept)), ms: Date.now() - t0 }; }
   let meter: Meter;
@@ -625,7 +628,11 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     guard.settle(answer, drafted);
     const sources = sourcesOf(answer, ran.passages);
     const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map(s => s.n), answer);
-    const result: SearchAnswer = markUnverified({ ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 }, status);
+    const answered: SearchAnswer = markUnverified({ ok: true, answer, sources, ...citationMetadata(answer, ran.passages), followups, model: model.id, provider: model.provider, ...(ran.cut ? { cut: true } : {}), ...study, ms: Date.now() - t0 }, status);
+    // The agent's text became a fixed text no model wrote (the not-in-the-classes sentence, or the
+    // deadline's excerpts): marked as a gap (not sent to the app), so app-ask records the writer as
+    // "none" while `model` stays the app's label (#600).
+    const result = ran.grounded === false || ran.fixed ? markCoverageGap(answered) : answered;
     // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
     // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
     if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
@@ -756,8 +763,8 @@ const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 export const defaultModelId = (env: Env, userId: number) => (isAdmin(env, userId) ? env.CLAUDE_MODEL_ADMIN || "claude-opus-5-5" : env.CLAUDE_MODEL || CLAUDE_DEFAULT);
 
 /** Legacy/provider-outage answers use a separately budgeted Workers AI backup. */
-async function answerOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): Promise<string> {
-  return backupOnce(env, messages, admin, sources, signal);
+async function answerOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): Promise<string> {
+  return backupOnce(env, messages, admin, sources, signal, wrote);
 }
 
 async function* answerPieces(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): AsyncGenerator<string> {
@@ -817,7 +824,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approvedRaw = approvedFor(question, history);
   const approved = approvedRaw && await approvedFinal(env, approvedRaw);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true }), { headers: { "content-type": "application/x-ndjson" } });
+  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true, versions: await answerVersions(env, "approved") }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId), opts.depth) : selected;
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
@@ -848,7 +855,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
-      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }) => send({ ...value, answer_id: await issueAnswerReceipt(env, userId, value.sources) });
+      // Each finished line names what the answer was made with (ask-versions.ts); a fixed sentence,
+      // written by no model, names the model "none". `writer` overrides the line's own `model` for
+      // versions only: that field still drives the Mini App's Auto label (t1v, #600).
+      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }, writer?: string) => {
+        const [answer_id, versions] = await Promise.all([issueAnswerReceipt(env, userId, value.sources), answerVersions(env, writer ?? (typeof value.model === "string" ? value.model : "none"))]);
+        send({ ...value, answer_id, versions });
+      };
       // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
       const beat = setInterval(() => send({ ping: 1 }), 15000);
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
@@ -886,7 +899,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               send({ status: "Answering with the backup model" });
             }
             if (ran) {
-              const { text, passages, actions, cut, refused, grounded } = ran;
+              const { text, passages, actions, cut, refused, grounded, fixed } = ran;
               const { answer: drafted, followups } = splitFollowups(text);
               // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer, not charged.
               if (refused && !drafted.trim()) { await finish("refused"); send({ error: "refused" }); return; }
@@ -900,9 +913,11 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               // Each part lists only sources the answer cites (the numbers its own sources carry).
               const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n), answer);
               await keep(answer, sources, followups, steps, actions, cut, study);
-              // The model that wrote an answer is named on its finished line, so an Auto answer can show it;
-              // the fixed sentences below, written by no model, name none.
-              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}), ...study });
+              // The agent's model is named on its finished line, so an Auto answer can show it (the Mini App's
+              // label; kept as is, also when the agent's text became a fixed text: the not-in-the-classes
+              // sentence or the deadline's excerpts).
+              // versions.model names the writer: "none" for that sentence, as for the fixed sentences below.
+              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}), ...study }, grounded === false || fixed ? "none" : undefined);
               // What the answer cost, and the balance after it; the free model and admins pay nothing.
               if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
               else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });

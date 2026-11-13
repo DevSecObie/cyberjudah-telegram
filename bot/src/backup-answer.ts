@@ -64,7 +64,8 @@ async function admit(env: Env, messages: Msg[], admin: boolean, sources: Passage
   }
 }
 
-export async function backupOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): Promise<string> {
+/** One backup answer. `wrote.model` is set only when the model wrote it, never for the no-budget notice. */
+export async function backupOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): Promise<string> {
   signal?.throwIfAborted();
   const budget = await admit(env, messages, admin, sources);
   if (typeof budget === "string") return budget;
@@ -73,7 +74,9 @@ export async function backupOnce(env: Env, messages: Msg[], admin = false, sourc
     const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3 }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { response?: string; usage?: object };
     usage = res.usage;
     complete = true;
-    return (res.response ?? "").trim();
+    const text = (res.response ?? "").trim();
+    if (text) wrote.model = ANSWER_MODEL;
+    return text;
   } finally { await budget.finish(usage, complete); }
 }
 
