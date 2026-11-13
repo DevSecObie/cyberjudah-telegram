@@ -53,15 +53,20 @@ export const pictureLines = (text: string) => text.match(PICTURE) ?? [];
 const KEEPABLE = /!\[([^\[\]\n]*)\]\(([^()\s<>"']+)\)/g;
 // HTML, removed whole: a closed comment, or anything from "<" then a letter, "/", "!" or "?" to the next
 // ">" on the same line (whatever its attributes hold, "<" and "/" separators included). Kept: an exact <br>
-// and a markdown autolink (<https://...>, <mailto:...>, <name@host>). A "<" left before a letter etc.
-// with no ">" on its line (an unfinished tag, or "Jacob<Israel") loses only that "<", so nothing
-// tag-like reaches a reader and no text past the line is touched; "a < b" with a space is untouched.
+// and a markdown autolink (<https://...>, <mailto:...>, <name@host>), never in a picture's caption. A run of
+// "<" left before a letter etc. with no ">" on its line (an unfinished tag, or "Jacob<Israel") is removed, so
+// nothing tag-like reaches a reader and no text past the line is touched; "a < b" with a space is untouched.
 // An unclosed comment hides the rest of its own line (never more).
-const HTML_COMMENT = /&lt;!--[\s\S]*?-->|&lt;!--[^\n]*/g;
+// While markup is removed every "<" stands as one private-use character (LT), which no entity or text around
+// it can spell, so a removal can't join pieces into a new "<"; each one left goes back to "<" at the end.
+const LT = "\uE002";
+const PRIVATE = /[\uE000-\uE002]/g;
 const HTML_TAG = /<[A-Za-z/!?][^>\n]*>/g;
-const ENCODED_TAG = /&lt;[A-Za-z/!?][^>\n]*>/g;
 const KEEP_TAG = /^(?:<br\s*\/?>|<https?:\/\/[^\s<>"]+>|<mailto:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}>|<[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}>)$/i;
-const OPEN_TAG = /&lt;(?=[A-Za-z/!?])/g;
+const LT_COMMENT = /\uE002!--[\s\S]*?-->|\uE002!--[^\n]*/g;
+const LT_TAG = /\uE002[A-Za-z/!?][^>\n]*>/g;
+// The whole run, so removing it can't leave another "<" before the letter.
+const LT_OPEN = /\uE002+(?=[A-Za-z/!?])/g;
 
 // Any other image written whole on one line (titled, empty, angle-bracketed, by reference): its alt text.
 const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\[[^\[\]\n]*\])/g;
@@ -69,29 +74,51 @@ const OTHER_IMAGE = /!\[([^\[\]\n]*)\](?:\([^()\n]*(?:\([^()\n]*\)[^()\n]*)*\)|\
 /**
  * The answer with only allowed pictures as images: an allowed ![alt](src) stays; any other image
  * written that way becomes its alt text; any other "![" loses its "!" (so no form of image, inline,
- * titled, nested or by reference, can render); raw HTML tags are removed, except a plain <br>.
+ * titled, nested or by reference, can render); raw HTML tags are removed, except a plain <br> and autolinks.
  */
 export function onlyGivenPictures(answer: string, allowed: Set<string>): { text: string; dropped: number } {
+  return withoutMarkup(answer, allowed, false);
+}
+
+function withoutMarkup(answer: string, allowed: Set<string>, caption: boolean): { text: string; dropped: number } {
   let dropped = 0;
-  const kept: string[] = [];
-  // Kept pieces stand aside under a mark no answer can hold (private-use characters and a nonce).
-  // A fresh nonce for each call (made here: Workers don't allow random values at global scope).
+  const kept: string[] = [], tagLike = new Set<number>();
+  // Kept pieces stand aside under a mark no answer can hold (private-use characters, removed from the
+  // answer first, and a nonce). A fresh nonce for each call (Workers don't allow random values at global scope).
   const nonce = crypto.randomUUID().slice(0, 8), marked = new RegExp(`\uE000${nonce}:(\\d+)\uE001`, "g");
-  const mark = (whole: string) => { kept.push(whole); return `\uE000${nonce}:${kept.length - 1}\uE001`; };
-  let text = answer.replace(KEEPABLE, (whole, alt: string, src: string) => {
-    if (allowed.has(src) && isAppPicture(src)) return mark(whole.replace(/</g, "&lt;"));
+  const beforeMark = new RegExp(`\uE002+(?=\uE000${nonce}:(\\d+)\uE001)`, "g");
+  const mark = (whole: string) => {
+    kept.push(whole);
+    if (/^[A-Za-z/!?]/.test(whole)) tagLike.add(kept.length - 1);
+    return `\uE000${nonce}:${kept.length - 1}\uE001`;
+  };
+  const noImages = (t: string) => t
+    .replace(OTHER_IMAGE, (_whole, alt: string) => { dropped++; return alt.trim(); })
+    .replace(/!+\[/g, () => { dropped++; return "["; });   // the whole run: "!!![" leaves no "!["
+  const noOpeners = (t: string) => t.replace(LT_OPEN, () => { dropped++; return ""; });
+  let text = answer.replace(PRIVATE, () => { dropped++; return ""; });
+  text = text.replace(KEEPABLE, (whole, alt: string, src: string) => {
+    if (!caption && allowed.has(src) && isAppPicture(src)) {
+      // The caption passes the same rule with no tags kept, so "1 < 2" stays and markup goes.
+      const c = withoutMarkup(alt, new Set(), true);
+      dropped += c.dropped;
+      return mark(`![${c.text}](${src})`);
+    }
     dropped++;
     return alt.trim();
   });
-  text = text.replace(OTHER_IMAGE, (_whole, alt: string) => { dropped++; return alt.trim(); });
-  text = text.replace(/!\[/g, () => { dropped++; return "["; });
-  text = text.replace(/&lt;/g, mark);
-  text = text.replace(HTML_TAG, tag => KEEP_TAG.test(tag) ? mark(tag) : tag);
-  // Escape before removing markup: deletion cannot re-form a raw tag or comment.
-  text = text.replace(/</g, "&lt;");
-  text = text.replace(HTML_COMMENT, () => { dropped++; return ""; });
-  text = text.replace(ENCODED_TAG, () => { dropped++; return ""; });
-  text = text.replace(OPEN_TAG, () => { dropped++; return ""; });
+  text = noImages(text);
+  if (!caption) text = text.replace(HTML_TAG, (tag) => (KEEP_TAG.test(tag) ? mark(tag) : tag));
+  text = text.replace(/</g, LT);
+  text = text.replace(LT_COMMENT, () => { dropped++; return ""; });
+  text = text.replace(LT_TAG, () => { dropped++; return ""; });
+  text = noOpeners(text);
+  // A removed tag can join "!" and "[" into an image ("!<b>[x](…)"): the image rules again, then any
+  // "<" that now stands before what an image became.
+  text = noOpeners(noImages(text));
+  // A "<" right before a kept picture ("<" then "![…](…)" reads as "<!") goes too.
+  text = text.replace(beforeMark, (run, i: string) => (tagLike.has(Number(i)) ? (dropped++, "") : run));
+  text = text.split(LT).join("<");
   text = text.replace(marked, (_m, i: string) => kept[Number(i)]);
   return { text, dropped };
 }
@@ -156,8 +183,24 @@ export function pictureStream(evidence: () => Iterable<string | undefined | null
   const start = (t: string) => {
     for (let i = 0; i < t.length; i++) {
       const c = t[i], next = t[i + 1];
-      if (c === "!" && (next === undefined || next === "[")) return i;
-      if (c === "<" && (next === undefined || /[A-Za-z/!?]/.test(next))) return i;
+      if (c === "!") {
+        // A run of "!": held from its first, as "<" below ("!![" cleaned to "[" after a sent "!" is "!["), and
+        // "!<" too: a tag removed between "!" and "[" would join them.
+        let j = i;
+        while (t[j + 1] === "!") j++;
+        const after = t[j + 1];
+        if (after === undefined || after === "[" || after === "<") return i;
+        i = j;
+        continue;
+      }
+      if (c === "<") {
+        // A run of "<": held from its first, so what is sent can't join what the held part becomes.
+        let j = i;
+        while (t[j + 1] === "<") j++;
+        const after = t[j + 1];
+        if (after === undefined || /[A-Za-z/!?]/.test(after)) return i;
+        i = j;
+      }
     }
     return -1;
   };

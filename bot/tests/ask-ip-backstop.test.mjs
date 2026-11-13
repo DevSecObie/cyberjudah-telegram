@@ -10,7 +10,7 @@ import { keyedHash } from '../src/privacy.mjs';
 // Worker signs it (MINIAPP_CLIENT_IP_KEY, client-ip.ts), and the connecting address otherwise.
 // A header the caller sends without a valid signature changes nothing.
 const out = new URL('./.build/ask-ip-backstop.mjs', import.meta.url).pathname;
-await build({ stdin: { contents: 'export { default as worker } from "./src/index.ts"; export { signedClientIp, clientIp, clientAddress } from "./src/client-ip.ts";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
+await build({ stdin: { contents: 'export { default as worker } from "./src/index.ts"; export { signedClientIp, clientIp, clientAddress, addressBlock } from "./src/client-ip.ts";', resolveDir: new URL('..', import.meta.url).pathname, loader: 'ts' }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
 const m = await import(out);
 const nowS = () => Math.floor(Date.now() / 1000);
 const KEY = 'miniapp-client-ip-test-key';
@@ -111,4 +111,15 @@ test('clientIp is worked out once per request, however many limiters ask', async
   assert.deepEqual(await a, { ip: READER, signed: true });
   assert.equal(await m.clientIp(r, env), READER);
   assert.equal(await m.clientIp(new Request('https://bot.example/api/ask', { headers: { 'cf-connecting-ip': PROXY } }), env), PROXY);
+});
+
+// Per-address limits count an IPv6 address by its /64, so moving inside one allocation gains nothing.
+test('an IPv6 address is counted by its /64 block, an IPv4 address as it is', () => {
+  assert.equal(m.addressBlock('198.51.100.7'), '198.51.100.7');
+  assert.equal(m.addressBlock('2001:db8:aa:bb:1:2:3:4'), '2001:db8:aa:bb::/64');
+  assert.equal(m.addressBlock('2001:0DB8:00aa:00bb:ffff::9'), '2001:db8:aa:bb::/64');
+  assert.equal(m.addressBlock('2001:db8::1'), '2001:db8:0:0::/64');
+  assert.equal(m.addressBlock('2001:db8::1'), m.addressBlock('2001:db8:0:0:dead:beef::2'));
+  assert.equal(m.addressBlock('::1'), '0:0:0:0::/64');
+  assert.equal(m.addressBlock('::ffff:192.0.2.1'), '192.0.2.1');
 });

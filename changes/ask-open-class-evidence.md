@@ -1,0 +1,1 @@
+- Ask studies now require reading the relevant published class explanation, not just finding a matching search snippet. Single-subject questions receive the same bounded coverage check and repair; unread class evidence remains partial.

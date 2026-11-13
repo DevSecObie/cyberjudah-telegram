@@ -85,17 +85,38 @@ test('a reference counts as read only when every verse of it was read, across pa
   assert.equal(r.covers({ slug: 'psalms', chapter: 119, from: 180, to: 190, label: 'Psalms 119:180-190' }), false, 'verses past the chapter\'s end were never read');
 });
 
+test('class snippets, titles and unrelated openings cannot stand in for a relevant explanation', () => {
+  const part = { id: 'p1', ask: 'the orchard harvest', refs: [] };
+  const snippet = { n: 1, kind: 'spoken', title: 'The orchard harvest', text: 'The recorded orchard harvest explanation discusses the fruit and gathering in the original class words.' };
+  const r = new api.Readings();
+  const check = () => api.checklist([part], [snippet], r)[0];
+  assert.equal(check().status, 'partial');
+  assert.equal(check().needs_reading, true);
+  r.open({ ...snippet, text: 'title: The orchard harvest\nVideo: a recorded moment\n\nMountains rivers deserts and geography describe different landforms across a distant region.' });
+  assert.equal(check().status, 'partial', 'opening a matching title with unrelated body words does not qualify');
+  assert.match(api.checklistNote([part], [check()], r), /read_note, read_transcript or commentary/);
+  r.open({ ...snippet, text: 'Recorded class metadata\n\nThe recorded orchard harvest explanation describes gathering fruit in the original published class context.' });
+  assert.equal(check().status, 'covered');
+  assert.deepEqual(check().sources, [1]);
+  const unrelated = { id: 'p2', ask: 'mountains rivers geography', refs: [] };
+  assert.equal(api.checklist([unrelated], [snippet], r)[0].status, 'missing', 'a read source still must match the part');
+});
+
 test('each part is covered, partial or missing, with at most 20 sources', () => {
   const parts = [{ id: 'p1', ask: 'the passover lamb blood doorposts', refs: [{ slug: 'exodus', chapter: 12, label: 'Exodus 12' }] }, { id: 'p2', ask: 'dietary laws clean unclean animals', refs: [] }];
   const note = { n: 1, kind: 'note', title: 'Passover class', text: 'The passover lamb was killed and the blood put on the doorposts of the houses, recorded in the class notes as read.' };
   const r = new api.Readings();
   let state = api.checklist(parts, [note], r);
   assert.deepEqual(state.map(p => p.status), ['partial', 'missing'], 'evidence without the chapter read is partial');
+  assert.deepEqual(state[0].sources, [], 'a search snippet is not an opened explanation');
+  r.open(note);
+  state = api.checklist(parts, [note], r);
   assert.deepEqual(state[0].sources, [1]);
   r.record('exodus', 12, 1, 10, 1, 10);
   state = api.checklist(parts, [note], r);
   assert.deepEqual(state.map(p => p.status), ['covered', 'missing']);
   const many = Array.from({ length: 30 }, (_, i) => ({ ...note, n: i + 1 }));
+  many.forEach(source => r.open(source));
   const all = api.checklist(parts, many, r);
   assert.equal(all[0].sources.length, 30, 'the checklist keeps every source; only what is sent is bounded');
   assert.equal(api.studyFields(true, parts, { parts: all, complete: true, stopped: 'covered' }).coverage.parts[0].sources.length, api.PART_MAX_SOURCES);
@@ -127,6 +148,7 @@ const question = 'Explain the Sabbath in Exodus 20 and the rest in Psalms 119';
 test('a part is judged on its own words: a new plan reuses no old decision, and a retrieval score covers nothing', () => {
   const memo = new Map(), r = new api.Readings();
   const src = { n: 1, kind: 'note', title: 'Passover class', text: 'The passover lamb was killed and the blood put on the doorposts of the houses, recorded in the class notes as read.' };
+  r.open(src);
   assert.equal(api.checklist([{ id: 'p1', ask: 'the passover lamb blood doorposts', refs: [] }], [src], r, memo)[0].status, 'covered');
   assert.equal(api.checklist([{ id: 'p1', ask: 'mountains rivers deserts geography', refs: [] }], [src], r, memo)[0].status, 'missing', 'p1 with new words is judged again');
   const scored = { ...src, [Symbol.for('cyberjudah.retrieval-provenance')]: { mode: 'vector', score: 0.95 } };
@@ -219,12 +241,19 @@ test('verses already in hand count as read for a named reference', async () => {
   assert.equal(requests.length, 1, 'so the answer is not sent back');
 });
 
-test('a question with no parts and no Scripture is not tracked and gets no checklist', async () => {
+test('a substantive question cannot skip tracking by omitting a plan and named Scripture', async () => {
   const requests = [];
   const result = await api.runAgent(env(claudeScript(['A short answer.'], requests)), 'Who was Moses?', [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
+  assert.equal(result.tracked, true);
+  assert.equal(requests.length, 2, 'one bounded repair, not unbounded retries');
+  assert.equal(api.studyFields(result.tracked, result.plan, result.coverage).partial, true);
+});
+
+test('greetings need no research checklist or repair', async () => {
+  const requests = [];
+  const result = await api.runAgent(env(claudeScript(['Hello.'], requests)), 'Shalom', [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
   assert.equal(result.tracked, false);
-  assert.equal(requests.length, 1, 'no extra round');
-  assert.deepEqual(api.studyFields(result.tracked, result.plan, result.coverage), {});
+  assert.equal(requests.length, 1);
 });
 
 test('one answer registers at most 100 sources, the Mini App\'s limit', async () => {
@@ -294,6 +323,7 @@ test('hotfix: a part reads the Scripture its own ask names, whatever refs the mo
   for (const refs of [undefined, [], ['Psalms 119:1']]) {
     const { parts } = api.planFrom('Explain all of Psalms 119', { parts: [{ ask: 'All of Psalms 119', ...(refs ? { refs } : {}) }] }, BOOKS, api.parseReference);
     const r = new api.Readings();
+    r.open(src);
     r.record('psalms', 119, 1, 1, 1, 176);
     assert.equal(api.checklist(parts, [src], r)[0].status, 'partial', `refs ${JSON.stringify(refs)}: one verse is not the chapter`);
     r.record('psalms', 119, 2, 176, 1, 176);

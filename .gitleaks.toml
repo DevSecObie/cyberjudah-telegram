@@ -1,0 +1,17 @@
+# Gitleaks settings for the Secret scan workflow (.github/workflows/secret-scan.yml).
+# The default rules all stay on. The allowlist below only covers exact values that are public by
+# design, so any other key or secret of the same shape is still reported.
+# Old findings that were reviewed are listed by fingerprint in .gitleaksignore. A CyberJudah secret
+# never goes in either file: revoke and replace it, then remove it.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "The CyberJudah Firebase web key: public by design, shipped in every app build. Access is limited by Firebase rules, App Check and each key's restrictions in Google Cloud. Only this exact value is allowed; any other Google key (a Gemini or Maps server key, say) is still reported."
+targetRules = ["gcp-api-key", "generic-api-key"]
+regexes = [
+  # Each value is split by an empty group, (?:), so this file itself holds nothing shaped like a key.
+  # CyberJudah Firebase web key (Expo .env and eas.json, Mini App, bot).
+  '''^AIza(?:)SyAqCIfm78KkoFq0UOszT5YJdpvD6jWqG9U$''',
+]
