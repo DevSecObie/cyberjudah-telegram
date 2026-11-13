@@ -33,3 +33,21 @@ Example body after consent and confirmation:
 ```
 
 The cap is only used if routing resolves to that model. This example does not promise a particular model or quote a price; use the account menu and confirmation response for the current reader.
+
+## Model allowlist (MDLC)
+
+`shared/ask-allowlist.json` is the admission list, separate from the generated candidate catalog. Its initial 62 canonical IDs are exactly the existing `FRONTIER_ORDER` and `FAST` sets, configured `CLAUDE_MODEL*` and `ASK_FREE*` model values at seed time, and backup model. This seed records existing routing choices, not a claim that these models passed live quality evaluation. Catalog refreshes do not expand it automatically.
+
+`ASK_MODEL_ALLOWLIST_MODE` controls admission:
+
+| Mode | Behaviour |
+|---|---|
+| `off` | Existing choices and routing; no allowlist logging. |
+| `shadow` (default) | Production and staging configuration select this mode. Existing choices and routing remain; a selected model outside the list emits only `event: "ask_model_allowlist_miss"` and `model`, a canonical catalog ID. An unknown/stale ID emits `model: null`; raw request input is never logged. |
+| `enforce` | Telegram and native menus hide nonlisted models. Explicit nonlisted or unknown choices receive HTTP 403, `error: "model-not-allowed"`, and a message to choose from the list. Requested and resolved streaming models are checked; defaults, Auto, native engines, search and backup are constrained before model calls. |
+
+An omitted or invalid setting behaves as `shadow`. The added log payload contains no question, answer, account, trace ID, headers or raw model input. Provider consent, exact-model cost confirmation, budgets, settlement and grounding still apply. A native enforce menu with no eligible models returns `models: []` and `default: null`, rather than advertising a denied model.
+
+Each entry has `id` and `idKind` (`moving-alias` or `pinned-snapshot`) for the eval matrix. All initial entries conservatively use `moving-alias`: the current catalog records no verified immutable-snapshot contract. A version or date in a name is insufficient evidence of a pin. The shared helper exports readonly `ALLOWLIST_MODELS` and `ALLOWLIST_IDS`.
+
+Changing the list requires model-admission review and the offline checks, including exact configured-pin and alias-collision tests. Live evaluation requires the owner's budget approval. Enabling `enforce` remains the owner's decision after coordinator review and QA. This change defaults to shadow mode; no deployment or enforcement is activated as part of this work.

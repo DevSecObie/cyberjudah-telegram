@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import { FRONTIER_ORDER, MODELS, type AskModel } from "../../shared/ask-models.mjs";
+import { allowlistedModels } from "../../shared/ask-allowlist.mjs";
 import { estimateMc } from "../../shared/credits.mjs";
 import { creditsConfig, ownerOfUser, prepare, typicalMc, wallet } from "./credits";
 import { hasClaude, unifiedBilling } from "./providers";
@@ -33,7 +34,7 @@ export function depthOf(q: string, turns = 0, requested?: AnswerDepth): Question
 }
 
 /** The same availability and prices for the account menu and server-side routing. */
-export const askModels = (env: Env) => MODELS.filter((m) => m.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY);
+export const askModels = (env: Env) => allowlistedModels(env, MODELS.filter((m) => m.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY));
 export async function modelCosts(env: Env, models: AskModel[], free: Set<string>) {
   const cfg = creditsConfig(env);
   return Promise.all(models.map(async (m) => {
