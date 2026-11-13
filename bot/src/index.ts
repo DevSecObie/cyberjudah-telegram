@@ -30,7 +30,7 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 import { readSources, saveSources } from "./cms-sources";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeAskIpQuota, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
-import { semanticSearch } from "./semantic-search";
+import { semanticSearch, takeSearchQuota } from "./semantic-search";
 import { normalizeHistory, withStudyContext, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -85,7 +85,7 @@ const app = new Hono<App>();
 // Bundled native readers have local webview origins, and the web app lives at web.cyberjudah.io.
 // No cookie credentials are allowed
 // across origins; private endpoints still require their existing signed authorization.
-app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], exposeHeaders: ["Retry-After"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
@@ -510,6 +510,9 @@ app.delete("/api/chats/:id", async (c) => {
   return c.json({ ok }, ok ? 200 : 400);
 });
 app.get("/api/similar", async (c) => {
+  // Each call embeds the query and reranks (model calls): limited like the semantic search (OWASP LLM10).
+  // A query too short to search (similar() answers it with nothing, no model call) spends no allowance.
+  if ((c.req.query("q") ?? "").trim().length >= 2 && !(await takeSearchQuota(c.env, c.req.raw, c.get("tma").user!.id, "similar"))) return c.json({ error: "limit" }, 429);
   const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
   return c.json(res, res.ok ? 200 : 503);
 });

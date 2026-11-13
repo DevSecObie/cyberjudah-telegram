@@ -211,3 +211,30 @@ test('public hydration reads overlap, share memo entries, and never exceed the r
   await semanticHits(f.env, opts(), signal());
   assert.ok(f.env.reads.length <= 32);
 });
+
+// OWASP LLM10: "similar passages" embeds the query too (a model call); it is limited like the
+// semantic search, on its own counters, and the limit comes before any model call.
+test('similar passages are limited per person and per address before any model call, on their own counters', async t => {
+  const f = fixture(t); cache(t);
+  const now = Date.now; Date.now = () => 1794052800000; t.after(() => { Date.now = now; });
+  const similar = async (headers = {}) => {
+    const pending = [];
+    const response = await worker.fetch(new Request(`https://example.test/api/similar?${new URLSearchParams({ q: 'recorded words' })}`, { headers: { authorization: auth(f.env), ...headers } }), f.env, { waitUntil: p => pending.push(p), passThroughOnException() {} });
+    await Promise.all(pending); return response;
+  };
+  assert.equal((await similar({ authorization: '' })).status, 401);
+  for (let i = 0; i < 10; i++) assert.notEqual((await similar({ 'cf-connecting-ip': '192.0.2.20' })).status, 429, `call ${i}`);
+  const calls = f.calls.length;
+  const over = await similar({ 'cf-connecting-ip': '192.0.2.20' });
+  assert.equal(over.status, 429);
+  assert.deepEqual(await over.json(), { error: 'limit' });
+  assert.equal(f.calls.length, calls, 'no model call once limited');
+  const keys = f.sql.prepare('SELECT key FROM rate_counts').all().map((r) => r.key);
+  assert.ok(keys.some((k) => k.startsWith('similar_person:')) && keys.some((k) => k.startsWith('similar_ip:')));
+  assert.ok(!keys.some((k) => k.startsWith('semantic_')), 'the semantic search counters are untouched');
+  assert.ok(!JSON.stringify(keys).includes('192.0.2.20'), 'no plaintext address');
+  // The daily allowance is bounded too.
+  f.sql.prepare("UPDATE rate_counts SET n = 200 WHERE key LIKE 'similar_day:%'").run();
+  Date.now = () => 1794052800000 + 120_000;
+  assert.equal((await similar()).status, 429);
+});

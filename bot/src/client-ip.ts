@@ -52,6 +52,19 @@ export function clientAddress(req: Request, env: Env): Promise<{ ip?: string; si
 export async function clientIp(req: Request, env: Env): Promise<string | undefined> {
   return (await clientAddress(req, env)).ip;
 }
+/**
+ * The block a per-address limit counts: an IPv4 address as it is, an IPv6 address cut to its /64
+ * (one subscriber's usual allocation), so moving between addresses inside it gains nothing.
+ */
+export function addressBlock(ip: string): string {
+  if (!ip.includes(":")) return ip;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip);
+  if (mapped) return mapped[1];
+  const [head, tail = ""] = ip.toLowerCase().split("::");
+  const h = head ? head.split(":") : [], t = tail ? tail.split(":") : [];
+  const groups = ip.includes("::") ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t] : h;
+  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/64`;
+}
 /** A per-network ceiling sized for one reader's network (carrier NAT, a class on one Wi-Fi) when the
  *  address is signed, and for the Mini App relay, which every unsigned Mini App reader shares, when not.
  *  Safe in any deploy order: until the relay signs, nothing tightens. */

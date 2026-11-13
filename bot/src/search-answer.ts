@@ -2,7 +2,16 @@ import { Hono } from "hono";
 import type { Env } from "./env";
 import type { InitData } from "./initdata.mjs";
 import { answerSearch, searchModel, takeQuota } from "./ai";
+import { takeAddressQuota, type AddressLimits } from "./address-quota";
 import { isAdmin } from "./edit";
+
+/**
+ * Search answers from one address (ASK-POLICY C2, OWASP LLM10), for every reader, admins and the
+ * release check's exempt reader included: a reader's own signed address 100 a day; an unsigned one,
+ * which may be the Mini App relay shared by every reader, 300 a minute only, so it is never shut for
+ * the day. The day's free budget stays the cost ceiling behind both.
+ */
+const SEARCH_PER_ADDRESS: AddressLimits = { signedPerDay: 100, unsignedPerMinute: 300 };
 
 /** Mounted after the Worker's Telegram authentication middleware. */
 export const searchAnswers = new Hono<{ Bindings: Env; Variables: { tma: InitData } }>();
@@ -32,7 +41,11 @@ searchAnswers.get("/", async (c) => {
   const limit = Math.max(1, Math.floor(Number(c.env.SEARCH_AI_DAILY_LIMIT ?? 20)));
   // Production and staging list the release check's synthetic reader here, so repeated release checks don't spend its daily allowance.
   const exempt = (c.env.SEARCH_AI_QUOTA_EXEMPT ?? "").split(",").map((s) => s.trim()).includes(String(uid));
-  if (!exempt && !isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429);
+  // The reader's own count is per UTC day: Retry-After says how long until it starts again.
+  if (!exempt && !isAdmin(c.env, uid) && !(await takeQuota(c.env, "search_ai", uid, limit))) return c.json({ ok: false, error: "limit" }, 429, { "retry-after": String(Math.max(1, Math.ceil((86400_000 - (Date.now() % 86400_000)) / 1000))) });
+  // The address after the reader's own count, so a reader already refused spends none of it.
+  const wait = await takeAddressQuota(c.req.raw, c.env, "search_ai_ip", SEARCH_PER_ADDRESS);
+  if (wait) return c.json({ ok: false, error: "limit" }, 429, { "retry-after": String(wait) });
   const r = await answerSearch(c.env, q, uid, consent);
   // Every consent refusal names the provider, as the one above does: the app asks the reader about it by name.
   if (!r.ok) return c.json({ ok: false, error: r.reason, ...(r.reason === "consent" ? { provider: model.provider } : {}) }, r.reason === "too-short" ? 400 : r.reason === "consent" ? 428 : r.reason === "free-paused" ? 429 : 503);

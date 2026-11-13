@@ -2073,7 +2073,7 @@ test("Search: results come in as you type, grouped, a reference opens the Bible,
   await expect(page.locator(".srch__none")).toContainText("Nothing found");
 });
 
-test("Search: the AI answer block asks once per submitted search, sits above the keyword results with its citations, and stays silent when the answer fails", async ({ page }) => {
+test("Search: the AI answer block asks once per submitted search, sits above the keyword results with its citations, stays silent when the answer fails, and names a limit refusal", async ({ page }) => {
   await page.route("**/api/search?**", (r) => r.fulfill({ json: { ok: true, q: "", mode: "strict", counts: { verse: 1 }, ms: 1, hits: [
     { kind: "verse", title: "Genesis 14:18", url: "/bible/genesis/14#v18", sub: "", snippet: "And Melchizedek king of Salem brought forth bread and wine" },
   ] } }));
@@ -2131,14 +2131,25 @@ test("Search: the AI answer block asks once per submitted search, sits above the
   await page.locator(".srch__ai .srccard").nth(1).click();
   await expect(page).toHaveURL(/\/note\/classes\/2026\/superiority/);
   await page.goBack();
-  // A refused answer (the daily limit) leaves the keyword results alone and shows no block.
+  // A failed answer leaves the keyword results alone and shows no block.
   await page.unroute("**/api/search/answer?**");
-  await page.route("**/api/search/answer?**", (r) => r.fulfill({ status: 429, json: { ok: false, error: "limit" } }));
+  await page.route("**/api/search/answer?**", (r) => r.fulfill({ status: 500, json: { ok: false, error: "unavailable" } }));
   await page.fill("#q", "Salem");
   await page.press("#q", "Enter");
   await expect(page).toHaveURL(/q=Salem/);
   await expect(page.locator(".srch__hit").first()).toBeVisible();
   await expect(page.locator(".srch__ai")).toHaveCount(0);
+  // A refusal for the daily limit says so (#606, asked by t1v after QA), with no answer or sources;
+  // the keyword results stay.
+  await page.unroute("**/api/search/answer?**");
+  await page.route("**/api/search/answer?**", (r) => r.fulfill({ status: 429, json: { ok: false, error: "limit" } }));
+  await page.fill("#q", "Salem king");
+  await page.press("#q", "Enter");
+  await expect(page).toHaveURL(/q=Salem/);
+  await expect(page.locator(".srch__hit").first()).toBeVisible();
+  await expect(page.locator(".srch__ai .hint")).toHaveText("You've reached today's search limit. Try again later.");
+  await expect(page.locator(".srch__ai .msg__text")).toHaveCount(0);
+  await expect(page.locator(".srch__ai .srccard")).toHaveCount(0);
 });
 
 
