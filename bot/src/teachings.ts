@@ -1,4 +1,5 @@
 import { classCorrections, applyClassCorrection } from "./class-corrections";
+import { dataJson } from "./data";
 import type { Env, Exec } from "./env";
 import { ftsExpr, parseQuery } from "./search";
 import { FEEDS, noteUrl, passageExcerpt } from "./teachings.mjs";
@@ -123,8 +124,27 @@ export async function transcriptAround(env: Env, video: string, t: number, ctx?:
   return applyClassCorrection({ ok: true as const, video, kind, title: note?.title || file.cleanTitle || file.title || video, url: note?.url ?? "", date: file.date ?? note?.date ?? "", duration: file.duration ?? null, t, chunks }, await classCorrections(env));
 }
 
-/** The page a recording has, when it is written up: from teaching_refs/teaching_passages' note column. */
-async function noteFor(env: Env, video: string, _ctx?: Exec): Promise<{ url: string; title: string; date: string } | null> {
+type IndexedNote = { kind?: string; url?: string; title?: string; date?: string | null; videoId?: string | null };
+let notesByVideo: { origin: string; at: number; map: Map<string, IndexedNote> } | null = null;
+/** The published notes (api/notes/index.json) by their recording, refreshed hourly. */
+async function notesIndex(env: Env, ctx?: Exec): Promise<Map<string, IndexedNote> | null> {
+  if (!env.DATA_ORIGIN) return null;
+  if (notesByVideo && notesByVideo.origin === env.DATA_ORIGIN && Date.now() - notesByVideo.at < 3_600_000) return notesByVideo.map;
+  const rows = await dataJson<IndexedNote[]>(env, "/api/notes/index.json", ctx).catch(() => null);
+  if (!Array.isArray(rows)) return notesByVideo?.map ?? null;
+  const map = new Map<string, IndexedNote>();
+  for (const row of rows) if (row.videoId && row.url && !map.has(row.videoId)) map.set(row.videoId, row);
+  notesByVideo = { origin: env.DATA_ORIGIN, at: Date.now(), map };
+  return map;
+}
+
+/**
+ * The page a recording has, when it is written up: the published notes index first (every note,
+ * as soon as it is published), then teaching_refs' note column for recordings the index misses.
+ */
+async function noteFor(env: Env, video: string, ctx?: Exec): Promise<{ url: string; title: string; date: string } | null> {
+  const indexed = (await notesIndex(env, ctx).catch(() => null))?.get(video);
+  if (indexed?.url) return { url: indexed.url, title: indexed.title ?? "", date: indexed.date ?? "" };
   try {
     const row = await env.TEACH.prepare("SELECT note, title, date FROM teaching_refs WHERE video = ?1 AND note IS NOT NULL LIMIT 1").bind(video).first<{ note: string; title: string; date: string }>();
     return row?.note ? { url: noteUrl(row.note), title: row.title, date: row.date ?? "" } : null;
