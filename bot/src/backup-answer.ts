@@ -2,6 +2,7 @@ import type { Env } from "./env";
 import { ANSWER_MODEL } from "./ai.mjs";
 import type { Passage } from "./ai.mjs";
 import { modelOf } from "../../shared/ask-models.mjs";
+import { checkModelAllowlist, MODEL_NOT_ALLOWED } from "../../shared/ask-allowlist.mjs";
 import { MC_USD } from "../../shared/credits.mjs";
 import { creditsConfig } from "./credits";
 import { reserveFreeBudget, settleFreeBudget } from "./free-budget";
@@ -24,7 +25,9 @@ class BackupBudgetUnavailable extends Error {}
 
 /** A longer backup still has to fit the sponsor's allowance before any provider call. */
 async function prepare(env: Env, messages: Msg[], admin: boolean) {
-  const model = modelOf(ANSWER_MODEL), cfg = creditsConfig(env);
+  const model = modelOf(ANSWER_MODEL);
+  if (!checkModelAllowlist(env, ANSWER_MODEL)) throw new BackupBudgetUnavailable(MODEL_NOT_ALLOWED.message);
+  const cfg = creditsConfig(env);
   const budget = admin ? cfg.maxRequestMc * MC_USD : Math.max(0.001, Number(env.ASK_FREE_MAX_USD ?? 0.05));
   const reservation = await reserveFreeBudget(env, crypto.randomUUID(), budget, Date.now(), admin ? adminBudgetPool(env) : undefined).catch(() => { throw new BackupBudgetUnavailable("The backup answer allowance is unavailable."); });
   if (!reservation) throw new BackupBudgetUnavailable("The backup answer allowance is exhausted.");

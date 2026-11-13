@@ -20,6 +20,7 @@ import { APP_STUDY_RELEASE } from "./app-study-release";
 import { answerVersions, corpusRelease } from "./ask-versions";
 import { alertClaudeFunds, claudeRefusedUnbilled, claudeUnavailable, hasClaude, unifiedBilling, viaGateway } from "./providers";
 import { countryOf, MODELS, modelOf, type AskModel } from "../../shared/ask-models.mjs";
+import { allowlistedModels, checkModelAllowlist, modelAllowlistMode, MODEL_NOT_ALLOWED } from "../../shared/ask-allowlist.mjs";
 import { pid } from "./privacy.mjs";
 import { clearPending, markPending, saveExchange, type SavedAction } from "./chats";
 import { isAdmin } from "./edit";
@@ -347,6 +348,7 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const model = modelOf(defaultModelId(env, userId));
+  if (!checkModelAllowlist(env, model.id)) return { ok: false, reason: MODEL_NOT_ALLOWED.error };
   // The one-piece answer uses the setup's own model: agreed to, as in askStream.
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const r = await begin(env, userId, model, { maxMc: creditsConfig(env).confirmAboveMc });
@@ -387,13 +389,13 @@ export async function ask(env: Env, q: string, userId: number, ctx?: Exec, histo
 type CitationDiagnostics = { sources_returned: number; citation_tokens_found: number; valid_ids: number; retries: number; model: string };
 export type SearchAnswer =
   | ({ ok: true; answer: string; followups?: string[]; sources: (Passage & { n: number; evidence?: string; thumb?: string })[]; model: string; provider: string; ms: number; unsupported_refs?: string[]; ui?: string; teachingFound?: boolean; state?: "no-cited-answer"; related?: { label: "Related library passages"; passages: Passage[] }; citation_diagnostics?: CitationDiagnostics; cut?: boolean } & StudyFields)
-  | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
+  | { ok: false; reason: "too-short" | "too-long" | "model-unavailable" | "model-not-allowed" | "unavailable" | "empty" | "free-paused" | "consent" | "limit"; detail?: string };
 
 /** Search defaults to hosted free-tier models; third-party billing requires an explicit opt-in. */
 export function searchModel(env: Env): AskModel | null {
   const id = env.SEARCH_AI_MODEL?.trim() || freeModel(env).id;
   if (env.SEARCH_AI_FREE_ONLY !== "off" && !id.startsWith("@cf/")) return null;
-  return MODELS.find((m) => m.id === id && FREE_FORMATS.has(m.format)
+  return allowlistedModels(env, MODELS).find((m) => m.id === id && FREE_FORMATS.has(m.format)
     && (m.id.startsWith("@cf/") || m.provider === "Google" && m.id.startsWith("google/"))) ?? null;
 }
 
@@ -424,6 +426,7 @@ export async function answerSearch(env: Env, q: string, uid: number, consent: st
   if (question.length < 2) return { ok: false, reason: "too-short" };
   const model = searchModel(env);
   if (!model) return { ok: false, reason: "unavailable" };
+  if (!checkModelAllowlist(env, model.id)) return { ok: false, reason: MODEL_NOT_ALLOWED.error };
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const started = await startMeterFor(env, uid, model, {}, true);
   if (!started.ok) return { ok: false, reason: started.body.error === "free-paused" ? "free-paused" : "unavailable" };
@@ -467,11 +470,11 @@ export function appAskModels(env: Env, adminId?: number, readers = false): AskMo
   // Every free (Workers AI) text model is offered; ASK_FREE_MODELS can narrow the list.
   const free = MODELS.filter(m => allowed.has(m.id) && m.id.startsWith("@cf/") && FREE_FORMATS.has(m.format));
   const claudeOk = !!adminId && isAdmin(env, adminId) && hasClaude(env);
-  if (!claudeOk) return readers === true && claudeForReaders(env) ? [...readerClaudes(env), ...free] : free;
+  if (!claudeOk) return allowlistedModels(env, readers === true && claudeForReaders(env) ? [...readerClaudes(env), ...free] : free);
   // The admin's chosen frontier model is also the native linked-account default.
   const ids = [defaultModelId(env, adminId), env.CLAUDE_MODEL || CLAUDE_DEFAULT, env.CLAUDE_MODEL_LIGHT].filter((id): id is string => !!id).map((id) => modelOf(id).id);
   const claudes = [...new Set(ids)].map((id) => MODELS.find((m) => m.id === id && m.format === "anthropic")).filter((m): m is AskModel => !!m);
-  return [...claudes, ...free];
+  return allowlistedModels(env, [...claudes, ...free]);
 }
 
 export async function answerApp(env: Env, q: string, account: string, history: Turn[] = [], consent: string[] = [], deadlineMs = SEARCH_ANSWER_DEADLINE_MS, options: { model?: string; emit?: (event: AppStudyEvent) => void; study?: boolean; traceId?: string } = {}): Promise<SearchAnswer> {
@@ -479,6 +482,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
+  if (options.model && !checkModelAllowlist(env, options.model)) return { ok: false, reason: MODEL_NOT_ALLOWED.error };
   // An answer the owner approved for this very question: given at once, with no model and no cost.
   const approvedRaw = approvedFor(question, history);
   const approved = approvedRaw && await approvedFinal(env, approvedRaw);
@@ -488,6 +492,7 @@ export async function answerApp(env: Env, q: string, account: string, history: T
   const deep = !options.model && env.ASK_FREE_DEEP_MODEL && routeOf(question, history) === "deep" ? appAskModels(env).find(m => m.id === env.ASK_FREE_DEEP_MODEL) : undefined;
   const model = deep ?? appAskModels(env).find(m => m.id === (options.model || freeModel(env).id));
   if (!model) return { ok: false, reason: "model-unavailable" };
+  if (!options.model && !checkModelAllowlist(env, model.id)) return { ok: false, reason: MODEL_NOT_ALLOWED.error };
   // Nothing is sent to a provider the reader has not agreed to, as in askStream.
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   // The same first question, already answered this week by this model and mode: given at once (answer-cache.ts).
@@ -527,6 +532,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const question = q.trim();
   if (question.length > 4000) return { ok: false, reason: "too-long" };
   if (question.length < 2) return { ok: false, reason: "too-short" };
+  if (options.model && !checkModelAllowlist(env, options.model)) return { ok: false, reason: MODEL_NOT_ALLOWED.error };
   const approvedRaw = approvedFor(question, history);
   const approved = approvedRaw && await approvedFinal(env, approvedRaw);
   if (approved) return { ok: true, answer: approved.answer, sources: await withTeachers(env, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), followups: approved.followups ?? [], model: "approved", provider: "CyberJudah", ms: Date.now() - t0 };
@@ -539,6 +545,7 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   const readerDefault = !adminClaude && paid.length ? (isDeep ? paid[1] ?? paid[0] : paid[0]) : undefined;
   const model = options.model ? models.find(m => m.id === options.model) : deep ?? readerDefault ?? paid[0] ?? models.find(m => m.id === freeModel(env).id);
   if (!model) return { ok: false, reason: "model-unavailable" };
+  if (!options.model && !checkModelAllowlist(env, model.id)) return { ok: false, reason: MODEL_NOT_ALLOWED.error };
   if (!consent.includes(model.provider)) return { ok: false, reason: "consent" };
   const key = await cacheKey(question, history, model.id, `agent:opened-class-v1:coverage-${env.ASK_COVERAGE_MODE === "enforce" ? "enforce" : "shadow"}`, APP_STUDY_RELEASE.version, await corpusRelease(env));
   const kept = await cachedAnswer<SearchAnswer & { ok: true }>(env, key);
@@ -833,11 +840,15 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const line = (o: unknown) => `${JSON.stringify(hasSourceList(o) ? boundedFrame(o as object) : o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
+  // An explicit choice is checked even when an approved answer avoids a provider call.
+  if (modelId && modelId !== "auto" && !checkModelAllowlist(env, modelId)) return reply(403, MODEL_NOT_ALLOWED);
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approvedRaw = approvedFor(question, history);
   const approved = approvedRaw && await approvedFinal(env, approvedRaw);
   if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true, versions: await answerVersions(env, "approved") }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId), opts.depth) : selected;
+  // Enforce checks both the requested ID and the resolved model; shadow records a choice once.
+  if ((!modelId || modelId === "auto" || modelAllowlistMode(env) === "enforce") && !checkModelAllowlist(env, model.id)) return reply(403, MODEL_NOT_ALLOWED);
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.

@@ -60,6 +60,7 @@ import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
 import { modelOf } from "../../shared/ask-models.mjs";
 import { askModels, modelCosts } from "./ask-routing";
+import { MODEL_NOT_ALLOWED } from "../../shared/ask-allowlist.mjs";
 import { askJson } from "./ask-json";
 import { keyedHash, pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
@@ -299,6 +300,7 @@ app.post("/api/ask", async (c) => {
     return body?.stream ? response : askJson(response, String(body?.q ?? ""), start);
   }
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
+  if (!res.ok && res.reason === MODEL_NOT_ALLOWED.error) return c.json({ ...res, ...MODEL_NOT_ALLOWED }, 403);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
   if (res.ok) {
     // Like every streamed finished line (ai.ts askStream), the one-piece answer names what it was made
