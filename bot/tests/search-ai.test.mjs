@@ -38,6 +38,8 @@ const d1 = () => {
 // No AI or Vectorize bindings: retrieval finds nothing, so no model is ever called.
 const kv = () => ({ get: async () => null, put: async () => undefined, delete: async () => undefined });
 const env = () => ({ DB: d1(), PRIVACY_KEY: "test-key", SUBS: kv() });
+// The hosted Search models' provider: every answer-writing model needs the reader's agreement (docs/PRIVACY.md).
+const HOSTED = "Cloudflare (Workers AI)";
 
 test("a too-short question is rejected before anything runs", async () => {
   const r = await answerSearch(env(), "x", 7);
@@ -56,7 +58,7 @@ test("with nothing in the library it says so, on the default free model, and rep
   console.log = (...args) => lines.push(args.join(" "));
   let r;
   try {
-    r = await answerSearch(e, "melchizedek", 7);
+    r = await answerSearch(e, "melchizedek", 7, [HOSTED]);
   } finally {
     console.log = original;
   }
@@ -93,7 +95,7 @@ test("a stalled model is given up on at the deadline: the answer is unavailable,
   console.error = (...args) => lines.push(args.join(" "));
   const t0 = Date.now();
   let r;
-  try { r = await answerSearch(e, "melchizedek", 8, [], 50); } finally { console.error = original; }
+  try { r = await answerSearch(e, "melchizedek", 8, [HOSTED], 50); } finally { console.error = original; }
   assert.equal(r.ok, false);
   assert.equal(r.reason, "unavailable");
   assert.ok(Date.now() - t0 < 5_000, "the reader is not kept waiting on the stalled model");
@@ -104,7 +106,7 @@ test("admin searches share the daily free-tier allowance", async () => {
   const e = { ...shared, ADMIN_IDS: "7" };
   const before = await freeSpendToday(e);
   assert.ok(before > 0, "the reader's answer above was metered");
-  const r = await answerSearch(e, "melchizedek", 7);
+  const r = await answerSearch(e, "melchizedek", 7, [HOSTED]);
   assert.equal(r.ok, true);
   assert.ok(await freeSpendToday(e) > before, "admin searches must not bypass the daily allowance");
 });
@@ -128,6 +130,9 @@ function fixture(t, reply = { choices: [{ message: { content: "Melchizedek was k
 
 test("external search needs consent before touching storage or retrieval; unknown models fail closed", async () => {
   assert.equal((await answerSearch({ SEARCH_AI_MODEL: GOOGLE, SEARCH_AI_FREE_ONLY: "off" }, "Melchizedek", 7)).reason, "consent");
+  // A hosted (Cloudflare) model needs the reader's agreement too; agreeing to another provider is not enough.
+  // No bindings at all: any storage, retrieval or model call before the check would throw.
+  for (const consent of [[], ["Google"], ["Anthropic"]]) assert.equal((await answerSearch({ SEARCH_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8" }, "Melchizedek", 7, consent)).reason, "consent");
   for (const id of ["google/not-in-catalog", "anthropic/claude-opus-5"]) {
     assert.equal(searchModel({ SEARCH_AI_MODEL: id }), null);
     assert.equal((await answerSearch({ SEARCH_AI_MODEL: id }, "Melchizedek", 7, ["Google"])).reason, "unavailable");
@@ -256,7 +261,7 @@ test("route checks consent even on a cached answer and separates models in the e
   assert.equal(first.status, 200);
   assert.equal(first.headers.get("cache-control"), "private, no-store");
   assert.equal(cache.size, 1);
-  assert.match([...cache.keys()][0], /version=library-answer-v4-cited-quotes-source-links/);
+  assert.match([...cache.keys()][0], /version=library-answer-v5-reader-voice/);
   const count = sent.length;
   const again = await request("Melchizedek", "Google");
   assert.equal(again.status, 200);
@@ -266,12 +271,18 @@ test("route checks consent even on a cached answer and separates models in the e
   assert.equal((await request("Melchizedek")).status, 428, "withdrawal is checked before cache");
   assert.equal(matched.length, lookups);
   delete env.SEARCH_AI_MODEL;
-  assert.equal((await request("Melchizedek")).status, 200);
+  // A hosted model needs the reader's agreement too, before the edge cache or any model call.
+  const hostedBefore = { sent: sent.length, lookups: matched.length };
+  const hosted = await request("Melchizedek", "Google");
+  assert.equal(hosted.status, 428);
+  assert.deepEqual(await hosted.json(), { ok: false, error: "consent", provider: HOSTED });
+  assert.deepEqual({ sent: sent.length, lookups: matched.length }, hostedBefore);
+  assert.equal((await request("Melchizedek", HOSTED)).status, 200);
   assert.equal(cache.size, 2);
   assert.ok(sent.some(s => s.model.startsWith("@cf/meta/")));
   const beforeEnforce = sent.length;
   env.ASK_COVERAGE_MODE = "enforce";
-  assert.equal((await request("Melchizedek")).status, 200);
+  assert.equal((await request("Melchizedek", HOSTED)).status, 200);
   assert.ok(sent.length > beforeEnforce, "shadow cache entries cannot bypass enforcement");
   assert.equal(cache.size, 3);
 });
@@ -303,7 +314,7 @@ test("the exact Genesis 1:1 cited draft survives checkedVerses into valid citati
   ]) {
     await t.test(draft.endsWith("[1]") ? "after reference" : "before reference", async t => {
       const { env, sent } = genesisFixture(t, draft);
-      const r = await answerSearch(env, "What does Genesis 1:1 say?", 7);
+      const r = await answerSearch(env, "What does Genesis 1:1 say?", 7, [HOSTED]);
       assert.equal(r.ok, true);
       assert.equal(r.answer, draft);
       assert.ok(r.citation_diagnostics.valid_ids >= 1);
@@ -321,7 +332,7 @@ test("the exact Genesis 1:1 cited draft survives checkedVerses into valid citati
 
 test("the plain citation guide reaches both real adapter calls; still-uncited output stays honest", async t => {
   const { env, sent } = genesisFixture(t, "> In the beginning God created the heaven and the earth. **Genesis 1:1**");
-  const r = await answerSearch(env, "What does Genesis 1:1 say?", 7);
+  const r = await answerSearch(env, "What does Genesis 1:1 say?", 7, [HOSTED]);
   assert.equal(r.state, "no-cited-answer");
   assert.deepEqual(r.sources, []);
   const calls = sent.filter(s => s.model === r.model);

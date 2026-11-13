@@ -14,7 +14,7 @@ import { isCoverageGap } from "./grounding.mjs";
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
 // Refresh older answers when the conversational prompt changes; old entries expire normally.
-const PROMPT_REVISION = "study-completeness-v2";
+const PROMPT_REVISION = "reader-voice-v1";   // grounding.mjs READER_VOICE (answers no longer name "the dataset")
 
 function incomplete(answer: unknown): boolean {
   if (!answer || typeof answer !== "object") return false;

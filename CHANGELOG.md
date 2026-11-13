@@ -22,6 +22,8 @@ request that introduced this file ([#77]).
 
 ## [Unreleased]
 
+- Every pull request, every push to `main` and, weekly, the whole history are now scanned for leaked passwords, keys and tokens (Gitleaks, Secret scan workflow), so a secret is caught before it merges. No change for readers.
+
 - Shared Telegram links open their destination on every launch, including reused webviews; refreshing an explicit screen keeps that screen.
 
 - Audio controls pause and resume at the current verse, remember speed and pitch on this device, and keep delayed recordings and setting changes from overriding Pause.
