@@ -323,8 +323,10 @@ test('without agreement to the backup provider, no backup answer is written and 
     if (stream) {
       const lines = (await (await askStream(env, 'Read recorded material', 77, undefined, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 500_000 } })).text()).trim().split('\n').map(JSON.parse);
       assert.equal(lines.find(l => l.done), undefined, 'no answer');
-      // The error line names the request (#569's recovery path); a usage line may follow it.
-      assert.equal(lines.filter(l => !l.usage).at(-1).error, 'unavailable');
+      // The error line names the request (#569's recovery path); only a no-charge usage line may follow it.
+      const end = lines.findIndex(l => l.error);
+      assert.equal(lines[end].error, 'unavailable');
+      assert.ok(lines.slice(end + 1).every(l => l.usage && l.usage.charged_mc === 0), JSON.stringify(lines.slice(end + 1)));
       assert.ok(!lines.some(l => typeof l.delta === 'string' && l.delta.includes('Backup words')));
     } else {
       assert.deepEqual(await ask(env, 'Read recorded material', 77, undefined, [], [model.provider]), { ok: false, reason: 'unavailable' });
@@ -360,8 +362,10 @@ test('a busy Claude without agreement to the backup releases the free reservatio
       assert.equal(holds.length, 1, 'only the Ask meter reserved');
       if (released) assert.ok(spent < holds[0].reserved_micro, `${code}: the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
       else assert.equal(spent, holds[0].reserved_micro, `${code}: the whole reservation is kept`);
-      // The error line names the request (#569's recovery path); a usage line may follow it.
-      assert.equal(lines.filter(l => !l.usage).at(-1).error, 'busy');
+      // The error line names the request (#569's recovery path); only a no-charge usage line may follow it.
+      const end = lines.findIndex(l => l.error);
+      assert.equal(lines[end].error, 'busy');
+      assert.ok(lines.slice(end + 1).every(l => l.usage && l.usage.charged_mc === 0), JSON.stringify(lines.slice(end + 1)));
       assert.equal(lines.find(l => l.done), undefined);
       assert.ok(!lines.some(l => l.status === 'Answering with the backup model'), 'no backup is announced');
       assert.deepEqual(sent, [], 'the backup model was never called');

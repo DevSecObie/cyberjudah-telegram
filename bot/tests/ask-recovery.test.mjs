@@ -91,6 +91,9 @@ test('paid answer is recoverable and same-ID replays preserve sources, IDs and o
   assert.equal((await api.getChat(f.env,77,'fixturechat')).turns.length,2);
   const conflict=await req(f,body({chat:'fixturechat',q:'A different fixture question?'}));
   assert.equal(conflict.status,409); assert.equal((await conflict.json()).error,'request-conflict');
+  // The same question at another answer depth (main's depth routing) is another input: a conflict, not a replay.
+  const deeper=await req(f,body({chat:'fixturechat',consent:[],caps:{},depth:'study'}));
+  assert.equal(deeper.status,409); assert.equal((await deeper.json()).error,'request-conflict');
 });
 
 test('concurrent same-ID requests admit one generation and one hold; IDs are isolated per owner',async t=>{

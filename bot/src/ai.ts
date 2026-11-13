@@ -830,7 +830,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   // Bind one ID to one generation input. Consent/cost prompts can change permissions, never the question.
   let identity: Awaited<ReturnType<typeof requestIdentity>>;
   try {
-    identity = await requestIdentity(env, userId, request, [question, history, modelId ?? null, chatId ?? null, replaceLast, opts.resources ?? null]);
+    identity = await requestIdentity(env, userId, request, [question, history, modelId ?? null, chatId ?? null, replaceLast, opts.resources ?? null, opts.depth ?? null]);
     const saved = await findAskRequest(env, identity.owner, request);
     if (saved) return saved.fingerprint === identity.fingerprint ? replay(await publicAskRequest(env, saved)) : reply(409, { error: "request-conflict", request });
     if (await legacyAskRequest(env, identity.owner, request)) return reply(409, { error: "request-used", request });
