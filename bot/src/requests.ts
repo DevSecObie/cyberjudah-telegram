@@ -17,8 +17,14 @@ import { open, pid, seal } from "./privacy.mjs";
 export type NoteRequest = { video: string; title: string; count: number; users: (string | number)[]; first: string; last: string; issue?: number; tell?: string };
 /** A reader to tell when the notes are ready: in Telegram by the bot, in the phone app when it next opens. */
 export type Teller = { pid: string; name: string; username?: string; via: "telegram" | "app"; chat?: number };
-/** Who is asking, as the sign-in proved it. */
-export type Asker = { id: number; name: string; username?: string; via: "telegram" | "app" };
+/**
+ * Who is asking, as the sign-in proved it: `pid` is their pseudonymous ID (a Telegram reader's, or
+ * an app reader's keyed from their sign-in, app-requests.ts), `chat` the Telegram chat to tell them in.
+ */
+export type Asker = { pid: string; name: string; username?: string; via: "telegram" | "app"; chat?: number };
+/** A reader as a number (a Telegram ID, also matched against requests from before pids) or a pid. */
+type Who = number | string;
+const pidOf = (env: Keys, who: Who) => (typeof who === "number" ? pid(env, who) : Promise.resolve(who));
 type Keys = Pick<Env, "SUBS" | "PRIVACY_KEY" | "BOT_TOKEN">;
 const asPids = async (env: Keys, users: (string | number)[]) => Promise.all(users.map((u) => (typeof u === "number" ? pid(env, u) : u)));
 
@@ -34,20 +40,20 @@ export async function tellersOf(env: Keys, r: NoteRequest | null): Promise<Telle
 const sealTellers = (env: Keys, video: string, list: Teller[]) => (list.length ? seal(env, sealOwner(video), list) : Promise.resolve(undefined));
 
 /** This request without one reader in it (their ask, and their wish to be told). Null when nobody else asked. */
-export async function withoutReader(env: Keys, r: NoteRequest, userId: number): Promise<NoteRequest | null> {
-  const me = await pid(env, userId);
-  if (!r.users.some((u) => u === me || u === userId)) return r;
+export async function withoutReader(env: Keys, r: NoteRequest, who: Who): Promise<NoteRequest | null> {
+  const me = await pidOf(env, who);
+  if (!r.users.some((u) => u === me || u === who)) return r;
   const count = Math.max(0, r.count - 1);
   if (!count) return null;
   const tell = (await tellersOf(env, r)).filter((t) => t.pid !== me);
-  return { ...r, users: r.users.filter((u) => u !== me && u !== userId), count, tell: await sealTellers(env, r.video, tell) };
+  return { ...r, users: r.users.filter((u) => u !== me && u !== who), count, tell: await sealTellers(env, r.video, tell) };
 }
 
 /** Whether this reader has asked for the class. */
-export async function askedBy(env: Keys, r: NoteRequest | null, userId: number): Promise<boolean> {
+export async function askedBy(env: Keys, r: NoteRequest | null, who: Who): Promise<boolean> {
   if (!r) return false;
-  const me = await pid(env, userId);
-  return r.users.some((u) => u === me || u === userId);
+  const me = await pidOf(env, who);
+  return r.users.some((u) => u === me || u === who);
 }
 export type RequestRow = { video: string; title: string; count: number; last: string };
 
@@ -69,17 +75,18 @@ export async function getRequest(env: Pick<Env, "SUBS">, video: string): Promise
 export async function requestNotes(env: Keys, video: string, asker: number | Asker, title: string, now = new Date(),
   notify?: (r: NoteRequest) => Promise<void> | void, tell = false): Promise<{ count: number; mine: boolean; added: boolean; tell: boolean }> {
   if (!validVideo(video)) throw new Error("bad-video");
-  const who: Asker = typeof asker === "number" ? { id: asker, name: "", via: "telegram" } : asker;
+  const who: Who = typeof asker === "number" ? asker : asker.pid;
+  const me = await pidOf(env, who);
   const at = now.toISOString();
   const cur = (await env.SUBS.get(key(video), "json")) as NoteRequest | null;
-  const me = await pid(env, who.id);
-  const asked = await askedBy(env, cur, who.id);
+  const asked = await askedBy(env, cur, who);
   const tellers = await tellersOf(env, cur);
   const told = tellers.some((t) => t.pid === me);
   if (asked && (told || !tell)) return { count: cur!.count, mine: true, added: false, tell: told };
+  const a: Asker = typeof asker === "number" ? { pid: me, name: "", via: "telegram", chat: asker } : asker;
   const nextTell = tell && !told
-    ? [...tellers, { pid: me, name: who.name.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 64), via: who.via,
-      ...(who.username ? { username: who.username.slice(0, 64) } : {}), ...(who.via === "telegram" ? { chat: who.id } : {}) } satisfies Teller]
+    ? [...tellers, { pid: me, name: a.name.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 64), via: a.via,
+      ...(a.username ? { username: a.username.slice(0, 64) } : {}), ...(a.via === "telegram" && a.chat ? { chat: a.chat } : {}) } satisfies Teller]
     : tellers;
   const base: NoteRequest = cur
     ? (asked ? cur : { ...cur, title: cur.title || title, count: cur.count + 1, users: [...(await asPids(env, cur.users)), me].slice(-5000), last: at })

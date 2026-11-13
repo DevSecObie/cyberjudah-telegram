@@ -5,8 +5,9 @@ import { createServer } from "node:http";
 
 // notes-ready.ts reaches the bot's buttons and the Bot API client, so it is bundled for Node first.
 const out = new URL("./.build/notes-ready.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/notes-ready.ts"; export { requestNotes, getRequest } from "./src/requests.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { deliverReadyNotes, takeReady, readyMessage, requestNotes, getRequest } = await import(out);
+await build({ stdin: { contents: 'export * from "./src/notes-ready.ts"; export { requestNotes, getRequest } from "./src/requests.ts"; export { pid } from "./src/privacy.mjs";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+const { deliverReadyNotes, takeReady, readyMessage, requestNotes, getRequest, pid } = await import(out);
+const tg = async (env, id, name) => ({ pid: await pid(env, id), name, via: "telegram", chat: id });
 
 const kv = () => {
   const m = new Map();
@@ -47,11 +48,11 @@ test("a class whose notes are out: Telegram askers get one message, app askers f
   const s = await stand([{ kind: "class", title: "The Nativity", teacher: "Deacon Eythan", videoId: A, url: "/classes/x" }], new Set([3]));
   t.after(s.close);
   const env = { SUBS: kv(), PRIVACY_KEY: "k", BOT_TOKEN: "1:x", TELEGRAM_API_ROOT: s.origin, DATA_ORIGIN: s.origin, WORKER_URL: "https://app.example" };
-  await requestNotes(env, A, { id: 1, name: "David", via: "telegram" }, "The Nativity", new Date(), undefined, true);
-  await requestNotes(env, A, { id: 2, name: "Sarah", via: "app" }, "", new Date(), undefined, true);
-  await requestNotes(env, A, { id: 3, name: "Blocked", via: "telegram" }, "", new Date(), undefined, true);
+  await requestNotes(env, A, await tg(env, 1, "David"), "The Nativity", new Date(), undefined, true);
+  await requestNotes(env, A, { pid: "app-sarah", name: "Sarah", via: "app" }, "", new Date(), undefined, true);
+  await requestNotes(env, A, await tg(env, 3, "Blocked"), "", new Date(), undefined, true);
   await requestNotes(env, A, 4, "");
-  await requestNotes(env, B, { id: 1, name: "David", via: "telegram" }, "Not written yet", new Date(), undefined, true);
+  await requestNotes(env, B, await tg(env, 1, "David"), "Not written yet", new Date(), undefined, true);
   const run = await deliverReadyNotes(env, sender);
   assert.deepEqual({ ready: run.ready, told: run.told, failed: run.failed }, { ready: 1, told: 2, failed: 0 });
   const toDavid = s.sent.filter((m) => m.chat_id === 1);
@@ -60,8 +61,8 @@ test("a class whose notes are out: Telegram askers get one message, app askers f
   assert.match(JSON.stringify(toDavid[0].reply_markup), /tgWebAppStartParam=watch_abcdefghijk/);
   assert.equal(await getRequest(env, A), null, "the request is closed");
   assert.ok(await getRequest(env, B), "a class still without notes stays open");
-  assert.deepEqual(await takeReady(env, 2), [{ video: A, title: "The Nativity", teacher: "Deacon Eythan" }]);
-  assert.deepEqual(await takeReady(env, 2), [], "handed over once");
+  assert.deepEqual(await takeReady(env, "app-sarah"), [{ video: A, title: "The Nativity", teacher: "Deacon Eythan" }]);
+  assert.deepEqual(await takeReady(env, "app-sarah"), [], "handed over once");
   // A second run sends nothing more.
   const before = s.sent.length;
   await deliverReadyNotes(env, sender);
@@ -71,7 +72,7 @@ test("a class whose notes are out: Telegram askers get one message, app askers f
 
 test("nothing is closed when the notes index cannot be read", async (t) => {
   const env = { SUBS: kv(), PRIVACY_KEY: "k", BOT_TOKEN: "1:x", DATA_ORIGIN: "http://127.0.0.1:9" };
-  await requestNotes(env, A, { id: 1, name: "David", via: "telegram" }, "X", new Date(), undefined, true);
+  await requestNotes(env, A, await tg(env, 1, "David"), "X", new Date(), undefined, true);
   assert.equal((await deliverReadyNotes(env, sender)).skipped, "index_down");
   assert.ok(await getRequest(env, A));
 });

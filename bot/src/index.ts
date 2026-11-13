@@ -3,12 +3,11 @@ import { askHealth } from "./ask-health";
 import { deviceAuth } from "./device-auth";
 import { IdentityError } from "./account-links";
 import { publicReader, readerContent } from "./reader";
-import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
 import { alertFreeBudget, sweepFreeBudget } from "./free-budget";
 import { sweepAskEvents } from "./ask-events";
 import { issueAnswerReceipt, feedbackInput, parseFeedback, recordFeedback, sweepFeedback } from "./feedback";
-import { CmsError, CONTENT_REPO } from "./cms-github";
+import { CmsError } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
@@ -45,9 +44,9 @@ import { bs } from "./bs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
 import { askedBy, closeRequest, getRequest, listRequests, requestNotes, tellersOf, validVideo } from "./requests";
-import { deliverReadyNotes, takeReady } from "./notes-ready";
+import { deliverReadyNotes } from "./notes-ready";
+import { announceRequest, appRequests } from "./app-requests";
 import { tellAdmins } from "./health";
-import { syncRequestIssue } from "./request-issues";
 import { reportMessage } from "./report.mjs";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundStars } from "./billing";
@@ -132,6 +131,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/app/ask" || c.req.path.startsWith("/api/app/ask/")) return next();
   // "Said in Class" in the app checks its own Firebase sign-in, like Ask (app-teachings.ts).
   if (c.req.method === "GET" && c.req.path === "/api/app/teachings") return next();
+  // "Request notes" in the app checks its own Firebase sign-in, like Said in Class (app-requests.ts).
+  if (c.req.path === "/api/app/requests" || c.req.path.startsWith("/api/app/requests/")) return next();
   // Link previews in the app check their own Firebase sign-in, like Ask (app-og.ts).
   if (c.req.method === "GET" && c.req.path === "/api/og") return next();
   // The channel's newest uploads and live stream are public YouTube listings, open to every app reader (app-channel.ts).
@@ -144,9 +145,6 @@ app.use("/api/*", async (c, next) => {
     const allowed = (c.req.method === "POST" && ["/api/ask", "/api/report", "/api/feedback"].includes(c.req.path)) ||
       (c.req.method === "GET" && /^\/api\/(?:search|teachings|live|recent|taught|transcript|visuals)(?:\/|$)/.test(c.req.path)) ||
       (c.req.method === "GET" && ["/api/ask/account", "/api/ask/history", "/api/me", "/api/privacy/export"].includes(c.req.path)) ||
-      // Asking for a class's notes, and hearing when they are out (not the admins' list).
-      ((c.req.method === "GET" || c.req.method === "POST") && /^\/api\/requests\/[A-Za-z0-9_-]{11}$/.test(c.req.path)) ||
-      (c.req.method === "GET" && c.req.path === "/api/requests/ready") ||
       (/^\/api\/chats(?:\/[a-zA-Z0-9_-]+(?:\/actions\/[a-zA-Z0-9_-]+)?)?$/.test(c.req.path)) ||
       c.req.path.startsWith("/api/study-backup") || (c.req.method === "POST" && c.req.path === "/api/privacy/delete");
     if (!allowed) return c.json({ error: "telegram_sign_in_required" }, 403);
@@ -331,6 +329,7 @@ app.post('/api/feedback', async c => {
 // Native Ask authenticates every route itself with Firebase; Telegram linking stays optional.
 app.route("/api/app/ask", appAsk);
 app.route("/api/app/teachings", appTeachings);
+app.route("/api/app/requests", appRequests);
 app.route("/api/og", appOg);
 app.route("/api/app/channel", appChannel);
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
@@ -482,8 +481,6 @@ app.get("/api/requests", async (c) => {
   }));
   return c.json({ ok: true, requests });
 });
-// The notes a reader asked for that came out since the phone app last looked (notes-ready.ts).
-app.get("/api/requests/ready", async (c) => c.json({ ok: true, ready: await takeReady(c.env, c.get("tma").user!.id) }));
 app.get("/api/requests/:video", async (c) => {
   const video = c.req.param("video");
   if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
@@ -497,18 +494,9 @@ app.post("/api/requests/:video", async (c) => {
   if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
   const body = await c.req.json().catch(() => ({})) as { title?: unknown; tell?: unknown };
   const title = typeof body.title === "string" ? body.title.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 200) : "";
-  const tma = c.get("tma");
-  const asker = { id: tma.user!.id, name: tma.user!.first_name ?? "", username: tma.user!.username, via: tma.hash === "firebase-verified" ? "app" as const : "telegram" as const };
-  const res = await requestNotes(c.env, video, asker, title, new Date(), (r) => {
-    c.executionCtx.waitUntil((async () => {
-      // Queue the class for the notes job: only a class with a transcript, titled from it.
-      const t = await loadTranscript(c.env, video, c.executionCtx).catch(() => null);
-      const issue = t && "file" in t && t.kind === "class"
-        ? await syncRequestIssue(c.env, r, { title: t.file.cleanTitle || t.file.title || "", date: t.file.date ?? "" }).catch(() => null)
-        : null;
-      await tellAdmins(c.env, `Notes requested ${r.count === 1 ? "for the first time" : `${r.count} times`}: ${r.title || video}\nhttps://www.youtube.com/watch?v=${video}\n${issue ? `Queued for the notes job: https://github.com/${CONTENT_REPO}/issues/${issue}` : `Not queued (no class transcript, or GitHub refused). Video id: ${video}`}`);
-    })());
-  }, body.tell === true);
+  const u = c.get("tma").user!;
+  const asker = { pid: await pid(c.env, u.id), name: u.first_name ?? "", username: u.username, via: "telegram" as const, chat: u.id };
+  const res = await requestNotes(c.env, video, asker, title, new Date(), (r) => announceRequest(c.env, c.executionCtx, video, r), body.tell === true);
   return c.json({ ok: true, ...res });
 });
 app.delete("/api/requests/:video", async (c) => {

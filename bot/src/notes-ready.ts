@@ -34,8 +34,8 @@ async function keepForApp(env: Env, p: string, note: ReadyNote): Promise<void> {
 }
 
 /** The notes that came out for this reader since the app last asked; handed over once. */
-export async function takeReady(env: Env, userId: number): Promise<ReadyNote[]> {
-  const k = readyKey(await pid(env, userId));
+export async function takeReady(env: Env, who: number | string): Promise<ReadyNote[]> {
+  const k = readyKey(typeof who === "number" ? await pid(env, who) : who);
   const list = (await env.SUBS.get(k, "json").catch(() => null)) as ReadyNote[] | null;
   if (!Array.isArray(list) || !list.length) return [];
   await env.SUBS.delete(k);
@@ -43,8 +43,8 @@ export async function takeReady(env: Env, userId: number): Promise<ReadyNote[]> 
 }
 
 /** Forget what was waiting for this reader (Delete my data). */
-export async function forgetReady(env: Env, userId: number): Promise<boolean> {
-  const k = readyKey(await pid(env, userId));
+export async function forgetReady(env: Env, who: number | string): Promise<boolean> {
+  const k = readyKey(typeof who === "number" ? await pid(env, who) : who);
   const had = !!(await env.SUBS.get(k));
   await env.SUBS.delete(k);
   return had;
