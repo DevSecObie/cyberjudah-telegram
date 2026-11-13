@@ -149,9 +149,78 @@ async function removeAccountLink(env, id2) {
   await schema(env);
   await env.DB.prepare("DELETE FROM account_links WHERE telegram_owner=?").bind(await pid(env, id2)).run();
 }
+async function removeNativeAccountLink(env, firebaseUid) {
+  if (!validFirebaseUid(firebaseUid) || firebaseUid.startsWith("tg_")) throw new IdentityError(409, "native_account_required");
+  await schema(env);
+  await env.DB.prepare("CREATE TABLE IF NOT EXISTS device_signins (code TEXT PRIMARY KEY, secret_hash TEXT UNIQUE NOT NULL, expires INTEGER NOT NULL, firebase_uid TEXT)").run();
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM account_links WHERE firebase_uid=?").bind(firebaseUid),
+    env.DB.prepare("DELETE FROM device_signins WHERE firebase_uid=?").bind(firebaseUid)
+  ]);
+}
 
 // src/firebase-auth.ts
 import { bodyLimit } from "hono/body-limit";
+
+// src/client-ip.ts
+var CLIENT_IP_SKEW_S = 60;
+var IP = /^[0-9A-Fa-f:.]{2,45}$/;
+var HEX = /^[0-9a-f]{64}$/;
+var keys = /* @__PURE__ */ new Map();
+var keyFor = (secret) => {
+  let k = keys.get(secret);
+  if (!k) {
+    k = crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
+    keys.set(secret, k);
+  }
+  return k;
+};
+async function signedClientIp(req, env, now = Date.now()) {
+  const secrets = [env.MINIAPP_CLIENT_IP_KEY, env.MINIAPP_CLIENT_IP_KEY_PREVIOUS].filter((k) => !!k);
+  if (!secrets.length) return void 0;
+  const ip = req.headers.get("x-cj-client-ip") ?? "", ts = req.headers.get("x-cj-client-ts") ?? "", sig = req.headers.get("x-cj-client-sig") ?? "";
+  if (!IP.test(ip) || !/^\d{1,12}$/.test(ts) || !HEX.test(sig)) return void 0;
+  if (Math.abs(now / 1e3 - Number(ts)) > CLIENT_IP_SKEW_S) return void 0;
+  const bytes = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) bytes[i] = parseInt(sig.slice(i * 2, i * 2 + 2), 16);
+  const message = new TextEncoder().encode(`${ip}|${ts}|${req.method.toUpperCase()}|${new URL(req.url).pathname}`);
+  for (const secret of secrets) {
+    try {
+      if (await crypto.subtle.verify("HMAC", await keyFor(secret), bytes, message)) return ip;
+    } catch {
+    }
+  }
+  return void 0;
+}
+var resolved = /* @__PURE__ */ new WeakMap();
+function clientAddress(req, env) {
+  let found = resolved.get(req);
+  if (!found) {
+    found = signedClientIp(req, env).then((signed) => signed ? { ip: signed, signed: true } : { ip: req.headers.get("cf-connecting-ip")?.slice(0, 45) || void 0, signed: false });
+    resolved.set(req, found);
+  }
+  return found;
+}
+async function clientIp(req, env) {
+  return (await clientAddress(req, env)).ip;
+}
+async function clientIpKey(req, env, purpose) {
+  return keyedHash(env, purpose, await clientIp(req, env) ?? "unknown");
+}
+
+// src/app-identity.ts
+async function limitSession(request, env) {
+  if (!env.FIREBASE_SESSION_LIMIT || !env.PRIVACY_KEY) throw new IdentityError(503, "firebase_sign_in_unavailable");
+  const key2 = await clientIpKey(request, env, "firebase-session-ip");
+  if (!(await env.FIREBASE_SESSION_LIMIT.limit({ key: key2 })).success) throw new IdentityError(429, "sign_in_rate_limited");
+}
+async function limitPerson(env, uid) {
+  if (!env.FIREBASE_UID_LIMIT) return;
+  const key2 = await keyedHash(env, "firebase-session-uid", uid);
+  if (!(await env.FIREBASE_UID_LIMIT.limit({ key: key2 })).success) throw new IdentityError(429, "sign_in_rate_limited");
+}
+
+// src/firebase-auth.ts
 import { Hono } from "hono";
 import { importPKCS8, SignJWT } from "jose";
 
@@ -214,6 +283,21 @@ function telegramFirebaseUid(id2) {
 }
 var firebaseAuth = new Hono();
 firebaseAuth.use("/link", bodyLimit({ maxSize: 18e3, onError: (c) => c.json({ error: "invalid_link_request" }, 413) }));
+firebaseAuth.delete("/link", async (c) => {
+  c.header("cache-control", "no-store");
+  if (!c.env.DB || !c.env.FIREBASE_AUTH_LIMIT) return c.json({ error: "account_link_unavailable" }, 503);
+  if (Object.keys(c.req.query()).length || (await c.req.text()).length) return c.json({ error: "invalid_link_request" }, 400);
+  const token = c.req.header("authorization")?.match(/^Bearer (.+)$/)?.[1];
+  if (!token) return c.json({ error: "firebase_sign_in_required" }, 401);
+  try {
+    const identity = await verifyFirebaseIdentity(token, true);
+    if (!(await c.env.FIREBASE_AUTH_LIMIT.limit({ key: `unlink:${identity.uid}` })).success) return c.json({ error: "sign_in_rate_limited" }, 429);
+    await removeNativeAccountLink(c.env, identity.uid);
+    return c.json({ ok: true });
+  } catch (error) {
+    return c.json({ error: error instanceof IdentityError ? error.reason : "account_link_unavailable" }, error instanceof IdentityError ? error.status : 503);
+  }
+});
 firebaseAuth.use("*", async (c, next) => {
   c.header("cache-control", "no-store");
   c.header("x-content-type-options", "nosniff");
@@ -245,7 +329,13 @@ firebaseAuth.post("/token", async (c) => {
   if (!(await c.env.FIREBASE_AUTH_LIMIT.limit({ key: uid })).success) return c.json({ error: "sign_in_rate_limited", message: "Please wait a minute and try again." }, 429);
   try {
     const token = await mintFirebaseToken(c.env, uid);
-    if (c.env.DB) await linkAccounts(c.env, c.get("telegramId"), uid);
+    if (c.env.DB) {
+      if (uid === telegramFirebaseUid(c.get("telegramId"))) {
+        await linkAccounts(c.env, c.get("telegramId"), uid);
+      } else if (await linkedFirebase(c.env, c.get("telegramId")) !== uid) {
+        throw new IdentityError(409, "account_link_changed");
+      }
+    }
     return c.json({ uid, token });
   } catch {
     return c.json({ error: "firebase_sign_in_unavailable" }, 503);
@@ -284,10 +374,9 @@ firebaseAuth.post("/link", async (c) => {
 async function firebaseAccount(request, env, recent = false) {
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) return null;
-  if (!env.FIREBASE_SESSION_LIMIT || !env.PRIVACY_KEY) throw new IdentityError(503, "firebase_sign_in_unavailable");
-  const key2 = await keyedHash(env, "firebase-session-ip", request.headers.get("cf-connecting-ip") ?? "unknown");
-  if (!(await env.FIREBASE_SESSION_LIMIT.limit({ key: key2 })).success) throw new IdentityError(429, "sign_in_rate_limited");
+  await limitSession(request, env);
   const identity = await verifyFirebaseIdentity(header.slice(7), recent);
+  await limitPerson(env, identity.uid);
   const id2 = await linkedTelegram(env, identity.uid);
   return { identity, user: id2 ? { id: id2, first_name: identity.name } : null };
 }
@@ -516,7 +605,7 @@ async function saveExchange(env, uid, id2, question, answer, replaceLast = false
   const chat = await getChat(env, uid, id2) ?? { id: id2, title: titleOf(question), created: now, updated: now, turns: [] };
   const n = chat.turns.length;
   if (replaceLast && n >= 2 && chat.turns[n - 2].role === "user" && chat.turns[n - 2].content.trim() === question.trim()) chat.turns.splice(n - 2, 2);
-  chat.turns.push({ role: "user", content: question }, { role: "assistant", content: answer.content, sources: (answer.sources ?? []).map(slim), followups: answer.followups ?? [], steps: answer.steps ?? [], ...answer.actions?.length ? { actions: answer.actions } : {}, ...answer.cut ? { cut: true } : {} });
+  chat.turns.push({ role: "user", content: question }, { role: "assistant", content: answer.content, sources: (answer.sources ?? []).map(slim), followups: answer.followups ?? [], steps: answer.steps ?? [], ...answer.actions?.length ? { actions: answer.actions } : {}, ...answer.cut ? { cut: true } : {}, ...answer.coverage ? { plan: answer.plan, coverage: answer.coverage, ...answer.partial ? { partial: true, unfinished: answer.unfinished } : {} } : {} });
   chat.turns = chat.turns.slice(-MAX_TURNS);
   chat.updated = now;
   await put(env, owner, chatKey(owner, id2), chat);
@@ -827,7 +916,7 @@ async function billingRecord(env, uid) {
 }
 
 // src/topup-remind.ts
-import { GrammyError as GrammyError3 } from "grammy";
+import { GrammyError as GrammyError4 } from "grammy";
 
 // src/webhook-updates.ts
 var LEASE_MS = 20 * 6e4;
@@ -837,54 +926,130 @@ import { Bot, InlineKeyboard as InlineKeyboard3, InputFile } from "grammy";
 
 // src/health.ts
 var REMIND_MS = 6 * 3600 * 1e3;
+var IMPORT_WAIT_MS = 4 * 6e4;
+
+// src/subscribe.ts
+var MAX_OFFSET = 14 * 60;
+function sentKeyOf(subKey) {
+  const id2 = subKey.replace(/^sub:/, "");
+  return /^\d+$/.test(id2) ? null : `sent:${id2}`;
+}
+var SENT_TTL = 2 * 86400;
+async function deleteSub(env, subKey) {
+  await env.SUBS.delete(subKey);
+  const sent = sentKeyOf(subKey);
+  if (sent) await env.SUBS.delete(sent);
+}
 
 // ../shared/links.mjs
-var SECTIONS = /* @__PURE__ */ new Set([
-  "plan",
-  "resources",
-  "doctrine",
-  "about",
-  "api",
-  "ask",
-  "bible",
-  "captains",
-  "cases",
-  "classes",
-  "concordance",
-  "dictionary",
-  "downloads",
-  "encyclopedia",
-  "history",
-  "law",
-  "lexicon",
-  "people",
-  "person",
-  "precepts",
-  "privacy",
-  "search",
-  "settings",
-  "shows",
-  "study",
-  "tags",
-  "teachings",
-  "terms",
-  "timeline",
-  "topics",
-  "truth-shall-make-you-free"
-]);
 var SAFE = /^[A-Za-z0-9_-]{1,512}$/;
+var VIDEO_ID = /^[A-Za-z0-9_-]{1,500}$/;
 var SEGMENT = /^[a-z0-9-]+$/;
 var VERSES = /^\d+(-\d+)?(x\d+(-\d+)?)*$/;
-function startParamToPath(param) {
+var SITE_ROUTES = [
+  "/",
+  "/about",
+  "/api",
+  "/downloads",
+  "/giving-the-sense",
+  "/glossary",
+  "/search",
+  "/teachings",
+  "/truth-shall-make-you-free",
+  "/bible",
+  "/bible/:book",
+  "/bible/:book/:chapter",
+  "/captains",
+  "/captains/:year/:slug",
+  "/cases",
+  "/cases/:era/:slug",
+  "/classes",
+  "/classes/:year/:slug",
+  "/concordance",
+  "/concordance/:book",
+  "/dictionary",
+  "/dictionary/:slug",
+  "/doctrine",
+  "/doctrine/:slug",
+  "/encyclopedia",
+  "/encyclopedia/:slug",
+  "/history",
+  "/history/:year/:slug",
+  "/law",
+  "/law/:part",
+  "/law/:part/:section",
+  "/precepts",
+  "/precepts/:slug",
+  "/shows",
+  "/shows/:slug",
+  "/study",
+  "/study/:book",
+  "/study/:book/:chapter",
+  "/topics",
+  "/topics/:slug"
+];
+var ROUTE_SHAPES = SITE_ROUTES.map((r) => r.split("/").filter(Boolean));
+var APP_SECTIONS = [
+  "ask",
+  "bookmarks",
+  "books",
+  "class-books",
+  "class-wikipedia",
+  "credits",
+  "delete-account",
+  "highlights",
+  "lexicon",
+  "more",
+  "nave",
+  "new",
+  "note",
+  "notes",
+  "people",
+  "person",
+  "place",
+  "plan",
+  "plans",
+  "privacy",
+  "read",
+  "relations",
+  "resources",
+  "sabbath",
+  "settings",
+  "studies",
+  "support",
+  "tabs",
+  "tags",
+  "terms",
+  "timeline",
+  "watch"
+];
+var SECTIONS = /* @__PURE__ */ new Set([...ROUTE_SHAPES.map((shape) => shape[0]).filter(Boolean), ...APP_SECTIONS]);
+function isSection(word) {
+  return typeof word === "string" && SECTIONS.has(word.toLowerCase());
+}
+function siteServes(path) {
+  const parts = String(path).replace(/[?#].*$/, "").split("/").filter(Boolean);
+  return ROUTE_SHAPES.some((shape) => shape.length === parts.length && shape.every((s, i) => s.startsWith(":") || s === parts[i]));
+}
+function startParamTarget(param) {
   if (typeof param !== "string" || !SAFE.test(param)) return "/";
+  const video = /^watch_(.+)$/i.exec(param)?.[1];
+  if (video && VIDEO_ID.test(video)) return `/watch/${video}`;
   const parts = param.toLowerCase().split("_").filter(Boolean);
   if (!parts.length || !parts.every((p) => SEGMENT.test(p))) return "/";
-  if (!SECTIONS.has(parts[0])) parts.unshift("bible");
+  if (parts[0] === "note" && isSection(parts[1])) parts.shift();
+  if (parts[0] === "read") parts[0] = "bible";
+  if (parts[0] === "watch") return "/";
+  if (!isSection(parts[0])) parts.unshift("bible");
   if (parts[0] === "bible" && parts.length === 4 && /^\d+$/.test(parts[2]) && VERSES.test(parts[3])) {
     const v = parts[3].replace(/x/g, ",");
     return `/bible/${parts[1]}/${parts[2]}?v=${v}#v${v.match(/^\d+/)[0]}`;
   }
   return `/${parts.join("/")}`;
+}
+function startParamToPath(param) {
+  const path = startParamTarget(param);
+  return siteServes(path) ? path : null;
 }
 
 // src/data.ts
@@ -905,7 +1070,7 @@ async function dataJson(env, path, ctx) {
 var books = (env, ctx) => dataJson(env, "/api/kjv/books.json", ctx);
 function openLink(env, startapp) {
   if (env.APP_URL) return startapp ? `${env.APP_URL}?startapp=${startapp}` : env.APP_URL;
-  const path = startParamToPath(startapp);
+  const path = startParamToPath(startapp) ?? "/";
   return `${env.SITE_URL}${path === "/" ? "" : path}`;
 }
 var escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -953,10 +1118,18 @@ for (const group of NAME_VARIANTS) for (const n of group) ALTERNATIVES.set(n, [n
 
 // src/remind.ts
 import { Hono as Hono4 } from "hono";
-import { GrammyError as GrammyError2 } from "grammy";
+import { GrammyError as GrammyError3 } from "grammy";
 
 // src/daily.ts
-import { Api as Api2, GrammyError } from "grammy";
+import { GrammyError as GrammyError2 } from "grammy";
+
+// src/broadcast.ts
+import { GrammyError } from "grammy";
+var SENDS_PER_SECOND = 25;
+var INTERVAL = 1e3 / SENDS_PER_SECOND;
+var BROADCAST_LEASE_SECONDS = 16 * 60;
+
+// src/daily.ts
 var SLOT_TTL = 3 * 86400;
 
 // src/reminders.mjs
@@ -1166,13 +1339,13 @@ function same(a, b) {
 async function overLimit(env, key2) {
   if (!env.REMIND_LIMIT) return false;
   try {
-    return !(await env.REMIND_LIMIT.limit({ key: key2 })).success;
+    return !(await env.REMIND_LIMIT.limit({ key: await key2 })).success;
   } catch {
     return false;
   }
 }
 var tooMany = (c) => c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "60" });
-var clientIp = (c) => c.req.header("cf-connecting-ip") ?? "unknown";
+var ipKey = (c) => clientIpKey(c.req.raw, c.env, "remind-ip");
 var pushable = (env, sub) => validSubscription(sub, env.PUSH_TEST_ORIGIN);
 function vapidKeys(env) {
   return env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT ? { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY, subject: env.VAPID_SUBJECT } : null;
@@ -1275,9 +1448,8 @@ reminders.put("/", async (c) => {
   let device;
   if (!w) {
     if (c.req.header("authorization") || c.req.header("x-cj-device")) return c.json({ ok: false, error: "unauthorized" }, 401);
-    const ip = clientIp(c);
-    if (await overLimit(c.env, `create:${ip}`)) return tooMany(c);
-    const dayKey = `remcreate:${await keyedHash(c.env, "remcreate", ip)}:${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}`;
+    if (await overLimit(c.env, ipKey(c).then((k) => `create:${k}`))) return tooMany(c);
+    const dayKey = `remcreate:${await clientIpKey(c.req.raw, c.env, "remcreate")}:${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}`;
     const made = Number(await c.env.SUBS.get(dayKey)) || 0;
     if (made >= CREATE_PER_DAY) return c.json({ ok: false, error: "rate-limited" }, 429, { "retry-after": "3600" });
     await c.env.SUBS.put(dayKey, String(made + 1), { expirationTtl: 2 * 86400 });
@@ -1360,7 +1532,7 @@ push.use("/*", async (c, next) => {
   if (c.req.method !== "POST") return next();
   const body = await c.req.raw.clone().json().catch(() => null);
   const ep = typeof body?.endpoint === "string" ? body.endpoint : typeof body?.old === "string" ? body.old : "";
-  if (await overLimit(c.env, ep ? `ep:${await sha256(ep)}` : `ip:${clientIp(c)}`)) return tooMany(c);
+  if (await overLimit(c.env, ep ? `ep:${await sha256(ep)}` : ipKey(c).then((k) => `ip:${k}`))) return tooMany(c);
   await next();
 });
 async function byEndpoint(c) {
@@ -1399,28 +1571,6 @@ push.post("/pause", async (c) => {
   return c.json({ ok: true });
 });
 var QUARTER = 15 * 6e4;
-
-// src/bot.ts
-function openButton(env, origin, chatType, param, text3 = "Open in CyberJudah") {
-  const kb = new InlineKeyboard3();
-  const base = origin || env.WORKER_URL;
-  if (chatType === "private" && base) return kb.webApp(text3, `${base}/${param ? `?tgWebAppStartParam=${param}` : ""}`);
-  return kb.url(text3, openLink(env, param));
-}
-var HELP = [
-  "<b>CyberJudah</b> \u2014 the KJV with the Apocrypha, the classes, the law, the precepts and the cases.",
-  "",
-  "/verse \u2014 today's verse",
-  "/daily \u2014 the daily verse, on or off",
-  "/stop \u2014 stop reading reminders",
-  "/support \u2014 support the work with Telegram Stars",
-  "/privacy \u2014 what is kept about you, and your choices",
-  "/terms \u2014 the terms for the Ask balance",
-  "/paysupport \u2014 help with a Stars payment",
-  "/help \u2014 this",
-  "",
-  "In any chat, type <code>@BOT matthew 15:24</code> or <code>@BOT passover</code> to send a verse or a search hit."
-].join("\n");
 
 // ../shared/cms-classes.ts
 import { z as z3 } from "zod";
@@ -1586,6 +1736,172 @@ var cell = (max) => z3.string().max(max).refine((s) => !/[\r\n\t]/.test(s), "Use
 var ClassMetadata = z3.strictObject({ video: VideoId, title: cell(500).trim().min(1), teacher: cell(200), date: z3.union([CalendarDate, z3.literal("")]) });
 var ClassSave = z3.strictObject({ value: ClassMetadata, tableSha: FileSha, note: z3.strictObject({ file: z3.string(), sha: FileSha }).nullable(), reason: Reason });
 
+// src/published-studies.ts
+import { Hono as Hono5 } from "hono";
+import { bodyLimit as bodyLimit3 } from "hono/body-limit";
+import { Marked } from "marked";
+var MAX_BODY = 2e5;
+var ID = /^[A-Za-z0-9_-]{6,64}$/;
+async function schema4(env) {
+  await env.DB.batch([
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS published_studies (id TEXT PRIMARY KEY, owner TEXT NOT NULL, title TEXT NOT NULL, author TEXT NOT NULL, body TEXT NOT NULL, updated TEXT NOT NULL)"),
+    // The ids an admin took down (takeDownStudy): only the id and when, so nothing can be published under it again.
+    env.DB.prepare("CREATE TABLE IF NOT EXISTS published_takedowns (id TEXT PRIMARY KEY, at TEXT NOT NULL)")
+  ]);
+}
+async function ownerOf(c) {
+  const token = (c.req.header("authorization") ?? "").match(/^Bearer\s+(.+)$/i)?.[1] ?? "";
+  const identity = await verifyFirebaseIdentity(token);
+  return keyedHash(c.env, "published-study", identity.uid);
+}
+var clean = (value, max) => typeof value === "string" ? value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, max) : "";
+var publishedStudies = new Hono5();
+publishedStudies.use("*", bodyLimit3({ maxSize: MAX_BODY + 4e3, onError: (c) => c.json({ error: "study_too_large" }, 413) }));
+publishedStudies.use("*", async (c, next) => {
+  c.header("cache-control", "no-store");
+  await next();
+});
+publishedStudies.delete("/", async (c) => {
+  if (!c.env.PRIVACY_KEY) return c.json({ error: "publishing_unavailable" }, 503);
+  let owner;
+  try {
+    owner = await ownerOf(c);
+  } catch (error) {
+    return error instanceof IdentityError ? c.json({ error: error.reason }, error.status) : c.json({ error: "sign_in_unavailable" }, 503);
+  }
+  await schema4(c.env);
+  const result = await c.env.DB.prepare("DELETE FROM published_studies WHERE owner=?").bind(owner).run();
+  return c.json({ removed: result.meta.changes ?? 0 });
+});
+publishedStudies.get("/:id", async (c) => {
+  const id2 = c.req.param("id");
+  if (!ID.test(id2)) return c.json({ error: "not_found" }, 404);
+  await schema4(c.env);
+  const row = await c.env.DB.prepare("SELECT updated FROM published_studies WHERE id=?").bind(id2).first();
+  if (row) return c.json({ published: true, updated: row.updated });
+  return c.json(await takenDown(c.env, id2) ? { published: false, taken_down: true } : { published: false }, 404);
+});
+publishedStudies.put("/:id", async (c) => {
+  const id2 = c.req.param("id");
+  if (!ID.test(id2)) return c.json({ error: "invalid_id" }, 400);
+  if (!c.env.PRIVACY_KEY) return c.json({ error: "publishing_unavailable" }, 503);
+  let owner;
+  try {
+    owner = await ownerOf(c);
+  } catch (error) {
+    return error instanceof IdentityError ? c.json({ error: error.reason }, error.status) : c.json({ error: "sign_in_unavailable" }, 503);
+  }
+  const payload = await c.req.json().catch(() => null);
+  const title = clean(payload?.title, 200), author = clean(payload?.author, 120), body = typeof payload?.body === "string" ? payload.body : "";
+  if (!title || !body.trim() || body.length > MAX_BODY) return c.json({ error: "invalid_study" }, 400);
+  await schema4(c.env);
+  const updated = (/* @__PURE__ */ new Date()).toISOString();
+  const result = await c.env.DB.prepare(
+    "INSERT INTO published_studies(id,owner,title,author,body,updated) SELECT ?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM published_takedowns WHERE id=?) ON CONFLICT(id) DO UPDATE SET title=excluded.title,author=excluded.author,body=excluded.body,updated=excluded.updated WHERE published_studies.owner=excluded.owner"
+  ).bind(id2, owner, title, author, body, updated, id2).run();
+  if (!result.meta.changes) return c.json({ error: await takenDown(c.env, id2) ? "taken_down" : "not_your_study" }, 403);
+  return c.json({ published: true, updated, path: `/app/published/${id2}` });
+});
+publishedStudies.delete("/:id", async (c) => {
+  const id2 = c.req.param("id");
+  if (!ID.test(id2)) return c.json({ error: "invalid_id" }, 400);
+  if (!c.env.PRIVACY_KEY) return c.json({ error: "publishing_unavailable" }, 503);
+  let owner;
+  try {
+    owner = await ownerOf(c);
+  } catch (error) {
+    return error instanceof IdentityError ? c.json({ error: error.reason }, error.status) : c.json({ error: "sign_in_unavailable" }, 503);
+  }
+  await schema4(c.env);
+  const row = await c.env.DB.prepare("SELECT owner FROM published_studies WHERE id=?").bind(id2).first();
+  if (!row) return c.json({ published: false });
+  if (row.owner !== owner) return c.json({ error: "not_your_study" }, 403);
+  await c.env.DB.prepare("DELETE FROM published_studies WHERE id=? AND owner=?").bind(id2, owner).run();
+  return c.json({ published: false });
+});
+var LINK_ID = new RegExp(`^\\S*/app/published/(${ID.source.slice(1, -1)})/?(?:[?#]\\S*)?$`);
+var takenDown = async (env, id2) => !!await env.DB.prepare("SELECT 1 FROM published_takedowns WHERE id=?").bind(id2).first();
+var escape = (value) => value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+var studyMarkdown = new Marked({
+  gfm: true,
+  async: false,
+  renderer: {
+    html: (token) => escape(token.text),
+    image: (token) => escape(token.text || ""),
+    link(token) {
+      const text3 = this.parser.parseInline(token.tokens);
+      return /^https?:\/\//i.test(token.href) ? `<a href="${escape(token.href)}" rel="noopener noreferrer nofollow">${text3}</a>` : text3;
+    }
+  }
+});
+var renderStudy = (body) => studyMarkdown.parse(body, { async: false });
+var STYLE = `:root{color-scheme:light dark;--bg:#fbf8f2;--fg:#1d1b18;--muted:#6b645a;--rule:#e2dccf;--accent:#8a5a14}
+@media (prefers-color-scheme:dark){:root{--bg:#141210;--fg:#f1ece2;--muted:#a59d90;--rule:#34302a;--accent:#e0a64a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.6 Georgia,"Iowan Old Style",serif}
+main{max-width:680px;margin:0 auto;padding:32px 16px 64px}header{border-bottom:1px solid var(--rule);margin-bottom:24px;padding-bottom:16px}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}.by{color:var(--muted);font:15px/1.4 -apple-system,system-ui,sans-serif;margin:0}
+blockquote{margin:16px 0;padding:4px 16px;border-left:3px solid var(--accent);color:var(--fg)}a{color:var(--accent)}
+hr{border:0;border-top:1px solid var(--rule);margin:24px 0}footer{margin-top:40px;color:var(--muted);font:14px/1.4 -apple-system,system-ui,sans-serif}footer p{margin:0 0 8px}
+.credit{margin-top:48px;text-align:center;font-size:13px}.credit img{height:24px;width:24px;vertical-align:middle;margin-left:6px}.credit>a{display:inline-block;margin-top:16px}.credit>p:last-child{margin-top:16px}`;
+var REPORT_ADDRESS = "privacy@cyberjudah.io";
+var reportLink = (link, title) => `mailto:${REPORT_ADDRESS}?subject=${encodeURIComponent(`Report: ${Array.from(title).slice(0, 150).join("")}`)}&body=${encodeURIComponent(`Study: ${link}
+
+Reason:
+`)}`;
+var LOGO = `<picture><source srcset="/app/icons/dark-64.png" media="(prefers-color-scheme:dark)"><img src="/app/icons/light-64.png" alt="CyberJudah" width="24" height="24"></picture>`;
+var studyFooter = (author) => `<hr><footer class="credit"><p>Study written ${author ? `by ${escape(author)} ` : ""}with ${LOGO}</p><a href="https://cyberjudah.io">cyberjudah.io</a>`;
+var page = (status, title, inner, footer = "<footer><p>Written in the CyberJudah app.</p>") => new Response(
+  `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${escape(title)}</title><style>${STYLE}</style></head><body><main>${inner}${footer}</footer></main></body></html>`,
+  { status, headers: {
+    "content-type": "text/html; charset=utf-8",
+    "x-robots-tag": "noindex",
+    "x-content-type-options": "nosniff",
+    "referrer-policy": "no-referrer",
+    "cache-control": status === 200 ? "public, max-age=60" : "no-store",
+    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  } }
+);
+var publishedStudyPage = new Hono5();
+publishedStudyPage.get("/:id", async (c) => {
+  const id2 = c.req.param("id");
+  const missing = () => page(404, "Study not found", "<h1>Study not found</h1><p>This study is not published, or its writer took it down.</p>");
+  if (!ID.test(id2)) return missing();
+  await schema4(c.env);
+  const row = await c.env.DB.prepare("SELECT id,owner,title,author,body,updated FROM published_studies WHERE id=?").bind(id2).first();
+  if (!row) return await takenDown(c.env, id2) ? page(404, "Study not found", "<h1>Study not found</h1><p>This study was taken down.</p>") : missing();
+  const date = new Date(row.updated).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+  const by = [row.author, date].filter(Boolean).map(escape).join(" \xB7 ");
+  const link = `${new URL(c.req.url).origin}/app/published/${id2}`;
+  return page(
+    200,
+    row.title,
+    `<header><h1>${escape(row.title)}</h1><p class="by">${by}</p></header><article>${renderStudy(row.body)}</article>`,
+    `${studyFooter(row.author)}<p><a href="${escape(reportLink(link, row.title))}">Report this study</a></p>`
+  );
+});
+
+// src/bot.ts
+function openButton(env, origin, chatType, param, text3 = "Open in CyberJudah") {
+  const kb = new InlineKeyboard3();
+  const base = origin || env.WORKER_URL;
+  if (chatType === "private" && base) return kb.webApp(text3, `${base}/${param ? `?tgWebAppStartParam=${param}` : ""}`);
+  return kb.url(text3, openLink(env, param));
+}
+var HELP = [
+  "<b>CyberJudah</b> \u2014 the KJV with the Apocrypha, the classes, the law, the precepts and the cases.",
+  "",
+  "/verse \u2014 today's verse",
+  "/daily \u2014 the daily verse, on or off",
+  "/stop \u2014 stop reading reminders",
+  "/support \u2014 support the work with Telegram Stars",
+  "/privacy \u2014 what is kept about you, and your choices",
+  "/terms \u2014 the terms for the Ask balance",
+  "/paysupport \u2014 help with a Stars payment",
+  "/help \u2014 this",
+  "",
+  "In any chat, type <code>@BOT matthew 15:24</code> or <code>@BOT passover</code> to send a verse or a search hit."
+].join("\n");
+
 // src/topup-remind.ts
 var TABLE = "CREATE TABLE IF NOT EXISTS topup_reminders (user_id TEXT PRIMARY KEY, chat TEXT NOT NULL, tz TEXT NOT NULL, last_day TEXT NOT NULL DEFAULT '')";
 var ready2 = false;
@@ -1748,19 +2064,54 @@ async function deleteAccountSyncMarks(env, uid) {
   return names.length;
 }
 
+// src/feedback.ts
+var RETAIN_MS = 30 * 864e5;
+var ready3 = /* @__PURE__ */ new WeakMap();
+var tables = (env) => ready3.get(env.DB) ?? ready3.set(env.DB, env.DB.batch([
+  env.DB.prepare("CREATE TABLE IF NOT EXISTS ask_answer_receipts (id TEXT PRIMARY KEY, owner TEXT NOT NULL, source_ns TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL)"),
+  env.DB.prepare("CREATE INDEX IF NOT EXISTS ask_answer_receipts_owner ON ask_answer_receipts(owner, created_at)"),
+  env.DB.prepare("CREATE INDEX IF NOT EXISTS ask_answer_receipts_expiry ON ask_answer_receipts(expires_at)"),
+  env.DB.prepare("CREATE TABLE IF NOT EXISTS ask_feedback (answer_id TEXT PRIMARY KEY, owner TEXT NOT NULL, rating TEXT NOT NULL, reason TEXT, source_n INTEGER, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"),
+  env.DB.prepare("CREATE INDEX IF NOT EXISTS ask_feedback_owner ON ask_feedback(owner)"),
+  env.DB.prepare("CREATE TABLE IF NOT EXISTS ask_feedback_limits (key TEXT PRIMARY KEY, n INTEGER NOT NULL, expires_at INTEGER NOT NULL)"),
+  env.DB.prepare("CREATE INDEX IF NOT EXISTS ask_feedback_limits_expiry ON ask_feedback_limits(expires_at)")
+]).catch((error) => {
+  ready3.delete(env.DB);
+  throw error;
+})).get(env.DB);
+var feedbackOwner = (env, userId) => pid(env, userId).then((value) => `tg:${value}`);
+async function exportFeedback(env, userId) {
+  await tables(env);
+  const owner = await feedbackOwner(env, userId);
+  const [receipts, ratings] = await Promise.all([
+    env.DB.prepare("SELECT id AS answer_id, source_ns, created_at, expires_at FROM ask_answer_receipts WHERE owner = ? ORDER BY created_at").bind(owner).all(),
+    env.DB.prepare("SELECT answer_id, rating, reason, source_n, created_at, updated_at FROM ask_feedback WHERE owner = ? ORDER BY created_at").bind(owner).all()
+  ]);
+  return { receipts: receipts.results, ratings: ratings.results };
+}
+async function deleteFeedback(env, userId) {
+  await tables(env);
+  const owner = await feedbackOwner(env, userId);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM ask_feedback WHERE owner = ?").bind(owner),
+    env.DB.prepare("DELETE FROM ask_answer_receipts WHERE owner = ?").bind(owner),
+    env.DB.prepare("DELETE FROM ask_feedback_limits WHERE substr(key, 1, ?) = ?").bind(`person:${owner}:`.length, `person:${owner}:`)
+  ]);
+}
+
 // src/mydata.ts
 async function noteRequestsOf(env, uid) {
   const me = await pid(env, uid);
   const out = [];
   let cursor;
   do {
-    const page = await env.SUBS.list({ prefix: "notereq:", cursor });
-    for (const k of page.keys) {
+    const page2 = await env.SUBS.list({ prefix: "notereq:", cursor });
+    for (const k of page2.keys) {
       const got = await env.SUBS.getWithMetadata(k.name);
       const r = got.value ? JSON.parse(got.value) : null;
       if (r?.users.some((u) => u === me || u === uid)) out.push({ video: k.name.slice("notereq:".length), r, meta: got.metadata });
     }
-    cursor = page.list_complete ? void 0 : page.cursor;
+    cursor = page2.list_complete ? void 0 : page2.cursor;
   } while (cursor);
   return out;
 }
@@ -1772,28 +2123,32 @@ async function exportData(env, uid) {
   }
   const rec = await loadReminder(env, await tgRid(env, uid));
   const subKey = `sub:${await pid(env, uid)}`;
-  const sub = await open(env, subKey, await env.SUBS.get(subKey));
+  const sentKey = sentKeyOf(subKey);
+  const [sealed, lastSent] = await Promise.all([env.SUBS.get(subKey), sentKey ? env.SUBS.get(sentKey) : null]);
+  const sub = await open(env, subKey, sealed);
   return {
     generated: (/* @__PURE__ */ new Date()).toISOString(),
     note: "Everything CyberJudah keeps about you, including an optional personal-study cloud backup. Reader highlights, notes, bookmarks and reading history stay on your device and in Telegram's storage, unless account sync is on (then highlights, notes, bookmarks and studies are also kept in Google Firebase and listed under accountSync).",
     personalStudyBackup: await readStudyBackup(env, uid),
     savedChats: chats,
     readingReminder: rec ? publicView(rec) : null,
-    dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz } : null,
+    dailyVerse: sub ? { hour: sub.hour, tzOffsetMinutes: sub.tz, ...sub.zone ? { timeZone: sub.zone } : {}, ...lastSent ? { lastSentLocalDate: lastSent } : {} } : null,
     ask: await billingRecord(env, uid),
     askTopupReminder: await getTopupReminder(env, uid),
     classNoteRequests: (await noteRequestsOf(env, uid)).map((x) => x.video),
-    accountSync: await exportAccountSyncMarks(env, uid)
+    accountSync: await exportAccountSyncMarks(env, uid),
+    askFeedback: await exportFeedback(env, uid)
   };
 }
 async function deleteData(env, uid) {
   const me = await pid(env, uid);
+  await deleteFeedback(env, uid);
   await deleteStudyBackup(env, uid);
   const savedChats = await deleteAllChats(env, uid);
   const readingReminder = await forgetReminder(env, uid);
   const subKey = `sub:${me}`;
   const dailyVerse = !!await env.SUBS.get(subKey);
-  await env.SUBS.delete(subKey);
+  await deleteSub(env, subKey);
   const reqs = await noteRequestsOf(env, uid);
   for (const { video, r, meta: meta2 } of reqs) {
     const users = r.users.filter((u) => u !== me && u !== uid);
