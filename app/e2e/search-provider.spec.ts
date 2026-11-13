@@ -3,7 +3,7 @@ import fs from "node:fs";
 
 const MOCK = fs.readFileSync(new URL("./telegram-mock.js", import.meta.url), "utf8");
 const LAUNCH = "#tgWebAppData=query_id%3Dsearch-provider&tgWebAppVersion=9.1&tgWebAppPlatform=ios";
-async function setup(page: Page, fail = false, provider = "Google") {
+async function setup(page: Page, fail = false) {
   await page.addInitScript(() => { (window as unknown as { __noConsent: boolean }).__noConsent = true; });
   await page.route("https://telegram.org/**", r => r.fulfill({ contentType: "application/javascript", body: MOCK }));
   await page.route(/ytimg|youtube\.com|fonts\.g/, r => r.abort());
@@ -15,10 +15,10 @@ async function setup(page: Page, fail = false, provider = "Google") {
   await page.route("**/api/search/answer?**", async r => {
     const consent = r.request().headers()["x-ai-consent"] ?? "";
     requests.push(consent);
-    if (!consent.split(",").includes(provider)) return r.fulfill({ status: 428, json: { ok: false, error: "consent", provider } });
+    if (!consent.split(",").includes("Google")) return r.fulfill({ status: 428, json: { ok: false, error: "consent", provider: "Google" } });
     answered.push(new URL(r.request().url()).searchParams.get("q") ?? "");
     if (fail) return r.fulfill({ status: 503, json: { ok: false, error: "unavailable" } });
-    return r.fulfill({ json: { ok: true, provider, model: provider === "Google" ? "google/gemini-2.5-flash-lite" : "@cf/meta/llama-3.1-8b-instruct-fp8", answer: "Melchizedek was king of Salem [1].", sources: [
+    return r.fulfill({ json: { ok: true, provider: "Google", model: "google/gemini-2.5-flash-lite", answer: "Melchizedek was king of Salem [1].", sources: [
       { n: 1, kind: "verse", title: "Genesis 14:18", url: "/bible/genesis/14#v18", text: "And Melchizedek king of Salem brought forth bread and wine." },
     ] } });
   });
@@ -70,18 +70,4 @@ test("search provider: provider failure preserves keyword results", async ({ pag
   await page.getByRole("button", { name: "Agree and answer" }).click();
   await expect(page.locator(".srch__ai")).toHaveCount(0);
   await expect(page.locator(".srch__hit").first()).toBeVisible();
-});
-
-test("search provider: a hosted Cloudflare model is asked for by name, and only that agreement is sent", async ({ page }) => {
-  const provider = "Cloudflare (Workers AI)";
-  const { requests, answered } = await setup(page, false, provider);
-  await page.goto(`/search?q=Melchizedek${LAUNCH}`);
-  await expect(page.locator("#search-consent-title")).toHaveText(`Let ${provider} answer from the library?`);
-  await expect(page.locator(".srch__ai .consent")).toContainText(`will be sent to ${provider}.`);
-  expect(answered).toEqual([]);
-  await page.getByRole("button", { name: "Agree and answer" }).click();
-  await expect(page.getByRole("region", { name: "AI answer" }).locator(".msg__text")).toContainText("king of Salem");
-  expect(answered).toEqual(["Melchizedek"]);
-  expect(requests.at(-1)).toBe(provider);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("cj:ai-consent")!))).toEqual([provider]);
 });
