@@ -1,0 +1,2 @@
+- Ask accepts a small, optional study context alongside recent messages, keeping the original topic and user corrections available for long follow-ups. Context remains untrusted conversation data, never a source or system instruction.
+- Follow-up searches keep the study topic; independent short questions no longer automatically inherit the previous subject. No new storage, permissions, services or spending limits on the server.

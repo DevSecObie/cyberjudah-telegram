@@ -10,7 +10,7 @@ await build({ entryPoints: [new URL('../src/app-ask.ts', import.meta.url).pathna
     ? `export async function listen(env, account, audio) { env.voice.push({kind:'listen', account, bytes: audio.byteLength}); return {ok:true,text:'Who was Judah'} } export async function speak(env, account, text, voice) { env.voice.push({kind:'speak', account, text, voice}); return new Response(new Uint8Array([1,2,3]), {headers:{'content-type':'audio/mpeg'}}) }`
     : args.path === 'identity'
     ? `export async function appReader(req) { return req.headers.get('authorization') === 'Bearer fixture' ? {uid:'firebase-alice'} : null }`
-    : `const model = {id:'@cf/free',name:'Free',provider:'Cloudflare'}; export const appAskModels = () => [model]; export const freeModel = () => model; export const takeQuotaKey = async () => true; export const takeAskIpQuota = async () => true; export async function answerApp(env,q,account,history,consent,ms,opts) { env.calls.push({q,account,history,consent,model:opts.model}); env.capturedSignal=opts.signal; if(env.waitForSignal) { env.started?.(); await new Promise((_resolve,reject)=>opts.signal.addEventListener("abort",()=>reject(opts.signal.reason),{once:true})); } opts.emit?.({delta:'An answer'}); return {ok:true,answer:'An answer',sources:[{n:1,title:'Source',url:'/classes/a',text:'private passage'}],model:model.id,provider:model.provider,ms:1} } export async function answerAppAgent(env,q,account,history,consent,opts) { return answerApp(env,q,account,history,consent,0,opts) }` }));
+    : `const model = {id:'@cf/free',name:'Free',provider:'Cloudflare'}; export const appAskModels = () => [model]; export const freeModel = () => model; export const takeQuotaKey = async () => true; export const takeAskIpQuota = async () => true; export async function answerApp(env,q,account,history,consent,ms,opts) { env.calls.push({q,account,history,consent,model:opts.model}); env.capturedSignal=opts.signal; if(env.waitForSignal) { env.started?.(); await new Promise((_resolve,reject)=>opts.signal.addEventListener("abort",()=>reject(opts.signal.reason),{once:true})); } opts.emit?.({delta:'An answer'}); return {ok:true,answer:'An answer',sources:[{n:1,title:'Source',url:'/classes/a',text:'private passage'}],model:model.id,provider:model.provider,ms:1,...env.study} } export async function answerAppAgent(env,q,account,history,consent,opts) { return answerApp(env,q,account,history,consent,0,opts) }` }));
 }}] });
 const { appAsk } = await import(out);
 const env = { PRIVACY_KEY: 'fixture-key', calls: [], voice: [], SUBS: { put: async () => {} } };
@@ -43,6 +43,17 @@ test('Firebase caller gets Telegram-compatible streaming without any Telegram id
   assert.equal(events.at(-1).sources[0].text,undefined);
   assert.notEqual(env.calls.at(-1).account,'victim');
   assert.notEqual(env.calls.at(-1).account,'firebase-alice');
+});
+
+test('native JSON and streaming preserve research status without exposing passage text', async () => {
+  const study = { plan: { parts: [{ id: 'p1', ask: 'The question' }] }, coverage: { complete: false, stopped: 'deadline', parts: [{ id: 'p1', status: 'partial', sources: [1] }] }, partial: true, unfinished: [{ id: 'p1', ask: 'The question' }], cut: true };
+  const local = { ...env, study };
+  for (const stream of [false, true]) {
+    const response = await appAsk.request('https://example.test/', { method: 'POST', headers: { authorization: 'Bearer fixture', 'content-type': 'application/json' }, body: JSON.stringify({ q: 'Explain the question', consent: ['Cloudflare'], stream }) }, local, ctx);
+    const result = stream ? (await response.text()).trim().split('\n').map(JSON.parse).find(event => event.done) : await response.json();
+    for (const [key, value] of Object.entries(study)) assert.deepEqual(result[key], value, key);
+    assert.equal(result.sources[0].text, undefined);
+  }
 });
 
 test('the inference stop switch rejects new questions without calling a model', async () => {

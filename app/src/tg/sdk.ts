@@ -136,7 +136,7 @@ export const hideKeyboard = () => { if (features.hideKeyboard) app!.hideKeyboard
 
 /** A refusal from the bot backend: its status, and the reason it gave when it gave one ("stale" launch data, "unavailable"…). */
 export class ApiError extends Error {
-  constructor(public status: number, public path: string, public reason?: string) { super(`${status} ${path}${reason ? ` (${reason})` : ""}`); }
+  constructor(public status: number, public path: string, public reason?: string, public body?: unknown) { super(`${status} ${path}${reason ? ` (${reason})` : ""}`); }
 }
 /** A real Telegram launch takes precedence; otherwise use the current Firebase login. */
 export async function accountAuthorization(): Promise<string | undefined> {
@@ -156,9 +156,9 @@ export async function api<T>(path: string, init?: RequestInit & { json?: unknown
   if (init?.json !== undefined) { headers.set("content-type", "application/json"); body = JSON.stringify(init.json); }
   const res = await fetch(target, { ...init, headers, body });
   if (!res.ok) {
-    let reason: string | undefined;
-    try { reason = ((await res.json()) as { reason?: string; error?: string }).reason; } catch { /* no body */ }
-    throw new ApiError(res.status, path, reason);
+    let reason: string | undefined, data: unknown;
+    try { data = await res.json(); reason = (data as { reason?: string; error?: string }).reason; } catch { /* no body */ }
+    throw new ApiError(res.status, path, reason, data);
   }
   return (await res.json()) as T;
 }

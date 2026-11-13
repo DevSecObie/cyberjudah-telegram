@@ -4,7 +4,9 @@ export const MAX_CLAUDE_OUTPUT = 12000;
 export const MAX_OPEN_OUTPUT = 8000;
 export const MAX_RESEARCH_MS = 110000;
 export const WRITING_RESERVE_MS = 20000;
-export const MAX_RESEARCH_SOURCES = 256;
+// Sources one answer may register and cite: the Mini App keeps at most 100 per answer
+// (ask-stream.ts MAX_SOURCES), so a citation never points at a source it dropped.
+export const MAX_RESEARCH_SOURCES = 100;
 
 export const researchRounds = (requested = MAX_RESEARCH_ROUNDS) => Number.isFinite(requested)
   ? Math.min(MAX_RESEARCH_ROUNDS, Math.max(1, Math.floor(requested))) : MAX_RESEARCH_ROUNDS;

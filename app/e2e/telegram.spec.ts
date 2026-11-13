@@ -915,7 +915,10 @@ liveDataTest("the recordings search works as the site's: matches lit, a moment t
   await page.fill("#q", "Most High");
   await page.press("#q", "Enter");
   await expect(page).toHaveURL(/\/search\?q=Most%20High/);
-  await expect(page.locator(".hint").first()).toContainText(/Results 1–\d+ for/);
+  // What was said in class has its own tab; Top shows only its first few moments.
+  await page.getByRole("tab", { name: /^Said in class/ }).click();
+  await expect(page).toHaveURL(/in=spoken/);
+  await expect(page.locator(".hint").first()).toContainText(/Moments 1–\d+ for/);
   await expect(page.locator(".rec mark").first()).toHaveText(/most|high/i);
   await expect(page.locator(".rec__meta b").first()).toHaveText(/\d+:\d\d/);
   await page.click(".chip >> text=Sabbath class");
@@ -1643,6 +1646,23 @@ test("Strong's: a verse's words open the Hebrew or Greek behind them, with every
   await page.locator(".bs-word__book").first().locator(".bs-word__bookhead").click();
   await page.locator(".bs-word__book li button").nth(1).click();
   await expect(page).toHaveURL(/\/read\/genesis\/1\?v=2/);
+});
+
+test("Strong's: a word tapped while its cards are still loading is brought when they arrive", async ({ page }) => {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route((url) => /\/api\/resources\/strongs\/[^/]+\/record$/.test(url.pathname) || /\/api\/strongs\/[HG]\d+\.json$/.test(url.pathname), async (r) => { await held; await r.continue(); });
+  await page.goto(`/read/genesis/1${LAUNCH}`);
+  await expect(page.locator("#verset-1")).toBeVisible();
+  await longPressVerse(page, 1);
+  await expect(page.getByRole("tab", { name: "Lexicon", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator(".bs-vdetail__cards .bs-loading")).toBeVisible();
+  await page.getByRole("button", { name: "God", exact: true }).click();
+  await expect(page.getByRole("button", { name: "God", exact: true })).toHaveAttribute("aria-pressed", "true");
+  release();
+  await expect(page.getByRole("button", { name: "H430 · God", exact: true })).toBeInViewport();
+  await expect(page.getByRole("button", { name: "God", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "In the beginning", exact: true })).toHaveAttribute("aria-pressed", "false");
 });
 
 test("a verse's Comments list every class that read it aloud, from the transcripts, each opening the class at that second", async ({ page }) => {

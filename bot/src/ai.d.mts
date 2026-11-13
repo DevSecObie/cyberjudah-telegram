@@ -12,6 +12,7 @@ export function docRecord(row: { kind: string; title: string; url: string; sub?:
 export function chunkRecord(row: { video: string; t: number; text: string; kind: string; title: string; url?: string; date?: string }): { id: string; text: string; metadata: Record<string, string | number> };
 export function answerCandidates<T extends Passage & { score?: number }>(question: string, passages: T[], limit?: number): T[];
 export type Turn = { role: "user" | "assistant"; content: string };
+export function withStudyContext(history: Turn[], raw: unknown): Turn[];
 export function buildPrompt(question: string, passages: (Passage & { n?: number })[], history?: Turn[], options?: { plain?: boolean }): { role: "system" | "user" | "assistant"; content: string }[];
 export function retrievalText(question: string, history?: Turn[]): string;
 export function referencesIn(question: string): string[];

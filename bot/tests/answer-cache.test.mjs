@@ -19,7 +19,7 @@ test("the same first question, in any case or punctuation, has one key per model
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m2", "app", "v1"));
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "study", "v1"));
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v2"), "a new release never serves an old answer");
-  assert.match(a, /^ask_cache:depth-quote-citations-source-links-20261107:v1:app:m1:[0-9a-f]{64}$/);
+  assert.match(a, /^ask_cache:study-completeness-v2:v1:app:m1:[0-9a-f]{64}$/);
 });
 
 test("follow-ups and one-word questions are never cached", async () => {
@@ -36,6 +36,24 @@ test('a coverage gap with a related cited source is never cached', async () => {
   const answer = markCoverageGap({ ok: true, answer: 'Existing honest gap [1].', sources: [{ n: 1 }] });
   await keepAnswer(env, 'ask_cache:gap', { ...answer });
   assert.equal(env.SUBS.m.size, 0);
+});
+
+test('incomplete research cannot be admitted or replayed as a finished cached answer', async () => {
+  for (const fields of [
+    { partial: true }, { cut: true }, { unfinished: [{ id: 'p1' }] },
+    { coverage: { complete: false, stopped: 'budget', parts: [] } },
+    { coverage: { complete: true, stopped: 'deadline', parts: [] } },
+    { coverage: { complete: true, stopped: 'covered', parts: [] } },
+    { coverage: { complete: true, stopped: 'covered', parts: [{ status: 'missing' }] } },
+  ]) {
+    const env = { SUBS: kv() }, key = 'ask_cache:partial';
+    const answer = { ok: true, answer: 'A draft [1].', sources: [{ n: 1 }], ...fields };
+    await keepAnswer(env, key, answer, 'trace');
+    assert.equal(env.SUBS.m.size, 0);
+    env.SUBS.m.set(key, JSON.stringify(answer));
+    assert.equal(await cachedAnswer(env, key), null);
+    assert.equal(env.SUBS.m.has(key), false);
+  }
 });
 
 test("a kept answer is served for a week, and a report on it removes it", async () => {

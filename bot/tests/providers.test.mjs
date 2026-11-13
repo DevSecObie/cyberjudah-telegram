@@ -119,3 +119,43 @@ test("when Claude's money runs out the admins are told in Telegram, at most once
     assert.match(sent[0].body, /not charged/);
   } finally { server.close(); }
 });
+
+test("a funds alert Telegram did not deliver leaves no marker, so the next out-of-funds error tries again", async () => {
+  const low = new Anthropic.BadRequestError(400, { type: "error", error: { type: "invalid_request_error", message: "Your credit balance is too low to access the Anthropic API." } }, "Your credit balance is too low to access the Anthropic API.", new Headers());
+  const kv = new Map();
+  const ttl = new Map();
+  const SUBS = { get: async (k) => kv.get(k) ?? null, put: async (k, v, o) => { kv.set(k, v); ttl.set(k, o?.expirationTtl); }, delete: async (k) => { kv.delete(k); } };
+  let down = true, delivered = 0;
+  const { createServer } = await import("node:http");
+  const server = createServer((req, res) => { req.resume(); req.on("end", () => {
+    res.setHeader("content-type", "application/json");
+    if (down) { res.statusCode = 500; res.end(JSON.stringify({ ok: false, error_code: 500, description: "down" })); return; }
+    delivered++; res.end(JSON.stringify({ ok: true, result: { message_id: 1, date: 0, chat: { id: 42, type: "private" } } }));
+  }); });
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const quiet = console.error; console.error = () => {};
+  try {
+    const env = { SUBS, ADMIN_IDS: "42", BOT_TOKEN: "t", ANTHROPIC_API_KEY: "k", TELEGRAM_API_ROOT: `http://127.0.0.1:${server.address().port}` };
+    const NOW = Date.parse("2026-11-09T12:00:00Z");
+    await alertClaudeFunds(env, low, NOW);
+    assert.equal(kv.get("alert:claude_funds"), new Date(NOW).toISOString(), "the health screen still learns when the money ran out");
+    assert.equal(kv.has("alert:claude_funds:told"), false, "not marked told after a failed send");
+    assert.equal(ttl.get("alert:claude_funds:tried"), 600, "the next try is ten minutes away");
+    assert.equal(ttl.get("alert:claude_funds"), 6 * 3600);
+    down = false;
+    await alertClaudeFunds(env, low, NOW + 1000);
+    assert.equal(delivered, 0, "not tried again within ten minutes: readers' questions do not each wait on Telegram");
+    kv.delete("alert:claude_funds:tried"); // ten minutes later (the marker's time to live)
+    await alertClaudeFunds(env, low, NOW + 11 * 60_000);
+    assert.equal(delivered, 1, "tried again, and delivered");
+    assert.equal(kv.has("alert:claude_funds:told"), true);
+    assert.equal(kv.get("alert:claude_funds"), new Date(NOW).toISOString(), "still the time the money first ran out");
+    await alertClaudeFunds(env, low, NOW + 12 * 60_000);
+    assert.equal(delivered, 1, "told once");
+    assert.equal(ttl.get("alert:claude_funds:told"), 6 * 3600);
+    kv.delete("alert:claude_funds"); // the six hours since the money ran out have passed; still out
+    await alertClaudeFunds(env, low, NOW + 6 * 3600_000 + 1000);
+    assert.ok(kv.has("alert:claude_funds"), "the health screen's marker never lapses while errors go on");
+    assert.equal(delivered, 1, "and the admins, already told, are not told again");
+  } finally { console.error = quiet; server.close(); }
+});

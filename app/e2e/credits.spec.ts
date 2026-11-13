@@ -121,7 +121,16 @@ test("a paid request runs once across simultaneous deliveries and completed repl
   expect(await books(20)).toEqual(after);
   expect(after.lots).toBe(after.ledger);
   const log = await (await request.get(`${STAND_IN}/__log`)).json() as Logged[];
-  expect(log.filter(e => e.path === '/anthropic/v1/messages' && JSON.stringify(e.body).includes(requestId))).toHaveLength(1);
+  const calls = log.filter(e => e.path === '/anthropic/v1/messages' && JSON.stringify(e.body).includes(requestId))
+    .map(e => (e.body as { messages: { role: string; content: unknown }[] }).messages);
+  expect(calls.map(messages => messages.map(message => message.role))).toEqual([
+    ['user'],
+    ['user', 'assistant', 'user'],
+  ]);
+  expect(calls[1][0]).toEqual(calls[0][0]);
+  expect(JSON.stringify(calls[1][0].content)).toContain(question);
+  expect(JSON.stringify(calls[1][1].content)).toContain(`A short answer to: ${question}`);
+  expect(JSON.stringify(calls[1][2].content)).toContain('Develop every part');
 });
 
 test("the free budget pause says why, without claiming the reader used their daily question quota", async ({ page }) => {

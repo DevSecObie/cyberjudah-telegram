@@ -107,7 +107,8 @@ readers' side of this table.
 |---|---|---|---|---|
 | Sign-in | Firebase Authentication, project `cyberjudah-app` | Email address, the name Google or Apple shares, provider, Firebase UID | Until the account is deleted | Delete account in the app (`DeleteAccountModal.tsx`), or a request by email |
 | Synced study data | Firestore `users/<uid>` and its subcollections (highlights, notes, links, bookmarks, tags, relations, studies, word annotations and the rest listed in `firebase/cyberjudah/firestore.rules`), `studies` (field `user.id`), `users-status/<uid>`; staging builds use the `staging_` copies of these collections | What the reader wrote and marked, with note and study revisions | Until replaced, deleted, or the account is deleted | Delete account in the app, or a request by email |
-| Published studies | D1 `published_studies` (`owner` = keyed hash of the Firebase UID; `published-studies.ts`) | A study the reader chose to publish: its title, the name they gave, its text as Markdown, last update. Anyone with its link can read it at `/app/published/<id>`; the page is marked noindex | Until the reader unpublishes it or deletes the account | Unpublish in the app, Delete account (the app calls `DELETE /api/published-studies`), or a request by email |
+| Published studies | D1 `published_studies` (`owner` = keyed hash of the Firebase UID; `published-studies.ts`) | A study the reader chose to publish: its title, the name they gave, its text as Markdown, last update. Anyone with its link can read it at `/app/published/<id>`; the page is marked noindex | Until the reader unpublishes it or deletes the account, or an admin takes it down after a report (the page's "Report this study" link is an email to privacy@cyberjudah.io; nothing about the report is stored) | Unpublish in the app, Delete account (the app calls `DELETE /api/published-studies`), or a request by email |
+| Taken-down study ids | D1 `published_takedowns` (`published-studies.ts`) | The id of a study an admin took down (`/takedown`, ADMIN_IDS only) and when. Nothing about the writer or a reporter | Kept, so nothing can be published under that id again | Not personal data; the study itself is removed |
 
 Firestore rules give each document to its owner only. App Check (App Attest on iPhone, Play
 Integrity on Android) is asked for before protected downloads; it carries no reader identity.
@@ -137,10 +138,11 @@ A linked Telegram account's own records (Ask balance, chats) go with `deleteData
 - **The AI provider of the model the reader chooses** (Anthropic, OpenAI, Google, xAI, DeepSeek,
   Alibaba, Moonshot AI, MiniMax, Thinking Machines, Unbiased, or Cloudflare for the hosted models):
   the question, the earlier questions in the chat, library passages. Never the name or Telegram ID.
-  An external provider is used only after the reader agrees to it (`lib/ai-consent.ts`; the server
-  answers 428 otherwise, including before Search cache lookups). Search's model, when hosted on
-  Cloudflare (`@cf/`), needs no agreement, because Cloudflare is the host; an external Search model
-  without the reader's agreement is refused with 428 (`search-answer.ts`, `ai.ts` `answerSearch`). Search sends only the current query and
+  Any model that writes an answer is used only after the reader agrees to its provider, wherever
+  the model runs, including Cloudflare's hosted models (`lib/ai-consent.ts`; the server answers
+  428 otherwise, including before Search cache lookups: `search-answer.ts`, `ai.ts` `answerSearch`).
+  Search processing on the host (embedding the question and reranking passages with Workers AI)
+  writes no answer and needs no separate agreement (owner, 2026-11-10). Search sends only the current query and
   matching library passages; answers are cached for two minutes, keyed by question and model,
   with no reader identity. Search is not saved as an Ask conversation. Ask also discloses the
   provider's home country when `shared/ask-models.mjs` `PROVIDER_COUNTRY`

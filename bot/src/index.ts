@@ -13,7 +13,7 @@ import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
 import { imageFile } from "./images";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { Api, webhookCallback } from "grammy";
 import type { InlineQueryResultArticle } from "grammy/types";
 import type { Env, Exec, Sub } from "./env";
@@ -31,7 +31,7 @@ import { readSources, saveSources } from "./cms-sources";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeAskIpQuota, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
 import { semanticSearch } from "./semantic-search";
-import { normalizeHistory, VOICES } from "./ai.mjs";
+import { normalizeHistory, withStudyContext, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
 import { createBroadcastSender, withBroadcastLease } from "./broadcast";
@@ -76,6 +76,7 @@ import { cors } from "hono/cors";
 import { nave } from "./nave";
 import { publishedStudies, publishedStudyPage } from "./published-studies";
 import { mcp } from "./mcp";
+import { LEGAL_HEADERS, LEGAL_HOST, legalPage } from "./site-legal";
 import { clientAddress, NETWORK_PER_MINUTE } from "./client-ip";
 import { mcpOAuth, mcpOAuthMetadata } from "./mcp-oauth";
 
@@ -279,20 +280,21 @@ app.post("/api/ask", async (c) => {
   if (!(await takeAskIpQuota(c.req.raw, c.env))) {
     return c.json({ error: "limit" }, 429);
   }
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; context?: unknown; stream?: boolean; chat?: string; retry?: boolean; model?: string; depth?: unknown; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
+  if (body?.depth !== undefined && body.depth !== "quick" && body.depth !== "study") return c.json({ error: "Invalid answer depth" }, 400);
   // The request's id (a retry of the same request holds once), and the most the reader accepted a
   // request may cost on each model (balance units, mc): the server takes the one for the model it resolves.
   const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
   const resourcePins = body?.resources === undefined ? undefined : ResourcePinsSchema.safeParse(body.resources);
   if (resourcePins && !resourcePins.success) return c.json({ error: "Invalid resource releases" }, 400);
-  const meterOpts = { clientStreaming: Boolean(body?.stream), resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps };
+  const meterOpts = { clientStreaming: Boolean(body?.stream), resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps, depth: body?.depth as "quick" | "study" | undefined };
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
-  const history = normalizeHistory(body?.history, 8);
-  if (body?.stream || typeof body?.model === "string") {
+  const history = withStudyContext(normalizeHistory(body?.history, 8), body?.context);
+  if (body?.stream || typeof body?.model === "string" || body?.depth !== undefined) {
     const start = Date.now();
-    const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
+    const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : body?.depth ? "auto" : undefined, consent, meterOpts);
     return body?.stream ? response : askJson(response, String(body?.q ?? ""), start);
   }
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
@@ -686,6 +688,17 @@ app.get("/app/*", async (c, next) => {
 // The Bible Strong fork once lived at /app/strong; it is gone, and its old links open the app.
 app.get("/app/strong", (c) => c.redirect("/app/", 301));
 app.get("/app/strong/*", (c) => c.redirect("/app/", 301));
+
+// The privacy policy and terms the app's store listing links to (site-legal.ts): static HTML on
+// cyberjudah.io only, with the trailing-slash form sent to the same page. Anywhere else (workers.dev,
+// staging) these paths are the Mini App's own screens, so they go on to the assets. Separate from
+// the Mini App's /app/privacy and /app/terms. `wrangler dev` reports every request as cyberjudah.io
+// (it takes the host from "routes"), so the end-to-end tests turn the pages off (SITE_LEGAL_PAGES "off").
+const servesLegal = (c: Context<App>) => c.env.SITE_LEGAL_PAGES !== "off" && new URL(c.req.url).hostname === LEGAL_HOST;
+for (const which of ["privacy", "terms"] as const) {
+  app.get(`/${which}`, (c, next) => servesLegal(c) ? c.body(legalPage(which), 200, LEGAL_HEADERS) : next());
+  app.get(`/${which}/`, (c, next) => servesLegal(c) ? c.redirect(`/${which}`, 301) : next());
+}
 
 // Anything else is the Mini App (run_worker_first only routes the paths above here).
 app.all("*", (c) => c.env.ASSETS.fetch(c.req.raw));

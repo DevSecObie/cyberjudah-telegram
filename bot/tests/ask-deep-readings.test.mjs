@@ -28,6 +28,58 @@ function fixture() {
   return { env, requests, events };
 }
 
+for (const native of [false, true]) {
+  test(`${native ? 'native' : 'gateway'}: a short question must open the relevant class after a snippet-only draft`, async () => {
+    const f = fixture();
+    f.env.classes.hits[0].title = 'Recorded practice';
+    f.env.classes.hits[0].excerpt = 'The recorded practice is discussed by the class in its original explanatory words with surrounding context.';
+    f.env.data[`/api/notes${path}.json`].body = 'The recorded practice is explained by the original published note words with its surrounding explanation and context.';
+    const script = [
+      { name: 'search_classes', input: { query: 'recorded practice' } },
+      'The recorded practice is explained by the class [1].',
+      { name: 'read_note', input: { path } },
+      'The recorded practice is explained by the published words [2].',
+    ];
+    const next = input => { f.requests.push(structuredClone(input)); return script[f.requests.length - 1]; };
+    if (native) f.env.client = { messages: { stream(input) {
+      const turn = next(input);
+      let emit;
+      return { on(_event, handler) { emit = handler; }, async finalMessage() { if (typeof turn === 'string') emit(turn); return { content: typeof turn === 'string' ? [{ type: 'text', text: turn }] : [{ type: 'tool_use', id: `read-${f.requests.length}`, ...turn }], stop_reason: typeof turn === 'string' ? 'end_turn' : 'tool_use', usage: { input_tokens: 100, output_tokens: 10 } }; } };
+    } } };
+    else f.env.AI = { run: async (_model, input) => {
+      const turn = next(input);
+      return { response: typeof turn === 'string' ? turn : '', ...(typeof turn === 'object' ? { tool_calls: [{ name: turn.name, arguments: turn.input }] } : {}), usage: { prompt_tokens: 100, completion_tokens: 10 } };
+    } };
+    const result = await runAgent(f.env, 'Explain the recorded practice', [], [], async () => [], event => f.events.push(event), undefined, undefined, modelOf(native ? 'claude-opus-5-5' : '@cf/google/gemma-4-26b-a4b-it'));
+    assert.equal(f.requests.length, 4);
+    assert.equal(result.tracked, true);
+    assert.equal(result.coverage.complete, true);
+    assert.equal(result.coverage.stopped, 'covered');
+    assert.deepEqual(result.coverage.parts[0].sources, [2], 'the search snippet never qualifies as opened evidence');
+    assert.equal(result.passages[0].video, video);
+    assert.equal(result.passages[0].t, 65);
+    assert.equal(result.passages[1].teacher, 'Recorded teacher');
+    assert.equal(result.passages[1].date, '2026-10-31');
+    assert.match(JSON.stringify(f.requests[2].messages), /class explanation not yet read/);
+  });
+}
+
+test('a failed note opening never upgrades a matching class-search result to read evidence', async () => {
+  const f = fixture();
+  f.env.classes.hits[0].excerpt = 'The recorded practice is discussed in the original class explanation with additional context and details.';
+  delete f.env.data[`/api/notes${path}.json`];
+  f.env.AI = { run: async (_model, input) => {
+    f.requests.push(input);
+    const turn = f.requests.length;
+    return { response: turn > 2 ? 'The recorded practice is in this class [1].' : '', ...(turn < 3 ? { tool_calls: [{ name: turn === 1 ? 'search_classes' : 'read_note', arguments: turn === 1 ? { query: 'recorded practice' } : { path } }] } : {}), usage: { prompt_tokens: 100, completion_tokens: 10 } };
+  } };
+  const result = await runAgent(f.env, 'Explain the recorded practice', [], [], async () => [], () => {}, undefined, undefined, modelOf('@cf/google/gemma-4-26b-a4b-it'), undefined, undefined, 3);
+  assert.equal(result.coverage.complete, false);
+  assert.equal(result.coverage.parts[0].status, 'partial');
+  assert.equal(result.coverage.parts[0].needs_reading, true);
+  assert.deepEqual(result.coverage.parts[0].sources, []);
+});
+
 test('Ask reads full note parts, real transcript windows, classes, commentary and public data as numbered sources', async () => {
   const f = fixture();
   f.env.AI = { run: async (_model, input) => {
@@ -84,14 +136,14 @@ test('native Opus can research past six rounds with bounded output/high thinking
   f.env.client = { messages: { stream(input) {
     f.requests.push(structuredClone(input));
     let emit;
-    const done = f.requests.length === 8;
+    const done = f.requests.length >= 8;
     return { on(_event, handler) { emit = handler; }, async finalMessage() {
       if (done) emit('A supported answer [1].');
       return { content: done ? [{ type: 'text', text: 'A supported answer [1].' }] : [thought, { type: 'tool_use', id: `read-${f.requests.length}`, name: 'read_note', input: { path } }], stop_reason: done ? 'end_turn' : 'tool_use', usage: { input_tokens: 100, output_tokens: 10 } };
     } };
   } } };
   const result = await runAgent(f.env, 'Research the full recorded material', [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
-  assert.equal(result.calls, 8);
+  assert.equal(result.calls, 9, 'one repair checks the unsupported draft inside the existing round limit');
   assert.equal(result.cut, false);
   assert.ok(f.requests.every(request => request.max_tokens === 12000));
   assert.ok(f.requests.every(request => request.output_config.effort === 'high' && request.thinking.type === 'adaptive'));
@@ -183,7 +235,7 @@ test('the agent bounds prior turns while keeping the complete current question',
   assert.equal(messages[2].content.length, 1500);
   assert.match(messages[1].content, /^Opening context/);
   assert.match(messages[1].content, /Last request$/);
-  assert.ok(messages.at(-1).content.endsWith(question));
+  assert.ok(messages[3].content.endsWith(question), 'the initial question is preserved before later checklist feedback');
 });
 
 test('incremental previews extend a citation without losing earlier sources or duplicating numbers', () => {
@@ -262,7 +314,7 @@ test('a research-round timeout never promotes search narration to the final answ
   assert.ok(result.text.includes('Existing recorded source words, copied exactly.'));
 });
 
-test('cancelled or expired research starts no provider call, and sources are bounded above 48', async () => {
+test('cancelled or expired research starts no provider call, and sources are bounded at 100 (the Mini App keeps at most 100 per answer)', async () => {
   const f = fixture(), controller = new AbortController(); controller.abort();
   f.env.AI = { run: async (_model, input) => { f.requests.push(input); return { response: 'Fixture answer.', usage: { prompt_tokens: 100, completion_tokens: 10 } }; } };
   const model = modelOf('@cf/google/gemma-4-26b-a4b-it');
@@ -271,7 +323,7 @@ test('cancelled or expired research starts no provider call, and sources are bou
   assert.equal(f.requests.length, 0);
   const sources = Array.from({ length: 300 }, (_, index) => ({ kind: 'note', title: `Recorded material ${index}`, url: `/study/${index}`, text: 'Existing recorded source words, unchanged.' }));
   const result = await runAgent(f.env, 'Read recorded material', [], sources, async () => [], () => {}, undefined, undefined, model);
-  assert.equal(result.passages.length, 256);
+  assert.equal(result.passages.length, 100);
 });
 
 test('a hard deadline aborts the provider, returns marked verbatim evidence and starts no further research', async () => {

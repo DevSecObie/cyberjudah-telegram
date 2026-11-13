@@ -124,6 +124,7 @@ for (const theme of ["light", "dark"]) {
   });
 
   test(`Nave articles retain tags, copy/share, history and new-tab actions (${theme})`, async ({ page }) => {
+    test.skip(!!process.env.PLAYWRIGHT_BASE_URL, "local only: the local address and the stubbed Nave article");
     await setup(page, theme);
     await page.goto("/nave/en/aaron");
     await expect(page.getByRole("heading", { name: "Aaron", exact: true })).toBeVisible();
