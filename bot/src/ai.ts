@@ -597,11 +597,13 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     let result: SearchAnswer;
     try { result = await answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback.id, adminId: undefined, quotaTaken }); }
     catch (e) {
-      await finishMeter(env, meter, refused, Date.now() - t0);
       console.error(JSON.stringify({ event: "app_agent_fallback_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
-      return { ok: false, reason: "unavailable" };
+      result = { ok: false, reason: "unavailable" };
     }
-    await finishMeter(env, meter, result.ok ? "backup" : refused, Date.now() - t0);
+    // A fixed not-in-the-classes sentence is no answer the free model wrote. A failed settle leaves the
+    // reservation held (never reusable) and never costs the reader the answer they were already shown.
+    const wrote = result.ok && !isCoverageGap(result);
+    await finishMeter(env, meter, wrote ? "backup" : refused, Date.now() - t0).catch((e: Error) => console.error(JSON.stringify({ event: "app_agent_settle_failed", message: e.message?.slice(0, 160) })));
     return result;
   };
   try {
@@ -900,11 +902,11 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               // backup model answers from the passages already found, and the reader is not charged.
               if (signal.aborted || !claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
-              await alertClaudeFunds(env, e);
-              backup = true;
               // Without the reader's agreement to the backup's provider no backup answer is written. The meter
               // settles once the backup's outcome is known: as "backup" (kept whole) only when it writes one.
+              backup = true;
               claudeSettle = claudeRefusedUnbilled(e) ? "empty" : "failed";
+              await alertClaudeFunds(env, e);
               if (!mayUseBackup(consent)) { await finish(claudeSettle); send({ reset: true }); send({ error: "busy" }); return; }
               guard.emit({ reset: true });
               send({ status: "Answering with the backup model" });
@@ -940,7 +942,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
           // rather than that the library has nothing (which only the research could tell).
-          if (!passages.length && backup) { await finish(claudeSettle); send({ error: "busy" }); return; }
+          if (!passages.length && backup) { send({ error: "busy" }); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
             await finish("empty");
@@ -961,7 +963,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           const guard = guardedStream<unknown>(send, () => passageEvidence(passages));
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; guard.emit({ delta: piece }); }
           const { answer: draft, followups } = splitFollowups(answer);
-          if (!draft.trim()) { if (backup) await finish(claudeSettle); send({ error: "empty" }); return; }
+          if (!draft.trim()) { send({ error: "empty" }); return; }
           // The final step (answer-final.ts), as for every answer.
           const clean = await finalAnswer(env, draft, { evidence: passageEvidence(passages) });
           guard.settle(clean, draft);
@@ -978,7 +980,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ error: "unavailable" });
         } finally {
           // Whatever way it ended, the hold is settled once: an answer that got no further is not charged.
-          await finish("failed");
+          // After Claude failed, a backup that wrote no answer settles by Claude's own refusal.
+          await finish(backup ? claudeSettle : "failed");
           clearInterval(beat);
           if (chatId) await clearPending(env, userId, chatId).catch(() => undefined);
         }
