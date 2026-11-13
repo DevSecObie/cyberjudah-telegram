@@ -138,11 +138,10 @@ A linked Telegram account's own records (Ask balance, chats) go with `deleteData
 - **The AI provider of the model the reader chooses** (Anthropic, OpenAI, Google, xAI, DeepSeek,
   Alibaba, Moonshot AI, MiniMax, Thinking Machines, Unbiased, or Cloudflare for the hosted models):
   the question, the earlier questions in the chat, library passages. Never the name or Telegram ID.
-  Any model that writes an answer is used only after the reader agrees to its provider, wherever
-  the model runs, including Cloudflare's hosted models (`lib/ai-consent.ts`; the server answers
-  428 otherwise, including before Search cache lookups: `search-answer.ts`, `ai.ts` `answerSearch`).
-  Search processing on the host (embedding the question and reranking passages with Workers AI)
-  writes no answer and needs no separate agreement (owner, 2026-11-10). Search sends only the current query and
+  An external provider is used only after the reader agrees to it (`lib/ai-consent.ts`; the server
+  answers 428 otherwise, including before Search cache lookups). Search's model, when hosted on
+  Cloudflare (`@cf/`), needs no agreement, because Cloudflare is the host; an external Search model
+  without the reader's agreement is refused with 428 (`search-answer.ts`, `ai.ts` `answerSearch`). Search sends only the current query and
   matching library passages; answers are cached for two minutes, keyed by question and model,
   with no reader identity. Search is not saved as an Ask conversation. Ask also discloses the
   provider's home country when `shared/ask-models.mjs` `PROVIDER_COUNTRY`

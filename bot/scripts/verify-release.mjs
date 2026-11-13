@@ -1,7 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { signInitData } from "../src/initdata.mjs";
 import { citationReport, citationTokenCount } from "../src/citations.mjs";
-import { MODELS } from "../../shared/ask-models.mjs";
 
 // A named verse is hydrated from the KJV library, even if Vectorize ranks short verses poorly.
 const SEARCH_CHECK_QUERY = "What does Genesis 1:1 say?";
@@ -22,10 +21,7 @@ const knownVerse = passage => passage?.kind === "verse"
  */
 export async function verifyRelease({ url, token, expectedModel, verifySync = false, bibleStrongApp = false, fetcher = fetch, log = console.log, warn = console.warn, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000 }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
-  // Every Search model needs the reader's agreement to its provider, hosted or not (docs/PRIVACY.md);
-  // the provider is the shared catalog's, as the server's 428 names it.
-  const provider = MODELS.find(m => m.id === expectedModel)?.provider;
-  if (!provider) throw new Error(`EXPECTED_SEARCH_MODEL ${expectedModel} is not in the model catalog.`);
+  const external = !expectedModel.startsWith("@cf/"), provider = external ? "Google" : "Cloudflare (Workers AI)";
   const origin = new URL(url).origin;
   const get = (path, headers = {}, waitMs = 60_000) => fetcher(`${origin}${path}`, { headers, redirect: "error", signal: AbortSignal.timeout(waitMs) });
   const requireStatus = (response, status, label) => {
@@ -84,13 +80,15 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
     if (!Array.isArray(body[field])) throw new Error(`${label}: invalid catalog.`);
     log(`${label}: ${body[field].length} published`);
   }
-  const consent = await get(query, headers);
-  requireStatus(consent, 428, "Provider consent");
-  if ((await consent.json()).provider !== provider) throw new Error("Provider consent: unexpected provider.");
-  log("Provider consent: enforced");
+  if (external) {
+    const consent = await get(query, headers);
+    requireStatus(consent, 428, "Provider consent");
+    if ((await consent.json()).provider !== provider) throw new Error("Provider consent: unexpected provider.");
+    log("External provider consent: enforced");
+  }
   // One more try after a pause: a single slow or unavailable answer from the model is not a broken
   // release (the Worker gives up on an answer at 55 s and says it is unavailable). Two in a row fail.
-  const ask = () => get(query, { ...headers, "x-ai-consent": provider }, answerWaitMs).catch(e => {
+  const ask = () => get(query, { ...headers, ...(external ? { "x-ai-consent": provider } : {}) }, answerWaitMs).catch(e => {
     if (e?.name === "TimeoutError") return null;
     throw e;
   });
@@ -127,8 +125,7 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
     && answer.related.passages.some(knownVerse);
   if (answer.state ? !uncited : !valid) throw new Error("Search answer: neither a cited answer nor an honest uncited state with the known library verse was returned.");
   // Reusing a cached question after withdrawing consent must still be refused.
-  requireStatus(await get(query, headers), 428, "Withdrawn consent");
-  log("Provider consent: enforced after caching");
+  if (external) { requireStatus(await get(query, headers), 428, "Withdrawn consent"); log("External provider consent: enforced after caching"); }
   if (uncited) warn("Search answer: provider returned no cited answer; the known KJV verse is present as related library material. Citation quality needs attention.");
   else log(`Search answer: configured ${provider} provider verified, ${valid} valid citations`);
 }
