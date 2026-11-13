@@ -19,7 +19,7 @@ test("the same first question, in any case or punctuation, has one key per model
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m2", "app", "v1"));
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "study", "v1"));
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v2"), "a new release never serves an old answer");
-  assert.match(a, /^ask_cache:study-completeness-v2:v1:app:m1:[0-9a-f]{64}$/);
+  assert.match(a, /^ask_cache:reader-voice-v1:v1:app:m1:[0-9a-f]{64}$/);
 });
 
 test("follow-ups and one-word questions are never cached", async () => {
