@@ -365,6 +365,29 @@ test('a busy Claude without agreement to the backup releases the free reservatio
   }
 });
 
+// #605 follow-up (t1v): with the reader's agreement, a backup that writes no answer (nothing found to
+// answer from) settles by Claude's own refusal: a 429 billed nothing, so the reservation goes back;
+// after a server error it is kept whole. Only an answer the backup writes keeps it whole regardless.
+test('an agreed backup with nothing to answer from releases the reservation only when Claude billed nothing', async t => {
+  for (const [code, released] of [[429, true], [500, false]]) {
+    const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5'), sent = [];
+    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_MODELS: model.id, ANTHROPIC_API_KEY: 'fixture-only', fixtureBusy: code,
+      AI: { run: async (id) => { if (id.includes('bge-m3')) return { data: [[1, 2]] }; if (id.includes('reranker')) return { response: [] }; sent.push(id); throw new Error('the backup must not be called'); } },
+      VEC: { query: async () => ({ matches: [] }) } });
+    const pending = [], ctx = { waitUntil: promise => pending.push(promise) };
+    const lines = (await (await askStream(env, 'Read recorded material', 78, ctx, [], undefined, false, model.id, [model.provider, 'Cloudflare (Workers AI)'])).text()).trim().split('\n').map(JSON.parse);
+    await Promise.all(pending);
+    assert.deepEqual(lines.at(-1), { error: 'busy' }, `${code}`);
+    assert.deepEqual(sent, [], `${code}: the backup model was never called`);
+    const holds = sql.prepare('SELECT reserved_micro, state FROM free_spend_holds').all();
+    assert.equal(holds.length, 1, `${code}: only the Ask meter reserved`);
+    assert.notEqual(holds[0].state, 'held', `${code}: and it is settled`);
+    const spent = Math.round((await freeSpendToday(env)) * 1e6);
+    if (released) assert.ok(spent < holds[0].reserved_micro, `${code}: the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
+    else assert.equal(spent, holds[0].reserved_micro, `${code}: the whole reservation is kept`);
+  }
+});
+
 test('the app agent marks a fixed not-in-the-classes answer as a gap, so its writer is "none", and keeps its model label (#600)', async t => {
   const { env } = financialDb(t), model = freeModel(env);
   Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Fixture gap sentence.', fixtureSources: [] });
