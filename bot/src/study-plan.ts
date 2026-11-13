@@ -22,7 +22,7 @@ export type PartStatus = "covered" | "partial" | "missing";
 /** Why research ended: every part covered, or a limit (rounds, deadline, budget), or the model wrote the answer with parts still not found. */
 export type StopReason = "covered" | "rounds" | "deadline" | "budget" | "not_found";
 export type PlanPart = { id: string; ask: string; refs: Ref[] };
-export type Coverage = { parts: { id: string; status: PartStatus; sources: number[] }[]; complete: boolean; stopped: StopReason };
+export type Coverage = { parts: { id: string; status: PartStatus; sources: number[]; needs_reading?: true }[]; complete: boolean; stopped: StopReason };
 type Ref = { slug: string; chapter: number; from?: number; to?: number; label: string };
 type Source = { n: number; kind: string; title: string; text: string };
 type Books = Parameters<typeof import("./refs.mjs").parseReference>[1];
@@ -133,6 +133,24 @@ export function planFrom(question: string, input: unknown, books: Books | null, 
 /** What of each chapter has been read: verse ranges, and the chapter's first and last verse once known. */
 export class Readings {
   private read = new Map<string, { ranges: [number, number][]; first?: number; last?: number }>();
+  private explanations = new Map<number, string>();
+  private explanationChecks = new Map<string, boolean>();
+
+  open(source: Source) {
+    if (!usable(source)) return;
+    // Notes and transcripts put metadata before the first blank line; it is not the explanation.
+    const header = source.kind === "note" ? /^(?:title|teacher|date|range|series|Video|Link):/.test(source.text) : source.kind === "spoken" && /^[^\n]+\nVideo:/.test(source.text);
+    const text = header && source.text.includes("\n\n") ? source.text.slice(source.text.indexOf("\n\n") + 2) : source.text;
+    this.explanations.set(source.n, `${this.explanations.get(source.n) ?? ""}\n${text}`.slice(0, 40_000));
+  }
+
+  explains(n: number, ask: string): boolean {
+    const text = this.explanations.get(n);
+    if (!text) return false;
+    const key = `${n}|${text.length}|${ask}`;
+    if (!this.explanationChecks.has(key)) this.explanationChecks.set(key, coverageDecision(ask, [{ kind: "note", title: "", text }]).enough);
+    return this.explanationChecks.get(key)!;
+  }
   /** A reading of verses `from`-`to`; `first`/`last` when the whole chapter was in hand (read_scripture). */
   record(slug: string, chapter: number, from: number, to: number, first?: number, last?: number) {
     const k = `${slug}|${chapter}`;
@@ -159,6 +177,7 @@ export class Readings {
 }
 
 const usable = (s: Source) => s.kind !== "tool" && !!s.text?.trim() && !hasControlText(`${s.title}\n${s.text}`);
+const classSource = (s: Source) => /^(note|spoken|commentary|class|transcript|teaching)$/.test(s.kind);
 
 /**
  * Each part's status from the passages read so far. `memo` keeps each part-and-source decision
@@ -167,19 +186,23 @@ const usable = (s: Source) => s.kind !== "tool" && !!s.text?.trim() && !hasContr
 export function checklist(parts: PlanPart[], sources: Source[], readings: Readings, memo: Map<string, boolean> = new Map()): Coverage["parts"] {
   const list = sources.filter(usable);
   return parts.map((part) => {
-    const found = list.filter((s) => {
+    const matched = list.filter((s) => {
       // Keyed by the part's words, so a plan that replaces the parts never reuses an old decision.
       const k = `${part.ask}|${s.n}|${s.text.length}`;
       // Judged on the words alone: a source's retrieval score belongs to the search that found it,
       // not to this part, so one close match never marks every part covered.
       if (!memo.has(k)) memo.set(k, coverageDecision(part.ask, [{ kind: s.kind, title: s.title, text: s.text }]).enough);
       return memo.get(k);
-    }).map((s) => s.n);
-    const evidence = found.length > 0;
+    });
+    const expanded = (s: Source) => !classSource(s) || readings.explains(s.n, part.ask);
+    const found = matched.filter(expanded).map((s) => s.n);
+    const evidence = matched.length > 0;
+    const classes = matched.filter(classSource);
+    const needsReading = classes.length > 0 && !classes.some(expanded);
     const refsRead = part.refs.every((r) => readings.covers(r));
     const someRead = part.refs.some((r) => readings.touched(r));
-    const status: PartStatus = evidence && refsRead ? "covered" : evidence || someRead ? "partial" : "missing";
-    return { id: part.id, status, sources: found };
+    const status: PartStatus = found.length && refsRead && !needsReading ? "covered" : evidence || someRead ? "partial" : "missing";
+    return { id: part.id, status, sources: found, ...(needsReading ? { needs_reading: true as const } : {}) };
   });
 }
 
@@ -204,7 +227,7 @@ export function checklistNote(parts: PlanPart[], state: Coverage["parts"], readi
   return `Checklist: ${state.length - open.length} of ${state.length} parts covered. Still open:\n${open.map((p) => {
     const part = parts.find((x) => x.id === p.id)!;
     const unread = part.refs.filter((r) => !readings.covers(r)).map((r) => r.label);
-    return `- Part ${parts.indexOf(part) + 1} (${p.status}): ${part.ask}${unread.length ? `; not yet read in full: ${unread.join(", ")}` : ""}`;
+    return `- Part ${parts.indexOf(part) + 1} (${p.status}): ${part.ask}${unread.length ? `; not yet read in full: ${unread.join(", ")}` : ""}${p.needs_reading ? "; class explanation not yet read: use read_note, read_transcript or commentary on a relevant result, then read adjacent context where needed" : ""}`;
   }).join("\n")}\nResearch these, or, if the library has nothing for one, say so in the answer. Never fill a gap with teaching that was not found.`;
 }
 
