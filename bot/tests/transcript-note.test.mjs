@@ -18,8 +18,9 @@ test("a recording's note comes from the published notes index", async () => {
       { kind: "study", title: "Genesis 1", url: "/study/genesis/1", videoId: null },
       { kind: "class", title: "Mystery Babylon", url: "/classes/2026/2026-11-07-mystery-babylon", date: "2026-11-07", videoId: "abcDEF12345" },
     ]);
-    if (String(url).includes("/transcripts/") || String(url).includes("raw.githubusercontent.com")) {
-      if (String(url).includes("corrections")) return new Response("{}", { status: 404 });
+    const { hostname, pathname } = new URL(String(url));
+    if (hostname === "raw.githubusercontent.com") {
+      if (pathname.endsWith("/corrections.json")) return new Response("{}", { status: 404 });
       return Response.json({ title: "Mystery Babylon (live)", date: "2026-11-07", segments: [{ start: 0, dur: 4, text: "Shalom" }] });
     }
     return new Response("", { status: 404 });
