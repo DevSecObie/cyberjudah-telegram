@@ -242,8 +242,8 @@ function routeFixture(t, env, uid = 7) {
   const app = new Hono();
   app.use("*", async (c, next) => { if (uid) c.set("tma", { user: { id: uid } }); await next(); });
   app.route("/api/search/answer", searchAnswers);
-  const request = async (q, consent = "") => {
-    const r = await app.request(`https://app.example/api/search/answer?q=${encodeURIComponent(q)}`, { headers: { "x-ai-consent": consent } }, env, { waitUntil(p) { pending.push(p); } });
+  const request = async (q, consent = "", headers = {}) => {
+    const r = await app.request(`https://app.example/api/search/answer?q=${encodeURIComponent(q)}`, { headers: { "x-ai-consent": consent, ...headers } }, env, { waitUntil(p) { pending.push(p); } });
     await Promise.all(pending);
     return r;
   };
@@ -481,7 +481,41 @@ test("a reader listed in SEARCH_AI_QUOTA_EXEMPT skips the per-reader count; othe
   assert.equal((await exempt.request("king of Salem", "Google")).status, 200);
   const other = routeFixture(t, env, 7);
   assert.equal((await other.request("priest of the most high", "Google")).status, 200);
-  assert.equal((await other.request("bread and wine", "Google")).status, 429);
+  const refused = await other.request("bread and wine", "Google");
+  assert.equal(refused.status, 429);
+  // The reader's own count is per UTC day: Retry-After is the time left until midnight UTC.
+  const wait = Number(refused.headers.get("retry-after")), left = Math.ceil((86400_000 - (Date.now() % 86400_000)) / 1000);
+  assert.ok(wait >= 1 && Math.abs(wait - left) <= 2, `retry-after ${wait}, ${left} s to midnight UTC`);
+});
+
+// ASK-POLICY C2 / OWASP LLM10: a per-address limit for every reader, the exempt reader and admins
+// included. An unsigned address (possibly the shared relay) is limited by the minute, never the day.
+test("route limits search answers per address for every reader, after the reader's own count", async t => {
+  const { env, sent, sql } = fixture(t);
+  env.SEARCH_AI_QUOTA_EXEMPT = "1";
+  const now = Date.now; Date.now = () => 1794052800000; t.after(() => { Date.now = now; });
+  const exempt = routeFixture(t, env, 1), other = routeFixture(t, env, 7);
+  const ip = { "cf-connecting-ip": "203.0.113.9" };
+  // An unsigned address may be the Mini App relay, shared by every reader: 300 a minute.
+  for (let i = 0; i < 300; i++) assert.equal((await exempt.request(`placeholder question ${i}`, "Google", ip)).status, 200, `search ${i}`);
+  const calls = sent.length;
+  const denied = await other.request("another placeholder question", "Google", ip);
+  assert.equal(denied.status, 429);
+  assert.deepEqual(await denied.json(), { ok: false, error: "limit" });
+  assert.equal(denied.headers.get("retry-after"), "60", "shut for the rest of the minute only");
+  assert.equal(sent.length, calls, "no model call once the address is spent");
+  assert.equal((await other.request("another placeholder question", "Google", { "cf-connecting-ip": "198.51.100.4" })).status, 200, "another address is counted on its own");
+  Date.now = () => 1794052800000 + 60_000;
+  assert.equal((await other.request("a later placeholder question", "Google", ip)).status, 200, "the shared address answers again the next minute");
+  assert.ok(!JSON.stringify(sql.prepare("SELECT key FROM rate_counts").all()).match(/203\.0\.113|198\.51\.100/), "only keyed hashes of addresses");
+  // A reader past their own allowance is refused before the address is counted, so one reader cannot
+  // use up an address everyone behind it shares.
+  env.SEARCH_AI_DAILY_LIMIT = "3";
+  const spent = () => sql.prepare("SELECT COALESCE(SUM(n), 0) AS n FROM rate_counts WHERE key LIKE 'search_ai_ip:%'").get().n;
+  assert.equal((await other.request("one more placeholder question", "Google", { "cf-connecting-ip": "192.0.2.1" })).status, 429, "reader 7 has used 3");
+  const before = spent();
+  for (let i = 0; i < 5; i++) assert.equal((await other.request(`refused placeholder ${i}`, "Google", { "cf-connecting-ip": "192.0.2.1" })).status, 429);
+  assert.equal(spent(), before, "a refused reader takes no address slot");
 });
 
 // The app's Ask (answerApp): any app sign-in, the free model only, no balance.

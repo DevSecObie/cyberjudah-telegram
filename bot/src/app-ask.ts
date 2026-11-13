@@ -4,6 +4,7 @@ import type { Env } from "./env";
 import { IdentityError, linkedTelegram } from "./account-links";
 import { appReader } from "./app-identity";
 import { answerApp, answerAppAgent, appAskModels, freeModel, takeAskIpQuota, takeQuotaKey } from "./ai";
+import { takeAddressQuota, type AddressLimits } from "./address-quota";
 import { isAdmin } from "./edit";
 import { normalizeHistory, withReading } from "./ai.mjs";
 import { books } from "./data";
@@ -51,6 +52,8 @@ appAsk.get('/models', c => {
     billing: { purchasesEnabled: false },
   });
 });
+/** Answer reports from one address (OWASP LLM10): a signed address is one reader's; an unsigned one may be many readers' (the relay). */
+const REPORTS_PER_ADDRESS: AddressLimits = { signedPerDay: 30, unsignedPerMinute: 60 };
 appAsk.post('/report', async c => {
   if (Number(c.req.header('content-length') ?? 0) > 1024) return c.json({ error: 'too-large' }, 413);
   const raw = await c.req.text();
@@ -60,6 +63,11 @@ appAsk.post('/report', async c => {
   if (!body || !['wrong', 'harmful'].includes(String(body.reason))) return c.json({ error: 'bad-request' }, 400);
   const day = new Date().toISOString().slice(0, 10);
   if (!await takeQuotaKey(c.env, `app_report:${c.get('account')}:${day}`, 10)) return c.json({ error: 'limit' }, 429);
+  // Per address as well as per account, so many new accounts from one place cannot flood reports
+  // (each may drop a cached answer). After the account's own count, so an account already refused
+  // spends none of its address's allowance. Only a keyed hash of the address is kept.
+  const wait = await takeAddressQuota(c.req.raw, c.env, 'app_report_ip', REPORTS_PER_ADDRESS);
+  if (wait) return c.json({ error: 'limit' }, 429, { 'retry-after': String(wait) });
   // Aggregate reports with no account, prompt or answer content. Reviewers can prioritize the
   // model/reason; a future opt-in diagnostic flow may ask the reader to share more.
   const model = appAskModels(c.env, undefined, true).find(m => m.id === body.model)?.id ?? 'default';
