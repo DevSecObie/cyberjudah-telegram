@@ -360,7 +360,8 @@ test('a saved request replays after its explicit model is refused by an enforced
   const replay=await events(await req(f,value));
   assert.equal(replay[0].replay,true); assert.equal(replay[0].answer_id,first.answer_id);
   // A new request with that model is still refused.
-  assert.equal((await req(f,{...value,request:'recovery-fixture-2'})).status,403);
+  const refused=await req(f,{...value,request:'recovery-fixture-2'});
+  assert.equal(refused.status,403); assert.equal((await events(refused))[0].error,'model-not-allowed');
 });
 
 test('recovery receipts cannot be created for running, other-owner or removed requests',async t=>{

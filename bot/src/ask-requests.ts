@@ -75,9 +75,12 @@ export async function claimAskRequest(env: Env, identity: Awaited<ReturnType<typ
 export async function legacyAskRequest(env: Env, owner: string, request: string): Promise<boolean> {
   // A read only: it creates no credit table, so a request rejected before consent or by the model
   // allowlist leaves no billing tables behind (#601). No table yet means no old hold.
-  const table = await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'credit_holds'").first();
-  if (!table) return false;
-  return !!await env.DB.prepare("SELECT 1 FROM credit_holds WHERE user_id = ? AND request_id = ?").bind(owner, request).first();
+  // One read when the table exists; only a failed read asks sqlite_master whether it is missing.
+  try { return !!await env.DB.prepare("SELECT 1 FROM credit_holds WHERE user_id = ? AND request_id = ?").bind(owner, request).first(); }
+  catch (e) {
+    if (await env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'credit_holds'").first()) throw e;
+    return false;
+  }
 }
 
 export async function startAskRequest(env: Env, claim: RequestClaim, budgetRequest?: string): Promise<void> {
