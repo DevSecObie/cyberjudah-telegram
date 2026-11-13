@@ -6,7 +6,7 @@ import { toAppPath } from "@shared/links.mjs";
 import { app, haptic } from "@/tg/sdk";
 import { assetUrl } from "@/lib/asset";
 import { goBack, isRootPath, usePageActions } from "@/tg/hooks";
-import { bibleTabPath, currentTab, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
+import { bibleTabPath, currentTab, keepTabPlace, kindTabIndex, searchTabPath, selectTab, settleTabFloor, useTabs } from "@/lib/tabs";
 import { setDrawer, useDrawer, type DrawerSide } from "@/lib/drawer";
 import { useReaderFullscreen } from "@/bible/session";
 import { contrastInk, SwitcherBar } from "@/screens/Tabs";
@@ -72,6 +72,8 @@ export function TabBar() {
     // A page over the tab is left for the tab even when its path is the same.
     const wasOver = isOver(historyIdx());
     moveTab(() => {
+      // A page still on its way is the tab's place before the switcher (or another tab) replaces it.
+      keepTabPlace();
       const before = currentTab()?.id;
       const target = typeof to === "function" ? to() : to;
       // Another tab on the same page still starts its own Back here.

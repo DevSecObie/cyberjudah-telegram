@@ -14,9 +14,10 @@ import { PROMPT_VERSION, UNAVAILABLE_CORPUS } from "./ask-versions";
  */
 export const CACHE_TTL_S = 7 * 86400;
 const MAX_BYTES = 200_000;
-// What a kept answer must hold (#610: the study completeness check below). A change here starts new
-// keys alongside the prompt version and corpus release (#600), so answers kept before it are never served.
-const PROMPT_REVISION = "study-completeness-v2";
+// What a kept answer must hold and how it reads (#610's study completeness check below, #615's reader
+// voice in grounding.mjs READER_VOICE). A change here starts new keys alongside the prompt version and
+// corpus release (#600), so answers kept before it are never served.
+const PROMPT_REVISION = "reader-voice-v1";
 
 function incomplete(answer: unknown): boolean {
   if (!answer || typeof answer !== "object") return false;

@@ -26,9 +26,9 @@ test("the same first question, in any case or punctuation, has one key per promp
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v1", "lib-bbbbbbbbbbbb/idx-20261110T0412Z"), "a new library never serves an old answer");
   assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v1", "lib-aaaaaaaaaaaa/idx-20261111T0412Z"), "a new index build never serves an old answer");
   assert.equal(a.split(":")[1], PROMPT_VERSION, "a new prompt version never serves an old answer");
-  assert.equal(a.split(":")[2], "study-completeness-v2", "a new cache revision (#610) never serves an old answer");
+  assert.equal(a.split(":")[2], "reader-voice-v1", "a new cache revision (#615) never serves an old answer");
   assert.equal(await cacheKey("Who is Esau's father?", [], "m1", "app", "v1", "lib-unavailable/idx-unavailable"), null, "an unreadable library is never cached against");
-  assert.match(a, /^ask_cache:system-v\d+\.research-v\d+\.app-v\d+\.data-policy-v\d+\.answer-v\d+\.tools-v\d+:study-completeness-v2:lib-aaaaaaaaaaaa\/idx-20261110T0412Z:v1:app:m1:[0-9a-f]{64}$/);
+  assert.match(a, /^ask_cache:system-v\d+\.research-v\d+\.app-v\d+\.data-policy-v\d+\.answer-v\d+\.tools-v\d+:reader-voice-v1:lib-aaaaaaaaaaaa\/idx-20261110T0412Z:v1:app:m1:[0-9a-f]{64}$/);
 });
 
 test("follow-ups and one-word questions are never cached", async () => {

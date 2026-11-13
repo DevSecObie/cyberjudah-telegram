@@ -4,7 +4,7 @@ import { verifyRelease } from "../scripts/verify-release.mjs";
 import { validateInitData } from "../src/initdata.mjs";
 import { MODELS } from "../../shared/ask-models.mjs";
 
-function fixture({ answerStatus = 200, sources = [{ n: 1 }], model = "google/test", expectedModel = "google/test", cachedConsent = false, answer = {} } = {}) {
+function fixture({ answerStatus = 200, sources = [{ n: 1 }], model = "google/gemini-2.5-flash-lite", expectedModel = "google/gemini-2.5-flash-lite", cachedConsent = false, answer = {} } = {}) {
   let answered = false, calls = 0;
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "cache-control": "private, no-store" } });
   return { count: () => calls, options: { url: "https://app.invalid", token: "test-token", expectedModel, verifySync: true, retryMs: 0, log() {}, async fetcher(url, { headers }) {
@@ -21,9 +21,10 @@ function fixture({ answerStatus = 200, sources = [{ n: 1 }], model = "google/tes
     if (path === "/api/firebase/token") return json({ uid: "tg_1", token: "fixture.payload.signature" });
     if (path === "/api/resources/catalog") return json({ resources: [] });
     if (path === "/api/recordings/catalog") return json({ chapters: [{}] });
-    if (!expectedModel.startsWith("@cf/") && !headers["x-ai-consent"] && !(cachedConsent && answered)) return json({ provider: "Google" }, 428);
+    const provider = MODELS.find(m => m.id === expectedModel)?.provider;
+    if (headers["x-ai-consent"] !== provider && !(cachedConsent && answered)) return json({ provider }, 428);
     calls++; answered = true;
-    return json({ ok: true, answer: "A cited answer [1]", sources, model, provider: MODELS.find(m => m.id === expectedModel)?.provider ?? "Google", error: "free-paused", ...answer }, answerStatus);
+    return json({ ok: true, answer: "A cited answer [1]", sources, model, provider, error: "free-paused", ...answer }, answerStatus);
   } } };
 }
 test("release verification signs a synthetic reader and makes only one consented provider request", async () => {
@@ -35,10 +36,17 @@ test("release verification fails on provider failure, empty citations or a diffe
 test("release verification fails if cached answers bypass withdrawn consent", async () => {
   await assert.rejects(verifyRelease(fixture({ cachedConsent: true }).options), /Withdrawn consent/);
 });
-test("the existing hosted provider is verified with one call and no external consent probe", async () => {
+test("a hosted Search model is verified with one consented call; its consent probe and withdrawn consent are checked too", async () => {
   const id = "@cf/meta/llama-3.1-8b-instruct-fp8";
   const f = fixture({ model: id, expectedModel: id });
-  await verifyRelease(f.options); assert.equal(f.count(), 1);
+  const logs = [];
+  await verifyRelease({ ...f.options, log: line => logs.push(line) }); assert.equal(f.count(), 1);
+  assert.ok(logs.includes("Provider consent: enforced") && logs.includes("Provider consent: enforced after caching"));
+  await assert.rejects(verifyRelease(fixture({ model: id, expectedModel: id, cachedConsent: true }).options), /Withdrawn consent/);
+});
+test("a Search model outside the model catalog fails the check before any request", async () => {
+  const f = fixture({ model: "google/not-in-catalog", expectedModel: "google/not-in-catalog" });
+  await assert.rejects(verifyRelease(f.options), /not in the model catalog/); assert.equal(f.count(), 0);
 });
 test("staging may report a spent free answer budget; production and other failures still fail", async () => {
   await verifyRelease({ ...fixture({ answerStatus: 429 }).options, allowPaused: true });
@@ -54,7 +62,8 @@ test("a single slow or unavailable answer is tried once more; two in a row fail"
     let n = 0;
     const inner = f.options.fetcher;
     f.options.fetcher = async (url, init) => {
-      if (new URL(url).pathname !== "/api/search/answer" || !init.headers.authorization) return inner(url, init);
+      // The consent probes (no agreement sent) pass through; the plan applies to the answer requests.
+      if (new URL(url).pathname !== "/api/search/answer" || !init.headers.authorization || !init.headers["x-ai-consent"]) return inner(url, init);
       const step = plan[n++] ?? "pass";
       if (step === "timeout") throw timeout();
       if (typeof step === "number") return new Response(JSON.stringify({ ok: false, error: "unavailable" }), { status: step });
@@ -86,7 +95,7 @@ test("honest uncited output warns only with separately labelled known library ma
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /no cited answer/);
   const counts = JSON.parse(logs.find(line => line.startsWith("Search answer diagnostics:")).split(": ")[1]);
-  assert.deepEqual(counts, { sources_returned: 0, citation_tokens_found: 2, valid_ids: 0, retries: 1, model: "google/test" });
+  assert.deepEqual(counts, { sources_returned: 0, citation_tokens_found: 2, valid_ids: 0, retries: 1, model: "google/gemini-2.5-flash-lite" });
   assert.ok(!JSON.stringify(logs).includes(relatedVerse.text));
   for (const patch of [
     { related: undefined }, { related: { label: "Cited sources", passages: [relatedVerse] } },
