@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { financialDb } from './helpers/financial-db.mjs';
 import { signInitData } from '../src/initdata.mjs';
+import Anthropic from '@anthropic-ai/sdk';
 
 const out = new URL('./.build/ask-recovery.mjs', import.meta.url).pathname;
 await build({
@@ -18,6 +19,7 @@ await build({
     b.onLoad({filter:/.*/,namespace:'fixture'}, () => ({loader:'js',contents:`
       export async function runAgent(env,q,history,first,retrieve,emit,ctx,uid,model,spend,resources,rounds,tools,options) {
         env.calls.push({uid,model:model.id});
+        if (env.busy) throw env.busy;
         spend.modelUsd += 0.001;
         if (env.mode !== 'before-text') emit({delta:'Original fixture words [1].'});
         env.entered?.();
@@ -28,7 +30,7 @@ await build({
           env.gate.then(resolve,reject).finally(() => options.signal.removeEventListener('abort',stop));
         });
         if(env.failAnswer) throw new Error('fixture failure');
-        return {text:'Original fixture words [1].', passages:[{kind:'spoken',title:'Existing source',url:'/classes/existing',text:'Original fixture words.'}],actions:[],cut:false};
+        return {text:'Original fixture words [1].', passages:[{kind:'spoken',title:'Existing source',url:'/classes/existing',text:'Original fixture words.'}],actions:[],cut:false,grounded:env.grounded};
       }
     `}));
   }}],
@@ -370,4 +372,40 @@ test('Delete my data closes recovery before feedback so a late receipt cannot re
   assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_requests').get().n,0);
   const receipts=f.sql.prepare('SELECT id FROM ask_answer_receipts').all();
   assert.deepEqual(receipts.map(r=>r.id),[other]);
+});
+
+// t1v on #569: these follow rules already on main.
+test('(a) with billing off no free usage line is sent or kept, and the request is still settled',async t=>{
+  const f=setup(t,{ASK_BILLING:'off'});
+  const lines=await events(await req(f,body()));
+  assert.ok(lines.some(e=>e.done)); assert.equal(lines.some(e=>e.usage),false,'no usage line with billing off');
+  const saved=await (await recover(f)).json();
+  assert.equal(saved.settlement,'settled'); assert.equal(saved.usage,undefined);
+  const replay=await events(await req(f,body())); assert.equal(replay.some(e=>e.usage),false,'nor on replay');
+  const approved=await events(await req(f,body({q:'Approved fixture question?',request:'recovery-fixture-2',consent:[],caps:{}})));
+  assert.ok(approved.some(e=>e.done)); assert.equal(approved.some(e=>e.usage),false,'nor for an approved answer');
+});
+
+test('(c) a storage failure while recording a refusal that billed nothing still gives the free hold back (#605/#618)',async t=>{
+  const busy=Anthropic.APIError.generate(429,{type:'error',error:{type:'rate_limit_error',message:'fixture'}},'fixture busy',new Headers());
+  for(const [label,storageFails] of [['recorded',false],['storage failed',true]]){
+    const f=setup(t,{ASK_BILLING:'off',ASK_FREE_MODELS:MODEL,busy});
+    if(storageFails) f.fail(/UPDATE ask_requests SET state = \?, payload = \?/,1);
+    const lines=await events(await req(f,body({consent:['Anthropic']})));
+    assert.equal(lines.find(e=>e.error)?.error,'busy',label);
+    const holds=f.sql.prepare('SELECT reserved_micro AS r, state FROM free_spend_holds').all();
+    assert.equal(holds.length,1,label); assert.notEqual(holds[0].state,'held',label);
+    const spent=f.sql.prepare('SELECT COALESCE(SUM(usd_micro),0) AS m FROM free_spend_daily').get().m;
+    assert.ok(spent<holds[0].r,`${label}: the hold is released (${spent} of ${holds[0].r})`);
+  }
+});
+
+test('(f) the saved chat names the writer: the model, or "none" for a fixed text no model wrote (#600)',async t=>{
+  for(const [grounded,writer] of [[undefined,MODEL],[false,'none']]){
+    const f=setup(t,{grounded}); await fund(f);
+    const done=(await events(await req(f,body({chat:'fixturechat'})))).find(e=>e.done);
+    assert.equal(done.versions.model,writer);
+    const chat=await api.getChat(f.env,77,'fixturechat');
+    assert.equal(chat.turns[1].model,writer,`grounded ${grounded}`);
+  }
 });

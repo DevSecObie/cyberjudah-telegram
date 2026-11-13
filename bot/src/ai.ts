@@ -850,9 +850,11 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
     claim = claimed.row;
     if (approved) {
       const done = { done: true, request, answer_id: claim.answer_id, model: model.id, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true, versions: await answerVersions(env, "approved") };
-      await saveAskRequest(env, claim, "completed", { done, settlement: "settled", usage: { charged_mc: 0, free: true } });
+      // A free usage line only with billing on, as for every answer (main's creditsOn rule).
+      const usage = creditsOn(env) ? { charged_mc: 0, free: true } : undefined;
+      await saveAskRequest(env, claim, "completed", { done, settlement: "settled", ...(usage ? { usage } : {}) });
       await issueAnswerReceipt(env, userId, done.sources, Date.now(), claim.answer_id);
-      return new Response(line({ delta: approved.answer }) + line(done) + line({ usage: { charged_mc: 0, free: true } }), { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
+      return new Response(line({ delta: approved.answer }) + line(done) + (usage ? line({ usage }) : ""), { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
     }
   } catch { return reply(503, { error: "unavailable" }); }
   // The balance: held before anything is spent, settled once at the end with what the answer
@@ -898,11 +900,16 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           .catch(() => undefined).finally(() => { checkpointBusy = false; });
       }, 5000);
       let outcome: RequestResult | undefined;
-      const usageOf = (used: Awaited<ReturnType<typeof finishMeter>>) => used ? { charged_mc: used.charged_mc, balance: used.balance } : !meter || meter.free ? { charged_mc: 0, free: true } : undefined;
+      // What the answer cost, and the balance after it; the free model and admins pay nothing, and a free
+      // usage line is sent only with billing on (main's creditsOn rule). With no meter (billing off) or a
+      // free one, nothing is left to reconcile; a paid meter whose settle returned nothing stays pending.
+      const usageOf = (used: Awaited<ReturnType<typeof finishMeter>>) => used ? { charged_mc: used.charged_mc, balance: used.balance } : meter?.free && creditsOn(env) ? { charged_mc: 0, free: true } : undefined;
+      const settlementOf = (used: Awaited<ReturnType<typeof finishMeter>>): RequestResult["settlement"] => used || !meter || meter.free ? "settled" : "pending";
       // The finished exchange is saved to the person's conversations, even if they left mid-answer.
-      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false, study: StudyFields = {}) => {
+      // `writer` is the model that wrote the answer, "none" for a fixed text no model wrote (#600).
+      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false, study: StudyFields = {}, writer = model.id) => {
         if (!chatId) return;
-        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, ...study, request, answer_id: claim.answer_id, model: model.id }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, ...study, request, answer_id: claim.answer_id, model: writer }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
       };
       // Each finished line names what the answer was made with (ask-versions.ts); a fixed sentence,
       // written by no model, names the model "none". `writer` overrides the line's own `model` for
@@ -911,7 +918,8 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         clearInterval(checkpointTimer); await checkpoint;
         const { model: packetModel, ...rest } = packet as Record<string, unknown> & { model?: unknown };
         const resolvedModel = packetModel === undefined ? model.id : packetModel;
-        const versions = await answerVersions(env, writer ?? (typeof resolvedModel === "string" ? resolvedModel : "none"));
+        const wroteIt = writer ?? (typeof resolvedModel === "string" ? resolvedModel : "none");
+        const versions = await answerVersions(env, wroteIt);
         const done = { ...rest, ...study, done: true, request, answer_id: claim.answer_id, ...(typeof resolvedModel === "string" ? { model: resolvedModel } : {}), versions };
         const prepared: RequestResult = { done, settlement: "pending" };
         // Save the whole answer before charging or claiming completion on the wire.
@@ -920,21 +928,23 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         await issueAnswerReceipt(env, userId, packet.sources as { n?: number }[], Date.now(), claim.answer_id);
         const used = await finish(status);
         const usage = usageOf(used);
-        outcome = { done, ...(usage ? { usage } : {}), settlement: usage ? "settled" : "pending" };
+        outcome = { done, ...(usage ? { usage } : {}), settlement: settlementOf(used) };
         await saveAskRequest(env, claim, "completed", outcome);
-        await keep(String(packet.answer), packet.sources as unknown[], packet.followups as string[], steps, actions, packet.cut === true, study);
+        await keep(String(packet.answer), packet.sources as unknown[], packet.followups as string[], steps, actions, packet.cut === true, study, wroteIt);
         send(done); if (usage) send({ usage });
       };
       const fail = async (status: Parameters<typeof finishMeter>[2], error: string, chargePartial = false) => {
         clearInterval(checkpointTimer); await checkpoint;
         const state = signal.aborted ? "interrupted" : "failed";
         const prepared: RequestResult = { error, ...(partial ? { partial } : {}), settlement: "pending" };
-        // A partial answer may be charged under #548 only once it is durable too.
+        // A partial answer may be charged under #548 only once it is durable too. A storage failure refunds
+        // the reader (no partial charge) and otherwise settles as the failure says (#605/#618): a refusal
+        // that billed nothing ("empty") still gives the free hold back.
         let saved = false;
         try { await saveAskRequest(env, claim, state, prepared); saved = true; } catch { /* storage failure: refund the reader */ }
-        const used = await finish(saved ? status : "failed", saved && chargePartial);
+        const used = await finish(saved || status !== "partial" ? status : "failed", saved && chargePartial);
         const usage = usageOf(used);
-        outcome = { ...prepared, ...(usage ? { usage } : {}), settlement: usage ? "settled" : "pending" };
+        outcome = { ...prepared, ...(usage ? { usage } : {}), settlement: settlementOf(used) };
         await saveAskRequest(env, claim, state, outcome).catch(() => undefined);
         send({ error, request, answer_id: claim.answer_id, state }); if (usage) send({ usage });
       };
