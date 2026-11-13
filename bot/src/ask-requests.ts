@@ -73,8 +73,10 @@ export async function claimAskRequest(env: Env, identity: Awaited<ReturnType<typ
 
 /** Old paid request IDs remain single-use across this rollout, even without a recoverable result. */
 export async function legacyAskRequest(env: Env, owner: string, request: string): Promise<boolean> {
-  await ensureCreditTables(env);
-  return !!await env.DB.prepare("SELECT 1 FROM credit_holds WHERE user_id = ? AND request_id = ?").bind(owner, request).first();
+  // A read only: it runs before the consent check, which does no billing work (#601), so a missing
+  // credit table means there is no old hold rather than a reason to create one.
+  try { return !!await env.DB.prepare("SELECT 1 FROM credit_holds WHERE user_id = ? AND request_id = ?").bind(owner, request).first(); }
+  catch (e) { if (/no such table/i.test(String((e as Error)?.message ?? e))) return false; throw e; }
 }
 
 export async function startAskRequest(env: Env, claim: RequestClaim, budgetRequest?: string): Promise<void> {

@@ -335,7 +335,9 @@ test('approved answers retain one recoverable feedback ID with no inference or c
   assert.equal(replay[0].replay,true); assert.equal(replay[0].answer_id,done.answer_id);
   assert.equal(replay.find(e=>e.done).answer_id,done.answer_id);
   assert.equal(f.env.calls.length,0);
-  assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM credit_usage').get().n,0);
+  // No charge: an approved answer does no billing work at all, so the usage table may not even exist (#601).
+  const usageTable=f.sql.prepare("SELECT 1 FROM sqlite_master WHERE name = 'credit_usage'").get();
+  assert.equal(usageTable?f.sql.prepare('SELECT COUNT(*) AS n FROM credit_usage').get().n:0,0);
   assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM ask_answer_receipts').get().n,1);
 });
 

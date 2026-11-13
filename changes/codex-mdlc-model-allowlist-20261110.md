@@ -1,0 +1,1 @@
+- Ask keeps its current model choices while recording choices outside a reviewed model list. Model restrictions apply only when enforcement is explicitly enabled.
