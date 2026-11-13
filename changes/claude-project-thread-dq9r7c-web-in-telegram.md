@@ -1,0 +1,2 @@
+- Web app: deploys the app commit that opens as a Telegram Mini App when started from the bot, and lets Telegram Web (web.telegram.org) show it in its frame.
+- Bot: `/web` (private chats) sends a button that opens web.cyberjudah.io inside Telegram, beside the existing Mini App.
