@@ -269,7 +269,7 @@ function DeckOverlay({ items, sections, source, reference, from, mode, selected,
           <div className="bs-player__actions">
             {selected.url
               ? <button type="button" style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }} onClick={() => openNote(selected)}>Class notes</button>
-              : <RequestNotes video={selected.video} title={selected.label} style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }} />}
+              : <RequestNotes compact video={selected.video} title={selected.label} style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }} />}
             <button type="button" style={{ background: "var(--canvas)", color: "var(--text-1)", borderColor: "var(--control-edge)" }} onClick={() => { haptic("select"); openLink(youtube(selected.video, selected.t)); }}>Open in YouTube</button>
           </div>
         </div>

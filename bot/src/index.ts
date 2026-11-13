@@ -44,7 +44,8 @@ import { resources } from "./resources";
 import { bs } from "./bs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
-import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
+import { askedBy, closeRequest, getRequest, listRequests, requestNotes, tellersOf, validVideo } from "./requests";
+import { deliverReadyNotes, takeReady } from "./notes-ready";
 import { tellAdmins } from "./health";
 import { syncRequestIssue } from "./request-issues";
 import { reportMessage } from "./report.mjs";
@@ -143,6 +144,9 @@ app.use("/api/*", async (c, next) => {
     const allowed = (c.req.method === "POST" && ["/api/ask", "/api/report", "/api/feedback"].includes(c.req.path)) ||
       (c.req.method === "GET" && /^\/api\/(?:search|teachings|live|recent|taught|transcript|visuals)(?:\/|$)/.test(c.req.path)) ||
       (c.req.method === "GET" && ["/api/ask/account", "/api/ask/history", "/api/me", "/api/privacy/export"].includes(c.req.path)) ||
+      // Asking for a class's notes, and hearing when they are out (not the admins' list).
+      ((c.req.method === "GET" || c.req.method === "POST") && /^\/api\/requests\/[A-Za-z0-9_-]{11}$/.test(c.req.path)) ||
+      (c.req.method === "GET" && c.req.path === "/api/requests/ready") ||
       (/^\/api\/chats(?:\/[a-zA-Z0-9_-]+(?:\/actions\/[a-zA-Z0-9_-]+)?)?$/.test(c.req.path)) ||
       c.req.path.startsWith("/api/study-backup") || (c.req.method === "POST" && c.req.path === "/api/privacy/delete");
     if (!allowed) return c.json({ error: "telegram_sign_in_required" }, 403);
@@ -470,20 +474,32 @@ app.post("/api/admin/adjust", async (c) => {
 // most asked for first and are told as a class gathers asks.
 app.get("/api/requests", async (c) => {
   if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
-  return c.json({ ok: true, requests: await listRequests(c.env) });
+  // Each class with the names of the readers waiting to be told (admins only; never published).
+  const rows = await listRequests(c.env);
+  const requests = await Promise.all(rows.map(async (row) => {
+    const askers = (await tellersOf(c.env, await getRequest(c.env, row.video))).map((t) => ({ name: t.name, ...(t.username ? { username: t.username } : {}) }));
+    return { ...row, askers };
+  }));
+  return c.json({ ok: true, requests });
 });
+// The notes a reader asked for that came out since the phone app last looked (notes-ready.ts).
+app.get("/api/requests/ready", async (c) => c.json({ ok: true, ready: await takeReady(c.env, c.get("tma").user!.id) }));
 app.get("/api/requests/:video", async (c) => {
   const video = c.req.param("video");
   if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
   const r = await getRequest(c.env, video);
-  return c.json({ ok: true, count: r?.count ?? 0, mine: await askedBy(c.env, r, c.get("tma").user!.id) });
+  const uid = c.get("tma").user!.id;
+  const me = await pid(c.env, uid);
+  return c.json({ ok: true, count: r?.count ?? 0, mine: await askedBy(c.env, r, uid), tell: (await tellersOf(c.env, r)).some((t) => t.pid === me) });
 });
 app.post("/api/requests/:video", async (c) => {
   const video = c.req.param("video");
   if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
-  const body = await c.req.json().catch(() => ({})) as { title?: unknown };
+  const body = await c.req.json().catch(() => ({})) as { title?: unknown; tell?: unknown };
   const title = typeof body.title === "string" ? body.title.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 200) : "";
-  const res = await requestNotes(c.env, video, c.get("tma").user!.id, title, new Date(), (r) => {
+  const tma = c.get("tma");
+  const asker = { id: tma.user!.id, name: tma.user!.first_name ?? "", username: tma.user!.username, via: tma.hash === "firebase-verified" ? "app" as const : "telegram" as const };
+  const res = await requestNotes(c.env, video, asker, title, new Date(), (r) => {
     c.executionCtx.waitUntil((async () => {
       // Queue the class for the notes job: only a class with a transcript, titled from it.
       const t = await loadTranscript(c.env, video, c.executionCtx).catch(() => null);
@@ -492,7 +508,7 @@ app.post("/api/requests/:video", async (c) => {
         : null;
       await tellAdmins(c.env, `Notes requested ${r.count === 1 ? "for the first time" : `${r.count} times`}: ${r.title || video}\nhttps://www.youtube.com/watch?v=${video}\n${issue ? `Queued for the notes job: https://github.com/${CONTENT_REPO}/issues/${issue}` : `Not queued (no class transcript, or GitHub refused). Video id: ${video}`}`);
     })());
-  });
+  }, body.tell === true);
   return c.json({ ok: true, ...res });
 });
 app.delete("/api/requests/:video", async (c) => {
@@ -727,7 +743,11 @@ export default {
       await Promise.all([
         sendReminders(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "reminders_failed" }))),
         sendTopupReminders(env, event.scheduledTime, sender).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch(() => console.error(JSON.stringify({ event: "topup_reminders_failed" }))),
-        ...(event.cron === "0 * * * *" ? [sendDaily(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "daily_failed" })))] : []),
+        ...(event.cron === "0 * * * *" ? [
+          sendDaily(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "daily_failed" }))),
+          // Requested notes that came out this hour reach the readers who asked (notes-ready.ts).
+          deliverReadyNotes(env, sender).then((r) => { if (r.ready || r.failed) console.log(JSON.stringify({ event: "notes_ready", ...r })); }).catch(() => console.error(JSON.stringify({ event: "notes_ready_failed" }))),
+        ] : []),
       ]);
     }).then((ran) => { if (!ran) console.log(JSON.stringify({ event: "broadcast_skipped", reason: "leased" })); })
       .catch(() => console.error(JSON.stringify({ event: "broadcast_failed" }))));

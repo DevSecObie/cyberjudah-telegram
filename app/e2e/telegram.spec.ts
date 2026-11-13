@@ -1808,10 +1808,14 @@ test("Reader: the chapter ends with a deck of every class that taught it", async
 
 /** The notes-request API as the worker serves it, kept in the page: CI's worker has no bot token to check the reader with. */
 async function mockNoteRequests(page: Page) {
-  const asked: { video: string; title: string }[] = [];
+  const asked: { video: string; title: string; tell: boolean }[] = [];
   await page.route("**/api/requests/*", (r) => {
     const video = r.request().url().split("/").pop()!.split("?")[0];
-    if (r.request().method() === "POST") { asked.push({ video, title: (r.request().postDataJSON() as { title: string }).title }); return r.fulfill({ json: { ok: true, count: 3, mine: true, added: true } }); }
+    if (r.request().method() === "POST") {
+      const body = r.request().postDataJSON() as { title: string; tell: boolean };
+      asked.push({ video, title: body.title, tell: body.tell });
+      return r.fulfill({ json: { ok: true, count: 3, mine: true, added: true, tell: body.tell } });
+    }
     return r.fulfill({ json: { ok: true, count: 2, mine: false } });
   });
   return asked;
@@ -2277,18 +2281,41 @@ test("the bar is Bible Strong's: icons only, it stays while a page scrolls and s
 
 test("a class without notes says so on its page, and its notes can be requested", async ({ page }) => {
   const asked = await mockNoteRequests(page);
+  // The reader lets the bot write to them when asked (outside Telegram the popup never answers).
+  await page.addInitScript(() => {
+    const t = setInterval(() => { const w = (window as unknown as { Telegram?: { WebApp?: { requestWriteAccess?: (cb: (ok: boolean) => void) => void } } }).Telegram?.WebApp; if (w?.requestWriteAccess) { w.requestWriteAccess = (cb) => cb(true); clearInterval(t); } }, 1);
+  });
   await page.goto(`/watch/UJ0nRIVRPls?t=339${LAUNCH}`);
   const wanted = page.locator(".notes-wanted");
   await expect(wanted).toContainText("No notes for this class yet");
+  await expect(wanted.getByRole("switch", { name: "Tell me when they're ready" })).toHaveAttribute("aria-checked", "true");
   const ask = wanted.locator(".request-notes");
   await ask.click();
   await expect(ask).toHaveText("Notes requested · you and 2 others");
-  expect(asked).toEqual([{ video: "UJ0nRIVRPls", title: expect.any(String) }]);
+  await expect(wanted).toContainText("We'll message you here when the notes are ready.");
+  expect(asked).toEqual([{ video: "UJ0nRIVRPls", title: expect.any(String), tell: true }]);
+});
+
+test("a reader who turns off \"Tell me\" is counted, and can turn it on later", async ({ page }) => {
+  const asked = await mockNoteRequests(page);
+  await page.addInitScript(() => {
+    const t = setInterval(() => { const w = (window as unknown as { Telegram?: { WebApp?: { requestWriteAccess?: (cb: (ok: boolean) => void) => void } } }).Telegram?.WebApp; if (w?.requestWriteAccess) { w.requestWriteAccess = (cb) => cb(true); clearInterval(t); } }, 1);
+  });
+  await page.goto(`/watch/UJ0nRIVRPls?t=339${LAUNCH}`);
+  const wanted = page.locator(".notes-wanted");
+  const tell = wanted.getByRole("switch", { name: "Tell me when they're ready" });
+  await tell.click();
+  await expect(tell).toHaveAttribute("aria-checked", "false");
+  await wanted.locator(".request-notes").click();
+  await expect(wanted.locator(".request-notes")).toHaveText("Notes requested · you and 2 others");
+  await wanted.getByRole("switch", { name: "Tell me when they're ready" }).click();
+  await expect(wanted).toContainText("We'll message you here when the notes are ready.");
+  expect(asked.map((a) => a.tell)).toEqual([false, true]);
 });
 
 test("admins see the classes most asked for, copy their ids for the draft-notes workflow, and mark them done", async ({ page }) => {
   await page.route("**/api/me", (r) => r.fulfill({ json: { user: { id: 1, first_name: "Test" }, subscribed: false, premium: false, admin: true, canEdit: false } }));
-  let rows = [{ video: "UJ0nRIVRPls", title: "The Concept Of Time", count: 3, last: "2026-10-01T00:00:00.000Z" }, { video: "QxWHRujbdpg", title: "Transforming From Immorality", count: 1, last: "2026-09-30T00:00:00.000Z" }];
+  let rows = [{ video: "UJ0nRIVRPls", title: "The Concept Of Time", count: 3, last: "2026-10-01T00:00:00.000Z", askers: [{ name: "David", username: "dave" }, { name: "Sarah" }] }, { video: "QxWHRujbdpg", title: "Transforming From Immorality", count: 1, last: "2026-09-30T00:00:00.000Z" }];
   await page.route("**/api/requests", (r) => r.fulfill({ json: { ok: true, requests: rows } }));
   await page.route("**/api/requests/*", (r) => { if (r.request().method() === "DELETE") { rows = rows.filter((x) => !r.request().url().endsWith(x.video)); return r.fulfill({ json: { ok: true } }); } return r.continue(); });
   await page.goto(`/settings${LAUNCH}`);
@@ -2296,6 +2323,7 @@ test("admins see the classes most asked for, copy their ids for the draft-notes 
   await expect(page).toHaveURL(/\/settings\/requests/);
   await expect(page.locator(".nreq__main b")).toHaveText(["The Concept Of Time", "Transforming From Immorality"]);
   await expect(page.locator(".nreq__main small").first()).toContainText("3 requests");
+  await expect(page.locator(".nreq__main").first()).toContainText("To tell: David (@dave), Sarah");
   await page.getByRole("button", { name: "Mark The Concept Of Time done" }).click();
   await expect(page.locator(".nreq__main b")).toHaveText(["Transforming From Immorality"]);
 });

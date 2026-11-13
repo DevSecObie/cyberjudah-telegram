@@ -17,9 +17,9 @@ const A = "abcdefghijk", B = "ABCDEFGHIJK";
 
 test("a reader's ask counts once, however often they tap", async () => {
   const env = { SUBS: kv(), PRIVACY_KEY: "test-key" };
-  assert.deepEqual(await requestNotes(env, A, 1, "The Kingdom Of Adam"), { count: 1, mine: true, added: true });
-  assert.deepEqual(await requestNotes(env, A, 1, "The Kingdom Of Adam"), { count: 1, mine: true, added: false });
-  assert.deepEqual(await requestNotes(env, A, 2, ""), { count: 2, mine: true, added: true });
+  assert.deepEqual(await requestNotes(env, A, 1, "The Kingdom Of Adam"), { count: 1, mine: true, added: true, tell: false });
+  assert.deepEqual(await requestNotes(env, A, 1, "The Kingdom Of Adam"), { count: 1, mine: true, added: false, tell: false });
+  assert.deepEqual(await requestNotes(env, A, 2, ""), { count: 2, mine: true, added: true, tell: false });
   const r = await getRequest(env, A);
   assert.equal(r.title, "The Kingdom Of Adam");
   assert.deepEqual(r.users, [await pid(env, 1), await pid(env, 2)], "who asked is kept as pseudonymous IDs, not Telegram IDs");
@@ -52,7 +52,7 @@ test("only real YouTube ids are accepted", async () => {
 test("privacy: a request kept with Telegram IDs from before still counts each reader once, and is converted when touched", async () => {
   const env = { SUBS: kv(), PRIVACY_KEY: "test-key" };
   await env.SUBS.put("notereq:AAAAAAAAAAA", JSON.stringify({ video: "AAAAAAAAAAA", title: "Old", count: 1, users: [7], first: "x", last: "x" }));
-  assert.deepEqual(await requestNotes(env, "AAAAAAAAAAA", 7, ""), { count: 1, mine: true, added: false });
+  assert.deepEqual(await requestNotes(env, "AAAAAAAAAAA", 7, ""), { count: 1, mine: true, added: false, tell: false });
   await requestNotes(env, "AAAAAAAAAAA", 8, "");
   const r = JSON.parse(await env.SUBS.get("notereq:AAAAAAAAAAA"));
   assert.deepEqual(r.users, [await pid(env, 7), await pid(env, 8)]);
@@ -94,4 +94,24 @@ test("without a token, or when GitHub refuses, the request is kept and no issue 
   assert.equal(await syncRequestIssue(env, await getRequest(env, A), { title: "X", date: "" }, async () => new Response("", { status: 403 })), null);
   assert.equal((await getRequest(env, A)).issue, undefined);
   assert.equal((await getRequest(env, A)).count, 1);
+});
+
+test("a reader who asks to be told is kept sealed with their name; others are only counted", async () => {
+  const { tellersOf, withoutReader } = await import("../src/requests.ts");
+  const env = { SUBS: kv(), PRIVACY_KEY: "test-key" };
+  assert.deepEqual(await requestNotes(env, A, { id: 1, name: "David", username: "dave", via: "telegram" }, "A class", new Date(), undefined, true), { count: 1, mine: true, added: true, tell: true });
+  assert.deepEqual(await requestNotes(env, A, { id: 2, name: "Sarah", via: "app" }, "", new Date(), undefined, false), { count: 2, mine: true, added: true, tell: false });
+  const r = await getRequest(env, A);
+  assert.match(r.tell, /^s1\./, "names and chats are sealed at rest");
+  assert.doesNotMatch(JSON.stringify(r), /David|dave/);
+  assert.deepEqual(await tellersOf(env, r), [{ pid: await pid(env, 1), name: "David", via: "telegram", username: "dave", chat: 1 }]);
+  // Asking again with the switch on adds the reader to those told, without a second vote.
+  assert.deepEqual(await requestNotes(env, A, { id: 2, name: "Sarah", via: "app" }, "", new Date(), undefined, true), { count: 2, mine: true, added: false, tell: true });
+  const told = await tellersOf(env, await getRequest(env, A));
+  assert.deepEqual(told.map((t) => [t.name, t.via, t.chat]), [["David", "telegram", 1], ["Sarah", "app", undefined]], "an app reader's chat is never kept");
+  // Delete my data takes the reader's vote and name out.
+  const rest = await withoutReader(env, await getRequest(env, A), 1);
+  assert.equal(rest.count, 1);
+  assert.deepEqual((await tellersOf(env, rest)).map((t) => t.name), ["Sarah"]);
+  assert.equal(await withoutReader(env, rest, 2), null);
 });
