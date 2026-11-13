@@ -585,16 +585,27 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   /**
    * Claude could not write this answer: the free model answers instead, as a reader (the list and
    * agreement the follow-up call itself checks), and only with the reader's own agreement to its
-   * provider. That is decided before the meter settles: without it nothing more is sent, the reader's
-   * draft is cleared, and the meter settles as `refused` says; with it the reservation is kept whole.
+   * provider. Without it nothing more is sent, the reader's draft is cleared, and the meter settles as
+   * `refused` says. With it, Claude's meter settles after the free model has run: as "backup" (the
+   * reservation kept whole) only when it wrote an answer; otherwise as `refused` says, so a free model
+   * that could not answer (paused, limited, failed) never keeps a reservation Claude did not bill.
    */
   const fallBack = async (refused: "empty" | "failed", quotaTaken: boolean): Promise<SearchAnswer> => {
     const readerModels = appAskModels(env, undefined, true);
     const fallback = readerModels.find((m) => m.id === freeModel(env).id) ?? readerModels.find((m) => m.format !== "anthropic");
     emit({ reset: true });
     if (!fallback || !consent.includes(fallback.provider)) { await finishMeter(env, meter, refused, Date.now() - t0); return { ok: false, reason: fallback ? "consent" : "model-unavailable" }; }
-    await finishMeter(env, meter, "backup", Date.now() - t0);
-    return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback.id, adminId: undefined, quotaTaken });
+    let result: SearchAnswer;
+    try { result = await answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback.id, adminId: undefined, quotaTaken }); }
+    catch (e) {
+      console.error(JSON.stringify({ event: "app_agent_fallback_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
+      result = { ok: false, reason: "unavailable" };
+    }
+    // A fixed not-in-the-classes sentence is no answer the free model wrote. A failed settle leaves the
+    // reservation held (never reusable) and never costs the reader the answer they were already shown.
+    const wrote = result.ok && !isCoverageGap(result);
+    await finishMeter(env, meter, wrote ? "backup" : refused, Date.now() - t0).catch((e: Error) => console.error(JSON.stringify({ event: "app_agent_settle_failed", message: e.message?.slice(0, 160) })));
+    return result;
   };
   try {
     // The first search runs before the model does: its steps are shown (the app's "Researched" row)
@@ -634,9 +645,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     // deadline's excerpts): marked as a gap (not sent to the app), so app-ask records the writer as
     // "none" while `model` stays the app's label (#600).
     const result = ran.grounded === false || ran.fixed ? markCoverageGap(answered) : answered;
-    // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
-    // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
-    if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
+    // An answer cut off or unfinished is shown as written, but never kept as a finished answer (keepAnswer
+    // refuses it: answer-cache.ts incomplete). One that used the reader's own data (agent.ts readerData) is
+    // never kept for other readers.
+    if (result.ok && result.sources.length && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);
@@ -949,10 +961,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         send({ error, request, answer_id: claim.answer_id, state }); if (usage) send({ usage });
       };
       const job = (async () => {
+        let backup = false;
+        // How Claude's meter settles when the backup writes no answer: the reservation goes back when
+        // Claude refused before writing (nothing billed), and is kept whole after a server error.
+        let claudeSettle: "empty" | "failed" = "failed";
         try {
           const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), timeLeft(startedAt + MAX_RESEARCH_MS)), 8);
     signal.throwIfAborted();
-          let backup = false;
           // Claude needs its own access (hasClaude); every other model goes through the AI Gateway.
           if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
             // Claude researches first (searches and verses, reported as it goes), then writes.
@@ -967,13 +982,12 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               // backup model answers from the passages already found, and the reader is not charged.
               if (signal.aborted || !claudeUnavailable(e)) throw e;
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
-              await alertClaudeFunds(env, e);
+              // Without the reader's agreement to the backup's provider no backup answer is written. The meter
+              // settles once the backup's outcome is known: as "backup" (kept whole) only when it writes one.
               backup = true;
-              // Decided before the meter settles: without the reader's agreement to the backup's provider
-              // no backup answer is written. The free reservation goes back when Claude refused before
-              // writing (nothing billed), and is kept whole after a server error or lost connection.
-              if (!mayUseBackup(consent)) { send({ reset: true }); await fail(claudeRefusedUnbilled(e) ? "empty" : "failed", "busy"); return; }
-              await finish("backup");
+              claudeSettle = claudeRefusedUnbilled(e) ? "empty" : "failed";
+              await alertClaudeFunds(env, e);
+              if (!mayUseBackup(consent)) { send({ reset: true }); await fail(claudeSettle, "busy"); return; }
               guard.emit({ reset: true });
               send({ status: "Answering with the backup model" });
             }
@@ -1001,7 +1015,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
           // rather than that the library has nothing (which only the research could tell).
-          if (!passages.length && backup) { await fail("backup", "busy"); return; }
+          if (!passages.length && backup) { await fail(claudeSettle, "busy"); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
             send({ delta: answer }); await complete({ answer, followups: [], sources: [], unsupported_refs: [], model: null }, "empty"); return;
@@ -1009,17 +1023,17 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           if (assessCoverage(env, retrievalText(question, history), passages).blocked) {
             const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
             const sources = await askSourcesOf(env, gap.answer, gap.sources);
-            send({ reset: true }); send({ delta: gap.answer }); await complete({ answer: gap.answer, followups: [], sources, unsupported_refs: [], model: null }, "empty"); return;
+            send({ reset: true }); send({ delta: gap.answer }); await complete({ answer: gap.answer, followups: [], sources, unsupported_refs: [], model: null }, backup ? claudeSettle : "empty"); return;
           }
           // The backup sends the question to its own provider: only with the reader's agreement to it.
           // Without it nothing is sent, and the reader is told honestly that no answer could be written.
-          if (!mayUseBackup(consent)) { await fail("empty", backup ? "busy" : "unavailable"); return; }
+          if (!mayUseBackup(consent)) { await fail(backup ? claudeSettle : "empty", backup ? "busy" : "unavailable"); return; }
           let answer = "";
           const wrote: { model?: string } = {};
           const guard = guardedStream<unknown>(send, () => passageEvidence(passages));
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; guard.emit({ delta: piece }); }
           const { answer: draft, followups } = splitFollowups(answer);
-          if (!draft.trim()) { await fail("empty", "empty"); return; }
+          if (!draft.trim()) { await fail(backup ? claudeSettle : "empty", "empty"); return; }
           // The final step (answer-final.ts), as for every answer.
           const clean = await finalAnswer(env, draft, { evidence: passageEvidence(passages) });
           guard.settle(clean, draft);
@@ -1029,12 +1043,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;
-          if (!outcome?.done) await fail(paidPartial ? "partial" : "failed", "unavailable", paidPartial);
+          if (!outcome?.done) await fail(paidPartial ? "partial" : backup ? claudeSettle : "failed", "unavailable", paidPartial);
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
           if (outcome?.done) send({ error: "unavailable", request, answer_id: claim.answer_id });
         } finally {
           // Whatever way it ended, the hold is settled once: an answer that got no further is not charged.
-          await finish("failed").catch(() => undefined);
+          // After Claude failed, a backup that wrote no answer settles by Claude's own refusal.
+          await finish(backup ? claudeSettle : "failed").catch(() => undefined);
           clearInterval(beat);
           clearInterval(checkpointTimer);
           if (chatId) await clearPending(env, userId, chatId).catch(() => undefined);
