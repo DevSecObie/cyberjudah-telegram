@@ -1,0 +1,1 @@
+- Classes: the notes of a class show again under its player in the Mini App. A class's notes are now found from the published notes, so every note shows as soon as it is published.

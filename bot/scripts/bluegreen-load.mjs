@@ -37,16 +37,33 @@ const startRe = (tables) => new RegExp(`^(DROP TABLE IF EXISTS |CREATE (?:VIRTUA
 
 /** Splits a load file into statements (each starts a line with DROP, CREATE or INSERT). */
 export function statements(sql, tables = SEARCH.tables) {
+  return [...splitLines(String(sql).split("\n"), tables)];
+}
+
+function* splitLines(lines, tables) {
   const START = startRe(tables);
-  const out = [];
   let cur = "";
-  for (const line of String(sql).split("\n")) {
+  for (const line of lines) {
     if (line.startsWith("-- ")) continue;
-    if (START.test(line) && cur.trim()) { out.push(cur.trim()); cur = ""; }
+    if (START.test(line) && cur.trim()) { yield cur.trim(); cur = ""; }
     cur += (cur ? "\n" : "") + line;
   }
-  if (cur.trim()) out.push(cur.trim());
-  return out;
+  if (cur.trim()) yield cur.trim();
+}
+
+/**
+ * The same, from lines read one at a time (an async iterable, such as readline over a file), so a
+ * load file larger than a JavaScript string can hold (the teachings index is) is never read whole.
+ */
+export async function* statementStream(lines, tables = SEARCH.tables) {
+  const START = startRe(tables);
+  let cur = "";
+  for await (const line of lines) {
+    if (line.startsWith("-- ")) continue;
+    if (START.test(line) && cur.trim()) { yield cur.trim(); cur = ""; }
+    cur += (cur ? "\n" : "") + line;
+  }
+  if (cur.trim()) yield cur.trim();
 }
 
 /**
@@ -112,16 +129,15 @@ async function exists(run, table) {
 }
 
 /** Rows each table should hold: search_meta's count, or one per INSERT where each writes one row. */
-async function expectedRows(run, list, tables) {
+async function expectedRows(run, inserts, tables) {
   if (tables.includes("search_meta")) return { search_docs: Number(first(await run("SELECT v FROM search_meta_next WHERE k = 'rows'")).v) };
-  const want = {};
-  for (const t of tables) want[t] = list.filter((s) => s.startsWith(`INSERT INTO ${t}_next VALUES(`)).length;
-  return want;
+  return Object.fromEntries(tables.map((t) => [t, inserts[t] ?? 0]));
 }
 
 /**
  * Loads `sql` into the spare tables, checks them and switches readers over, holding the lease on
- * the tables throughout.
+ * the tables throughout. `sql` is the file's text, or a function that opens its lines as an async
+ * iterable (read as it loads, for a file too large to hold as one string).
  * Resolves to { rows } on success; throws (leaving the live tables untouched) if the spare copy
  * fails its check.
  */
@@ -138,16 +154,30 @@ export async function bluegreenLoad(sql, run, { tables = SEARCH.tables, probe = 
 }
 
 async function loadHeld(sql, run, { tables, probe, maxBytes, log, tag, renew }) {
-  const list = statements(sql, tables).map((s) => toNext(s, tables, tag));
+  // A function opens the file only now that the lease is held (lines read early would be lost).
+  const text = typeof sql === "function" ? sql() : sql;
+  const source = typeof text === "string" ? splitLines(text.split("\n"), tables) : statementStream(text, tables);
   await run(tables.map((t) => `DROP TABLE IF EXISTS ${t}_next;`).join("\n"));
-  const groups = batches(list, maxBytes);
-  log(`loading ${list.length} statements into ${tables.map((t) => `${t}_next`).join(", ")} in ${groups.length} batches`);
-  for (let i = 0; i < groups.length; i++) {
-    await run(groups[i].join("\n"));
-    if ((i + 1) % 50 === 0) { log(`  ${i + 1}/${groups.length} batches`); await renew(); }
+  log(`loading into ${tables.map((t) => `${t}_next`).join(", ")} in batches of up to ${Math.round(maxBytes / 1000)} kB`);
+  const inserts = {};
+  let batch = [], size = 0, sent = 0, count = 0;
+  const flush = async () => {
+    if (!batch.length) return;
+    await run(batch.join("\n"));
+    batch = []; size = 0; sent++;
+    if (sent % 50 === 0) { log(`  ${sent} batches, ${count} statements`); await renew(); }
+  };
+  for await (const statement of source) {
+    const s = toNext(statement, tables, tag);
+    count++;
+    for (const t of tables) if (s.startsWith(`INSERT INTO ${t}_next VALUES(`)) inserts[t] = (inserts[t] ?? 0) + 1;
+    if (batch.length && size + s.length > maxBytes) await flush();
+    batch.push(s); size += s.length + 1;
   }
+  await flush();
+  log(`loaded ${count} statements in ${sent} batches`);
   // The check: each table holds exactly the rows the file wrote, and a word search finds some.
-  const want = await expectedRows(run, list, tables);
+  const want = await expectedRows(run, inserts, tables);
   const rows = {};
   for (const [t, n] of Object.entries(want)) {
     rows[t] = Number(first(await run(`SELECT count(*) AS n FROM ${t}_next`)).n);
