@@ -644,9 +644,10 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
     // deadline's excerpts): marked as a gap (not sent to the app), so app-ask records the writer as
     // "none" while `model` stays the app's label (#600).
     const result = ran.grounded === false || ran.fixed ? markCoverageGap(answered) : answered;
-    // An answer cut off at its length limit is shown as written, but never kept as a finished answer.
-    // An answer that used the reader's own data (agent.ts readerData) is never kept for other readers.
-    if (result.ok && result.sources.length && !ran.cut && study.partial !== true && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
+    // An answer cut off or unfinished is shown as written, but never kept as a finished answer (keepAnswer
+    // refuses it: answer-cache.ts incomplete). One that used the reader's own data (agent.ts readerData) is
+    // never kept for other readers.
+    if (result.ok && result.sources.length && ran.grounded !== false && !ran.readerData) await keepAnswer(env, key, { ...result, ...finalMark(result) }, options.traceId);
     return result;
   } catch (e) {
     await finishMeter(env, meter, "failed", Date.now() - t0).catch(() => null);

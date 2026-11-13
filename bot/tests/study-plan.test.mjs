@@ -22,10 +22,13 @@ const BOOKS = [{ book: 'Exodus', slug: 'exodus', chapters: 40 }, { book: 'Psalms
 test('final fields preserve a stopping limit even when all research parts were covered', () => {
   const plan = [{ id: 'p1', ask: 'The Passover practice', refs: [] }];
   const parts = [{ id: 'p1', status: 'covered', sources: [1] }];
+  // Every part covered but a limit stopped it (the answer was cut): complete, never partial with no
+  // unfinished part; the stop reason is kept, and the answer is still never cached (answer-cache.ts).
   for (const stopped of ['rounds', 'budget', 'deadline']) {
     const result = api.studyFields(true, plan, { parts, complete: true, stopped }, [1]);
-    assert.equal(result.partial, true);
-    assert.equal(result.coverage.complete, false);
+    assert.equal(result.partial, undefined, stopped);
+    assert.equal(result.unfinished, undefined, stopped);
+    assert.equal(result.coverage.complete, true, stopped);
     assert.equal(result.coverage.stopped, stopped);
   }
   const result = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered' }, [1], 'A different subject [1].');
@@ -459,3 +462,35 @@ for (const format of ['chat', 'responses', 'messages']) {
     }
   });
 }
+
+test("an answer's coverage is checked against its text once, on the final text (studyFields), not also on the draft", async () => {
+  const { readFileSync } = await import('node:fs');
+  const agent = readFileSync(new URL('../src/agent.ts', import.meta.url), 'utf8');
+  const finish = agent.slice(agent.indexOf('const finish = ('), agent.indexOf('const timedOut = ('));
+  assert.match(finish, /coverageOf\(stopBy, result\.cut\)/);
+  assert.doesNotMatch(finish, /coverageOf\([^)]*result\.text/);
+  const ai = readFileSync(new URL('../src/ai.ts', import.meta.url), 'utf8');
+  const calls = [...ai.matchAll(/studyFields\(ran\.tracked, ran\.plan, ran\.coverage, sources\.map\(\(?s\)? => s\.n\), (\w+)\)/g)].map(m => m[1]);
+  assert.equal(calls.length, (ai.match(/studyFields\(/g) ?? []).length, 'every studyFields call is in the checked form');
+  assert.deepEqual([...new Set(calls)], ['answer'], 'each gets the final answer');
+  // The final text decides: a covered part the final answer doesn't address is partial.
+  const plan = [{ id: 'p1', ask: 'The Passover practice', refs: [] }];
+  const done = api.studyFields(true, plan, { parts: [{ id: 'p1', status: 'covered', sources: [1] }], complete: true, stopped: 'covered' }, [1], 'Unrelated words [1].');
+  assert.equal(done.coverage.parts[0].status, 'partial');
+  assert.deepEqual(done.unfinished, [{ id: 'p1', ask: plan[0].ask }]);
+});
+
+test("a part the final text leaves open names the limit that ended research, not 'not found'; the limit is never sent", () => {
+  const plan = [{ id: 'p1', ask: 'The Passover practice', refs: [] }];
+  const parts = [{ id: 'p1', status: 'covered', sources: [1] }];
+  const open = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered', limit: 'rounds' }, [1], 'Unrelated words [1].');
+  assert.equal(open.coverage.stopped, 'rounds');
+  assert.equal(open.partial, true);
+  assert.equal('limit' in open.coverage, false);
+  const none = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered' }, [1], 'Unrelated words [1].');
+  assert.equal(none.coverage.stopped, 'not_found');
+  const answered = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered', limit: 'rounds' }, [1], 'The Passover practice is kept [1].');
+  assert.equal(answered.coverage.stopped, 'covered', 'answered in full: research covered every part');
+  assert.equal(answered.partial, undefined);
+  assert.equal('limit' in answered.coverage, false);
+});
