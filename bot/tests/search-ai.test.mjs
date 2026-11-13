@@ -5,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { createServer } from "node:http";
 import { financialDb } from "./helpers/financial-db.mjs";
+import { isCoverageGap } from "../src/grounding.mjs";
 import { modelOf } from "../../shared/ask-models.mjs";
 import { verifyRelease } from "../scripts/verify-release.mjs";
 
@@ -784,5 +785,33 @@ test("a failed Claude for a reader without agreement to the free provider releas
       assert.deepEqual(r, { ok: false, reason: "consent" }, label);
       assert.deepEqual(sent, [], `${label}: the free model was never called`);
     }
+  }
+});
+
+// #605 follow-up (t1v): with the reader's agreement, Claude's meter settles after the free model has run.
+// Only an answer the free model writes keeps Claude's whole reservation ("backup"). When the free model
+// cannot answer (its day's budget paused, or it fails), the meter settles by Claude's own refusal: a 4xx
+// billed nothing, so the reservation goes back; after a server error it is kept whole.
+test("an agreed fallback that writes no answer keeps Claude's reservation only when Claude may have billed", async t => {
+  let status = 429;
+  const claude = createServer((_req, res) => { res.writeHead(status, { "content-type": "application/json", "x-should-retry": "false" }); res.end(JSON.stringify({ type: "error", error: { type: status === 429 ? "rate_limit_error" : "api_error", message: "fixture" } })); });
+  await new Promise(resolve => claude.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise(resolve => claude.close(resolve)));
+  for (const [code, how, released] of [[429, "paused", true], [500, "paused", false], [429, "throws", true], [500, "throws", false], [429, "gap", true]]) {
+    status = code;
+    const e = { ...claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5", ...(how === "paused" ? { ASK_FREE_DAILY_USD_CAP: "0" } : how === "gap" ? { ASK_COVERAGE_MODE: "enforce" } : {}) }), AI_GATEWAY: "default", ANTHROPIC_BASE_URL: `http://127.0.0.1:${claude.address().port}`,
+      AI: { run: async (model) => { if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] }; if (how === "gap") return { choices: [{ message: { role: "assistant", content: "Fixture words." }, finish_reason: "stop" }], usage: { prompt_tokens: 9, completion_tokens: 2 } }; throw new Error("fixture free model failure"); } },
+      VEC: { query: async () => ({ matches: [] }) } };
+    const label = `${code}, free model ${how}`;
+    const r = await answerAppAgent(e, "Why do we keep the Passover?", `acct-fallback-${code}-${how}`, [], [...AGREED, "Anthropic"], {});
+    // With nothing found and coverage enforced, the reader gets the fixed not-in-the-classes sentence: no model wrote it.
+    if (how === "gap") assert.ok(r.ok && isCoverageGap(r), `${label}: the fixed sentence (${JSON.stringify(r).slice(0, 200)})`);
+    else assert.equal(r.ok, false, `${label}: no answer was written (${JSON.stringify(r)})`);
+    const holds = (await e.DB.prepare("SELECT reserved_micro AS r, state FROM free_spend_holds WHERE day LIKE 'claude:%'").all()).results;
+    const spent = (await e.DB.prepare("SELECT COALESCE(SUM(usd_micro), 0) AS m FROM free_spend_daily WHERE day LIKE 'claude:%'").first()).m;
+    assert.equal(holds.length, 1, `${label}: Claude's pool was reserved once`);
+    assert.notEqual(holds[0].state, "held", `${label}: and settled`);
+    if (released) assert.ok(spent < holds[0].r, `${label}: Claude's reservation is released (${spent} of ${holds[0].r} micro-dollars kept)`);
+    else assert.equal(spent, holds[0].r, `${label}: Claude's whole reservation is kept`);
   }
 });
