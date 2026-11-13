@@ -584,16 +584,25 @@ export async function answerAppAgent(env: Env, q: string, account: string, histo
   /**
    * Claude could not write this answer: the free model answers instead, as a reader (the list and
    * agreement the follow-up call itself checks), and only with the reader's own agreement to its
-   * provider. That is decided before the meter settles: without it nothing more is sent, the reader's
-   * draft is cleared, and the meter settles as `refused` says; with it the reservation is kept whole.
+   * provider. Without it nothing more is sent, the reader's draft is cleared, and the meter settles as
+   * `refused` says. With it, Claude's meter settles after the free model has run: as "backup" (the
+   * reservation kept whole) only when it wrote an answer; otherwise as `refused` says, so a free model
+   * that could not answer (paused, limited, failed) never keeps a reservation Claude did not bill.
    */
   const fallBack = async (refused: "empty" | "failed", quotaTaken: boolean): Promise<SearchAnswer> => {
     const readerModels = appAskModels(env, undefined, true);
     const fallback = readerModels.find((m) => m.id === freeModel(env).id) ?? readerModels.find((m) => m.format !== "anthropic");
     emit({ reset: true });
     if (!fallback || !consent.includes(fallback.provider)) { await finishMeter(env, meter, refused, Date.now() - t0); return { ok: false, reason: fallback ? "consent" : "model-unavailable" }; }
-    await finishMeter(env, meter, "backup", Date.now() - t0);
-    return answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback.id, adminId: undefined, quotaTaken });
+    let result: SearchAnswer;
+    try { result = await answerAppAgent(env, q, account, history, consent, { ...options, signal, model: fallback.id, adminId: undefined, quotaTaken }); }
+    catch (e) {
+      await finishMeter(env, meter, refused, Date.now() - t0);
+      console.error(JSON.stringify({ event: "app_agent_fallback_failed", elapsedMs: Date.now() - t0, message: (e as Error).message?.slice(0, 160) }));
+      return { ok: false, reason: "unavailable" };
+    }
+    await finishMeter(env, meter, result.ok ? "backup" : refused, Date.now() - t0);
+    return result;
   };
   try {
     // The first search runs before the model does: its steps are shown (the app's "Researched" row)
@@ -870,10 +879,13 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, ...study }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
       };
       const job = (async () => {
+        let backup = false;
+        // How Claude's meter settles when the backup writes no answer: the reservation goes back when
+        // Claude refused before writing (nothing billed), and is kept whole after a server error.
+        let claudeSettle: "empty" | "failed" = "failed";
         try {
           const first = answerCandidates(question, await withDeadline(retrieve(env, retrievalText(question, history), 12, spend, signal), timeLeft(startedAt + MAX_RESEARCH_MS)), 8);
     signal.throwIfAborted();
-          let backup = false;
           // Claude needs its own access (hasClaude); every other model goes through the AI Gateway.
           if (model.format === "anthropic" ? hasClaude(env) : !!env.AI_GATEWAY) {
             // Claude researches first (searches and verses, reported as it goes), then writes.
@@ -890,11 +902,10 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               console.error(JSON.stringify({ event: "ask_claude_unavailable", status: (e as { status?: number }).status ?? 0, backup: "workers-ai" }));
               await alertClaudeFunds(env, e);
               backup = true;
-              // Decided before the meter settles: without the reader's agreement to the backup's provider
-              // no backup answer is written. The free reservation goes back when Claude refused before
-              // writing (nothing billed), and is kept whole after a server error or lost connection.
-              if (!mayUseBackup(consent)) { await finish(claudeRefusedUnbilled(e) ? "empty" : "failed"); send({ reset: true }); send({ error: "busy" }); return; }
-              await finish("backup");
+              // Without the reader's agreement to the backup's provider no backup answer is written. The meter
+              // settles once the backup's outcome is known: as "backup" (kept whole) only when it writes one.
+              claudeSettle = claudeRefusedUnbilled(e) ? "empty" : "failed";
+              if (!mayUseBackup(consent)) { await finish(claudeSettle); send({ reset: true }); send({ error: "busy" }); return; }
               guard.emit({ reset: true });
               send({ status: "Answering with the backup model" });
             }
@@ -929,7 +940,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
           // rather than that the library has nothing (which only the research could tell).
-          if (!passages.length && backup) { send({ error: "busy" }); return; }
+          if (!passages.length && backup) { await finish(claudeSettle); send({ error: "busy" }); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
             await finish("empty");
@@ -939,18 +950,18 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           if (assessCoverage(env, retrievalText(question, history), passages).blocked) {
             const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
             const sources = await askSourcesOf(env, gap.answer, gap.sources);
-            await finish("empty"); await keep(gap.answer, sources, []);
+            await finish(backup ? claudeSettle : "empty"); await keep(gap.answer, sources, []);
             send({ reset: true }); send({ delta: gap.answer }); await done({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
           }
           // The backup sends the question to its own provider: only with the reader's agreement to it.
           // Without it nothing is sent, and the reader is told honestly that no answer could be written.
-          if (!mayUseBackup(consent)) { await finish("empty"); send({ error: backup ? "busy" : "unavailable" }); return; }
+          if (!mayUseBackup(consent)) { await finish(backup ? claudeSettle : "empty"); send({ error: backup ? "busy" : "unavailable" }); return; }
           let answer = "";
           const wrote: { model?: string } = {};
           const guard = guardedStream<unknown>(send, () => passageEvidence(passages));
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; guard.emit({ delta: piece }); }
           const { answer: draft, followups } = splitFollowups(answer);
-          if (!draft.trim()) { send({ error: "empty" }); return; }
+          if (!draft.trim()) { if (backup) await finish(claudeSettle); send({ error: "empty" }); return; }
           // The final step (answer-final.ts), as for every answer.
           const clean = await finalAnswer(env, draft, { evidence: passageEvidence(passages) });
           guard.settle(clean, draft);
@@ -962,7 +973,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;
-          await finish(paidPartial ? "partial" : "failed", paidPartial);
+          await finish(paidPartial ? "partial" : backup ? claudeSettle : "failed", paidPartial);
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
           send({ error: "unavailable" });
         } finally {
