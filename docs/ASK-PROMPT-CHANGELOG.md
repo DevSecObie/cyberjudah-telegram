@@ -37,6 +37,7 @@ If two open PRs change the same prompt, the one that merges second merges main i
 | 2026-11-10 | `data-policy-v1` | `DATA_POLICY` (`bot/src/grounding.mjs`) | First versioned id; the text as it was. Its own marker line is `ASK_UNTRUSTED_DATA_POLICY_V1`. | WP1 traceability |
 | 2026-11-10 | `answer-v1` | `buildPrompt` (`bot/src/ai.mjs`), as built for placeholder inputs, including the plain citation guide | First versioned id; the text as it was. | WP1 traceability |
 | 2026-11-10 | `tools-v1` | `TOOL_DEFS` (`bot/src/agent.ts`): every research tool's name, description and input schema | First versioned id; the definitions as they were. | WP1 traceability |
+| 2026-11-13 | `answer-v2` | `buildPrompt` (`bot/src/ai.mjs`) | The reader-voice rule (`READER_VOICE`, `bot/src/grounding.mjs`) now follows the data policy: answers never say "the dataset". Cache revision `reader-voice-v1`. | #615, versioned in #600 |
 
 ## Known limits
 

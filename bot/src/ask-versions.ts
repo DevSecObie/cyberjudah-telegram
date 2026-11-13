@@ -24,7 +24,7 @@ export const PROMPT_IDS = {
   /** grounding.mjs DATA_POLICY */
   dataPolicy: { id: "data-policy-v1", sha256: "6ca5e4fe506e90b546ea59b381e4cadfa342e40a39a52cf175f0819b8d2fcf8f" },
   /** ai.mjs buildPrompt, as built for placeholder inputs (tests/ask-versions.test.mjs) */
-  answer: { id: "answer-v1", sha256: "656af43560945d02b995328fec60f6bf9464c1904753cf3eae9589e1be716370" },
+  answer: { id: "answer-v2", sha256: "1b7a546efb04bb590f44fb0465ead3109a0f4e9847f2cef68873383ff5f4807c" },
   /** agent.ts TOOL_DEFS: names, descriptions and input schemas */
   tools: { id: "tools-v1", sha256: "debf7b8efed9540f85425469176ef3a146c16dda51b8aa9f35b874fb807c5cee" },
 } as const;
