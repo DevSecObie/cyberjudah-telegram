@@ -17,7 +17,7 @@
  * Needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID; GITHUB_TOKEN raises GitHub's rate limit.
  */
 import { chunkRecord, docRecord, EMBED_MODEL, hash } from "../src/ai.mjs";
-import { chunkSegments, videoOfThumb } from "../src/transcripts.mjs";
+import { chunkSegments, embedTailMode, videoOfThumb } from "../src/transcripts.mjs";
 import { indexMark, writeCorpusMark } from "./corpus-mark.mjs";
 
 const args = process.argv.slice(2);
@@ -33,6 +33,8 @@ const getJson = async (url, headers = {}) => { for (let a = 1; ; a++) { const r 
 const DB = "cyberjudah-telegram", INDEX = "cyberjudah-teachings";
 const ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID, TOKEN = process.env.CLOUDFLARE_API_TOKEN;
 if (!ACCOUNT || !TOKEN) { console.error("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are needed"); process.exit(1); }
+// The old short-tail fold until the owner OKs re-embedding the chunks the whole-words fold changes.
+const CHUNK_TAIL = embedTailMode(process.env.EMBED_CHUNK_TAIL);
 const PAGE = 2000, EMBED_BATCH = 100, EMBED_CHARS = 120000, UPSERT_BATCH = 1000, CONCURRENCY = 4;
 
 const cf = async (path, init = {}, raw = false) => {
@@ -126,7 +128,7 @@ async function* records() {
           const page = pages.get(t.videoId);
           const title = page?.title || t.cleanTitle || t.title || t.videoId;
           const produced = new Set();
-          for (const c of chunkSegments(t.segments)) { const r = chunkRecord({ video: t.videoId, t: c.t, text: c.text, kind: KIND[feed], title, url: page?.url ?? "", date: t.date || page?.date || "" }); produced.add(r.id); yield r; }
+          for (const c of chunkSegments(t.segments, { tail: CHUNK_TAIL })) { const r = chunkRecord({ video: t.videoId, t: c.t, text: c.text, kind: KIND[feed], title, url: page?.url ?? "", date: t.date || page?.date || "" }); produced.add(r.id); yield r; }
           // Chunks embedded before that the chunker no longer makes (the scraps) leave the index.
           for (const id of knownByVideo.get(t.videoId) ?? []) if (!produced.has(id)) stale.push(id);
         }
