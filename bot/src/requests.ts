@@ -16,12 +16,13 @@ import { open, pid, seal } from "./privacy.mjs";
  */
 export type NoteRequest = { video: string; title: string; count: number; users: (string | number)[]; first: string; last: string; issue?: number; tell?: string };
 /** A reader to tell when the notes are ready: in Telegram by the bot, in the phone app when it next opens. */
-export type Teller = { pid: string; name: string; username?: string; via: "telegram" | "app"; chat?: number };
+/** First name only: no @username is kept for a request (#622). */
+export type Teller = { pid: string; name: string; via: "telegram" | "app"; chat?: number };
 /**
  * Who is asking, as the sign-in proved it: `pid` is their pseudonymous ID (a Telegram reader's, or
  * an app reader's keyed from their sign-in, app-requests.ts), `chat` the Telegram chat to tell them in.
  */
-export type Asker = { pid: string; name: string; username?: string; via: "telegram" | "app"; chat?: number };
+export type Asker = { pid: string; name: string; via: "telegram" | "app"; chat?: number };
 /** A reader as a number (a Telegram ID, also matched against requests from before pids) or a pid. */
 type Who = number | string;
 const pidOf = (env: Keys, who: Who) => (typeof who === "number" ? pid(env, who) : Promise.resolve(who));
@@ -34,7 +35,8 @@ const sealOwner = (video: string) => `notereq:${video}`;
 export async function tellersOf(env: Keys, r: NoteRequest | null): Promise<Teller[]> {
   if (!r?.tell) return [];
   const list = await open(env, sealOwner(r.video), r.tell);
-  return Array.isArray(list) ? (list as Teller[]) : [];
+  // Only these fields: a @username kept before #622 is dropped on every read, so every write drops it too.
+  return Array.isArray(list) ? (list as Teller[]).map(({ pid: p, name, via, chat }) => ({ pid: p, name, via, ...(chat ? { chat } : {}) })) : [];
 }
 
 const sealTellers = (env: Keys, video: string, list: Teller[]) => (list.length ? seal(env, sealOwner(video), list) : Promise.resolve(undefined));
@@ -86,7 +88,7 @@ export async function requestNotes(env: Keys, video: string, asker: number | Ask
   const a: Asker = typeof asker === "number" ? { pid: me, name: "", via: "telegram", chat: asker } : asker;
   const nextTell = tell && !told
     ? [...tellers, { pid: me, name: a.name.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 64), via: a.via,
-      ...(a.username ? { username: a.username.slice(0, 64) } : {}), ...(a.via === "telegram" && a.chat ? { chat: a.chat } : {}) } satisfies Teller]
+      ...(a.via === "telegram" && a.chat ? { chat: a.chat } : {}) } satisfies Teller]
     : tellers;
   const base: NoteRequest = cur
     ? (asked ? cur : { ...cur, title: cur.title || title, count: cur.count + 1, users: [...(await asPids(env, cur.users)), me].slice(-5000), last: at })
