@@ -1,0 +1,1 @@
+- Web app: build the app commit where the app inside Telegram takes the look of the phone it runs on (sheets, switches, study serif, date picker, haptics).
