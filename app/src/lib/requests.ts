@@ -7,8 +7,10 @@ import { api } from "@/tg/sdk";
  * for them (each costs money to write), so a class without notes offers "Request notes": one ask
  * per reader, the count shown, and the admins draft the most asked for first.
  */
-export type RequestState = { count: number; mine: boolean };
-export type RequestRow = { video: string; title: string; count: number; last: string };
+export type RequestState = { count: number; mine: boolean; tell?: boolean };
+/** A reader waiting to be told, as the admins see them. */
+export type Asker = { name: string; username?: string };
+export type RequestRow = { video: string; title: string; count: number; last: string; askers?: Asker[] };
 
 const VIDEO = /^[A-Za-z0-9_-]{11}$/;
 
@@ -18,8 +20,8 @@ export function useNoteRequest(video: string | undefined) {
   const state = useQuery({ queryKey: ["note-request", video], enabled, staleTime: 60_000, retry: 1,
     queryFn: () => api<RequestState & { ok: boolean }>(`/api/requests/${video}`) });
   const ask = useMutation({
-    mutationFn: (title: string) => api<RequestState & { ok: boolean; added: boolean }>(`/api/requests/${video}`, { method: "POST", json: { title } }),
-    onSuccess: (r) => { client.setQueryData(["note-request", video], { ok: true, count: r.count, mine: r.mine }); void client.invalidateQueries({ queryKey: ["note-requests"] }); },
+    mutationFn: ({ title, tell }: { title: string; tell: boolean }) => api<RequestState & { ok: boolean; added: boolean }>(`/api/requests/${video}`, { method: "POST", json: { title, tell } }),
+    onSuccess: (r) => { client.setQueryData(["note-request", video], { ok: true, count: r.count, mine: r.mine, tell: r.tell }); void client.invalidateQueries({ queryKey: ["note-requests"] }); },
   });
   return { state, ask, enabled };
 }
