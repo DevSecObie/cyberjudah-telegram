@@ -185,7 +185,9 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     if (!ctx.from) return;
     const what = (ctx.match || "").trim().slice(0, 500);
     if (!what) return ctx.reply("Send /notes followed by the class's title or its video link, and the request reaches the CyberJudah admins.");
-    await tellAdmins(env, `Class notes asked for by ${ctx.from.first_name}${ctx.from.username ? ` (@${ctx.from.username})` : ""}, Telegram ID ${ctx.from.id}: "${what}"`).catch(() => undefined);
+    // tellAdmins logs each failed send and returns how many admins it reached.
+    const reached = await tellAdmins(env, `Class notes asked for by ${ctx.from.first_name}${ctx.from.username ? ` (@${ctx.from.username})` : ""}, Telegram ID ${ctx.from.id}: "${what}"`).catch(() => 0);
+    if (!reached) return ctx.reply("Your request couldn't reach the CyberJudah admins just now. Please send it again later.");
     await ctx.reply("Your request for these class notes has reached the CyberJudah admins. The notes appear in the app once they are written and published.");
   });
 
