@@ -20,19 +20,25 @@ export const MIN_WORDS = 25;
  * found anywhere in the chunk before. The embedding job keeps "legacy" until EMBED_CHUNK_TAIL=whole
  * (re-embedding the changed chunks needs the owner's OK); everything else uses "whole".
  */
-export const embedTailMode = (value) => (value === "whole" ? "whole" : "legacy");
+export function embedTailMode(value) {
+  const v = String(value ?? "").trim().toLowerCase();
+  if (v && v !== "whole" && v !== "legacy") console.error(`::warning::EMBED_CHUNK_TAIL=${JSON.stringify(String(value))} is not "whole" or "legacy"; the old fold is kept`);
+  return v === "whole" ? "whole" : "legacy";
+}
 
 /** [[t, text], ...] -> [{ t, text }, ...] */
-export function chunkSegments(segments, { tail = "whole" } = {}) {
+export function chunkSegments(segments, options) {
+  const tail = options?.tail ?? "whole";
+  if (tail !== "whole" && tail !== "legacy") throw new Error(`chunkSegments: unknown tail mode ${JSON.stringify(tail)}`);
   const segs = (segments ?? []).filter((s) => Array.isArray(s) && typeof s[0] === "number" && typeof s[1] === "string" && s[1].trim()).map(([t, text]) => [t, text.replace(/\s+/g, " ").trim()]);
-  // Each chunk keeps the range of segments it was cut from, [from, to), until the end.
+  // Each chunk keeps where its segments end (`to`, exclusive) until the end.
   const out = [];
   let i = 0;
   while (i < segs.length) {
     const start = segs[i][0];
     let words = 0, j = i;
     while (j < segs.length && (j === i || (segs[j][0] - start < CHUNK_SECONDS && words < CHUNK_WORDS))) { words += segs[j][1].split(" ").length; j++; }
-    out.push({ t: Math.max(0, Math.round((start - 3) * 10) / 10), text: segs.slice(i, j).map((s) => s[1]).join(" "), from: i, to: j });
+    out.push({ t: Math.max(0, Math.round((start - 3) * 10) / 10), text: segs.slice(i, j).map((s) => s[1]).join(" "), to: j });
     if (j >= segs.length) break;
     i = Math.max(i + 1, j - OVERLAP_SEGMENTS);
   }
@@ -48,10 +54,12 @@ export function chunkSegments(segments, { tail = "whole" } = {}) {
       const extra = last.text.split(" ").filter((w, k) => k >= OVERLAP_SEGMENTS * 8 || !seen.includes(w));
       prev.text = `${prev.text} ${extra.join(" ")}`.trim();
     } else {
-      const extra = segs.slice(Math.max(last.from, prev.to), last.to).map((s) => s[1]).join(" ");
+      // A chunk starts at most three segments before the one before it ends, never after it: what
+      // the one before does not hold is exactly its segments from there to the tail's end.
+      const extra = segs.slice(prev.to, last.to).map((s) => s[1]).join(" ");
       if (extra) prev.text = `${prev.text} ${extra}`;
     }
-    prev.to = Math.max(prev.to, last.to);
+    prev.to = last.to;
   }
   return out.filter((c) => words(c) >= MIN_WORDS).map(({ t, text }) => ({ t, text }));
 }

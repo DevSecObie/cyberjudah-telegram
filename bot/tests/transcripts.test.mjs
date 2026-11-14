@@ -35,20 +35,30 @@ test("a short last chunk joins the one before with every word said, in order, no
 });
 
 test("every chunk is an unbroken run of the captions, and the last ends on the last words said", () => {
-  // Seeded, so a failure repeats. Placeholder words from a small vocabulary, so words recur.
+  // Seeded (mulberry32), so a failure repeats. Placeholder words from a small vocabulary, so words recur.
   let seed = 7;
-  const rand = (n) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const rand = (n) => { seed = (seed + 0x6d2b79f5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) % n; };
   const vocab = ["the", "and", "of", "a", "word", "said", "here", "x1", "x2", "x3"];
-  for (let run = 0; run < 300; run++) {
+  const lengths = new Set();
+  for (let run = 0; run < 500; run++) {
     let t = 0;
-    const segs = Array.from({ length: 1 + rand(80) }, () => [t += 1 + rand(6), Array.from({ length: 1 + rand(12) }, () => vocab[rand(vocab.length)]).join(" ")]);
+    const segs = Array.from({ length: 1 + rand(120) }, () => [t += 1 + rand(6), Array.from({ length: 1 + rand(12) }, () => vocab[rand(vocab.length)]).join(" ")]);
+    lengths.add(segs.length);
     const texts = segs.map((s) => s[1]);
-    const runs = new Set();
-    for (let a = 0; a < texts.length; a++) for (let b = a + 1; b <= texts.length; b++) runs.add(texts.slice(a, b).join(" "));
+    // A chunk is a run when, from some segment, the segments joined in order give exactly its text.
+    const isRun = (text) => texts.some((_, a) => { let s = ""; for (let b = a; b < texts.length && s.length < text.length; b++) { s = s ? `${s} ${texts[b]}` : texts[b]; if (s === text) return true; } return false; });
     const chunks = chunkSegments(segs);
-    for (const c of chunks) assert.ok(runs.has(c.text), `run ${run}: a chunk is not a run of the captions`);
+    for (const c of chunks) assert.ok(isRun(c.text), `run ${run}: a chunk is not a run of the captions`);
     if (chunks.length) assert.ok(chunks[chunks.length - 1].text.endsWith(texts[texts.length - 1]), `run ${run}: the last words are kept`);
   }
+  assert.ok(lengths.size > 80, "the runs cover many caption counts");
+});
+
+test("an unknown fold is refused, and the switch reads only \"whole\" (any case or spacing) as on", () => {
+  assert.throws(() => chunkSegments([[0, "x"]], { tail: "Legacy" }), /unknown tail mode/);
+  assert.deepEqual(chunkSegments([], null), []);
+  assert.equal(embedTailMode(" Whole "), "whole");
+  assert.equal(embedTailMode("legacy"), "legacy");
 });
 
 test("the embedding job keeps the old fold until EMBED_CHUNK_TAIL=whole, so merging re-embeds nothing", () => {
