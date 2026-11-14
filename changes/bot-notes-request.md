@@ -1,0 +1,1 @@
+- The bot takes /notes <class>: a request for a class's notes reaches the CyberJudah admins. The Mini App's "Request notes" button writes it for the reader to send.

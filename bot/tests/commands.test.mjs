@@ -21,3 +21,9 @@ test("the privacy policy, the terms and payment support are in the menu and in /
     assert.ok(help.includes(`"/${c} — `), `/${c} in HELP`);
   }
 });
+
+test("a class-notes request has a handler and is in /help", () => {
+  assert.ok(handled.has("notes"), "/notes has a handler");
+  assert.ok(help.includes(`"/notes — `), "/notes in HELP");
+  assert.match(bot, /bot\.command\("notes"[\s\S]*?tellAdmins\(env, `Class notes asked for/);
+});

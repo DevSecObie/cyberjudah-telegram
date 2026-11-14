@@ -57,6 +57,7 @@ const HELP = [
   "/privacy — what is kept about you, and your choices",
   "/terms — the terms for the Ask balance",
   "/paysupport — help with a Stars payment",
+  "/notes — ask for a class's notes to be written",
   "/help — this",
   "",
   "In any chat, type <code>@BOT matthew 15:24</code> or <code>@BOT passover</code> to send a verse or a search hit.",
@@ -176,6 +177,16 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
     if (!ctx.from) return;
     await tellAdmins(env, `Payment support asked for by ${ctx.from.first_name}${ctx.from.username ? ` (@${ctx.from.username})` : ""}, Telegram ID ${ctx.from.id}: "${(ctx.match || "").slice(0, 500)}"`).catch(() => undefined);
     await ctx.reply("Your request has reached the CyberJudah admins, who will reply to you here in Telegram. If something you paid for in Stars did not arrive, say what you bought and when (send /paysupport followed by the details).");
+  });
+
+  // A class with no published notes yet: the Mini App's "Request notes" opens this chat with
+  // "/notes <class> <video link>" written for the person to send. It reaches the admins only.
+  bot.command("notes", async (ctx) => {
+    if (!ctx.from) return;
+    const what = (ctx.match || "").trim().slice(0, 500);
+    if (!what) return ctx.reply("Send /notes followed by the class's title or its video link, and the request reaches the CyberJudah admins.");
+    await tellAdmins(env, `Class notes asked for by ${ctx.from.first_name}${ctx.from.username ? ` (@${ctx.from.username})` : ""}, Telegram ID ${ctx.from.id}: "${what}"`).catch(() => undefined);
+    await ctx.reply("Your request for these class notes has reached the CyberJudah admins. The notes appear in the app once they are written and published.");
   });
 
   // An admin takes down a published study that was reported (by email, its page's "Report this study"
