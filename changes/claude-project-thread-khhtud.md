@@ -1,0 +1,3 @@
+- Asking for a class's notes now has "Tell me when they're ready": the bot messages the reader once the notes are published, and the request closes on its own.
+- The phone app can ask for a class's notes too, with the same count, and hears when they are ready.
+- The admins' Requested notes list shows the first names of the readers waiting to be told.

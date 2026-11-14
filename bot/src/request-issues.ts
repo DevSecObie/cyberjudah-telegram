@@ -67,3 +67,10 @@ export async function syncRequestIssue(env: Keys, r: NoteRequest, cls: ClassInfo
   }
   return issue;
 }
+
+/** Close the class's issue once its notes are published. */
+export async function closeRequestIssue(env: Keys, issue: number, fetcher: typeof fetch = fetch): Promise<boolean> {
+  if (!env.CYBERJUDAH_TOKEN) return false;
+  const res = await github(env, `/issues/${issue}`, { method: "PATCH", body: JSON.stringify({ state: "closed", state_reason: "completed" }) }, fetcher);
+  return res.ok;
+}
