@@ -1,10 +1,12 @@
 export type Passage = { kind: string; title: string; url: string; sub?: string; video?: string; t?: number; date?: string; teacher?: string; text: string; original?: string; scan?: string; pdf?: { slug: string; item: string } };
 export type Match = { id: string; score: number; metadata?: Record<string, unknown> };
 export const EMBED_MODEL: "@cf/baai/bge-m3";
-export const ANSWER_MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
-export const VOICE_MODEL: "@cf/deepgram/aura-1";
+export const ANSWER_MODEL: "@cf/moonshotai/kimi-k2.6";
+export const VOICE_MODEL: "@cf/deepgram/aura-2-en";
 export const RERANK_MODEL: "@cf/baai/bge-reranker-base";
 export const VOICES: { id: string; name: string; note: string }[];
+export const VOICE_ALIASES: Record<string, string>;
+export function voiceId(v: string): string | undefined;
 export const MAX_PASSAGE: number;
 export const SYSTEM: string;
 export function hash(s: string): string;

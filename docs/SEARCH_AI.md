@@ -4,8 +4,9 @@ The Search screen uses `SEARCH_AI_MODEL` for one answer from the retrieved Cyber
 passages. It does not enable Google web search, research tools or paid reader requests. Ask's
 model picker and pricing are unchanged.
 
-Production and staging use `@cf/meta/llama-3.1-8b-instruct-fp8`, eligible for Cloudflare's
-Workers AI free allowance. `SEARCH_AI_FREE_ONLY=on` rejects third-party model settings before
+Production and staging use `@cf/moonshotai/kimi-k2.6` (owner decision 2026-11-10, "use the best
+for all"), hosted on Workers AI and eligible for Cloudflare's free allowance. It costs about $0.008
+per Search answer, against about $0.001 for the earlier `@cf/meta/llama-3.1-8b-instruct-fp8`. `SEARCH_AI_FREE_ONLY=on` rejects third-party model settings before
 retrieval, even when the reader has given consent. There is no paid fallback and no AI Gateway
 credit purchase is needed for Search. The owner requested free models only on October 8;
 Google is not enabled. Removing `SEARCH_AI_MODEL` uses `ASK_FREE_MODEL` with the same guard.
@@ -14,7 +15,7 @@ Google is not enabled. Removing `SEARCH_AI_MODEL` uses `ASK_FREE_MODEL` with the
 
 Cloudflare provides 10,000 free neurons per UTC day, shared by the account. Its Workers Paid
 plan bills usage above that allowance. The app's existing dollar-equivalent admission budget
-(`ASK_FREE_DAILY_USD_CAP`, $25 a day on production and $1.00 on staging, in `bot/wrangler.jsonc`) limits Search and free Ask together; it is
+(`ASK_FREE_DAILY_USD_CAP`, $25 a day on production and $1.50 on staging, in `bot/wrangler.jsonc`) limits Search and free Ask together; it is
 not an account-wide Cloudflare billing limit. Free answers past the account's free allowance
 (about $0.11 a day) are billed at Workers AI's rates, up to this cap. Other Workers, embeddings,
 staging and Ask admin requests may also consume the account's allowance; this application

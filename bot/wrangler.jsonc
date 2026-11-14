@@ -82,13 +82,13 @@
         "SITE_URL": "https://cyberjudah.io",
         "D1_SIZE_ALERT_BYTES": "8000000000",
         "APP_URL": "https://t.me/STAGING_BOT_USERNAME/cybr",
-        "CLAUDE_MODEL": "claude-sonnet-5-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-5-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
+        "CLAUDE_MODEL": "claude-opus-5-5", "CLAUDE_MODEL_LIGHT": "claude-opus-5-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw", "AI_GATEWAY": "default", "CLAUDE_BILLING": "anthropic",
         "ASK_USD_PER_STAR": "0.012", "ASK_MARGIN": "1", "ASK_TOPUPS_USD": "1,5,20",
         "ASK_UNIFIED_BILLING_FEE": "0.05", "ASK_CONFIRM_ABOVE_USD": "0.25", "ASK_MAX_REQUEST_USD": "1.50",
         "ASK_MODEL_ALLOWLIST_MODE": "shadow",
-        "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
-        "ASK_ADMIN_DAILY_USD_CAP": "10", "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "1.00", "ASK_CLAUDE_FOR_READERS": "off", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.20", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
-        "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+        "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/moonshotai/kimi-k2.6", "ASK_FREE_DEEP_MODEL": "@cf/moonshotai/kimi-k2.6",
+        "ASK_ADMIN_DAILY_USD_CAP": "10", "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.15", "ASK_FREE_DAILY_USD_CAP": "1.50", "ASK_CLAUDE_FOR_READERS": "off", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.50", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
+        "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/moonshotai/kimi-k2.6", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
         "DONATIONS_ON": "on", "DONATE_MIN_STARS": "1",
         "CLASS_ALERTS_TOPIC": "new-classes-staging"
       }
@@ -103,9 +103,9 @@
     "D1_SIZE_ALERT_BYTES": "8000000000",
     // The Mini App's direct link from @BotFather (/newapp). Shared links and buttons open the app.
     "APP_URL": "https://cyberjudah.io/app",
-    // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
-    // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
-    "CLAUDE_MODEL": "claude-sonnet-5-5", "CLAUDE_MODEL_LIGHT": "claude-haiku-5-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
+    // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set: Opus 5.5 for every tier (owner,
+    // "use the best for all"). Without the key, the backup on Workers AI (ai.mjs ANSWER_MODEL, Kimi K2.6).
+    "CLAUDE_MODEL": "claude-opus-5-5", "CLAUDE_MODEL_LIGHT": "claude-opus-5-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
     // Cloudflare AI Gateway for Workers AI calls (logs, analytics, rate limits on the dashboard).
     // "default" is created by Cloudflare on the first request (providers.ts). Claude goes through it
     // too once the CF_AIG_TOKEN secret is set; until then Claude is called directly. If Claude
@@ -156,12 +156,15 @@
     // Remove the model setting to use ASK_FREE_MODEL. See docs/SEARCH_AI.md for quota limits.
     // SEARCH_AI_QUOTA_EXEMPT lists the release check's synthetic reader (1), as staging does, so
     // repeated production deploys on one day do not spend its allowance and roll the release back.
-    // ASK_FREE_MODEL names the default free model: it costs less per token than the earlier default
-    // (ask-models.json) and reasons and follows instructions far better; the earlier one stays free.
+    // Owner decision 2026-11-10 ("use the best for all"): Claude answers use Opus for every tier;
+    // the free model, free deep study, Search's answer and the backup (ai.mjs ANSWER_MODEL) use
+    // Kimi K2.6, the strongest Cloudflare-hosted text model. It costs about ten times the earlier
+    // free model per answer, so ASK_FREE_MAX_USD is 0.15 (owner) to let a deep study finish its
+    // rounds; ASK_FREE_DAILY_USD_CAP is unchanged. The earlier free models stay selectable.
     "ASK_MODEL_ALLOWLIST_MODE": "shadow",
-    "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/google/gemma-4-26b-a4b-it", "ASK_FREE_DEEP_MODEL": "@cf/deepseek-ai/deepseek-v4-flash-0731",
-    "ASK_ADMIN_DAILY_USD_CAP": "10", "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.05", "ASK_FREE_DAILY_USD_CAP": "25", "ASK_CLAUDE_FOR_READERS": "on", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.20", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
-    "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/meta/llama-3.1-8b-instruct-fp8", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
+    "ASK_BILLING": "on", "ASK_FREE_MODEL": "@cf/moonshotai/kimi-k2.6", "ASK_FREE_DEEP_MODEL": "@cf/moonshotai/kimi-k2.6",
+    "ASK_ADMIN_DAILY_USD_CAP": "10", "ASK_FREE_MAX_ROUNDS": "3", "ASK_FREE_MAX_USD": "0.15", "ASK_FREE_DAILY_USD_CAP": "25", "ASK_CLAUDE_FOR_READERS": "on", "ASK_CLAUDE_DAILY_USD_CAP": "2.50", "ASK_CLAUDE_MAX_USD": "0.50", "ASK_CLAUDE_TOTAL_USD_CAP": "70.00",
+    "ASK_IP_DAILY_LIMIT": "1000", "ASK_DAILY_LIMIT": "20", "SEARCH_AI_DAILY_LIMIT": "20", "SEARCH_AI_QUOTA_EXEMPT": "1", "SEARCH_AI_MODEL": "@cf/moonshotai/kimi-k2.6", "SEARCH_AI_FREE_ONLY": "on", "CREDIT_USAGE_RETENTION_DAYS": "180", "CREDITS_CONTENTION_ALERT": "50",
     // Donations ("Support CyberJudah"): on by default; a giver may name any amount of Stars from
     // DONATE_MIN_STARS up (no app-imposed ceiling until the owner adds DONATE_MAX_STARS below).
     // DONATION_URL (the owner's own HTTPS giving link) is not set here: it is not secret, but no
