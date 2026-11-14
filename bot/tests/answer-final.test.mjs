@@ -266,14 +266,16 @@ test("guardedStream.settle: replaces the draft when the final text differs or an
 const ai = readFileSync(new URL("../src/ai.ts", import.meta.url), "utf8");
 function answerFields(src) {
   const found = [];
-  for (const m of src.matchAll(/\{\s*(ok: true|done: true)\b/g)) {
-    let depth = 0, i = m.index;
+  // askStream's finished lines are built by its complete() (the ask_requests recovery path, #569).
+  for (const m of src.matchAll(/\{\s*(ok: true|done: true)\b|\b(complete)\(\{/g)) {
+    const start = m[2] ? m.index + m[0].length - 1 : m.index;
+    let depth = 0, i = start;
     for (; i < src.length; i++) { const c = src[i]; if ("{([".includes(c)) depth++; else if ("})]".includes(c) && --depth === 0) break; }
     let d = 0, cur = ""; const props = [];
-    for (const c of src.slice(m.index + 1, i)) { if ("{([".includes(c)) d++; if ("})]".includes(c)) d--; if (c === "," && d === 0) { props.push(cur.trim()); cur = ""; } else cur += c; }
+    for (const c of src.slice(start + 1, i)) { if ("{([".includes(c)) d++; if ("})]".includes(c)) d--; if (c === "," && d === 0) { props.push(cur.trim()); cur = ""; } else cur += c; }
     props.push(cur.trim());
     const a = props.find((p) => /^answer\b/.test(p));
-    if (a) found.push(`${m[1]} ${a.replace(/\s+/g, " ")}`);
+    if (a) found.push(`${m[1] ?? m[2]} ${a.replace(/\s+/g, " ")}`);
   }
   return found.sort();
 }
@@ -281,7 +283,7 @@ function answerFields(src) {
 test("every answer path in ai.ts is a final answer, a fixed sentence or an approved answer", () => {
   assert.deepEqual(answerFields(ai), [
     // Shorthand `answer` / `clean`: bound by `= await finalAnswer(` (checked below).
-    "done: true answer", "done: true answer", "done: true answer: approved.answer", "done: true answer: clean", "done: true answer: gap.answer",
+    "complete answer", "complete answer", "done: true answer: approved.answer", "complete answer: clean", "complete answer: gap.answer",
     "ok: true answer", "ok: true answer", "ok: true answer", "ok: true answer",
     // Fixed sentences no model wrote: notInTheClasses (gap, none) and the two "no cited answer" lines.
     'ok: true answer: "The search did not find enough reliable material in the library to answer that question."',

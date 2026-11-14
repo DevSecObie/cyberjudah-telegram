@@ -34,6 +34,7 @@ import { withAskBookLinks } from "./ask-source-links";
 import { recordRetrieval, assessCoverage, hasControlText, SMALL_TALK, markCoverageGap, isCoverageGap } from "./grounding.mjs";
 import { citationReport, citationTokenCount } from "./citations.mjs";
 import { autoModel, type AnswerDepth } from "./ask-routing";
+import { ASK_REQUEST_ID, claimAskRequest, findAskRequest, legacyAskRequest, publicAskRequest, releaseAskRequest, requestIdentity, saveAskRequest, startAskRequest, type AskRequest, type RequestResult } from "./ask-requests";
 import { approvedSources as approvedOutsideHosts } from "./source-policy";
 import { recordedMoment, retrievedSourceUrl } from "./retrieved-source-url";
 import { issueAnswerReceipt } from "./feedback";
@@ -840,57 +841,137 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
   const line = (o: unknown) => `${JSON.stringify(hasSourceList(o) ? boundedFrame(o as object) : o)}\n`;
   const reply = (status: number, o: unknown) => new Response(line(o), { status, headers: { "content-type": "application/x-ndjson" } });
   if (question.length < 2) return reply(400, { error: "too-short" });
-  // An explicit choice is checked even when an approved answer avoids a provider call.
+  if (opts.request !== undefined && !ASK_REQUEST_ID.test(opts.request)) return reply(400, { error: "invalid-request" });
+  const request = opts.request ?? crypto.randomUUID();
+  const replay = (saved: AskRequest) => saved.state === "completed" && saved.done
+    ? new Response(line({ request, answer_id: saved.answer_id, model: saved.model, replay: true }) + line(saved.done) + (saved.usage ? line({ usage: saved.usage }) : ""), { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } })
+    : reply(409, { error: saved.state === "running" ? "request-running" : "request-used", request, answer_id: saved.answer_id, state: saved.state, recover: `/api/ask/requests/${request}` });
+  // Bind one ID to one generation input. Consent/cost prompts can change permissions, never the question.
+  let identity: Awaited<ReturnType<typeof requestIdentity>>;
+  try {
+    identity = await requestIdentity(env, userId, request, [question, history, modelId ?? null, chatId ?? null, replaceLast, opts.resources ?? null, opts.depth ?? null]);
+    const saved = await findAskRequest(env, identity.owner, request);
+    if (saved) return saved.fingerprint === identity.fingerprint ? replay(await publicAskRequest(env, saved)) : reply(409, { error: "request-conflict", request });
+    if (await legacyAskRequest(env, identity.owner, request)) return reply(409, { error: "request-used", request });
+  } catch { return reply(503, { error: "unavailable" }); }
+  // An explicit choice is checked even when an approved answer avoids a provider call. A saved
+  // request replays above first: it calls no model, and its answer was already given.
   if (modelId && modelId !== "auto" && !checkModelAllowlist(env, modelId)) return reply(403, MODEL_NOT_ALLOWED);
   // An answer the owner approved for this very question: sent at once, with no provider and no charge.
   const approvedRaw = approvedFor(question, history);
   const approved = approvedRaw && await approvedFinal(env, approvedRaw);
-  if (approved) return new Response(line({ delta: approved.answer }) + line({ done: true, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), answer_id: await issueAnswerReceipt(env, userId, approvedSources(approved)), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true, versions: await answerVersions(env, "approved") }), { headers: { "content-type": "application/x-ndjson" } });
   const model = modelId === "auto" ? await autoModel(env, question, Math.floor(history.length / 2), userId, selected, freeModels(env), isAdmin(env, userId), opts.depth) : selected;
   // Enforce checks both the requested ID and the resolved model; shadow records a choice once.
-  if ((!modelId || modelId === "auto" || modelAllowlistMode(env) === "enforce") && !checkModelAllowlist(env, model.id)) return reply(403, MODEL_NOT_ALLOWED);
+  // An approved answer calls no model, so only an explicit choice (above) is checked for it, as on main.
+  if (!approved && (!modelId || modelId === "auto" || modelAllowlistMode(env) === "enforce") && !checkModelAllowlist(env, model.id)) return reply(403, MODEL_NOT_ALLOWED);
   // Nothing is sent to an AI provider the reader has not agreed to (Apple 5.1.2(i); Telegram Bot
   // Developer Terms 4.3, Standard Bot Privacy Policy 6.2): the app asks, then sends again.
   // Where the provider is based goes with it, when known, for the agreement card.
-  if (!consent.includes(model.provider)) return reply(428, { error: "consent", provider: model.provider, model: model.name, ...(countryOf(model.provider) ? { country: countryOf(model.provider) } : {}) });
+  if (!approved && !consent.includes(model.provider)) return reply(428, { error: "consent", provider: model.provider, model: model.name, ...(countryOf(model.provider) ? { country: countryOf(model.provider) } : {}) });
+  let claim: Awaited<ReturnType<typeof claimAskRequest>>["row"];
+  try {
+    const claimed = await claimAskRequest(env, identity, model.id, chatId);
+    if (!claimed.created) return claimed.row.fingerprint === identity.fingerprint ? replay(await publicAskRequest(env, claimed.row)) : reply(409, { error: "request-conflict", request });
+    claim = claimed.row;
+    if (approved) {
+      const done = { done: true, request, answer_id: claim.answer_id, model: model.id, answer: approved.answer, followups: approved.followups ?? [], sources: await withAskSourcePictures(env, withAskBookLinks(await withTeachers(env, approvedSources(approved)))), ...citationMetadata(approved.answer, approvedSources(approved)), approved: true, versions: await answerVersions(env, "approved") };
+      // A free usage line only with billing on, as for every answer (main's creditsOn rule).
+      const usage = creditsOn(env) ? { charged_mc: 0, free: true } : undefined;
+      await saveAskRequest(env, claim, "completed", { done, settlement: "settled", ...(usage ? { usage } : {}) });
+      await issueAnswerReceipt(env, userId, done.sources, Date.now(), claim.answer_id);
+      return new Response(line({ delta: approved.answer }) + line(done) + (usage ? line({ usage }) : ""), { headers: { "content-type": "application/x-ndjson", "cache-control": "no-store" } });
+    }
+  } catch { return reply(503, { error: "unavailable" }); }
   // The balance: held before anything is spent, settled once at the end with what the answer
   // actually cost (finishMeter). A disconnect stops further research; accounting still
   // settles once under waitUntil. Too little for this model: Ask says so and offers the free model and a top-up.
   // A routed light answer may cost up to what the reader accepted for their default model, which is dearer.
   const fallbackCap = light ? opts.caps?.[modelOf(undefined, defaultModelId(env, userId)).id] : undefined;
-  const started = await begin(env, userId, model, fallbackCap && !opts.caps?.[model.id] ? { ...opts, caps: { ...opts.caps, [model.id]: fallbackCap } } : opts);
-  if (!started.ok) return reply(started.status, started.body);
+  const meterOpts = { ...opts, request: claim.meter_request, ...(fallbackCap && !opts.caps?.[model.id] ? { caps: { ...opts.caps, [model.id]: fallbackCap } } : {}) };
+  let started: Awaited<ReturnType<typeof begin>>;
+  try { started = await begin(env, userId, model, meterOpts); }
+  catch { await saveAskRequest(env, claim, "failed", { error: "unavailable", settlement: "pending" }).catch(() => undefined); return reply(503, { error: "unavailable", request }); }
+  if (!started.ok) {
+    await releaseAskRequest(env, claim);
+    return reply(started.status, started.body);
+  }
   const meter = started.meter;
+  try { await startAskRequest(env, claim, meter?.reservation?.request); }
+  catch { if (meter) await finishMeter(env, meter, "failed"); return reply(503, { error: "unavailable", request }); }
   const spend = meter?.spend ?? freeSpend();
   const encoder = new TextEncoder();
   // The reader can leave at any moment (Stop, another screen, the app closed). From then on
   // the shared signal stops provider work and further tools. Accounting still completes under
   // waitUntil, so already incurred costs are recorded and a failed answer is not charged.
-  let open = true, deliveredText = false, backupAnswer = false;
-  let settled = false;
+  let open = true, deliveredText = false, backupAnswer = false, partial = "";
+  let settlement: ReturnType<typeof finishMeter> | undefined;
   const finish = async (status: Parameters<typeof finishMeter>[2], chargePartial = false) => {
-    if (settled || !meter) return null;
-    settled = true;
-    return finishMeter(env, meter, status, undefined, chargePartial);
+    if (!meter) return null;
+    return settlement ??= finishMeter(env, meter, status, undefined, chargePartial);
   };
   // While it is being answered, the conversation says so, for a refresh or another device to wait on.
   if (chatId) await markPending(env, userId, chatId, question).catch(() => undefined);
   const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) deliveredText = false; if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string" && o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } catch { open = false; } };
+    start(controller) {
+      const send = (o: unknown) => { if (!open) return; try { controller.enqueue(encoder.encode(line(o))); if (o && typeof o === "object" && "reset" in o && o.reset === true) { deliveredText = false; partial = ""; } if (o && typeof o === "object" && "delta" in o && typeof o.delta === "string") { partial += o.delta; if (o.delta.trim() && opts.clientStreaming !== false) deliveredText = true; } } catch { open = false; abort.abort(); } };
+      send({ request, answer_id: claim.answer_id, model: model.id });
+      // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
+      const beat = setInterval(() => send({ ping: 1 }), 15000);
+      let checkpoint: Promise<unknown> = Promise.resolve(), checkpointBusy = false, checkpointText = "";
+      const checkpointTimer = setInterval(() => {
+        if (checkpointBusy || partial === checkpointText) return;
+        checkpointBusy = true; checkpointText = partial;
+        checkpoint = saveAskRequest(env, claim, "running", { partial, settlement: "pending" })
+          .catch(() => undefined).finally(() => { checkpointBusy = false; });
+      }, 5000);
+      let outcome: RequestResult | undefined;
+      // What the answer cost, and the balance after it; the free model and admins pay nothing, and a free
+      // usage line is sent only with billing on (main's creditsOn rule). With no meter (billing off) or a
+      // free one, nothing is left to reconcile; a paid meter whose settle returned nothing stays pending.
+      const usageOf = (used: Awaited<ReturnType<typeof finishMeter>>) => used ? { charged_mc: used.charged_mc, balance: used.balance } : meter?.free && creditsOn(env) ? { charged_mc: 0, free: true } : undefined;
+      const settlementOf = (used: Awaited<ReturnType<typeof finishMeter>>): RequestResult["settlement"] => used || !meter || meter.free ? "settled" : "pending";
+      // The finished exchange is saved to the person's conversations, even if they left mid-answer.
+      // `writer` is the model that wrote the answer, "none" for a fixed text no model wrote (#600).
+      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false, study: StudyFields = {}, writer = model.id) => {
+        if (!chatId) return;
+        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, ...study, request, answer_id: claim.answer_id, model: writer }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+      };
       // Each finished line names what the answer was made with (ask-versions.ts); a fixed sentence,
       // written by no model, names the model "none". `writer` overrides the line's own `model` for
       // versions only: that field still drives the Mini App's Auto label (t1v, #600).
-      const done = async (value: { sources: { n?: number }[]; [key: string]: unknown }, writer?: string) => {
-        const [answer_id, versions] = await Promise.all([issueAnswerReceipt(env, userId, value.sources), answerVersions(env, writer ?? (typeof value.model === "string" ? value.model : "none"))]);
-        send({ ...value, answer_id, versions });
+      const complete = async (packet: Record<string, unknown>, status: Parameters<typeof finishMeter>[2], steps: string[] = [], actions: SavedAction[] = [], study: StudyFields = {}, writer?: string) => {
+        clearInterval(checkpointTimer); await checkpoint;
+        const { model: packetModel, ...rest } = packet as Record<string, unknown> & { model?: unknown };
+        const resolvedModel = packetModel === undefined ? model.id : packetModel;
+        const wroteIt = writer ?? (typeof resolvedModel === "string" ? resolvedModel : "none");
+        const versions = await answerVersions(env, wroteIt);
+        const done = { ...rest, ...study, done: true, request, answer_id: claim.answer_id, ...(typeof resolvedModel === "string" ? { model: resolvedModel } : {}), versions };
+        const prepared: RequestResult = { done, settlement: "pending" };
+        // Save the whole answer before charging or claiming completion on the wire.
+        await saveAskRequest(env, claim, "completed", prepared);
+        outcome = prepared;
+        await issueAnswerReceipt(env, userId, packet.sources as { n?: number }[], Date.now(), claim.answer_id);
+        const used = await finish(status);
+        const usage = usageOf(used);
+        outcome = { done, ...(usage ? { usage } : {}), settlement: settlementOf(used) };
+        await saveAskRequest(env, claim, "completed", outcome);
+        await keep(String(packet.answer), packet.sources as unknown[], packet.followups as string[], steps, actions, packet.cut === true, study, wroteIt);
+        send(done); if (usage) send({ usage });
       };
-      // A line every 15 seconds while the research runs, so the app can tell a slow answer from a dead connection.
-      const beat = setInterval(() => send({ ping: 1 }), 15000);
-      // The finished exchange is saved to the person's conversations, even if they left mid-answer.
-      const keep = async (content: string, sources: unknown[], followups: string[], steps: string[] = [], actions: SavedAction[] = [], cut = false, study: StudyFields = {}) => {
-        if (!chatId) return;
-        await saveExchange(env, userId, chatId, question, { content, sources: sources as never, followups, steps, actions, cut, ...study }, replaceLast).catch((e: Error) => console.error(JSON.stringify({ event: "chat_save_failed", message: e.message?.slice(0, 120) })));
+      const fail = async (status: Parameters<typeof finishMeter>[2], error: string, chargePartial = false) => {
+        clearInterval(checkpointTimer); await checkpoint;
+        const state = signal.aborted ? "interrupted" : "failed";
+        const prepared: RequestResult = { error, ...(partial ? { partial } : {}), settlement: "pending" };
+        // A partial answer may be charged under #548 only once it is durable too. A storage failure refunds
+        // the reader (no partial charge) and otherwise settles as the failure says (#605/#618): a refusal
+        // that billed nothing ("empty") still gives the free hold back.
+        let saved = false;
+        try { await saveAskRequest(env, claim, state, prepared); saved = true; } catch { /* storage failure: refund the reader */ }
+        const used = await finish(saved || status !== "partial" ? status : "failed", saved && chargePartial);
+        const usage = usageOf(used);
+        outcome = { ...prepared, ...(usage ? { usage } : {}), settlement: settlementOf(used) };
+        await saveAskRequest(env, claim, state, outcome).catch(() => undefined);
+        send({ error, request, answer_id: claim.answer_id, state }); if (usage) send({ usage });
       };
       const job = (async () => {
         let backup = false;
@@ -919,7 +1000,7 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               backup = true;
               claudeSettle = claudeRefusedUnbilled(e) ? "empty" : "failed";
               await alertClaudeFunds(env, e);
-              if (!mayUseBackup(consent)) { await finish(claudeSettle); send({ reset: true }); send({ error: "busy" }); return; }
+              if (!mayUseBackup(consent)) { send({ reset: true }); await fail(claudeSettle, "busy"); return; }
               guard.emit({ reset: true });
               send({ status: "Answering with the backup model" });
             }
@@ -927,25 +1008,18 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
               const { text, passages, actions, cut, refused, grounded, fixed } = ran;
               const { answer: drafted, followups } = splitFollowups(text);
               // Claude declined the question (stop_reason "refusal"): said so, never shown as an answer, not charged.
-              if (refused && !drafted.trim()) { await finish("refused"); send({ error: "refused" }); return; }
-              if (!drafted.trim()) { await finish("empty"); send({ error: "empty" }); return; }
-              const used = await finish(cut ? "partial" : grounded === false ? "empty" : "ok");
+              if (refused && !drafted.trim()) { await fail("refused", "refused"); return; }
+              if (!drafted.trim()) { await fail("empty", "empty"); return; }
               // The final step (answer-final.ts): the reader who watched the draft stream in is given the final text.
               const answer = await finalAnswer(env, drafted, { evidence: [...evidence, ...passageEvidence(passages)] });
               guard.settle(answer, drafted);
               const sources = await askSourcesOf(env, answer, passages);
-              // Saved first: whatever happens to the connection after this, the answer is kept.
               // Each part lists only sources the answer cites (the numbers its own sources carry).
               const study = studyFields(ran.tracked, ran.plan, ran.coverage, sources.map((s) => s.n), answer);
-              await keep(answer, sources, followups, steps, actions, cut, study);
               // The agent's model is named on its finished line, so an Auto answer can show it (the Mini App's
               // label; kept as is, also when the agent's text became a fixed text: the not-in-the-classes
-              // sentence or the deadline's excerpts).
-              // versions.model names the writer: "none" for that sentence, as for the fixed sentences below.
-              await done({ done: true, answer, followups, sources, ...citationMetadata(answer, passages), actions, model: model.id, ...(cut ? { cut: true } : {}), ...study }, grounded === false || fixed ? "none" : undefined);
-              // What the answer cost, and the balance after it; the free model and admins pay nothing.
-              if (used) send({ usage: { charged_mc: used.charged_mc, balance: used.balance } });
-              else if (meter?.free && creditsOn(env)) send({ usage: { charged_mc: 0, free: true } });
+              // sentence or the deadline's excerpts). versions.model names the writer: "none" for that sentence.
+              await complete({ answer, followups, sources, ...citationMetadata(answer, passages), actions, ...(cut ? { cut: true } : {}) }, cut ? "partial" : grounded === false ? "empty" : "ok", steps, actions, study, grounded === false || fixed ? "none" : undefined);
               return;
             }
           }
@@ -954,53 +1028,51 @@ export async function askStream(env: Env, q: string, userId: number, ctx: Exec |
           send({ passages: passages.map((p, i) => ({ ...p, n: i + 1 })) });
           // The backup cannot research: with nothing found to answer from, it says Claude is busy
           // rather than that the library has nothing (which only the research could tell).
-          if (!passages.length && backup) { send({ error: "busy" }); return; }
+          if (!passages.length && backup) { await fail(claudeSettle, "busy"); return; }
           if (!passages.length) {
             const answer = "The search did not find enough reliable material in the library to answer that question.";
-            await finish("empty");
-            await keep(answer, [], []);
-            send({ delta: answer }); await done({ done: true, answer, followups: [], sources: [], unsupported_refs: [] }); return;
+            send({ delta: answer }); await complete({ answer, followups: [], sources: [], unsupported_refs: [], model: null }, "empty"); return;
           }
           if (assessCoverage(env, retrievalText(question, history), passages).blocked) {
             const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
             const sources = await askSourcesOf(env, gap.answer, gap.sources);
-            await finish(backup ? claudeSettle : "empty"); await keep(gap.answer, sources, []);
-            send({ reset: true }); send({ delta: gap.answer }); await done({ done: true, answer: gap.answer, followups: [], sources, unsupported_refs: [] }); return;
+            send({ reset: true }); send({ delta: gap.answer }); await complete({ answer: gap.answer, followups: [], sources, unsupported_refs: [], model: null }, backup ? claudeSettle : "empty"); return;
           }
           // The backup sends the question to its own provider: only with the reader's agreement to it.
           // Without it nothing is sent, and the reader is told honestly that no answer could be written.
-          if (!mayUseBackup(consent)) { await finish(backup ? claudeSettle : "empty"); send({ error: backup ? "busy" : "unavailable" }); return; }
+          if (!mayUseBackup(consent)) { await fail(backup ? claudeSettle : "empty", backup ? "busy" : "unavailable"); return; }
           let answer = "";
           const wrote: { model?: string } = {};
           const guard = guardedStream<unknown>(send, () => passageEvidence(passages));
           for await (const piece of answerPieces(env, buildPrompt(question, passages, history), isAdmin(env, userId), passages, signal, wrote)) { answer += piece; guard.emit({ delta: piece }); }
           const { answer: draft, followups } = splitFollowups(answer);
-          if (!draft.trim()) { send({ error: "empty" }); return; }
+          if (!draft.trim()) { await fail(backup ? claudeSettle : "empty", "empty"); return; }
           // The final step (answer-final.ts), as for every answer.
           const clean = await finalAnswer(env, draft, { evidence: passageEvidence(passages) });
           guard.settle(clean, draft);
           const sources = await askSourcesOf(env, clean, passages);
-          await keep(clean, sources, followups);
           // The backup (or a setup without the model's access) wrote this from the passages: not charged.
-          await finish("backup");
-          await done({ done: true, answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(wrote.model ? { model: wrote.model } : {}), ...(backup ? { backup: true } : {}) });
+          await complete({ answer: clean, followups, sources, ...citationMetadata(clean, passages), ...(wrote.model ? { model: wrote.model } : { model: null }), ...(backup ? { backup: true } : {}) }, "backup");
         } catch (e) {
           // An answer that failed is not charged: the hold goes back.
           const paidPartial = signal.aborted && deliveredText && !backupAnswer;
-          await finish(paidPartial ? "partial" : backup ? claudeSettle : "failed", paidPartial);
+          if (!outcome?.done) await fail(paidPartial ? "partial" : backup ? claudeSettle : "failed", "unavailable", paidPartial);
           console.error(JSON.stringify({ event: "ask_stream_failed", message: (e as Error).message?.slice(0, 200) }));
-          send({ error: "unavailable" });
+          if (outcome?.done) send({ error: "unavailable", request, answer_id: claim.answer_id });
         } finally {
           // Whatever way it ended, the hold is settled once: an answer that got no further is not charged.
           // After Claude failed, a backup that wrote no answer settles by Claude's own refusal.
-          await finish(backup ? claudeSettle : "failed");
+          await finish(backup ? claudeSettle : "failed").catch(() => undefined);
           clearInterval(beat);
+          clearInterval(checkpointTimer);
           if (chatId) await clearPending(env, userId, chatId).catch(() => undefined);
         }
       })();
-      ctx?.waitUntil(job);
-      await job;
-      if (open) { open = false; try { controller.close(); } catch { /* already closed */ } }
+      const finished = job.finally(() => {
+        if (open) { open = false; try { controller.close(); } catch { /* already closed */ } }
+      });
+      ctx?.waitUntil(finished);
+      void finished.catch(() => undefined);
     },
     cancel() { open = false; abort.abort(); },
   });

@@ -85,11 +85,12 @@ test('a misconfigured primary backup stays free when the reader cancels its text
   assert.equal((await wallet(env, owner)).total_mc, 2_000_000);
 });
 
-test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async () => {
+test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async t => {
+  const { env } = financialDb(t);
   const question = 'Owner approved fixture';
   const json = await answerApp({}, question, 'owner');
   const agent = await answerAppAgent({}, question, 'owner');
-  const stream = (await (await askStream({}, question, 77)).text()).trim().split('\n').map(JSON.parse).find(event => event.done);
+  const stream = (await (await askStream(env, question, 77, undefined, [])).text()).trim().split('\n').map(JSON.parse).find(event => event.done);
   for (const result of [json, agent, stream]) {
     assert.equal(result.sources.length, 1);
     assert.equal(result.sources[0].title, 'Approved attachment');
@@ -201,8 +202,9 @@ for (const stream of [false, true]) {
       assert.equal(response.status, 200);
       assert.match(response.headers.get('content-type'), /application\/x-ndjson/);
       const events = (await response.text()).trim().split('\n').map(JSON.parse);
-      assert.deepEqual(events[0], { status: 'Reading sources' });
-      assert.deepEqual(events[1], { delta: env.fixtureAnswer });
+      assert.ok(events[0].request && events[0].answer_id);
+      assert.deepEqual(events.find(event => event.status), { status: 'Reading sources' });
+      assert.deepEqual(events.find(event => event.delta), { delta: env.fixtureAnswer });
       result = events.find(event => event.done);
       assert.ok(result);
     } else {
@@ -321,7 +323,10 @@ test('without agreement to the backup provider, no backup answer is written and 
     if (stream) {
       const lines = (await (await askStream(env, 'Read recorded material', 77, undefined, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 500_000 } })).text()).trim().split('\n').map(JSON.parse);
       assert.equal(lines.find(l => l.done), undefined, 'no answer');
-      assert.deepEqual(lines.at(-1), { error: 'unavailable' });
+      // The error line names the request (#569's recovery path); only a no-charge usage line may follow it.
+      const end = lines.findIndex(l => l.error);
+      assert.equal(lines[end].error, 'unavailable');
+      assert.ok(lines.slice(end + 1).every(l => l.usage && l.usage.charged_mc === 0), JSON.stringify(lines.slice(end + 1)));
       assert.ok(!lines.some(l => typeof l.delta === 'string' && l.delta.includes('Backup words')));
     } else {
       assert.deepEqual(await ask(env, 'Read recorded material', 77, undefined, [], [model.provider]), { ok: false, reason: 'unavailable' });
@@ -357,7 +362,10 @@ test('a busy Claude without agreement to the backup releases the free reservatio
       assert.equal(holds.length, 1, 'only the Ask meter reserved');
       if (released) assert.ok(spent < holds[0].reserved_micro, `${code}: the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
       else assert.equal(spent, holds[0].reserved_micro, `${code}: the whole reservation is kept`);
-      assert.deepEqual(lines.at(-1), { error: 'busy' });
+      // The error line names the request (#569's recovery path); only a no-charge usage line may follow it.
+      const end = lines.findIndex(l => l.error);
+      assert.equal(lines[end].error, 'busy');
+      assert.ok(lines.slice(end + 1).every(l => l.usage && l.usage.charged_mc === 0), JSON.stringify(lines.slice(end + 1)));
       assert.equal(lines.find(l => l.done), undefined);
       assert.ok(!lines.some(l => l.status === 'Answering with the backup model'), 'no backup is announced');
       assert.deepEqual(sent, [], 'the backup model was never called');
@@ -377,7 +385,10 @@ test('an agreed backup with nothing to answer from releases the reservation only
     const pending = [], ctx = { waitUntil: promise => pending.push(promise) };
     const lines = (await (await askStream(env, 'Read recorded material', 78, ctx, [], undefined, false, model.id, [model.provider, 'Cloudflare (Workers AI)'])).text()).trim().split('\n').map(JSON.parse);
     await Promise.all(pending);
-    assert.deepEqual(lines.at(-1), { error: 'busy' }, `${code}`);
+    // The error line names the request (#569's recovery path); only a no-charge usage line may follow it.
+    const end = lines.findIndex(l => l.error);
+    assert.equal(lines[end].error, 'busy', `${code}`);
+    assert.ok(lines.slice(end + 1).every(l => l.usage && l.usage.charged_mc === 0), JSON.stringify(lines.slice(end + 1)));
     assert.deepEqual(sent, [], `${code}: the backup model was never called`);
     const holds = sql.prepare('SELECT reserved_micro, state FROM free_spend_holds').all();
     assert.equal(holds.length, 1, `${code}: only the Ask meter reserved`);

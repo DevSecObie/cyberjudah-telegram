@@ -7,7 +7,7 @@ import { pid, seal } from "../src/privacy.mjs";
 // mydata.ts reaches the chat, reminder and billing stores, which import one another without
 // file extensions (as Workers bundles them), so it is bundled for Node first.
 const out = new URL("./.build/mydata.mjs", import.meta.url).pathname;
-await build({ stdin: { contents: 'export * from "./src/mydata.ts"; export { saveExchange } from "./src/chats.ts"; export { saveReminder, tgRid } from "./src/remind.ts"; export { requestNotes } from "./src/requests.ts"; export { adjust } from "./src/credits.ts"; export { setTopupReminder } from "./src/topup-remind.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
+await build({ stdin: { contents: 'export * from "./src/mydata.ts"; export { saveExchange } from "./src/chats.ts"; export { saveReminder, tgRid } from "./src/remind.ts"; export { requestNotes } from "./src/requests.ts"; export { adjust } from "./src/credits.ts"; export { setTopupReminder } from "./src/topup-remind.ts"; export { requestIdentity, claimAskRequest, saveAskRequest } from "./src/ask-requests.ts";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
 const { deleteData, deletionToken, exportData, useDeletionToken, saveExchange, saveReminder, tgRid, requestNotes } = await import(out);
 
 const kv = () => {
@@ -170,11 +170,15 @@ async function storedReader(t, key) {
     db.prepare("INSERT INTO credit_holds VALUES (?, ?, 0, '[]', 'held', 'fixture-model', 1)").run(`hold-${i}`, owner);
     db.prepare("INSERT INTO credit_usage (request_id, user_id, at, status, held_mc, charged_mc, cost_usd) VALUES (?, ?, 1, 'ok', 0, 0, 0)").run(`usage-${i}`, owner);
     db.prepare("INSERT INTO rate_counts VALUES (?, 1)").run(`ask:${owner}:2026-10-03`);
+    const identity = await api.requestIdentity(env, 77 + i, `privacy-fixture-${i}`, []);
+    const { row } = await api.claimAskRequest(env, identity, "fixture-model");
+    await api.saveAskRequest(env, row, "completed", { done: { done: true, answer: "Stored fixture answer." }, usage: { charged_mc: 0, free: true }, settlement: "settled" });
   }
   return { api, env, db, owners, fail: pattern => { failure = pattern; } };
 }
 
 for (const [store, pattern] of [
+  ["request recovery", /^DELETE FROM ask_requests/],
   ["credit history", /^DELETE FROM credit_usage/],
   ["payment identity", /^UPDATE payments/],
   ["legacy account", /^DELETE FROM accounts/],
@@ -183,6 +187,7 @@ for (const [store, pattern] of [
   test(`Delete my data: ${store} failure remains visible and retry clears only that reader`, async t => {
     const { api, env, db, owners: [me, other], fail } = await storedReader(t, store);
     const otherBefore = await api.exportData(env, 78);
+    assert.equal(otherBefore.askRequests.length, 1);
     fail(pattern);
     await assert.rejects(api.deleteData(env, 77), /storage unavailable/);
     fail();
@@ -198,6 +203,8 @@ for (const [store, pattern] of [
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM donations WHERE user_id = ?").get(other).n, 1, "other reader's gift untouched");
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM rate_counts WHERE key LIKE ?").get(`%:${me}:%`).n, 0);
     const after = await api.exportData(env, 77), otherAfter = await api.exportData(env, 78);
+    assert.deepEqual(after.askRequests, []);
+    assert.deepEqual(otherAfter.askRequests, otherBefore.askRequests);
     assert.equal(after.ask.balance.wallet.total_mc, 0);
     assert.deepEqual(after.ask.donations, []);
     assert.deepEqual(after.askTopupReminder, { on: false, tz: null });

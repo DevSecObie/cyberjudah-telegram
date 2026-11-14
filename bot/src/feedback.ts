@@ -16,16 +16,25 @@ const tables = (env: Env) => ready.get(env.DB) ?? ready.set(env.DB, env.DB.batch
 
 export const feedbackOwner = (env: Env, userId: number) => pid(env, userId).then(value => `tg:${value}`);
 
-/** Fresh at the response boundary, never stored in an answer cache. No prompt/chat text is kept. */
-export async function issueAnswerReceipt(env: Env, userId: number, sources: { n?: number }[], now = Date.now()): Promise<string | undefined> {
+/** Fresh per answer, never stored in an answer cache. Recovery reuses its server-issued ID. */
+export async function issueAnswerReceipt(env: Env, userId: number, sources: { n?: number }[], now = Date.now(), answerId?: string): Promise<string | undefined> {
   try {
     const ns = [...new Set(sources.map(source => source.n))];
     if (ns.length > 2048 || ns.some(n => !Number.isSafeInteger(n) || n! < 1)) return undefined;
+    if (answerId !== undefined && !ID.test(answerId)) return undefined;
     await tables(env);
-    const id = crypto.randomUUID();
-    await env.DB.prepare('INSERT INTO ask_answer_receipts (id, owner, source_ns, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
-      .bind(id, await feedbackOwner(env, userId), JSON.stringify(ns), now, now + RETAIN_MS).run();
-    return id;
+    const id = answerId ?? crypto.randomUUID();
+    const owner = await feedbackOwner(env, userId);
+    // A deleted/incomplete request cannot mint a receipt. Keep the test and insert atomic;
+    // Delete my data removes recovery admission before feedback so a late write cannot restore it.
+    const insert = answerId === undefined
+      ? env.DB.prepare('INSERT INTO ask_answer_receipts (id, owner, source_ns, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
+        .bind(id, owner, JSON.stringify(ns), now, now + RETAIN_MS)
+      : env.DB.prepare(`INSERT OR IGNORE INTO ask_answer_receipts (id, owner, source_ns, created_at, expires_at)
+          SELECT ?, ?, ?, ?, ? FROM ask_requests WHERE owner = ? AND answer_id = ? AND state = 'completed' AND expires_at > ?`)
+        .bind(id, owner, JSON.stringify(ns), now, now + RETAIN_MS, await pid(env, userId), id, now);
+    const result = await insert.run();
+    return answerId === undefined || Number(result.meta.changes) ? id : undefined;
   } catch {
     // Feedback is optional; a lost receipt must never turn a completed answer into an error.
     console.error(JSON.stringify({ event: 'ask_receipt_unavailable' }));

@@ -92,7 +92,7 @@ const patchLast = (gen: number, fn: (t: Turn) => Turn) => { if (conv.gen === gen
 type AskFail = { error?: string; reason?: string; provider?: string; model?: string; country?: string };
 /** What went wrong, from the status and the server's own words. */
 const failure = (status: number, body: AskFail | null): string =>
-  status === 409 && body?.error === "request-used" ? "request-used" : status === 429 && body?.error === "free-paused" ? "free-paused" : status === 428 && body?.error === "consent" ? "consent" : status === 409 && body?.error === "confirm" ? "confirm" : status === 402 ? "credits" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
+  status === 409 && (body?.error === "request-used" || body?.error === "request-conflict" || body?.error === "request-running") ? "request-used" : status === 429 && body?.error === "free-paused" ? "free-paused" : status === 428 && body?.error === "consent" ? "consent" : status === 409 && body?.error === "confirm" ? "confirm" : status === 402 ? "credits" : status === 429 ? "limit" : status === 400 && body?.error === "too-short" ? "too-short"
     : status === 401 ? (body?.reason === "missing" ? "signin" : "session") : `unavailable:${status}`;
 /** No line from the server for this long (it sends one every 15 seconds while it works): the connection is gone. */
 const STALL_MS = 45_000;
