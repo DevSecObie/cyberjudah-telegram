@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chunkSegments, videoOfThumb } from "../src/transcripts.mjs";
+import { chunkSegments, embedTailMode, videoOfThumb } from "../src/transcripts.mjs";
 
 test("chunks follow the captions: about 45 seconds or 70 words, overlapping by three segments", () => {
   const segs = Array.from({ length: 60 }, (_, i) => [i * 3, `word${i} and some more words here`]);
@@ -23,6 +23,53 @@ test("scraps are never chunks: a short tail joins the chunk before, a short only
   assert.ok(chunks.length >= 1);
   assert.ok(chunks.every((c) => c.text.split(" ").length >= 25));
   assert.ok(chunks[chunks.length - 1].text.endsWith("do yeah"));
+});
+
+test("a short last chunk joins the one before with every word said, in order, none dropped", () => {
+  // Placeholder words. One-word segments for 45 seconds (the chunk closes on time), then a short
+  // stretch whose words ("the", "x7") were also said earlier: once dropped, now kept.
+  const segs = [...Array.from({ length: 45 }, (_, t) => [t, t % 5 === 0 ? "the" : `x${t}`]), [46, "the new x7 point"], [47, "and the last word"]];
+  const chunks = chunkSegments(segs);
+  assert.equal(chunks.length, 1);
+  assert.equal(chunks[0].text, segs.map((s) => s[1]).join(" "));
+});
+
+test("every chunk is an unbroken run of the captions, and the last ends on the last words said", () => {
+  // Seeded (mulberry32), so a failure repeats. Placeholder words from a small vocabulary, so words recur.
+  let seed = 7;
+  const rand = (n) => { seed = (seed + 0x6d2b79f5) | 0; let x = Math.imul(seed ^ (seed >>> 15), 1 | seed); x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x; return ((x ^ (x >>> 14)) >>> 0) % n; };
+  const vocab = ["the", "and", "of", "a", "word", "said", "here", "x1", "x2", "x3"];
+  const lengths = new Set();
+  for (let run = 0; run < 500; run++) {
+    let t = 0;
+    const segs = Array.from({ length: 1 + rand(120) }, () => [t += 1 + rand(6), Array.from({ length: 1 + rand(12) }, () => vocab[rand(vocab.length)]).join(" ")]);
+    lengths.add(segs.length);
+    const texts = segs.map((s) => s[1]);
+    // A chunk is a run when, from some segment, the segments joined in order give exactly its text.
+    const isRun = (text) => texts.some((_, a) => { let s = ""; for (let b = a; b < texts.length && s.length < text.length; b++) { s = s ? `${s} ${texts[b]}` : texts[b]; if (s === text) return true; } return false; });
+    const chunks = chunkSegments(segs);
+    for (const c of chunks) assert.ok(isRun(c.text), `run ${run}: a chunk is not a run of the captions`);
+    if (chunks.length) assert.ok(chunks[chunks.length - 1].text.endsWith(texts[texts.length - 1]), `run ${run}: the last words are kept`);
+  }
+  assert.ok(lengths.size > 80, "the runs cover many caption counts");
+});
+
+test("an unknown fold is refused, and the switch reads only \"whole\" (any case or spacing) as on", () => {
+  assert.throws(() => chunkSegments([[0, "x"]], { tail: "Legacy" }), /unknown tail mode/);
+  assert.deepEqual(chunkSegments([], null), []);
+  assert.equal(embedTailMode(" Whole "), "whole");
+  assert.equal(embedTailMode("legacy"), "legacy");
+});
+
+test("the embedding job keeps the old fold until EMBED_CHUNK_TAIL=whole, so merging re-embeds nothing", () => {
+  assert.equal(embedTailMode(undefined), "legacy");
+  assert.equal(embedTailMode(""), "legacy");
+  assert.equal(embedTailMode("on"), "legacy");
+  assert.equal(embedTailMode("whole"), "whole");
+  // The old fold, kept as it was: the same placeholder tail loses "the" and "x7" there.
+  const segs = [...Array.from({ length: 45 }, (_, t) => [t, t % 5 === 0 ? "the" : `x${t}`]), [46, "the new x7 point"], [47, "and the last word"]];
+  assert.ok(chunkSegments(segs, { tail: "legacy" })[0].text.endsWith("x44 new point and last word"));
+  assert.ok(chunkSegments(segs)[0].text.endsWith("x44 the new x7 point and the last word"));
 });
 
 test("a chunk's time sits three seconds before its words", () => {
