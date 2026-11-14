@@ -19,6 +19,8 @@ import { isAdmin } from "./edit";
 import { studyIdIn, takeDownStudy } from "./published-studies";
 
 const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
+/** The iPhone app's web version, which also runs as a Telegram Mini App (its public/telegram.js). */
+const WEB_APP_URL = "https://web.cyberjudah.io/home";
 const MAX_INLINE = 50;
 
 /** getMe once per isolate: the webhook handler otherwise asks Telegram on every update. */
@@ -191,6 +193,13 @@ export async function createBot(env: Env, origin: string, exec?: Exec): Promise<
       invalid: "That is not a study id. Send /takedown followed by the study's id or its link.",
     }[removed]);
   });
+
+  // The iPhone app's web version (web.cyberjudah.io) opened inside Telegram, to try it beside the
+  // Mini App. A web_app button opens only in a private chat.
+  bot.command("web", (ctx) =>
+    ctx.chat.type === "private"
+      ? ctx.reply("Open the CyberJudah app inside Telegram:", { reply_markup: new InlineKeyboard().webApp("Open the app", WEB_APP_URL) })
+      : ctx.reply("Send /web to me in a private chat to open the app."));
 
   bot.command("support", (ctx) =>
     ctx.reply("Support CyberJudah with Telegram Stars — keep the library free and the classes online. Thank you.\n\nPick an amount:", {
