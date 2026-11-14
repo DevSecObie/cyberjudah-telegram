@@ -35,7 +35,8 @@ const sealOwner = (video: string) => `notereq:${video}`;
 export async function tellersOf(env: Keys, r: NoteRequest | null): Promise<Teller[]> {
   if (!r?.tell) return [];
   const list = await open(env, sealOwner(r.video), r.tell);
-  return Array.isArray(list) ? (list as Teller[]) : [];
+  // Only these fields: a @username kept before #622 is dropped on every read, so every write drops it too.
+  return Array.isArray(list) ? (list as Teller[]).map(({ pid: p, name, via, chat }) => ({ pid: p, name, via, ...(chat ? { chat } : {}) })) : [];
 }
 
 const sealTellers = (env: Keys, video: string, list: Teller[]) => (list.length ? seal(env, sealOwner(video), list) : Promise.resolve(undefined));
@@ -85,12 +86,10 @@ export async function requestNotes(env: Keys, video: string, asker: number | Ask
   const told = tellers.some((t) => t.pid === me);
   if (asked && (told || !tell)) return { count: cur!.count, mine: true, added: false, tell: told };
   const a: Asker = typeof asker === "number" ? { pid: me, name: "", via: "telegram", chat: asker } : asker;
-  // A @username kept before #622 is dropped the next time the request is written.
-  const kept = tellers.map(({ pid: p, name, via, chat }) => ({ pid: p, name, via, ...(chat ? { chat } : {}) }) satisfies Teller);
   const nextTell = tell && !told
-    ? [...kept, { pid: me, name: a.name.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 64), via: a.via,
+    ? [...tellers, { pid: me, name: a.name.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 64), via: a.via,
       ...(a.via === "telegram" && a.chat ? { chat: a.chat } : {}) } satisfies Teller]
-    : kept;
+    : tellers;
   const base: NoteRequest = cur
     ? (asked ? cur : { ...cur, title: cur.title || title, count: cur.count + 1, users: [...(await asPids(env, cur.users)), me].slice(-5000), last: at })
     : { video, title: title.slice(0, 200), count: 1, users: [me], first: at, last: at };

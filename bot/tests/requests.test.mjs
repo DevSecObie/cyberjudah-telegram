@@ -42,6 +42,20 @@ test("the list puts the most asked first, then the latest; done requests leave i
   assert.deepEqual((await listRequests(env)).map((r) => r.video), [A]);
 });
 
+test("a @username kept before #622 is not read back, and is gone from storage once the request is rewritten", async () => {
+  const { tellersOf, withoutReader } = await import("../src/requests.ts");
+  const { seal, open } = await import("../src/privacy.mjs");
+  const env = { SUBS: kv(), PRIVACY_KEY: "test-key" };
+  await requestNotes(env, A, { pid: "app-sarah", name: "Sarah", via: "app" }, "A class", new Date(), undefined, true);
+  await requestNotes(env, A, 1, "");
+  const r = await getRequest(env, A);
+  // As #622 stored it: the Telegram reader with their @username, sealed.
+  const legacy = { ...r, tell: await seal(env, `notereq:${A}`, [{ pid: await pid(env, 1), name: "David", username: "dave", via: "telegram", chat: 1 }, { pid: "app-sarah", name: "Sarah", via: "app" }]) };
+  assert.ok(!(await tellersOf(env, legacy)).some((t) => "username" in t), "not read back");
+  const rest = await withoutReader(env, legacy, "app-sarah");
+  assert.doesNotMatch(JSON.stringify(await open(env, `notereq:${A}`, rest.tell)), /dave/, "not written back");
+});
+
 test("only real YouTube ids are accepted", async () => {
   const env = { SUBS: kv(), PRIVACY_KEY: "test-key" };
   await assert.rejects(requestNotes(env, "../../x", 1, ""), /bad-video/);
