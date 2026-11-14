@@ -1,0 +1,1 @@
+- A blue-green load read line by line no longer loses the file's first lines while it waits on its first query (the teachings load failed with "no such table: teaching_passages_next").
