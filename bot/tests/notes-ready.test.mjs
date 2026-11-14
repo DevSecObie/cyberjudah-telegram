@@ -70,6 +70,32 @@ test("a class whose notes are out: Telegram askers get one message, app askers f
   assert.ok(s.sent.length >= before);
 });
 
+test("only class notes count as published: an index row of another kind leaves the request open", async (t) => {
+  const s = await stand([{ kind: "episode", title: "Not class notes", videoId: A, url: "/episodes/x" }, { kind: "study", title: "Nor this", videoId: B, url: "/studies/x" }]);
+  t.after(s.close);
+  const env = { SUBS: kv(), PRIVACY_KEY: "k", BOT_TOKEN: "1:x", TELEGRAM_API_ROOT: s.origin, DATA_ORIGIN: s.origin, WORKER_URL: "https://app.example" };
+  await requestNotes(env, A, await tg(env, 1, "David"), "X", new Date(), undefined, true);
+  await requestNotes(env, B, await tg(env, 1, "David"), "Y", new Date(), undefined, true);
+  assert.equal((await deliverReadyNotes(env, sender)).ready, 0);
+  assert.ok(await getRequest(env, A)); assert.ok(await getRequest(env, B));
+  assert.equal(s.sent.length, 0, "nobody is told");
+});
+
+test("the admins get one summary per run, however many requests close", async (t) => {
+  const s = await stand([{ kind: "class", title: "First", videoId: A, url: "/classes/a" }, { kind: "captains", title: "Second", videoId: B, url: "/captains/b" }]);
+  t.after(s.close);
+  const env = { SUBS: kv(), PRIVACY_KEY: "k", BOT_TOKEN: "1:x", TELEGRAM_API_ROOT: s.origin, DATA_ORIGIN: s.origin, WORKER_URL: "https://app.example", ADMIN_IDS: "900" };
+  await requestNotes(env, A, await tg(env, 1, "David"), "First", new Date(), undefined, true);
+  await requestNotes(env, B, 4, "Second");
+  assert.equal((await deliverReadyNotes(env, sender)).ready, 2);
+  const toAdmin = s.sent.filter((m) => m.chat_id === 900);
+  assert.equal(toAdmin.length, 1, "one message for the run");
+  assert.match(toAdmin[0].text, /\(2\)/); assert.match(toAdmin[0].text, /First/); assert.match(toAdmin[0].text, /Second/);
+  // A run that closes nothing sends the admins nothing.
+  await deliverReadyNotes(env, sender);
+  assert.equal(s.sent.filter((m) => m.chat_id === 900).length, 1);
+});
+
 test("nothing is closed when the notes index cannot be read", async (t) => {
   const env = { SUBS: kv(), PRIVACY_KEY: "k", BOT_TOKEN: "1:x", DATA_ORIGIN: "http://127.0.0.1:9" };
   await requestNotes(env, A, await tg(env, 1, "David"), "X", new Date(), undefined, true);

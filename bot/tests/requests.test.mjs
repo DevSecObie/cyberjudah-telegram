@@ -96,7 +96,7 @@ test("without a token, or when GitHub refuses, the request is kept and no issue 
   assert.equal((await getRequest(env, A)).count, 1);
 });
 
-test("a reader who asks to be told is kept sealed with their name; others are only counted", async () => {
+test("a reader who asks to be told is kept sealed with their first name only (no @username); others are only counted", async () => {
   const { tellersOf, withoutReader } = await import("../src/requests.ts");
   const env = { SUBS: kv(), PRIVACY_KEY: "test-key" };
   const david = { pid: await pid(env, 1), name: "David", username: "dave", via: "telegram", chat: 1 };
@@ -106,7 +106,7 @@ test("a reader who asks to be told is kept sealed with their name; others are on
   const r = await getRequest(env, A);
   assert.match(r.tell, /^s1\./, "names and chats are sealed at rest");
   assert.doesNotMatch(JSON.stringify(r), /David|dave/);
-  assert.deepEqual(await tellersOf(env, r), [{ pid: await pid(env, 1), name: "David", via: "telegram", username: "dave", chat: 1 }]);
+  assert.deepEqual(await tellersOf(env, r), [{ pid: await pid(env, 1), name: "David", via: "telegram", chat: 1 }], "no @username is kept");
   // Asking again with the switch on adds the reader to those told, without a second vote.
   assert.deepEqual(await requestNotes(env, A, sarah, "", new Date(), undefined, true), { count: 2, mine: true, added: false, tell: true });
   const told = await tellersOf(env, await getRequest(env, A));

@@ -20,6 +20,7 @@ export type ReadyNote = { video: string; title: string; teacher?: string };
 export type NotesReadyRun = { ready: number; told: number; failed: number; skipped?: string };
 
 const readyKey = (p: string) => `notesready:${p}`;
+const NOTE_KINDS = new Set(["class", "captains", "history"]);
 /** Kept for a reader who has not opened the app since: long enough for a reader who opens it monthly. */
 const READY_TTL = 60 * 24 * 3600;
 
@@ -56,9 +57,11 @@ export async function deliverReadyNotes(env: Env, sender: BroadcastSender): Prom
   const rows = await dataJson<NoteRow[]>(env, "/api/notes/index.json").catch(() => null);
   if (!Array.isArray(rows)) return { ready: 0, told: 0, failed: 0, skipped: "index_down" };
   const published = new Map<string, NoteRow>();
-  for (const row of rows) if (row.videoId && !published.has(row.videoId)) published.set(row.videoId, row);
+  // Only class notes count as published, as the class-notes search reads them (app-study-research.ts).
+  for (const row of rows) if (row.videoId && NOTE_KINDS.has(row.kind ?? "") && !published.has(row.videoId)) published.set(row.videoId, row);
   const api = telegramApi(env);
   const run: NotesReadyRun = { ready: 0, told: 0, failed: 0 };
+  const done: string[] = [];
   for (const { video } of open) {
     const row = published.get(video);
     if (!row) continue;
@@ -86,7 +89,9 @@ export async function deliverReadyNotes(env: Env, sender: BroadcastSender): Prom
     }
     run.told += told;
     if (r.issue) await closeRequestIssue(env, r.issue).catch(() => false);
-    await tellAdmins(env, `Requested notes are out: ${note.title}\n${r.count} ${r.count === 1 ? "reader" : "readers"} asked; ${told} told.`).catch(() => 0);
+    done.push(`${note.title}: ${r.count} ${r.count === 1 ? "reader" : "readers"} asked; ${told} told.`);
   }
+  // One summary per run, however many requests closed, so a first run does not flood the admins.
+  if (done.length) await tellAdmins(env, `Requested notes are out (${done.length}):\n${done.slice(0, 30).join("\n")}${done.length > 30 ? `\n…and ${done.length - 30} more.` : ""}`).catch(() => 0);
   return run;
 }

@@ -13,7 +13,8 @@ import { haptic, requestWriteAccess, user } from "@/tg/sdk";
  */
 export function RequestNotes({ video, title, className, style, compact }: { video: string; title: string; className?: string; style?: CSSProperties; compact?: boolean }) {
   const { state, ask, enabled } = useNoteRequest(video);
-  const [tell, setTell] = useState(true);
+  // Off until the reader turns it on: being told is something they choose (#622).
+  const [tell, setTell] = useState(false);
   const [noBot, setNoBot] = useState(false);
   if (!enabled) return null;
   const count = ask.data?.count ?? state.data?.count ?? 0;

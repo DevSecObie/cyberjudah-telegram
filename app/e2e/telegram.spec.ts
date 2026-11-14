@@ -2288,7 +2288,11 @@ test("a class without notes says so on its page, and its notes can be requested"
   await page.goto(`/watch/UJ0nRIVRPls?t=339${LAUNCH}`);
   const wanted = page.locator(".notes-wanted");
   await expect(wanted).toContainText("No notes for this class yet");
-  await expect(wanted.getByRole("switch", { name: "Tell me when they're ready" })).toHaveAttribute("aria-checked", "true");
+  // "Tell me" starts off: the reader turns it on themselves (#622).
+  const tell = wanted.getByRole("switch", { name: "Tell me when they're ready" });
+  await expect(tell).toHaveAttribute("aria-checked", "false");
+  await tell.click();
+  await expect(tell).toHaveAttribute("aria-checked", "true");
   const ask = wanted.locator(".request-notes");
   await ask.click();
   await expect(ask).toHaveText("Notes requested · you and 2 others");
@@ -2296,7 +2300,7 @@ test("a class without notes says so on its page, and its notes can be requested"
   expect(asked).toEqual([{ video: "UJ0nRIVRPls", title: expect.any(String), tell: true }]);
 });
 
-test("a reader who turns off \"Tell me\" is counted, and can turn it on later", async ({ page }) => {
+test("a reader who leaves \"Tell me\" off is counted, and can turn it on later", async ({ page }) => {
   const asked = await mockNoteRequests(page);
   await page.addInitScript(() => {
     const t = setInterval(() => { const w = (window as unknown as { Telegram?: { WebApp?: { requestWriteAccess?: (cb: (ok: boolean) => void) => void } } }).Telegram?.WebApp; if (w?.requestWriteAccess) { w.requestWriteAccess = (cb) => cb(true); clearInterval(t); } }, 1);
@@ -2304,7 +2308,6 @@ test("a reader who turns off \"Tell me\" is counted, and can turn it on later", 
   await page.goto(`/watch/UJ0nRIVRPls?t=339${LAUNCH}`);
   const wanted = page.locator(".notes-wanted");
   const tell = wanted.getByRole("switch", { name: "Tell me when they're ready" });
-  await tell.click();
   await expect(tell).toHaveAttribute("aria-checked", "false");
   await wanted.locator(".request-notes").click();
   await expect(wanted.locator(".request-notes")).toHaveText("Notes requested · you and 2 others");
