@@ -476,7 +476,7 @@ app.get("/api/requests", async (c) => {
   // Each class with the names of the readers waiting to be told (admins only; never published).
   const rows = await listRequests(c.env);
   const requests = await Promise.all(rows.map(async (row) => {
-    const askers = (await tellersOf(c.env, await getRequest(c.env, row.video))).map((t) => ({ name: t.name, ...(t.username ? { username: t.username } : {}) }));
+    const askers = (await tellersOf(c.env, await getRequest(c.env, row.video))).map((t) => ({ name: t.name }));
     return { ...row, askers };
   }));
   return c.json({ ok: true, requests });
@@ -495,7 +495,7 @@ app.post("/api/requests/:video", async (c) => {
   const body = await c.req.json().catch(() => ({})) as { title?: unknown; tell?: unknown };
   const title = typeof body.title === "string" ? body.title.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 200) : "";
   const u = c.get("tma").user!;
-  const asker = { pid: await pid(c.env, u.id), name: u.first_name ?? "", username: u.username, via: "telegram" as const, chat: u.id };
+  const asker = { pid: await pid(c.env, u.id), name: u.first_name ?? "", via: "telegram" as const, chat: u.id };
   const res = await requestNotes(c.env, video, asker, title, new Date(), (r) => announceRequest(c.env, c.executionCtx, video, r), body.tell === true);
   return c.json({ ok: true, ...res });
 });

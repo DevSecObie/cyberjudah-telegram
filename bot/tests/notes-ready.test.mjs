@@ -6,7 +6,7 @@ import { createServer } from "node:http";
 // notes-ready.ts reaches the bot's buttons and the Bot API client, so it is bundled for Node first.
 const out = new URL("./.build/notes-ready.mjs", import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/notes-ready.ts"; export { requestNotes, getRequest } from "./src/requests.ts"; export { pid } from "./src/privacy.mjs";', resolveDir: new URL("..", import.meta.url).pathname, loader: "ts" }, bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
-const { deliverReadyNotes, takeReady, readyMessage, requestNotes, getRequest, pid } = await import(out);
+const { deliverReadyNotes, takeReady, readyMessage, adminSummary, requestNotes, getRequest, pid } = await import(out);
 const tg = async (env, id, name) => ({ pid: await pid(env, id), name, via: "telegram", chat: id });
 
 const kv = () => {
@@ -68,6 +68,57 @@ test("a class whose notes are out: Telegram askers get one message, app askers f
   await deliverReadyNotes(env, sender);
   assert.equal(s.sent.filter((m) => m.chat_id === 1).length, 1);
   assert.ok(s.sent.length >= before);
+});
+
+test("only class notes count as published: an index row of another kind leaves the request open", async (t) => {
+  const s = await stand([{ kind: "episode", title: "Not class notes", videoId: A, url: "/episodes/x" }, { kind: "study", title: "Nor this", videoId: B, url: "/studies/x" }]);
+  t.after(s.close);
+  const env = { SUBS: kv(), PRIVACY_KEY: "k", BOT_TOKEN: "1:x", TELEGRAM_API_ROOT: s.origin, DATA_ORIGIN: s.origin, WORKER_URL: "https://app.example" };
+  await requestNotes(env, A, await tg(env, 1, "David"), "X", new Date(), undefined, true);
+  await requestNotes(env, B, await tg(env, 1, "David"), "Y", new Date(), undefined, true);
+  assert.equal((await deliverReadyNotes(env, sender)).ready, 0);
+  assert.ok(await getRequest(env, A)); assert.ok(await getRequest(env, B));
+  assert.equal(s.sent.length, 0, "nobody is told");
+});
+
+test("the admins get one summary per run, however many requests close", async (t) => {
+  const s = await stand([{ kind: "class", title: "First", videoId: A, url: "/classes/a" }, { kind: "captains", title: "Second", videoId: B, url: "/captains/b" }]);
+  t.after(s.close);
+  const env = { SUBS: kv(), PRIVACY_KEY: "k", BOT_TOKEN: "1:x", TELEGRAM_API_ROOT: s.origin, DATA_ORIGIN: s.origin, WORKER_URL: "https://app.example", ADMIN_IDS: "900" };
+  await requestNotes(env, A, await tg(env, 1, "David"), "First", new Date(), undefined, true);
+  await requestNotes(env, B, 4, "Second");
+  assert.equal((await deliverReadyNotes(env, sender)).ready, 2);
+  const toAdmin = s.sent.filter((m) => m.chat_id === 900);
+  assert.equal(toAdmin.length, 1, "one message for the run");
+  assert.match(toAdmin[0].text, /\(2\)/); assert.match(toAdmin[0].text, /First/); assert.match(toAdmin[0].text, /Second/);
+  // A run that closes nothing sends the admins nothing.
+  await deliverReadyNotes(env, sender);
+  assert.equal(s.sent.filter((m) => m.chat_id === 900).length, 1);
+});
+
+test("the admins' summary stays within Telegram's message limit and says how many more closed", () => {
+  const lines = Array.from({ length: 60 }, (_, i) => `${"Class title ".repeat(10)}${i}: 3 readers asked; 2 told.`);
+  const text = adminSummary(lines);
+  assert.ok(text.length <= 4000, `length ${text.length}`);
+  assert.match(text, /^Requested notes are out \(60\):/);
+  const shown = text.split("\n").length - 2;
+  assert.match(text, new RegExp(`…and ${60 - shown} more\\.$`));
+  assert.equal(adminSummary(["One: 1 reader asked; 1 told."]), "Requested notes are out (1):\nOne: 1 reader asked; 1 told.");
+});
+
+test("a run that stops partway still tells the admins of the requests it closed", async (t) => {
+  const s = await stand([{ kind: "class", title: "First", videoId: A, url: "/classes/a" }, { kind: "class", title: "Second", videoId: B, url: "/classes/b" }]);
+  t.after(s.close);
+  const env = { SUBS: kv(), PRIVACY_KEY: "k", BOT_TOKEN: "1:x", TELEGRAM_API_ROOT: s.origin, DATA_ORIGIN: s.origin, WORKER_URL: "https://app.example", ADMIN_IDS: "900" };
+  await requestNotes(env, A, 4, "First");
+  await requestNotes(env, B, 5, "Second");
+  // The second request's read fails after the first has closed.
+  const get = env.SUBS.get; let reads = 0;
+  env.SUBS.get = async (k, ty) => { if (k.startsWith("notereq:") && ++reads === 2) throw new Error("kv down"); return get(k, ty); };
+  await assert.rejects(deliverReadyNotes(env, sender));
+  const toAdmin = s.sent.filter((m) => m.chat_id === 900);
+  assert.equal(toAdmin.length, 1);
+  assert.match(toAdmin[0].text, /\(1\):\n(First|Second)/);
 });
 
 test("nothing is closed when the notes index cannot be read", async (t) => {
