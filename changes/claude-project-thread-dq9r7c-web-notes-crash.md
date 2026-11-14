@@ -1,0 +1,1 @@
+- Web app: build from the app commit that fixes the class notes crash on the web (people and places with no portrait).
