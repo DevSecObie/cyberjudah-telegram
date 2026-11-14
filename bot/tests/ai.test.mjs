@@ -45,6 +45,11 @@ test("records have stable ids from what they are, not where they sit", () => {
   const b = docRecord({ kind: "class", title: "Passover", url: "/classes/x", sub: "In Closing", text: "t2" });
   assert.equal(a.id, b.id);
   assert.notEqual(a.id, docRecord({ kind: "class", title: "Passover", url: "/classes/y", sub: "In Closing", text: "t1" }).id);
+  // A note's later sections under the same heading get their own ids; the first keeps its old one.
+  const s0 = docRecord({ kind: "class", title: "Passover", url: "/classes/x", sub: "Scriptures Opened", text: "a" });
+  assert.equal(docRecord({ kind: "class", title: "Passover", url: "/classes/x", sub: "Scriptures Opened", text: "a" }, 0).id, s0.id);
+  const ids = new Set([0, 1, 2, 3].map((n) => docRecord({ kind: "class", title: "Passover", url: "/classes/x", sub: "Scriptures Opened", text: "a" }, n).id));
+  assert.equal(ids.size, 4);
   assert.equal(chunkRecord({ video: "v", t: 12.6, text: "x", kind: "class", title: "T" }).id, "t:v:13");
   assert.equal(hash("a").length, 8);
 });
@@ -79,15 +84,21 @@ test("junk transcript fragments cannot become answer evidence", () => {
   assert.deepEqual(answerCandidates("Why do we keep the Passover?", [filler, tiny, good]), [good]);
 });
 
-test("matches collapse to one per page or per recording minute-and-a-half, best score first", () => {
+test("matches collapse to one per library section or per recording minute-and-a-half, best score first", () => {
   const m = dedupeMatches([
-    { id: "1", score: 0.5, metadata: { kind: "class", url: "/a", sub: "" } },
-    { id: "2", score: 0.9, metadata: { kind: "class", url: "/a", sub: "" } },
+    { id: "1", score: 0.5, metadata: { kind: "class", url: "/a", sub: "Scriptures Opened" } },
+    { id: "2", score: 0.9, metadata: { kind: "class", url: "/a", sub: "Scriptures Opened" } },
     { id: "3", score: 0.7, metadata: { video: "v", t: 10 } },
     { id: "4", score: 0.6, metadata: { video: "v", t: 40 } },
     { id: "5", score: 0.8, metadata: { video: "v", t: 400 } },
   ]);
-  assert.deepEqual(m.map((x) => x.id), ["2", "5", "3"]);
+  // Two sections of one note under the same heading are two passages; caption windows still merge.
+  assert.deepEqual(m.map((x) => x.id), ["2", "5", "3", "1"]);
+  const noIds = dedupeMatches([
+    { score: 0.5, metadata: { kind: "class", url: "/a", sub: "" } },
+    { score: 0.9, metadata: { kind: "class", url: "/a", sub: "" } },
+  ]);
+  assert.deepEqual(noIds.map((x) => x.score), [0.9]);
 });
 
 test("the answer's last line of follow-up questions is taken off the answer", async () => {

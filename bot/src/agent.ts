@@ -101,8 +101,10 @@ const TOOLS: Anthropic.Tool[] = TOOL_DEFS.map((t) => ({ ...t, eager_input_stream
 const SCHEMAS = new Map(TOOL_DEFS.map((t) => [t.name, t.input_schema]));
 
 // A Scripture reading is keyed by what it read ("Psalms 119:41-80"; retrieval adds " (KJV)"): every
-// part of a chapter links to the same chapter page, and each part must stay its own source.
-const keyOf = (p: Passage) => (p.video ? `v|${p.video}|${Math.round((p.t ?? 0) / 90)}` : p.kind === "verse" ? `verse|${p.title.replace(/ \(KJV\)$/, "")}` : `${p.kind}|${p.url}|${p.sub ?? ""}`);
+// part of a chapter links to the same chapter page, and each part must stay its own source. A library
+// section is keyed by its text too: a note has many sections under one heading ("Scriptures Opened"),
+// and each is its own source (the same rule as retrieve's in ai.ts).
+const keyOf = (p: Passage) => (p.video ? `v|${p.video}|${Math.round((p.t ?? 0) / 90)}` : p.kind === "verse" ? `verse|${p.title.replace(/ \(KJV\)$/, "")}` : `${p.kind}|${p.url}|${p.sub ?? ""}|${(p.text ?? "").replace(/\s+/g, " ").trim().slice(0, 200)}`);
 const sourceLabel = (p: Numbered) => `[${p.n}] ${p.title}${p.sub ? ` · ${p.sub}` : ""}${p.date ? ` (${p.date})` : ""}${p.teacher ? ` (taught by ${p.teacher})` : ""}`;
 const listed = (p: Numbered) => `${sourceLabel(p)}\n${p.text}`;
 const str = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");

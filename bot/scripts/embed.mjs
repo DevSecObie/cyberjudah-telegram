@@ -81,16 +81,30 @@ console.error(`${known.size} passages embedded before`);
 const knownByVideo = new Map();
 for (const id of known.keys()) if (id.startsWith("t:")) { const v = id.slice(2, id.lastIndexOf(":")); if (!knownByVideo.has(v)) knownByVideo.set(v, []); knownByVideo.get(v).push(id); }
 const stale = [];
+// The library's records this run made, and whether it read all of search_docs.
+const docIds = new Set();
+let docsDone = false;
 
 /** The records to embed, streamed page by page from D1. */
 async function* records() {
   if (ONLY !== "spoken") {
+    // Each heading's rows are counted within their note over the whole table (in rowid order),
+    // so every section gets its own vector (docRecord's `part`) even if a note's rows are apart.
+    const parts = new Map();
     for (let last = 0; ; ) {
       const rows = await sql(`SELECT rowid AS id, kind, title, url, sub, text FROM search_docs WHERE rowid > ${last} ORDER BY rowid LIMIT ${PAGE}`);
-      for (const r of rows) yield docRecord(r);
+      for (const r of rows) {
+        const key = `${r.kind}|${r.url}|${r.sub ?? ""}`;
+        const part = parts.get(key) ?? 0;
+        parts.set(key, part + 1);
+        const rec = docRecord(r, part);
+        docIds.add(rec.id);
+        yield rec;
+      }
       if (rows.length < PAGE) break;
       last = rows[rows.length - 1].id;
     }
+    docsDone = true;
   }
   if (ONLY !== "docs" && SPOKEN_FROM === "github") {
     // The recordings' pages, by video id, so a spoken passage links to its class notes.
@@ -159,6 +173,14 @@ try {
   }
   if (pending.length) await schedule(pending);
   await Promise.all(inflight);
+  // Library vectors no row makes any more (a note that shrank or left the library) leave the
+  // index, but only after a whole read of search_docs, and never more than a tenth of them at once
+  // (a half-loaded table must not empty the index).
+  if (docsDone && LIMIT === Infinity) {
+    const gone = [...known.keys()].filter((id) => id.startsWith("d:") && !docIds.has(id));
+    if (gone.length <= docIds.size / 10) stale.push(...gone);
+    else console.error(`::warning::${gone.length} library passages are no longer in search_docs; more than a tenth, so none were removed`);
+  }
   if (stale.length && !DRY) {
     // Marked before deleting: a delete that fails part way has still changed the index.
     indexChanged = true;

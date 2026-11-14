@@ -25,10 +25,15 @@ export function hash(s) {
   return h.toString(16).padStart(8, "0");
 }
 
-/** A library document (search_docs row) as a vector record: id from what it is, text with its title. */
-export function docRecord(row) {
+/**
+ * A library document (search_docs row) as a vector record: id from what it is, text with its title.
+ * `part` is the row's place among its note's rows under the same heading (a note has many
+ * "Scriptures Opened" rows); the first keeps the id it always had, the others get their own, so
+ * they no longer overwrite one another in the index.
+ */
+export function docRecord(row, part = 0) {
   const text = `${row.title}${row.sub ? ` · ${row.sub}` : ""}\n${(row.text ?? "").slice(0, MAX_PASSAGE)}`;
-  return { id: `d:${hash(`${row.kind}|${row.url}|${row.sub ?? ""}`)}`, text, metadata: { kind: row.kind, title: row.title, url: row.url, sub: row.sub ?? "", text: (row.text ?? "").slice(0, MAX_PASSAGE) } };
+  return { id: `d:${hash(`${row.kind}|${row.url}|${row.sub ?? ""}${part ? `|${part}` : ""}`)}`, text, metadata: { kind: row.kind, title: row.title, url: row.url, sub: row.sub ?? "", text: (row.text ?? "").slice(0, MAX_PASSAGE) } };
 }
 /** A transcript chunk as a vector record: what was said, in which recording, at which second. */
 export function chunkRecord(row) {
@@ -207,12 +212,13 @@ export function citations(answer, count) {
   return citationReport(answer, count).supported;
 }
 
-/** Hits from the index, one per page or recording moment, the best score kept. */
+/** Hits from the index, one per library section or recording moment, the best score kept. */
 export function dedupeMatches(matches) {
   const seen = new Map();
   for (const m of matches) {
     const md = m.metadata ?? {};
-    const key = md.video ? `${md.video}:${Math.round((md.t ?? 0) / 90)}` : `${md.kind}|${md.url}|${md.sub ?? ""}`;
+    // A library section by its own vector id: a note has many sections under one heading.
+    const key = md.video ? `${md.video}:${Math.round((md.t ?? 0) / 90)}` : m.id ? `id:${m.id}` : `${md.kind}|${md.url}|${md.sub ?? ""}`;
     if (!seen.has(key) || seen.get(key).score < m.score) seen.set(key, m);
   }
   return [...seen.values()].sort((a, b) => b.score - a.score);
