@@ -346,3 +346,16 @@ test('a hard deadline aborts the provider, returns marked verbatim evidence and 
   assert.equal(result.fixed, true, 'no model wrote the deadline text: its versions name no model (#600)');
   assert.equal(f.requests.length, 1);
 });
+
+test('two sections of one note under the same heading both reach the agent as their own sources', async () => {
+  const f = fixture();
+  const section = (text) => ({ kind: 'class', title: 'Recorded Class', url: path, sub: 'Scriptures Opened', text, score: 0.8 });
+  const a = section('The first opened scripture section of the recorded class, in the published words of its note, with context.');
+  const b = section('The second opened scripture section of the recorded class, a different passage of the same note, with context.');
+  f.env.AI = { run: async (_model, input) => { f.requests.push(input); return { response: 'The class opened both passages [1] [2].', usage: { prompt_tokens: 100, completion_tokens: 10 } }; } };
+  const result = await runAgent(f.env, 'What did the recorded class open?', [], [a, b, section(a.text)], async () => [], () => {}, undefined, undefined, modelOf('@cf/google/gemma-4-26b-a4b-it'));
+  const sections = result.passages.filter((p) => p.url === path && p.sub === 'Scriptures Opened');
+  assert.equal(sections.length, 2, 'the second section is not dropped, and the same section is listed once');
+  assert.deepEqual(sections.map((p) => p.text), [a.text, b.text]);
+  assert.match(JSON.stringify(f.requests[0].messages), /second opened scripture section/);
+});

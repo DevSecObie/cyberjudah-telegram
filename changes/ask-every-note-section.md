@@ -1,0 +1,1 @@
+- Ask reads every part of a class note: before, only one "Scriptures Opened" section of each note could be found when answering, so most of each class's notes never reached the answer.
