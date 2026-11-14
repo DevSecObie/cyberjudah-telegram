@@ -72,6 +72,33 @@ test("the teachings index loads blue-green too, its index renamed per load", asy
   assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_passages").get().n, 3);
 });
 
+test("a load file read line by line loads the same as one read whole", async () => {
+  const { db, run } = sqlite();
+  const opts = { ...TEACHINGS, maxBytes: 300 };
+  async function* lines(text) { for (const line of text.split("\n")) { await null; yield line; } }
+  const { rows } = await bluegreenLoad(() => lines(teachingsSql(["god said", "more", "and more"])), run, opts);
+  assert.deepEqual(rows, { teaching_passages: 3, teaching_refs: 3 });
+  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_passages WHERE teaching_passages MATCH 'god'").get().n, 1);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type = 'index' AND tbl_name = 'teaching_refs'").get().n, 1);
+});
+
+test("a readline file loads whole when each query waits on the network", async () => {
+  // D1 answers over the network, so the file's first lines are read while the loader waits on
+  // its first query: none may be lost (the CREATEs are in them).
+  const { mkdtempSync, writeFileSync, createReadStream } = await import("node:fs");
+  const { createInterface } = await import("node:readline");
+  const { join } = await import("node:path");
+  const { tmpdir } = await import("node:os");
+  const file = join(mkdtempSync(join(tmpdir(), "bg-")), "teachings.sql");
+  writeFileSync(file, teachingsSql(["god said", "more", "and more"]) + "\n");
+  const { db, run } = sqlite();
+  const slow = async (sql) => { await new Promise((r) => setTimeout(r, 20)); return run(sql); };
+  const open = () => createInterface({ input: createReadStream(file), crlfDelay: Infinity });
+  const { rows } = await bluegreenLoad(open, slow, { ...TEACHINGS, maxBytes: 300 });
+  assert.deepEqual(rows, { teaching_passages: 3, teaching_refs: 3 });
+  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_refs").get().n, 3);
+});
+
 test("batches stay under the size, one oversized statement goes alone", () => {
   assert.deepEqual(batches(["aaaa", "bbbb", "cccc", "x".repeat(20)], 10).map((b) => b.length), [2, 1, 1]);
 });

@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
+import { createServer } from "node:http";
 import { financialDb } from "./helpers/financial-db.mjs";
+import { isCoverageGap } from "../src/grounding.mjs";
 import { modelOf } from "../../shared/ask-models.mjs";
 import { verifyRelease } from "../scripts/verify-release.mjs";
 
@@ -37,6 +39,8 @@ const d1 = () => {
 // No AI or Vectorize bindings: retrieval finds nothing, so no model is ever called.
 const kv = () => ({ get: async () => null, put: async () => undefined, delete: async () => undefined });
 const env = () => ({ DB: d1(), PRIVACY_KEY: "test-key", SUBS: kv() });
+// The hosted Search models' provider: every answer-writing model needs the reader's agreement (docs/PRIVACY.md).
+const HOSTED = "Cloudflare (Workers AI)";
 
 test("a too-short question is rejected before anything runs", async () => {
   const r = await answerSearch(env(), "x", 7);
@@ -55,7 +59,7 @@ test("with nothing in the library it says so, on the default free model, and rep
   console.log = (...args) => lines.push(args.join(" "));
   let r;
   try {
-    r = await answerSearch(e, "melchizedek", 7);
+    r = await answerSearch(e, "melchizedek", 7, [HOSTED]);
   } finally {
     console.log = original;
   }
@@ -92,7 +96,7 @@ test("a stalled model is given up on at the deadline: the answer is unavailable,
   console.error = (...args) => lines.push(args.join(" "));
   const t0 = Date.now();
   let r;
-  try { r = await answerSearch(e, "melchizedek", 8, [], 50); } finally { console.error = original; }
+  try { r = await answerSearch(e, "melchizedek", 8, [HOSTED], 50); } finally { console.error = original; }
   assert.equal(r.ok, false);
   assert.equal(r.reason, "unavailable");
   assert.ok(Date.now() - t0 < 5_000, "the reader is not kept waiting on the stalled model");
@@ -103,7 +107,7 @@ test("admin searches share the daily free-tier allowance", async () => {
   const e = { ...shared, ADMIN_IDS: "7" };
   const before = await freeSpendToday(e);
   assert.ok(before > 0, "the reader's answer above was metered");
-  const r = await answerSearch(e, "melchizedek", 7);
+  const r = await answerSearch(e, "melchizedek", 7, [HOSTED]);
   assert.equal(r.ok, true);
   assert.ok(await freeSpendToday(e) > before, "admin searches must not bypass the daily allowance");
 });
@@ -136,6 +140,9 @@ test("Search's one answer asks Kimi K2.6 not to reason first, so it answers with
 
 test("external search needs consent before touching storage or retrieval; unknown models fail closed", async () => {
   assert.equal((await answerSearch({ SEARCH_AI_MODEL: GOOGLE, SEARCH_AI_FREE_ONLY: "off" }, "Melchizedek", 7)).reason, "consent");
+  // A hosted (Cloudflare) model needs the reader's agreement too; agreeing to another provider is not enough.
+  // No bindings at all: any storage, retrieval or model call before the check would throw.
+  for (const consent of [[], ["Google"], ["Anthropic"]]) assert.equal((await answerSearch({ SEARCH_AI_MODEL: "@cf/meta/llama-3.1-8b-instruct-fp8" }, "Melchizedek", 7, consent)).reason, "consent");
   for (const id of ["google/not-in-catalog", "anthropic/claude-opus-5"]) {
     assert.equal(searchModel({ SEARCH_AI_MODEL: id }), null);
     assert.equal((await answerSearch({ SEARCH_AI_MODEL: id }, "Melchizedek", 7, ["Google"])).reason, "unavailable");
@@ -245,8 +252,8 @@ function routeFixture(t, env, uid = 7) {
   const app = new Hono();
   app.use("*", async (c, next) => { if (uid) c.set("tma", { user: { id: uid } }); await next(); });
   app.route("/api/search/answer", searchAnswers);
-  const request = async (q, consent = "") => {
-    const r = await app.request(`https://app.example/api/search/answer?q=${encodeURIComponent(q)}`, { headers: { "x-ai-consent": consent } }, env, { waitUntil(p) { pending.push(p); } });
+  const request = async (q, consent = "", headers = {}) => {
+    const r = await app.request(`https://app.example/api/search/answer?q=${encodeURIComponent(q)}`, { headers: { "x-ai-consent": consent, ...headers } }, env, { waitUntil(p) { pending.push(p); } });
     await Promise.all(pending);
     return r;
   };
@@ -264,7 +271,7 @@ test("route checks consent even on a cached answer and separates models in the e
   assert.equal(first.status, 200);
   assert.equal(first.headers.get("cache-control"), "private, no-store");
   assert.equal(cache.size, 1);
-  assert.match([...cache.keys()][0], /version=library-answer-v4-cited-quotes-source-links/);
+  assert.match([...cache.keys()][0], /version=library-answer-v5-reader-voice/);
   const count = sent.length;
   const again = await request("Melchizedek", "Google");
   assert.equal(again.status, 200);
@@ -274,12 +281,18 @@ test("route checks consent even on a cached answer and separates models in the e
   assert.equal((await request("Melchizedek")).status, 428, "withdrawal is checked before cache");
   assert.equal(matched.length, lookups);
   delete env.SEARCH_AI_MODEL;
-  assert.equal((await request("Melchizedek")).status, 200);
+  // A hosted model needs the reader's agreement too, before the edge cache or any model call.
+  const hostedBefore = { sent: sent.length, lookups: matched.length };
+  const hosted = await request("Melchizedek", "Google");
+  assert.equal(hosted.status, 428);
+  assert.deepEqual(await hosted.json(), { ok: false, error: "consent", provider: HOSTED });
+  assert.deepEqual({ sent: sent.length, lookups: matched.length }, hostedBefore);
+  assert.equal((await request("Melchizedek", HOSTED)).status, 200);
   assert.equal(cache.size, 2);
   assert.ok(sent.some(s => s.model.startsWith("@cf/meta/")));
   const beforeEnforce = sent.length;
   env.ASK_COVERAGE_MODE = "enforce";
-  assert.equal((await request("Melchizedek")).status, 200);
+  assert.equal((await request("Melchizedek", HOSTED)).status, 200);
   assert.ok(sent.length > beforeEnforce, "shadow cache entries cannot bypass enforcement");
   assert.equal(cache.size, 3);
 });
@@ -311,7 +324,7 @@ test("the exact Genesis 1:1 cited draft survives checkedVerses into valid citati
   ]) {
     await t.test(draft.endsWith("[1]") ? "after reference" : "before reference", async t => {
       const { env, sent } = genesisFixture(t, draft);
-      const r = await answerSearch(env, "What does Genesis 1:1 say?", 7);
+      const r = await answerSearch(env, "What does Genesis 1:1 say?", 7, [HOSTED]);
       assert.equal(r.ok, true);
       assert.equal(r.answer, draft);
       assert.ok(r.citation_diagnostics.valid_ids >= 1);
@@ -329,7 +342,7 @@ test("the exact Genesis 1:1 cited draft survives checkedVerses into valid citati
 
 test("the plain citation guide reaches both real adapter calls; still-uncited output stays honest", async t => {
   const { env, sent } = genesisFixture(t, "> In the beginning God created the heaven and the earth. **Genesis 1:1**");
-  const r = await answerSearch(env, "What does Genesis 1:1 say?", 7);
+  const r = await answerSearch(env, "What does Genesis 1:1 say?", 7, [HOSTED]);
   assert.equal(r.state, "no-cited-answer");
   assert.deepEqual(r.sources, []);
   const calls = sent.filter(s => s.model === r.model);
@@ -478,7 +491,41 @@ test("a reader listed in SEARCH_AI_QUOTA_EXEMPT skips the per-reader count; othe
   assert.equal((await exempt.request("king of Salem", "Google")).status, 200);
   const other = routeFixture(t, env, 7);
   assert.equal((await other.request("priest of the most high", "Google")).status, 200);
-  assert.equal((await other.request("bread and wine", "Google")).status, 429);
+  const refused = await other.request("bread and wine", "Google");
+  assert.equal(refused.status, 429);
+  // The reader's own count is per UTC day: Retry-After is the time left until midnight UTC.
+  const wait = Number(refused.headers.get("retry-after")), left = Math.ceil((86400_000 - (Date.now() % 86400_000)) / 1000);
+  assert.ok(wait >= 1 && Math.abs(wait - left) <= 2, `retry-after ${wait}, ${left} s to midnight UTC`);
+});
+
+// ASK-POLICY C2 / OWASP LLM10: a per-address limit for every reader, the exempt reader and admins
+// included. An unsigned address (possibly the shared relay) is limited by the minute, never the day.
+test("route limits search answers per address for every reader, after the reader's own count", async t => {
+  const { env, sent, sql } = fixture(t);
+  env.SEARCH_AI_QUOTA_EXEMPT = "1";
+  const now = Date.now; Date.now = () => 1794052800000; t.after(() => { Date.now = now; });
+  const exempt = routeFixture(t, env, 1), other = routeFixture(t, env, 7);
+  const ip = { "cf-connecting-ip": "203.0.113.9" };
+  // An unsigned address may be the Mini App relay, shared by every reader: 300 a minute.
+  for (let i = 0; i < 300; i++) assert.equal((await exempt.request(`placeholder question ${i}`, "Google", ip)).status, 200, `search ${i}`);
+  const calls = sent.length;
+  const denied = await other.request("another placeholder question", "Google", ip);
+  assert.equal(denied.status, 429);
+  assert.deepEqual(await denied.json(), { ok: false, error: "limit" });
+  assert.equal(denied.headers.get("retry-after"), "60", "shut for the rest of the minute only");
+  assert.equal(sent.length, calls, "no model call once the address is spent");
+  assert.equal((await other.request("another placeholder question", "Google", { "cf-connecting-ip": "198.51.100.4" })).status, 200, "another address is counted on its own");
+  Date.now = () => 1794052800000 + 60_000;
+  assert.equal((await other.request("a later placeholder question", "Google", ip)).status, 200, "the shared address answers again the next minute");
+  assert.ok(!JSON.stringify(sql.prepare("SELECT key FROM rate_counts").all()).match(/203\.0\.113|198\.51\.100/), "only keyed hashes of addresses");
+  // A reader past their own allowance is refused before the address is counted, so one reader cannot
+  // use up an address everyone behind it shares.
+  env.SEARCH_AI_DAILY_LIMIT = "3";
+  const spent = () => sql.prepare("SELECT COALESCE(SUM(n), 0) AS n FROM rate_counts WHERE key LIKE 'search_ai_ip:%'").get().n;
+  assert.equal((await other.request("one more placeholder question", "Google", { "cf-connecting-ip": "192.0.2.1" })).status, 429, "reader 7 has used 3");
+  const before = spent();
+  for (let i = 0; i < 5; i++) assert.equal((await other.request(`refused placeholder ${i}`, "Google", { "cf-connecting-ip": "192.0.2.1" })).status, 429);
+  assert.equal(spent(), before, "a refused reader takes no address slot");
 });
 
 // The app's Ask (answerApp): any app sign-in, the free model only, no balance.
@@ -715,4 +762,65 @@ test('an admin failure with complete usage releases its unused daily reservation
   const row = sql.prepare("SELECT usd_micro FROM free_spend_daily WHERE day LIKE 'admin:%'").get();
   assert.equal(row.usd_micro, Math.ceil(actual * 1e6 - 1e-6));
   assert.equal(await freeSpendToday(env), 0);
+});
+
+// When Claude fails for a reader, the free model may answer only with the reader's agreement to its
+// provider, decided before Claude's meter settles. Without it nothing more is sent, and Claude's
+// reservation goes back to its pool when Claude refused outright (a 4xx: nothing billed); after a
+// server error, 529 overloaded included, it is kept whole, since tokens may have been billed. A fallback that runs keeps it.
+test("a failed Claude for a reader without agreement to the free provider releases Claude's reservation only when nothing was billed", async t => {
+  let status = 429;
+  const claude = createServer((_req, res) => { res.writeHead(status, { "content-type": "application/json", "x-should-retry": "false" }); res.end(JSON.stringify({ type: "error", error: { type: status === 429 ? "rate_limit_error" : status === 529 ? "overloaded_error" : status === 403 ? "permission_error" : "api_error", message: "fixture" } })); });
+  await new Promise(resolve => claude.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise(resolve => claude.close(resolve)));
+  for (const [code, agreed, released] of [[429, false, true], [403, false, true], [529, false, false], [500, false, false], [429, true, false]]) {
+    status = code;
+    const sent = [];
+    const e = { ...claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5" }), AI_GATEWAY: "default", ANTHROPIC_BASE_URL: `http://127.0.0.1:${claude.address().port}`,
+      AI: { run: async (model) => { if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] }; sent.push(model); return { choices: [{ message: { role: "assistant", content: "Keep it for ever." }, finish_reason: "stop" }], usage: { prompt_tokens: 900, completion_tokens: 60 } }; } },
+      VEC: { query: async () => ({ matches: [] }) } };
+    const label = `${code}, ${agreed ? "agreed" : "not agreed"}`;
+    const events = [];
+    const r = await answerAppAgent(e, "Why do we keep the Passover?", `acct-claude-${code}-${agreed}`, [], agreed ? [...AGREED, "Anthropic"] : ["Anthropic"], { emit: x => events.push(x) });
+    const holds = (await e.DB.prepare("SELECT reserved_micro AS r, state FROM free_spend_holds WHERE day LIKE 'claude:%'").all()).results;
+    const spent = (await e.DB.prepare("SELECT COALESCE(SUM(usd_micro), 0) AS m FROM free_spend_daily WHERE day LIKE 'claude:%'").first()).m;
+    assert.equal(holds.length, 1, `${label}: Claude's pool was reserved once`);
+    assert.notEqual(holds[0].state, "held", `${label}: and settled`);
+    if (released) assert.ok(spent < holds[0].r, `${label}: Claude's reservation is released (${spent} of ${holds[0].r} micro-dollars kept)`);
+    else assert.equal(spent, holds[0].r, `${label}: Claude's whole reservation is kept`);
+    assert.ok(events.some(x => x.reset === true), `${label}: the reader is told to clear Claude's draft`);
+    if (agreed) assert.equal(r.ok, true, JSON.stringify(r));
+    else {
+      assert.deepEqual(r, { ok: false, reason: "consent" }, label);
+      assert.deepEqual(sent, [], `${label}: the free model was never called`);
+    }
+  }
+});
+
+// #605 follow-up (t1v): with the reader's agreement, Claude's meter settles after the free model has run.
+// Only an answer the free model writes keeps Claude's whole reservation ("backup"). When the free model
+// cannot answer (its day's budget paused, or it fails), the meter settles by Claude's own refusal: a 4xx
+// billed nothing, so the reservation goes back; after a server error it is kept whole.
+test("an agreed fallback that writes no answer keeps Claude's reservation only when Claude may have billed", async t => {
+  let status = 429;
+  const claude = createServer((_req, res) => { res.writeHead(status, { "content-type": "application/json", "x-should-retry": "false" }); res.end(JSON.stringify({ type: "error", error: { type: status === 429 ? "rate_limit_error" : "api_error", message: "fixture" } })); });
+  await new Promise(resolve => claude.listen(0, "127.0.0.1", resolve));
+  t.after(() => new Promise(resolve => claude.close(resolve)));
+  for (const [code, how, released] of [[429, "paused", true], [500, "paused", false], [429, "throws", true], [500, "throws", false], [429, "gap", true]]) {
+    status = code;
+    const e = { ...claudeEnv({ ASK_CLAUDE_FOR_READERS: "on", ASK_CLAUDE_DAILY_USD_CAP: "5", ...(how === "paused" ? { ASK_FREE_DAILY_USD_CAP: "0" } : how === "gap" ? { ASK_COVERAGE_MODE: "enforce" } : {}) }), AI_GATEWAY: "default", ANTHROPIC_BASE_URL: `http://127.0.0.1:${claude.address().port}`,
+      AI: { run: async (model) => { if (model.includes("bge-m3")) return { data: [[0.1, 0.2]] }; if (how === "gap") return { choices: [{ message: { role: "assistant", content: "Fixture words." }, finish_reason: "stop" }], usage: { prompt_tokens: 9, completion_tokens: 2 } }; throw new Error("fixture free model failure"); } },
+      VEC: { query: async () => ({ matches: [] }) } };
+    const label = `${code}, free model ${how}`;
+    const r = await answerAppAgent(e, "Why do we keep the Passover?", `acct-fallback-${code}-${how}`, [], [...AGREED, "Anthropic"], {});
+    // With nothing found and coverage enforced, the reader gets the fixed not-in-the-classes sentence: no model wrote it.
+    if (how === "gap") assert.ok(r.ok && isCoverageGap(r), `${label}: the fixed sentence (${JSON.stringify(r).slice(0, 200)})`);
+    else assert.equal(r.ok, false, `${label}: no answer was written (${JSON.stringify(r)})`);
+    const holds = (await e.DB.prepare("SELECT reserved_micro AS r, state FROM free_spend_holds WHERE day LIKE 'claude:%'").all()).results;
+    const spent = (await e.DB.prepare("SELECT COALESCE(SUM(usd_micro), 0) AS m FROM free_spend_daily WHERE day LIKE 'claude:%'").first()).m;
+    assert.equal(holds.length, 1, `${label}: Claude's pool was reserved once`);
+    assert.notEqual(holds[0].state, "held", `${label}: and settled`);
+    if (released) assert.ok(spent < holds[0].r, `${label}: Claude's reservation is released (${spent} of ${holds[0].r} micro-dollars kept)`);
+    else assert.equal(spent, holds[0].r, `${label}: Claude's whole reservation is kept`);
+  }
 });

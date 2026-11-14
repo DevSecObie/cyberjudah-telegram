@@ -19,6 +19,23 @@ await build({ stdin: { contents: 'export * from "./src/study-plan.ts"; export { 
 const api = await import(out);
 const BOOKS = [{ book: 'Exodus', slug: 'exodus', chapters: 40 }, { book: 'Psalms', slug: 'psalms', chapters: 150 }, { book: 'Leviticus', slug: 'leviticus', chapters: 27 }];
 
+test('final fields preserve a stopping limit even when all research parts were covered', () => {
+  const plan = [{ id: 'p1', ask: 'The Passover practice', refs: [] }];
+  const parts = [{ id: 'p1', status: 'covered', sources: [1] }];
+  // Every part covered but a limit stopped it (the answer was cut): complete, never partial with no
+  // unfinished part; the stop reason is kept, and the answer is still never cached (answer-cache.ts).
+  for (const stopped of ['rounds', 'budget', 'deadline']) {
+    const result = api.studyFields(true, plan, { parts, complete: true, stopped }, [1]);
+    assert.equal(result.partial, undefined, stopped);
+    assert.equal(result.unfinished, undefined, stopped);
+    assert.equal(result.coverage.complete, true, stopped);
+    assert.equal(result.coverage.stopped, stopped);
+  }
+  const result = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered' }, [1], 'A different subject [1].');
+  assert.equal(result.partial, true, 'the final answer, not discarded follow-ups, must address the part');
+  assert.deepEqual(result.unfinished, [{ id: 'p1', ask: plan[0].ask }]);
+});
+
 test('a plan is taken whole when every part is a short restatement, and refused whole with the reasons otherwise', () => {
   const q = 'Explain the Sabbath in Exodus 20, the Passover and the dietary laws';
   const plan = (parts) => api.planFrom(q, { parts }, BOOKS, api.parseReference);
@@ -68,17 +85,38 @@ test('a reference counts as read only when every verse of it was read, across pa
   assert.equal(r.covers({ slug: 'psalms', chapter: 119, from: 180, to: 190, label: 'Psalms 119:180-190' }), false, 'verses past the chapter\'s end were never read');
 });
 
+test('class snippets, titles and unrelated openings cannot stand in for a relevant explanation', () => {
+  const part = { id: 'p1', ask: 'the orchard harvest', refs: [] };
+  const snippet = { n: 1, kind: 'spoken', title: 'The orchard harvest', text: 'The recorded orchard harvest explanation discusses the fruit and gathering in the original class words.' };
+  const r = new api.Readings();
+  const check = () => api.checklist([part], [snippet], r)[0];
+  assert.equal(check().status, 'partial');
+  assert.equal(check().needs_reading, true);
+  r.open({ ...snippet, text: 'title: The orchard harvest\nVideo: a recorded moment\n\nMountains rivers deserts and geography describe different landforms across a distant region.' });
+  assert.equal(check().status, 'partial', 'opening a matching title with unrelated body words does not qualify');
+  assert.match(api.checklistNote([part], [check()], r), /read_note, read_transcript or commentary/);
+  r.open({ ...snippet, text: 'Recorded class metadata\n\nThe recorded orchard harvest explanation describes gathering fruit in the original published class context.' });
+  assert.equal(check().status, 'covered');
+  assert.deepEqual(check().sources, [1]);
+  const unrelated = { id: 'p2', ask: 'mountains rivers geography', refs: [] };
+  assert.equal(api.checklist([unrelated], [snippet], r)[0].status, 'missing', 'a read source still must match the part');
+});
+
 test('each part is covered, partial or missing, with at most 20 sources', () => {
   const parts = [{ id: 'p1', ask: 'the passover lamb blood doorposts', refs: [{ slug: 'exodus', chapter: 12, label: 'Exodus 12' }] }, { id: 'p2', ask: 'dietary laws clean unclean animals', refs: [] }];
   const note = { n: 1, kind: 'note', title: 'Passover class', text: 'The passover lamb was killed and the blood put on the doorposts of the houses, recorded in the class notes as read.' };
   const r = new api.Readings();
   let state = api.checklist(parts, [note], r);
   assert.deepEqual(state.map(p => p.status), ['partial', 'missing'], 'evidence without the chapter read is partial');
+  assert.deepEqual(state[0].sources, [], 'a search snippet is not an opened explanation');
+  r.open(note);
+  state = api.checklist(parts, [note], r);
   assert.deepEqual(state[0].sources, [1]);
   r.record('exodus', 12, 1, 10, 1, 10);
   state = api.checklist(parts, [note], r);
   assert.deepEqual(state.map(p => p.status), ['covered', 'missing']);
   const many = Array.from({ length: 30 }, (_, i) => ({ ...note, n: i + 1 }));
+  many.forEach(source => r.open(source));
   const all = api.checklist(parts, many, r);
   assert.equal(all[0].sources.length, 30, 'the checklist keeps every source; only what is sent is bounded');
   assert.equal(api.studyFields(true, parts, { parts: all, complete: true, stopped: 'covered' }).coverage.parts[0].sources.length, api.PART_MAX_SOURCES);
@@ -110,6 +148,7 @@ const question = 'Explain the Sabbath in Exodus 20 and the rest in Psalms 119';
 test('a part is judged on its own words: a new plan reuses no old decision, and a retrieval score covers nothing', () => {
   const memo = new Map(), r = new api.Readings();
   const src = { n: 1, kind: 'note', title: 'Passover class', text: 'The passover lamb was killed and the blood put on the doorposts of the houses, recorded in the class notes as read.' };
+  r.open(src);
   assert.equal(api.checklist([{ id: 'p1', ask: 'the passover lamb blood doorposts', refs: [] }], [src], r, memo)[0].status, 'covered');
   assert.equal(api.checklist([{ id: 'p1', ask: 'mountains rivers deserts geography', refs: [] }], [src], r, memo)[0].status, 'missing', 'p1 with new words is judged again');
   const scored = { ...src, [Symbol.for('cyberjudah.retrieval-provenance')]: { mode: 'vector', score: 0.95 } };
@@ -202,12 +241,19 @@ test('verses already in hand count as read for a named reference', async () => {
   assert.equal(requests.length, 1, 'so the answer is not sent back');
 });
 
-test('a question with no parts and no Scripture is not tracked and gets no checklist', async () => {
+test('a substantive question cannot skip tracking by omitting a plan and named Scripture', async () => {
   const requests = [];
   const result = await api.runAgent(env(claudeScript(['A short answer.'], requests)), 'Who was Moses?', [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
+  assert.equal(result.tracked, true);
+  assert.equal(requests.length, 2, 'one bounded repair, not unbounded retries');
+  assert.equal(api.studyFields(result.tracked, result.plan, result.coverage).partial, true);
+});
+
+test('greetings need no research checklist or repair', async () => {
+  const requests = [];
+  const result = await api.runAgent(env(claudeScript(['Hello.'], requests)), 'Shalom', [], [], async () => [], () => {}, undefined, undefined, modelOf('claude-opus-5-5'));
   assert.equal(result.tracked, false);
-  assert.equal(requests.length, 1, 'no extra round');
-  assert.deepEqual(api.studyFields(result.tracked, result.plan, result.coverage), {});
+  assert.equal(requests.length, 1);
 });
 
 test('one answer registers at most 100 sources, the Mini App\'s limit', async () => {
@@ -277,6 +323,7 @@ test('hotfix: a part reads the Scripture its own ask names, whatever refs the mo
   for (const refs of [undefined, [], ['Psalms 119:1']]) {
     const { parts } = api.planFrom('Explain all of Psalms 119', { parts: [{ ask: 'All of Psalms 119', ...(refs ? { refs } : {}) }] }, BOOKS, api.parseReference);
     const r = new api.Readings();
+    r.open(src);
     r.record('psalms', 119, 1, 1, 1, 176);
     assert.equal(api.checklist(parts, [src], r)[0].status, 'partial', `refs ${JSON.stringify(refs)}: one verse is not the chapter`);
     r.record('psalms', 119, 2, 176, 1, 176);
@@ -415,3 +462,35 @@ for (const format of ['chat', 'responses', 'messages']) {
     }
   });
 }
+
+test("an answer's coverage is checked against its text once, on the final text (studyFields), not also on the draft", async () => {
+  const { readFileSync } = await import('node:fs');
+  const agent = readFileSync(new URL('../src/agent.ts', import.meta.url), 'utf8');
+  const finish = agent.slice(agent.indexOf('const finish = ('), agent.indexOf('const timedOut = ('));
+  assert.match(finish, /coverageOf\(stopBy, result\.cut\)/);
+  assert.doesNotMatch(finish, /coverageOf\([^)]*result\.text/);
+  const ai = readFileSync(new URL('../src/ai.ts', import.meta.url), 'utf8');
+  const calls = [...ai.matchAll(/studyFields\(ran\.tracked, ran\.plan, ran\.coverage, sources\.map\(\(?s\)? => s\.n\), (\w+)\)/g)].map(m => m[1]);
+  assert.equal(calls.length, (ai.match(/studyFields\(/g) ?? []).length, 'every studyFields call is in the checked form');
+  assert.deepEqual([...new Set(calls)], ['answer'], 'each gets the final answer');
+  // The final text decides: a covered part the final answer doesn't address is partial.
+  const plan = [{ id: 'p1', ask: 'The Passover practice', refs: [] }];
+  const done = api.studyFields(true, plan, { parts: [{ id: 'p1', status: 'covered', sources: [1] }], complete: true, stopped: 'covered' }, [1], 'Unrelated words [1].');
+  assert.equal(done.coverage.parts[0].status, 'partial');
+  assert.deepEqual(done.unfinished, [{ id: 'p1', ask: plan[0].ask }]);
+});
+
+test("a part the final text leaves open names the limit that ended research, not 'not found'; the limit is never sent", () => {
+  const plan = [{ id: 'p1', ask: 'The Passover practice', refs: [] }];
+  const parts = [{ id: 'p1', status: 'covered', sources: [1] }];
+  const open = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered', limit: 'rounds' }, [1], 'Unrelated words [1].');
+  assert.equal(open.coverage.stopped, 'rounds');
+  assert.equal(open.partial, true);
+  assert.equal('limit' in open.coverage, false);
+  const none = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered' }, [1], 'Unrelated words [1].');
+  assert.equal(none.coverage.stopped, 'not_found');
+  const answered = api.studyFields(true, plan, { parts, complete: true, stopped: 'covered', limit: 'rounds' }, [1], 'The Passover practice is kept [1].');
+  assert.equal(answered.coverage.stopped, 'covered', 'answered in full: research covered every part');
+  assert.equal(answered.partial, undefined);
+  assert.equal('limit' in answered.coverage, false);
+});

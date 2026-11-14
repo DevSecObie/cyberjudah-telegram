@@ -18,6 +18,7 @@
  */
 import { chunkRecord, docRecord, EMBED_MODEL, hash } from "../src/ai.mjs";
 import { chunkSegments, videoOfThumb } from "../src/transcripts.mjs";
+import { indexMark, writeCorpusMark } from "./corpus-mark.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
@@ -123,10 +124,12 @@ async function* records() {
 let seen = 0, todo = 0, done = 0, marksBlocked = false;
 let pending = [], pendingChars = 0;
 const inflight = new Set();
+// Set once any vector is written or removed: the live index then differs from its last mark.
+let indexChanged = false;
 const flushEmbedded = async (batch) => {
   const vectors = (await embedTexts(batch.map((r) => r.text))).map((values, i) => ({ id: batch[i].id, values, metadata: batch[i].metadata }));
   if (DRY) return vectors.length;
-  for (let i = 0; i < vectors.length; i += UPSERT_BATCH) await upsert(vectors.slice(i, i + UPSERT_BATCH));
+  for (let i = 0; i < vectors.length; i += UPSERT_BATCH) { await upsert(vectors.slice(i, i + UPSERT_BATCH)); indexChanged = true; }
   const marks = batch.map((r) => `(${lit(r.id)},${lit(r.hash)})`);
   if (!marksBlocked) {
     try { for (let i = 0; i < marks.length; i += 500) await sql(`INSERT OR REPLACE INTO embedded(id, hash) VALUES ${marks.slice(i, i + 500).join(",")}`); }
@@ -139,22 +142,33 @@ const schedule = async (batch) => {
   const p = flushEmbedded(batch).then((n) => { done += n; if (done % 5000 < n) console.error(`embedded ${done}/${todo}`); }).finally(() => inflight.delete(p));
   inflight.add(p);
 };
-for await (const r of records()) {
-  seen++;
-  const h = hash(r.text);
-  if (known.get(r.id) === h) continue;
-  todo++;
-  if (todo > LIMIT) break;
-  pending.push({ ...r, hash: h });
-  pendingChars += r.text.length;
-  // A batch also closes on its length: about 3 characters a token keeps it well under the model's 60,000.
-  if (pending.length >= EMBED_BATCH || pendingChars >= EMBED_CHARS) { await schedule(pending); pending = []; pendingChars = 0; }
-}
-if (pending.length) await schedule(pending);
-await Promise.all(inflight);
-if (stale.length && !DRY) {
-  await deleteIds(stale);
-  for (let i = 0; i < stale.length; i += 500) await sql(`DELETE FROM embedded WHERE id IN (${stale.slice(i, i + 500).map(lit).join(",")})`);
-  console.error(`${stale.length} stale passages removed from the index`);
+// A run that changed the index gives it a new build mark, which Ask answers name (src/ask-versions.ts);
+// a run that changed nothing keeps the last one, so kept answers stay valid. The mark is written
+// even when the run fails part way, since the vectors it already loaded or removed are live.
+try {
+  for await (const r of records()) {
+    seen++;
+    const h = hash(r.text);
+    if (known.get(r.id) === h) continue;
+    todo++;
+    if (todo > LIMIT) break;
+    pending.push({ ...r, hash: h });
+    pendingChars += r.text.length;
+    // A batch also closes on its length: about 3 characters a token keeps it well under the model's 60,000.
+    if (pending.length >= EMBED_BATCH || pendingChars >= EMBED_CHARS) { await schedule(pending); pending = []; pendingChars = 0; }
+  }
+  if (pending.length) await schedule(pending);
+  await Promise.all(inflight);
+  if (stale.length && !DRY) {
+    // Marked before deleting: a delete that fails part way has still changed the index.
+    indexChanged = true;
+    await deleteIds(stale);
+    for (let i = 0; i < stale.length; i += 500) await sql(`DELETE FROM embedded WHERE id IN (${stale.slice(i, i + 500).map(lit).join(",")})`);
+    console.error(`${stale.length} stale passages removed from the index`);
+  }
+} finally {
+  // Any upsert still in flight after a failure lands before the mark, never after it.
+  await Promise.allSettled(inflight);
+  if (!DRY && indexChanged) await writeCorpusMark(sql, "index", indexMark());
 }
 console.error(`done: ${seen} passages seen, ${done} embedded this run${DRY ? " (dry)" : ""}`);

@@ -18,8 +18,8 @@ await build({
       import Anthropic from '@anthropic-ai/sdk';
       export async function runAgent(env, question, history, first, retrieve, emit, ctx, uid, model, spend, resources, rounds, cite, control) {
         env.fixtureQuestion = question;
-        // Claude is busy (rate limited), as Anthropic answers it: the backup path decides what happens.
-        if (env.fixtureBusy) throw new Anthropic.RateLimitError(429, { type: 'error', error: { type: 'rate_limit_error', message: 'fixture' } }, 'fixture rate limit', new Headers());
+        // Claude fails as Anthropic answers it (429 rate limited by default, or the status given): the backup path decides what happens.
+        if (env.fixtureBusy) { const status = env.fixtureBusy === true ? 429 : env.fixtureBusy; throw Anthropic.APIError.generate(status, { type: 'error', error: { type: status === 429 ? 'rate_limit_error' : 'api_error', message: 'fixture' } }, 'fixture failure', new Headers()); }
         emit({ status: 'Reading sources' });
         if (env.fixtureCancelMode) {
           spend.call({ input_tokens: 1000, output_tokens: 100 }, model);
@@ -29,11 +29,12 @@ await build({
           await new Promise((_resolve, reject) => control.signal.addEventListener('abort', () => reject(control.signal.reason), { once: true }));
         }
         emit({ delta: env.fixtureAnswer });
-        return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false };
+        return { text: env.fixtureAnswer, passages: env.fixtureSources, actions: [], cut: false, ...(env.fixtureGrounded === false ? { grounded: false } : {}), ...(env.fixtureFixed ? { fixed: true, cut: true } : {}) };
       }
     ` }));
   } }],
 });
+import { isCoverageGap } from '../src/grounding.mjs';
 const { ask, askStream, freeModel, freeSpendToday, answerApp, answerAppAgent, grantPayment, ownerOfUser, wallet, worker } = await import(out);
 
 for (const mode of ['before', 'after', 'reset']) {
@@ -84,11 +85,12 @@ test('a misconfigured primary backup stays free when the reader cancels its text
   assert.equal((await wallet(env, owner)).total_mc, 2_000_000);
 });
 
-test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async () => {
+test('owner-approved attachments survive without bracket citations on JSON, NDJSON and native paths', async t => {
+  const { env } = financialDb(t);
   const question = 'Owner approved fixture';
   const json = await answerApp({}, question, 'owner');
   const agent = await answerAppAgent({}, question, 'owner');
-  const stream = (await (await askStream({}, question, 77)).text()).trim().split('\n').map(JSON.parse).find(event => event.done);
+  const stream = (await (await askStream(env, question, 77, undefined, [])).text()).trim().split('\n').map(JSON.parse).find(event => event.done);
   for (const result of [json, agent, stream]) {
     assert.equal(result.sources.length, 1);
     assert.equal(result.sources[0].title, 'Approved attachment');
@@ -200,8 +202,9 @@ for (const stream of [false, true]) {
       assert.equal(response.status, 200);
       assert.match(response.headers.get('content-type'), /application\/x-ndjson/);
       const events = (await response.text()).trim().split('\n').map(JSON.parse);
-      assert.deepEqual(events[0], { status: 'Reading sources' });
-      assert.deepEqual(events[1], { delta: env.fixtureAnswer });
+      assert.ok(events[0].request && events[0].answer_id);
+      assert.deepEqual(events.find(event => event.status), { status: 'Reading sources' });
+      assert.deepEqual(events.find(event => event.delta), { delta: env.fixtureAnswer });
       result = events.find(event => event.done);
       assert.ok(result);
     } else {
@@ -320,7 +323,10 @@ test('without agreement to the backup provider, no backup answer is written and 
     if (stream) {
       const lines = (await (await askStream(env, 'Read recorded material', 77, undefined, [], undefined, false, model.id, [model.provider], { caps: { [model.id]: 500_000 } })).text()).trim().split('\n').map(JSON.parse);
       assert.equal(lines.find(l => l.done), undefined, 'no answer');
-      assert.deepEqual(lines.at(-1), { error: 'unavailable' });
+      // The error line names the request (#569's recovery path); only a no-charge usage line may follow it.
+      const end = lines.findIndex(l => l.error);
+      assert.equal(lines[end].error, 'unavailable');
+      assert.ok(lines.slice(end + 1).every(l => l.usage && l.usage.charged_mc === 0), JSON.stringify(lines.slice(end + 1)));
       assert.ok(!lines.some(l => typeof l.delta === 'string' && l.delta.includes('Backup words')));
     } else {
       assert.deepEqual(await ask(env, 'Read recorded material', 77, undefined, [], [model.provider]), { ok: false, reason: 'unavailable' });
@@ -332,10 +338,12 @@ test('without agreement to the backup provider, no backup answer is written and 
 // t1w's repro (#603): Claude busy (429) on a free-tier Claude model, the reader agreed to Anthropic only.
 // The meter must settle as "empty" before any backup is chosen, so the day's free allowance gets its
 // reservation back; only an answer the backup actually writes keeps the whole reservation.
-test('a busy Claude without agreement to the backup releases the free reservation; with agreement the backup keeps it', async t => {
-  for (const agreed of [false, true]) {
+// A refused backup gives the reservation back only when Claude refused before writing (429: nothing
+// billed); after a server error (500) tokens may have been billed, so the whole reservation is kept.
+test('a busy Claude without agreement to the backup releases the free reservation only when nothing was billed; with agreement the backup keeps it', async t => {
+  for (const [code, agreed, released] of [[429, false, true], [500, false, false], [429, true, false]]) {
     const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5'), sent = [];
-    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_MODELS: model.id, ANTHROPIC_API_KEY: 'fixture-only', fixtureBusy: true,
+    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_MODELS: model.id, ANTHROPIC_API_KEY: 'fixture-only', fixtureBusy: code,
       AI: { run: async (id) => { if (id.includes('bge-m3')) return { data: [[1, 2]] }; if (id.includes('reranker')) return { response: [] }; sent.push(id); return new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ response: 'Backup words [1].' })}\n\n`)); c.close(); } }); } },
       VEC: { query: async () => ({ matches: [{ score: 0.95, metadata: { kind: 'web', title: 'Recorded material', url: 'https://cyberjudah.io/recorded-fixture', text: 'Existing recorded public words about the source material and its historical context, copied from the supplied fixture without adding any teaching or interpretation.' } }] }) } });
     const consent = agreed ? [model.provider, 'Cloudflare (Workers AI)'] : [model.provider];
@@ -352,11 +360,62 @@ test('a busy Claude without agreement to the backup releases the free reservatio
       assert.equal(spent, holds.reduce((n, h) => n + h.reserved_micro, 0));
     } else {
       assert.equal(holds.length, 1, 'only the Ask meter reserved');
-      assert.ok(spent < holds[0].reserved_micro, `the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
-      assert.deepEqual(lines.at(-1), { error: 'busy' });
+      if (released) assert.ok(spent < holds[0].reserved_micro, `${code}: the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
+      else assert.equal(spent, holds[0].reserved_micro, `${code}: the whole reservation is kept`);
+      // The error line names the request (#569's recovery path); only a no-charge usage line may follow it.
+      const end = lines.findIndex(l => l.error);
+      assert.equal(lines[end].error, 'busy');
+      assert.ok(lines.slice(end + 1).every(l => l.usage && l.usage.charged_mc === 0), JSON.stringify(lines.slice(end + 1)));
       assert.equal(lines.find(l => l.done), undefined);
       assert.ok(!lines.some(l => l.status === 'Answering with the backup model'), 'no backup is announced');
       assert.deepEqual(sent, [], 'the backup model was never called');
     }
   }
+});
+
+// #605 follow-up (t1v): with the reader's agreement, a backup that writes no answer (nothing found to
+// answer from) settles by Claude's own refusal: a 429 billed nothing, so the reservation goes back;
+// after a server error it is kept whole. Only an answer the backup writes keeps it whole regardless.
+test('an agreed backup with nothing to answer from releases the reservation only when Claude billed nothing', async t => {
+  for (const [code, released] of [[429, true], [500, false]]) {
+    const { env, sql } = financialDb(t), model = modelOf('claude-sonnet-5-5'), sent = [];
+    Object.assign(env, { ASK_BILLING: 'off', CLAUDE_MODEL: model.id, ASK_FREE_MODELS: model.id, ANTHROPIC_API_KEY: 'fixture-only', fixtureBusy: code,
+      AI: { run: async (id) => { if (id.includes('bge-m3')) return { data: [[1, 2]] }; if (id.includes('reranker')) return { response: [] }; sent.push(id); throw new Error('the backup must not be called'); } },
+      VEC: { query: async () => ({ matches: [] }) } });
+    const pending = [], ctx = { waitUntil: promise => pending.push(promise) };
+    const lines = (await (await askStream(env, 'Read recorded material', 78, ctx, [], undefined, false, model.id, [model.provider, 'Cloudflare (Workers AI)'])).text()).trim().split('\n').map(JSON.parse);
+    await Promise.all(pending);
+    // The error line names the request (#569's recovery path); only a no-charge usage line may follow it.
+    const end = lines.findIndex(l => l.error);
+    assert.equal(lines[end].error, 'busy', `${code}`);
+    assert.ok(lines.slice(end + 1).every(l => l.usage && l.usage.charged_mc === 0), JSON.stringify(lines.slice(end + 1)));
+    assert.deepEqual(sent, [], `${code}: the backup model was never called`);
+    const holds = sql.prepare('SELECT reserved_micro, state FROM free_spend_holds').all();
+    assert.equal(holds.length, 1, `${code}: only the Ask meter reserved`);
+    assert.notEqual(holds[0].state, 'held', `${code}: and it is settled`);
+    const spent = Math.round((await freeSpendToday(env)) * 1e6);
+    if (released) assert.ok(spent < holds[0].reserved_micro, `${code}: the reservation is released (${spent} of ${holds[0].reserved_micro} micro-dollars kept)`);
+    else assert.equal(spent, holds[0].reserved_micro, `${code}: the whole reservation is kept`);
+  }
+});
+
+test('the app agent marks a fixed not-in-the-classes answer as a gap, so its writer is "none", and keeps its model label (#600)', async t => {
+  const { env } = financialDb(t), model = freeModel(env);
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Fixture gap sentence.', fixtureSources: [] });
+  for (const grounded of [false, undefined]) {
+    env.fixtureGrounded = grounded;
+    const r = await answerAppAgent(env, 'Explain the historical evidence', 'acct-gap', [], [model.provider], { model: model.id });
+    assert.equal(r.ok, true, JSON.stringify(r));
+    assert.equal(r.model, model.id, 'the model label is kept');
+    assert.equal(isCoverageGap(r), grounded === false, `grounded ${grounded}`);
+  }
+});
+
+test('the app agent marks the deadline\'s fixed excerpts as written by no model, and keeps its model label (#600)', async t => {
+  const { env } = financialDb(t), model = freeModel(env);
+  Object.assign(env, { CLAUDE_MODEL: model.id, AI_GATEWAY: 'fixture', AI: { run: async () => ({ data: [] }) }, fixtureAnswer: 'Fixture deadline excerpts.', fixtureSources: [], fixtureFixed: true });
+  const r = await answerAppAgent(env, 'Explain the historical evidence', 'acct-fixed', [], [model.provider], { model: model.id });
+  assert.equal(r.ok, true, JSON.stringify(r));
+  assert.equal(r.model, model.id);
+  assert.equal(isCoverageGap(r), true);
 });

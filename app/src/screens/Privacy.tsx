@@ -15,7 +15,7 @@ import { consented, withdraw } from "@/lib/ai-consent";
  * the other. Required by Telegram's Bot Developer Terms (section 4) and Standard Bot Privacy
  * Policy (7.3), and by Apple's App Review Guidelines 5.1.1(i) and 5.1.2(i).
  */
-export const PRIVACY_UPDATED = "2026-11-04";
+export const PRIVACY_UPDATED = "2026-11-10";
 /** Where privacy questions and requests go (the owner's address). */
 export const PRIVACY_CONTACT = "privacy@cyberjudah.io";
 
@@ -63,7 +63,7 @@ export function Privacy() {
           <List>
             <Row icon="download" title={busy === "export" ? "Sending…" : "Download my data"} sub={inTelegram ? "A copy of everything kept about you, sent to your chat with the bot" : "Download a JSON copy of your account data"} onClick={busy ? undefined : () => void sendCopy()} />
             <Row icon="trash" title={busy === "delete" ? "Deleting…" : "Delete my data"} sub="Everything kept about you, removed at once" onClick={busy ? undefined : () => void deleteAll()} />
-            <Row icon="close" title="Withdraw AI agreement" sub={agreed.length ? `You agreed to: ${agreed.join(", ")}. Ask and Search will ask again before sending a question to an external AI provider.` : "You have not agreed to any AI provider."} onClick={agreed.length ? () => { withdraw(); setAgreed([]); haptic("select"); setStatus("Done. Ask and Search will ask before sending your next question to an external AI provider."); } : undefined} />
+            <Row icon="close" title="Withdraw AI agreement" sub={agreed.length ? `You agreed to: ${agreed.join(", ")}. Ask and Search will ask again before an AI model writes an answer to your question.` : "You have not agreed to any AI provider."} onClick={agreed.length ? () => { withdraw(); setAgreed([]); haptic("select"); setStatus("Done. Ask and Search will ask before an AI model writes an answer to your next question."); } : undefined} />
           </List>
         ) : <p className="hint">Open CyberJudah in Telegram to download or delete what is kept about you. In the bot you can also send /mydata or /deletemydata. A reminder set up in this browser is removed in Settings → Reading reminders.</p>}
         {status ? <p className="hint" role="status">{status}</p> : null}
@@ -94,7 +94,7 @@ export function Privacy() {
           <li><b>Ask balance:</b> what is left, each top-up, and what each answer you paid for was charged. Kept until you delete your data; Download my data includes the latest 500 balance entries. Which model wrote each answer and what it cost (never the question) is kept for 180 days.</li>
           <li><b>Top-up reminder:</b> if you turned it on, your time zone and the chat to send it to. Kept until you turn it off.</li>
           <li><b>Stars payments and gifts:</b> Telegram's charge reference, what was bought or given, the amount and the date, for refunds and the accounts. Downloading your data includes both; deleting your data unlinks them from you.</li>
-          <li><b>Class-note requests:</b> so each person counts once. Kept until the notes are written.</li>
+          <li><b>Class-note requests:</b> so each person counts once. If you ask to be told when the notes are ready, also your first name (shown to the admins with the request) and, in Telegram, the chat the bot writes to. Kept until the notes are published and you have been told, then deleted.</li>
           <li><b>Counts:</b> how many times today you asked, used the search answer or the reading voice, shared or reported an answer, for limits and costs. Cleared daily.</li>
           <li><b>Network address for Ask:</b> the address a question comes from, with a count, to limit abuse from one network. Never linked to you. Cleared within two days.</li>
           <li><b>New browsers for reminders:</b> how many browsers set up reminders from one network address today, filed under a keyed code of the address rather than the address itself. Cleared after two days.</li>
@@ -105,7 +105,7 @@ export function Privacy() {
         <ul>
           <li><b>Telegram</b> runs the platform: sign-in, messages and Stars payments, under Telegram's own privacy policy.</li>
           <li><b>Cloudflare</b> hosts CyberJudah and runs the Cloudflare-hosted AI models. CyberJudah has its per-request logs turned off, so the words you search for are not kept in them; the service's own log messages (never your ID or words) are kept for up to 7 days. Calls to AI models are logged without your words, or not logged at all.</li>
-          <li><b>The AI provider of the model you choose</b> (for example Anthropic, OpenAI, Google or xAI) receives your question, the earlier questions in that chat, and passages from the library, so that it can write the answer. Only after you agree, in Ask or Search, to that provider. Search sends only the current query and matching passages; its answers are shared in a cache for two minutes. Your name and Telegram ID are not sent. If you ask about your saved chats or your reading reminder, it also receives the titles and dates of your other saved chats, or your reminder's settings: its time, time zone, where it is sent and where you are in the reading plan. Each provider handles what it receives under its own terms.</li>
+          <li><b>The AI provider of the model you choose</b> (for example Anthropic, OpenAI, Google, xAI, or Cloudflare's own hosted models) receives your question, the earlier questions in that chat, and passages from the library, so that it can write the answer. Only after you agree, in Ask or Search, to that provider. Search sends only the current query and matching passages; its answers are shared in a cache for two minutes. Your name and Telegram ID are not sent. If you ask about your saved chats or your reading reminder, it also receives the titles and dates of your other saved chats, or your reminder's settings: its time, time zone, where it is sent and where you are in the reading plan. Each provider handles what it receives under its own terms.</li>
           <li><b>Wikipedia and approved reference sites:</b> to answer, Ask may look up search words drawn from your question on Wikipedia, or read a page on one of the reference sites CyberJudah has approved. CyberJudah's server makes these requests; your name and Telegram ID are not sent.</li>
           <li><b>Typefaces</b> are served with the app. Loading them does not contact Google Fonts.</li>
           <li><b>YouTube</b> serves the classes' thumbnail pictures when you browse them, and plays a class in its privacy-enhanced player (youtube-nocookie.com) when you start one.</li>

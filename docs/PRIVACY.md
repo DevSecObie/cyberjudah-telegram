@@ -36,6 +36,7 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Record | Where | Holds | Kept | Deleted by |
 |---|---|---|---|---|
 | Saved Ask chats | KV `chats:<pid>`, `chat:<pid>:<id>`, sealed | Questions, answers, source links | 180 days from last use (`CHAT_TTL`) | The reader (one chat, or all), Delete my data |
+| Ask request recovery | D1 `ask_requests` (owner = pid), answer payload sealed | Opaque request/answer IDs, keyed input fingerprint, model, outcome, encrypted complete or interrupted answer and charge; no raw Telegram ID | 180 days from admission, pruned hourly | Delete my data; deleting a saved chat also removes its recovery records; included in Download my data |
 | Ask feedback receipts | D1 `ask_answer_receipts` (`owner` = pseudonymous Telegram pid) | Random answer ID, source numbers actually returned, creation and expiry; no question or answer text | 30 days, swept hourly | Delete my data; included in Download my data |
 | Ask feedback votes | D1 `ask_feedback` (`owner` = pseudonymous Telegram pid) | One current rating per answer, optional fixed reason and source number, timestamps; no free text or private chat content | With the receipt (30 days), swept hourly | Delete my data; included in Download my data |
 | Ask feedback limits | D1 `ask_feedback_limits` | Minute counts keyed by pseudonymous owner or purpose-specific keyed IP hash; no plaintext address | Until the minute boundary plus one minute; swept hourly | Delete my data removes person counters; network counters expire independently |
@@ -57,7 +58,8 @@ record holding anything personal is sealed for its owner (AES-GCM, a key derived
 | Daily limits | D1 `rate_counts` (`name:pid:day`: `ask`, `search_ai`, `ttsg`, `share`, `report`) | A count | Swept daily | Delete my data |
 | Ask limit per network | D1 `rate_counts` (`ask_ip:<HMAC of IP address>:day`; `client-ip.ts` `askIpKey`, `privacy.mjs` `keyedHash`, keyed from `PRIVACY_KEY`) | A count per address the question came from (through the Mini App, the reader's address its Worker signs), never linked to a pid; the address itself is not stored, logged or returned | Swept daily (kept up to two days) | Expires on its own |
 | New reminder browsers per network | KV `remcreate:<HMAC of IP address>:day` (`remind.ts`; `privacy.mjs` `keyedHash`, keyed from `PRIVACY_KEY`) | A count of new browser credentials from that address | Two days (`expirationTtl`) | Expires on its own |
-| Class-note requests | KV `notereq:<video>` | Count, pids (once each) | Until the notes are written | Delete my data (the reader's pid and vote) |
+| Class-note requests | KV `notereq:<video>` | Count, pids (once each); for readers who asked to be told, sealed (`privacy.mjs` seal): pid, first name and username (shown to admins only), and in Telegram the chat ID the bot writes to (`requests.ts` `tell`). A phone-app reader is filed under their Telegram pid when their sign-in is linked, otherwise under a keyed hash of their Firebase UID (`app-requests.ts`) | Until the notes are published (`notes-ready.ts`, hourly) or an admin closes it | Delete my data (the reader's pid, vote and name) |
+| Notes ready for an app reader | KV `notesready:<pid>` (`notes-ready.ts`) | Video, title and teacher of requested notes that came out | Until the app next opens, at most 60 days (`expirationTtl`) | Delete my data; the app's account deletion calls `DELETE /api/app/requests` |
 | Cloud study backup | D1 `study_backups` (`owner` = pid; `study-backup.ts`) | The personal-study archive, sealed; revision, last update | Until replaced or deleted | The reader, Delete my data |
 | Browser sign-in | D1 `browser_sessions` (`owner` = pid, `token_hash` = keyed hash of the cookie; `browser-auth.ts`) | Name, @username and Telegram ID, sealed; expiry | 1 day (`expires`; expired rows removed at the next sign-in) | Sign out, Delete my data |
 | Deleted-chat marker | KV `chatgone:<pid>:<id>` (`chats.ts`) | `1`, so an answer still being written is not saved into a deleted chat | 1 day (`expirationTtl`) | Expires on its own |
@@ -138,10 +140,11 @@ A linked Telegram account's own records (Ask balance, chats) go with `deleteData
 - **The AI provider of the model the reader chooses** (Anthropic, OpenAI, Google, xAI, DeepSeek,
   Alibaba, Moonshot AI, MiniMax, Thinking Machines, Unbiased, or Cloudflare for the hosted models):
   the question, the earlier questions in the chat, library passages. Never the name or Telegram ID.
-  An external provider is used only after the reader agrees to it (`lib/ai-consent.ts`; the server
-  answers 428 otherwise, including before Search cache lookups). Search's model, when hosted on
-  Cloudflare (`@cf/`), needs no agreement, because Cloudflare is the host; an external Search model
-  without the reader's agreement is refused with 428 (`search-answer.ts`, `ai.ts` `answerSearch`). Search sends only the current query and
+  Any model that writes an answer is used only after the reader agrees to its provider, wherever
+  the model runs, including Cloudflare's hosted models (`lib/ai-consent.ts`; the server answers
+  428 otherwise, including before Search cache lookups: `search-answer.ts`, `ai.ts` `answerSearch`).
+  Search processing on the host (embedding the question and reranking passages with Workers AI)
+  writes no answer and needs no separate agreement (owner, 2026-11-10). Search sends only the current query and
   matching library passages; answers are cached for two minutes, keyed by question and model,
   with no reader identity. Search is not saved as an Ask conversation. Ask also discloses the
   provider's home country when `shared/ask-models.mjs` `PROVIDER_COUNTRY`

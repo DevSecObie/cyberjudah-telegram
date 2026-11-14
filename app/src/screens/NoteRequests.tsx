@@ -22,7 +22,7 @@ export function NoteRequests() {
   const copy = (text: string) => { void navigator.clipboard?.writeText(text).then(() => haptic("success")).catch(() => haptic("error")); };
   return (
     <Screen title="Requested notes" kicker="Admin">
-      <p className="hint">Classes readers asked notes for, the most asked first. To write them, run the draft-notes workflow with their video ids; it opens a pull request with the drafts for review. Mark a class done when its notes are in.</p>
+      <p className="hint">Classes readers asked notes for, the most asked first. To write them, run the draft-notes workflow with their video ids; it opens a pull request with the drafts for review. Readers who asked to be told are messaged on their own within the hour the notes are published, and the class then leaves this list.</p>
       {list.isPending ? <Loading /> : list.isError ? <Empty title="The requests did not load" action={{ label: "Retry", onClick: () => void list.refetch() }} /> : !rows.length ? <Empty title="No requests yet">When readers ask for a class's notes, it shows here.</Empty> : (
         <>
           <div className="nreq__bar">
@@ -36,6 +36,7 @@ export function NoteRequests() {
                   <button type="button" className="nreq__main" onClick={() => { haptic("select"); navigate(`/watch/${r.video}`); }}>
                     <b>{r.title || r.video}</b>
                     <small>{r.count} {r.count === 1 ? "request" : "requests"}{r.last ? ` · last ${fmtDate(r.last.slice(0, 10))}` : ""} · {r.video}</small>
+                    {r.askers?.length ? <small>To tell: {r.askers.map((a) => (a.username ? `${a.name || "@" + a.username} (@${a.username})` : a.name || "a reader")).join(", ")}</small> : null}
                   </button>
                   <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" aria-label={`Copy the id of ${r.title || r.video}`} title={`Copy the id of ${r.title || r.video}`} onClick={() => copy(r.video)}>Copy id</button>
                   <button type="button" className="btn btn--bordered btn--sm nreq__btn nreq__btn--quiet" aria-label={`Mark ${r.title || r.video} done`} title={`Mark ${r.title || r.video} done`} disabled={close.isPending} onClick={() => { haptic("select"); close.mutate(r.video); }}>Done</button>

@@ -28,7 +28,7 @@ export const FRONTIER_ORDER = [
   "@cf/moonshotai/kimi-k2.7-code", "@cf/moonshotai/kimi-k2.6", "@cf/zai-org/glm-5.2",
 ];
 const FRONTIER = new Set(FRONTIER_ORDER);
-const FAST = new Set([
+export const FAST = new Set([
   "anthropic/claude-haiku-4.5", "anthropic/claude-haiku-5.5",
   "google/gemini-2.5-flash-lite", "google/gemini-2.5-flash", "google/gemini-3-flash",
   "google/gemini-3.1-flash-lite", "google/gemini-3.5-flash-lite", "google/gemini-3.5-flash",

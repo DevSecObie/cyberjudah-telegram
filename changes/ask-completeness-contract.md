@@ -1,0 +1,1 @@
+- Ask keeps research coverage, unfinished parts and stopping reasons on every research-agent answer route. Incomplete studies are never admitted to or replayed from the shared answer cache, and older unchecked entries are refreshed.

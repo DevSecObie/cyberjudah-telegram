@@ -14,7 +14,9 @@ const messages = [{ role: 'system', content: 'Use only the existing provided mat
 test('the expanded backup fits its model and sponsor reservation and settles measured usage', async t => {
   const { env } = financialDb(t), calls = [], usage = { prompt_tokens: 1000, completion_tokens: 1200 };
   Object.assign(env, { ASK_FREE_DAILY_USD_CAP: '1', ASK_FREE_MAX_USD: '0.05', AI: { run: async (id, input) => { calls.push({ id, input }); return { response: 'An existing answer.', usage }; } } });
-  assert.equal(await backupOnce(env, messages), 'An existing answer.');
+  const wrote = {};
+  assert.equal(await backupOnce(env, messages, false, [], undefined, wrote), 'An existing answer.');
+  assert.equal(wrote.model, model.id, 'the one-piece backup names the model that wrote it');
   assert.equal(calls[0].id, model.id);
   assert.ok(calls[0].input.max_tokens > 900 && calls[0].input.max_tokens < 24000);
   assert.ok(calls[0].input.max_tokens * model.output / 1e6 < 0.05);
@@ -40,7 +42,7 @@ for (const streaming of [false, true]) {
       let answer;
       const wrote = {};
       if (streaming) { answer = ''; for await (const piece of backupPieces(env, messages, false, sources, undefined, wrote)) answer += piece; assert.equal(wrote.model, undefined, 'no model wrote the notice and excerpts'); }
-      else answer = await backupOnce(env, messages, false, sources);
+      else { answer = await backupOnce(env, messages, false, sources, undefined, wrote); assert.equal(wrote.model, undefined, 'no model wrote the notice and excerpts'); }
       assert.match(answer, /can't generate a new answer right now/);
       assert.match(answer, /\*\*Recorded source\*\* \[2\]/);
       assert.ok(answer.includes('> Exact existing words.\n> The next recorded line.'));

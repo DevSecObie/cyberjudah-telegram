@@ -16,12 +16,17 @@ import { parseReference } from "./refs.mjs";
 import { PLAN_TOOL, Readings, partId, namedRefs, nothingCovered, checklist, checklistNote, planFrom, verifyAnswer, type Coverage, type PlanPart, type StopReason } from "./study-plan";
 import { modelOf, unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import { researchOpen } from "./agent-open";
+import { pictureLines } from "./answer-final";
+
 import { freeSpend, type Spend } from "./spend";
 import { DEEP_TOOLS, readForAsk } from "./ask-readers";
 import { claudeThinking } from "./model-capacity.mjs";
 import { MAX_RESEARCH_ROUNDS, MAX_CLAUDE_OUTPUT, MAX_RESEARCH_MS, MAX_RESEARCH_SOURCES, WRITING_RESERVE_MS, writingDue, withinPhase, researchRounds, researchSignal, type ResearchControl } from "./research-policy.mjs";
 import { classAttributor } from "./class-attribution";
-import { groundedSystem, libraryData, untrustedData, assessCoverage, hasControlText } from "./grounding.mjs";
+import { groundedSystem, libraryData, untrustedData, assessCoverage, coverageDecision, hasControlText, SMALL_TALK } from "./grounding.mjs";
+
+/** The tools whose "Picture:" lines the answer may show (ask-tools.ts). */
+const PICTURE_TOOLS = new Set(["person", "timeline"]);
 
 /**
  * Ask CyberJudah with Claude doing its own research: it starts from the passages retrieval
@@ -35,7 +40,7 @@ export type AgentEvent = { status: string } | { plan: { parts: { id: string; ask
 
 const CLAUDE_DEFAULT = "claude-sonnet-5-5";
 
-const TOOL_DEFS: Anthropic.Tool[] = [
+export const TOOL_DEFS: Anthropic.Tool[] = [
   {
     name: "search_library",
     description: "Search CyberJudah's library: the Sabbath classes and other recordings (what was said, with the moment), the study notes, the law handbook, the precepts, the case studies and the encyclopedia. Returns the closest passages, numbered for citation. Call it for any question about the Scripture or the teachings that the passages already given do not fully answer, and again with different words, names, feasts, books or doctrines to look from another side.",
@@ -120,7 +125,7 @@ export async function runAgent(
   maxRounds = MAX_RESEARCH_ROUNDS,
   citeAppSources = false,
   control: ResearchControl = {},
-): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean; /** A tool read or acted on the signed-in reader's own data: never cache the answer. */ readerData: boolean }> {
+): Promise<{ text: string; passages: Numbered[]; units: number; calls: number; actions: SavedAction[]; cut: boolean; refused: boolean; grounded: boolean; plan: PlanPart[]; coverage: Coverage; tracked: boolean; /** A tool read or acted on the signed-in reader's own data: never cache the answer. */ readerData: boolean; /** The text is the deadline's fixed template with quoted excerpts: no model wrote it (#600). */ fixed?: boolean }> {
   maxRounds = researchRounds(maxRounds);
   const deadlineAt = control.deadlineAt ?? Date.now() + MAX_RESEARCH_MS;
   const signal = researchSignal(control.signal, deadlineAt);
@@ -138,13 +143,14 @@ export async function runAgent(
   // The research plan (study-plan.ts): until the model lists the parts, the question is one part,
   // with any Scripture it names to be read in full. Every tool-capable model uses the checklist.
   const readings = new Readings();
+  const toolEvidence: { kind: string; title: string; text: string }[] = [];
   const memo = new Map<string, boolean>();
   const checklistOn = model.tools;
   const researchQuestion = retrievalText(question, history);
   let plan: PlanPart[] = [{ id: partId(0), ask: researchQuestion.replace(/\s+/g, " ").trim().slice(0, 200), refs: namedRefs(researchQuestion, bookList, parseReference) }];
   let planned = false, planTries = 0;
-  // The checklist is kept for a question the model split into parts, or one that names Scripture.
-  const tracking = () => checklistOn && (planned || plan[0].refs.length > 0);
+  // Ordinary study questions cannot skip verification just by omitting plan_research.
+  const tracking = () => checklistOn && (planned || plan[0].refs.length > 0 || (!SMALL_TALK.test(question) && !coverageDecision(researchQuestion, toolEvidence).enough));
   const state = () => checklist(plan, passages, readings, memo);
   const seen = new Map<string, number>();
   const dirty = new Set<number>(), sent = new Map<number, string>();
@@ -282,6 +288,7 @@ export async function runAgent(
       for (const source of reading.sources ?? []) {
         const added = add(source);
         if (!added) continue;
+        if (!reading.isError && /^(read_note|read_transcript|commentary)$/.test(name)) readings.open({ ...source, n: added.n });
         // A full reading can extend an already cited search snippet without renumbering it.
         if (!added.fresh && source.text.length > passages[added.n - 1].text.length) { passages[added.n - 1] = { ...passages[added.n - 1], ...attribute(source), n: added.n }; dirty.add(added.n); }
         labels.push(sourceLabel(passages[added.n - 1]));
@@ -316,7 +323,6 @@ export async function runAgent(
   let checkedVersion = -1;
   let coverage: ReturnType<typeof assessCoverage>;
   const appTools = new Set(["app_help", "find_in_app", "my_saved_chats", "my_reminder", "propose_reminder_change"]);
-  const toolEvidence: { kind: string; title: string; text: string }[] = [];
   const runWithEvidence = async (name: string, input: Record<string, unknown>) => {
     signal.throwIfAborted();
     if (writingDue(deadlineAt)) return { content: "Research time is reserved for writing the final answer from the registered sources.", error: true, source_registry: [] };
@@ -330,6 +336,11 @@ export async function runAgent(
         return { content: "Research time is reserved for writing the final answer from the registered sources.", error: true, source_registry: [] };
       }
       if (!result.error && appTools.has(name)) toolEvidence.push({ kind: "tool", title: name, text: result.content });
+      // The pictures the tools gave, for the answer's final step (answer-final.ts keeps only those): just
+      // their "Picture:" lines, however long the result, so a late picture is never cut off.
+      // Only from the tools that give the library's pictures (ask-tools.ts person, timeline): an outside
+      // page or a saved chat could otherwise name an app picture.
+      if (!result.error && PICTURE_TOOLS.has(name) && typeof result.content === "string") control.evidence?.push(...pictureLines(result.content));
       return { ...result, source_registry: passages.slice(before).map(source => ({ source_n: source.n, title: source.title, url: source.url })) };
     } finally { coverageVersion++; }
   };
@@ -346,52 +357,65 @@ export async function runAgent(
     if ('delta' in event && evidence().blocked) return;
     emit(event);
   };
-  // Each part's status, and why research ended: every part covered, a limit, or parts not found.
-  // An answer cut short by a limit names the limit, even when every part was covered.
-  const coverageOf = (stopBy?: StopReason, cutShort = false, answer?: string): Coverage => {
-    const parts = answer === undefined ? state() : verifyAnswer(plan, state(), answer);
+  // Each part's status as research left it, and why research ended: every part covered, a limit, or parts
+  // not found. An answer cut short by a limit names the limit, even when every part was covered. Checked
+  // against the final text later (study-plan.ts studyFields), which names `limit` if a part is left open.
+  const coverageOf = (stopBy?: StopReason, cutShort = false): Coverage => {
+    const parts = state();
     const complete = parts.every((p) => p.status === "covered");
-    return { parts, complete, stopped: cutShort && stopBy ? stopBy : complete ? "covered" : stopBy ?? "not_found" };
+    return { parts, complete, stopped: cutShort && stopBy ? stopBy : complete ? "covered" : stopBy ?? "not_found", ...(stopBy ? { limit: stopBy } : {}) };
+  };
+  /** A draft checked once: whether it answers every part, and the checklist note sending the model back. */
+  const reviewNote = (draft: string): string | undefined => {
+    const parts = verifyAnswer(plan, state(), draft);
+    if (parts.every((p) => p.status === "covered")) return undefined;
+    return `${checklistNote(plan, parts, readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.`;
   };
   const finish = (result: { text: string; units: number; calls: number; cut: boolean; refused: boolean }, stopBy?: StopReason) => {
-    // Worked out only for a tracked question; otherwise nothing is sent or saved.
-    const coverage = tracking() ? coverageOf(stopBy, result.cut, result.text) : nothingCovered(plan);
+    // Worked out only for a tracked question; otherwise nothing is sent or saved. Checked against the
+    // answer once, later, on its final text (study-plan.ts studyFields), not here on the draft.
+    const coverage = tracking() ? coverageOf(stopBy, result.cut) : nothingCovered(plan);
     if (!result.refused && evidence().blocked) {
       const gap = notInTheClasses(passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)));
       emit({ reset: true }); emit({ delta: gap.answer });
       // The answer became 'not in the classes': no part is shown as covered by sources it no longer lists.
       return { ...result, text: gap.answer, passages: gap.sources, actions, cut: false, grounded: false, plan, coverage: nothingCovered(plan), tracked: tracking(), readerData };
     }
-    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking(), readerData };
+    return { ...result, passages, actions, grounded: true, plan, coverage, tracked: tracking(), readerData, ...(timedOutText !== undefined && result.text === timedOutText ? { fixed: true } : {}) };
   };
+  // The deadline's fixed text, when it was used: an answer that is exactly it was written by no model.
+  let timedOutText: string | undefined;
   const timedOut = () => {
     const excerpts = passages.filter(source => !hasControlText(`${source.title}\n${source.text}`)).slice(0, 3).map(source => `**${source.title.replace(/[*_\[\]]/g, '')}** [${source.n}]\n\n> ${source.text.slice(0, 1000).replace(/\n/g, '\n> ')}`);
-    return excerpts.length ? `Research reached its time limit. Here are the recorded excerpts I found:\n\n${excerpts.join('\n\n')}` : notInTheClasses([]).answer;
+    return (timedOutText = excerpts.length ? `Research reached its time limit. Here are the recorded excerpts I found:\n\n${excerpts.join('\n\n')}` : notInTheClasses([]).answer);
   };
   const messages: Anthropic.MessageParam[] = [
     ...promptHistory(history).map((m) => ({ role: m.role as "assistant" | "user", content: m.content })),
     { role: "user", content: `${passages.length ? `Passages already found for this question:\n\n${libraryData(passages)}` : "The first search found nothing close; search the library yourself."}\n\nQuestion: ${question}` },
   ];
 
+  const systemText = groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\nSearch results and their titles are leads, not opened class explanations. Before relying on a class, use read_note, read_transcript or commentary to read its relevant words and surrounding context; read supporting Scripture separately. Preserve the recorded teacher, class and moment. Compare each explanation with what was actually read, distinguish interpretation from the source's words, and say what remains unverified. Citation and topic overlap are not proof of faithful interpretation.\n\n${APP}`);
+
   // Every other model researches through Cloudflare, with the same tools and the same sources
   // (agent-open.ts); only Claude streams through the Messages API below.
   if (model.format !== "anthropic") {
     let reviewed = false;
     try {
-      const r = await researchOpen(env, model, groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, {
+      const r = await researchOpen(env, model, systemText, messages as { role: "user" | "assistant"; content: string }[], TOOL_DEFS, SCHEMAS, runWithEvidence, modelEmit, maxRounds, spend, false, undefined, {
         signal, deadlineAt,
         researchNote: () => tracking() ? checklistNote(plan, state(), readings) : undefined,
         reviewAnswer: answer => {
-          if (!tracking() || reviewed || spend.over(0.5) || coverageOf(undefined, false, answer).complete) return undefined;
-          reviewed = true;
-          return `${checklistNote(plan, verifyAnswer(plan, state(), answer), readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.`;
+          if (!tracking() || reviewed || spend.over(0.5)) return undefined;
+          const note = reviewNote(answer);
+          if (note) reviewed = true;
+          return note;
         },
       });
       return finish(r, r.stopped ?? (r.cut ? "rounds" : undefined));
     } catch (error) {
       if (!signal.aborted || signal.reason?.name !== 'TimeoutError') throw error;
       const text = timedOut();
-      emit({ reset: true }); emit({ delta: text });
+      emit({ reset: true }); modelEmit({ delta: text });
       return finish({ text, units: 0, calls: spend.calls, cut: true, refused: false }, "deadline");
     }
   }
@@ -403,7 +427,7 @@ export async function runAgent(
   // The instructions and tools are the same for every question and every round: cached once
   // (a breakpoint on the system prompt), and the conversation so far cached as it grows (the
   // request's automatic breakpoint on its last block), so each research round re-reads it cheaply.
-  const system: Anthropic.TextBlockParam[] = [{ type: "text", text: groundedSystem(`${SYSTEM}\n\n${RESEARCH}\n\n${APP}`), cache_control: { type: "ephemeral" } }];
+  const system: Anthropic.TextBlockParam[] = [{ type: "text", text: systemText, cache_control: { type: "ephemeral" } }];
   // A budgeted request sets aside each call's own input before choosing how much it may write, as
   // a strict upper bound on its tokens, priced as a prompt-cache write (the dearest way Claude bills
   // input): the first call's tokens are counted by the API; each later call's are the last call's
@@ -414,7 +438,7 @@ export async function runAgent(
   // Why research stopped, when a limit stopped it; whether the model was sent back once to an open
   // part, and the answer it had written then (kept, so sending it back never loses a finished answer).
   let stopBy: StopReason | undefined, nudged = false, draft = "", ended = false;
-  const useDraft = () => { if (!draft.trim()) return false; text = draft; emit({ reset: true }); emit({ delta: text }); return true; };
+  const useDraft = () => { if (!draft.trim()) return false; text = draft; emit({ reset: true }); modelEmit({ delta: text }); return true; };
   for (let round = 0; round < maxRounds && attempts < maxRounds; round++) {
     if (signal.aborted && signal.reason?.name === 'TimeoutError') { if (!useDraft()) text = timedOut(); cut = true; stopBy = "deadline"; break; }
     signal.throwIfAborted();
@@ -464,7 +488,7 @@ export async function runAgent(
         const usage = stream.currentMessage?.usage;
         if (usage) { units += unitsFor(usage, model); calls++; spend.call(usage, model); }
         spend.unreported = true;
-        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : draft.trim() ? draft : timedOut(); emit({ reset: true }); emit({ delta: text }); cut = true; stopBy = "deadline"; break; }
+        if (signal.reason?.name === 'TimeoutError') { text = last && said.trim() ? said : draft.trim() ? draft : timedOut(); emit({ reset: true }); modelEmit({ delta: text }); cut = true; stopBy = "deadline"; break; }
       }
       signal.throwIfAborted();
       // A tool input that could not be parsed at all (eager streaming): the round is asked
@@ -508,11 +532,12 @@ export async function runAgent(
       // The model answered with parts of its plan still open: it is sent back once to research
       // them or to say they were not found, while the limits allow another round.
       // Only with at least half the budget left, so the extra round never costs the answer.
-      if (!last && message.stop_reason === "end_turn" && said.trim() && tracking() && !nudged && !spend.over(0.5) && !coverageOf(undefined, false, said).complete) {
+      const note = !last && message.stop_reason === "end_turn" && said.trim() && tracking() && !nudged && !spend.over(0.5) ? reviewNote(said) : undefined;
+      if (note) {
         nudged = true; draft = said;
         if (said) emit({ reset: true });
         messages.push({ role: "assistant", content: message.content });
-        messages.push({ role: "user", content: `${checklistNote(plan, verifyAnswer(plan, state(), said), readings)}\nDevelop every part in the answer with its supporting citation; finding evidence alone does not answer it.` });
+        messages.push({ role: "user", content: note });
         continue;
       }
       text = said; cut = message.stop_reason === "max_tokens"; if (last) stopBy = lastWhy; ended = true;

@@ -6,7 +6,7 @@ import { unitsFor, type AskModel } from "../../shared/ask-models.mjs";
 import type { AgentEvent } from "./agent";
 import type { Spend } from "./spend";
 import { modelOutputLimit } from "./model-capacity.mjs";
-import { DATA_POLICY, groundedSystem, untrustedData } from "./grounding.mjs";
+import { DATA_POLICY, READER_VOICE, groundedSystem, untrustedData } from "./grounding.mjs";
 import { MAX_OPEN_OUTPUT, MAX_RESEARCH_MS, WRITING_RESERVE_MS, writingDue, withinPhase, researchRounds, researchSignal } from "./research-policy.mjs";
 
 const DEEPSEEK_V4 = /^@cf\/deepseek-ai\/deepseek-v4/;
@@ -60,7 +60,9 @@ export async function researchOpen(
   const signal = researchSignal(options.signal, deadlineAt);
   const toolSignal = researchSignal(signal, deadlineAt - WRITING_RESERVE_MS);
   signal.throwIfAborted();
+  // Each rule is checked on its own, so a prompt that already has the data policy still gets the reader rule.
   if (!system.includes(DATA_POLICY)) system = groundedSystem(system);
+  else if (!system.includes(READER_VOICE)) system = `${system}\n\n${READER_VOICE}`;
   if (!env.AI_GATEWAY) throw unavailable(new Error("No AI Gateway is configured for this model"));
   const ai = env.AI as unknown as Ai;
   const call = async (input: unknown): Promise<Record<string, unknown>> => {

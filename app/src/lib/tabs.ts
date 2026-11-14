@@ -118,6 +118,8 @@ export const tabChanging = () => entering;
 let leaving: (() => void) | null = null;
 export const onLeaveTab = (fn: () => void) => { leaving = fn; return () => { if (leaving === fn) leaving = null; }; };
 const leave = () => leaving?.();
+/** Before the app moves away from the page on its way (to the switcher, say), it becomes the tab's place. */
+export const keepTabPlace = leave;
 /** The history index Back may not go below. */
 export const tabHistoryFloor = () => floor;
 export const useTabFloor = () => useSyncExternalStore((l) => { floorListeners.add(l); return () => floorListeners.delete(l); }, () => floor);

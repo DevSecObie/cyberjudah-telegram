@@ -7,6 +7,7 @@ export type AskModel = {
 };
 export const MODELS: AskModel[];
 export const FRONTIER_ORDER: string[];
+export const FAST: Set<string>;
 export const UNIT_USD_PER_M: number;
 export function modelOf(id: unknown, fallback?: string): AskModel;
 export function unitsFor(u: object | null | undefined, model?: AskModel): number;

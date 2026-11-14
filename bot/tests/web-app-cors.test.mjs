@@ -20,3 +20,8 @@ test('the native readers keep their origins, and other sites get none', async ()
   for (const origin of ['https://evil.example', 'https://web.cyberjudah.io.evil.example', 'http://web.cyberjudah.io'])
     assert.ok(!(await preflight(origin)).headers.get('access-control-allow-origin'), origin);
 });
+
+test('an allowed origin can read Retry-After on a refusal (#606: the Search limit notice)', async () => {
+  const response = await worker.fetch(new Request('https://cyberjudah.io/api/health', { headers: { origin: 'https://web.cyberjudah.io' } }), {}, ctx);
+  assert.match(response.headers.get('access-control-expose-headers') ?? '', /(^|,\s*)Retry-After(\s*,|$)/i);
+});

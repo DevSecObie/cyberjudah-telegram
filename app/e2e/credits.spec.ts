@@ -113,15 +113,37 @@ test("a paid request runs once across simultaneous deliveries and completed repl
   const replies = await Promise.all([send(), send()]);
   expect(replies.map(r => r.status()).sort()).toEqual([200, 409]);
   const accepted = replies.find(r => r.status() === 200)!;
-  expect(await accepted.text()).toContain(`A short answer to: ${question}`);
+  const originalText = await accepted.text();
+  expect(originalText).toContain(`A short answer to: ${question}`);
+  const original = originalText.trim().split('\n').map(line => JSON.parse(line));
+  const done = original.find(event => event.done);
+  expect(done.answer_id).toBe(original[0].answer_id);
   const after = await books(20);
+  const completedReplay = await send();
+  expect(completedReplay.status()).toBe(200);
+  const replayed = (await completedReplay.text()).trim().split('\n').map(line => JSON.parse(line));
+  expect(replayed[0].replay).toBe(true);
+  expect(replayed.find(event => event.done)).toEqual(done);
+  const recovered = await request.get(`/api/ask/requests/${requestId}`, { headers: auth(20) });
+  expect(recovered.status()).toBe(200);
+  expect((await recovered.json()).done).toEqual(done);
+  expect(await books(20)).toEqual(after);
   const replay = await send({ ...body, q: `Different question ${requestId}` });
   expect(replay.status()).toBe(409);
-  expect((await replay.json()).error).toBe('request-used');
+  expect((await replay.json()).error).toBe('request-conflict');
   expect(await books(20)).toEqual(after);
   expect(after.lots).toBe(after.ledger);
   const log = await (await request.get(`${STAND_IN}/__log`)).json() as Logged[];
-  expect(log.filter(e => e.path === '/anthropic/v1/messages' && JSON.stringify(e.body).includes(requestId))).toHaveLength(1);
+  const calls = log.filter(e => e.path === '/anthropic/v1/messages' && JSON.stringify(e.body).includes(requestId))
+    .map(e => (e.body as { messages: { role: string; content: unknown }[] }).messages);
+  expect(calls.map(messages => messages.map(message => message.role))).toEqual([
+    ['user'],
+    ['user', 'assistant', 'user'],
+  ]);
+  expect(calls[1][0]).toEqual(calls[0][0]);
+  expect(JSON.stringify(calls[1][0].content)).toContain(question);
+  expect(JSON.stringify(calls[1][1].content)).toContain(`A short answer to: ${question}`);
+  expect(JSON.stringify(calls[1][2].content)).toContain('Develop every part');
 });
 
 test("the free budget pause says why, without claiming the reader used their daily question quota", async ({ page }) => {

@@ -2,6 +2,7 @@ import type { Env } from "./env";
 import { ANSWER_MODEL } from "./ai.mjs";
 import type { Passage } from "./ai.mjs";
 import { modelOf } from "../../shared/ask-models.mjs";
+import { checkModelAllowlist, MODEL_NOT_ALLOWED } from "../../shared/ask-allowlist.mjs";
 import { MC_USD } from "../../shared/credits.mjs";
 import { creditsConfig } from "./credits";
 import { reserveFreeBudget, settleFreeBudget } from "./free-budget";
@@ -27,7 +28,9 @@ const NO_THINK = /^@cf\/moonshotai\/kimi-k2/.test(ANSWER_MODEL) ? { reasoning_ef
 
 /** A longer backup still has to fit the sponsor's allowance before any provider call. */
 async function prepare(env: Env, messages: Msg[], admin: boolean) {
-  const model = modelOf(ANSWER_MODEL), cfg = creditsConfig(env);
+  const model = modelOf(ANSWER_MODEL);
+  if (!checkModelAllowlist(env, ANSWER_MODEL)) throw new BackupBudgetUnavailable(MODEL_NOT_ALLOWED.message);
+  const cfg = creditsConfig(env);
   const budget = admin ? cfg.maxRequestMc * MC_USD : Math.max(0.001, Number(env.ASK_FREE_MAX_USD ?? 0.05));
   const reservation = await reserveFreeBudget(env, crypto.randomUUID(), budget, Date.now(), admin ? adminBudgetPool(env) : undefined).catch(() => { throw new BackupBudgetUnavailable("The backup answer allowance is unavailable."); });
   if (!reservation) throw new BackupBudgetUnavailable("The backup answer allowance is exhausted.");
@@ -67,7 +70,8 @@ async function admit(env: Env, messages: Msg[], admin: boolean, sources: Passage
   }
 }
 
-export async function backupOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal): Promise<string> {
+/** One backup answer. `wrote.model` is set only when the model wrote it, never for the no-budget notice. */
+export async function backupOnce(env: Env, messages: Msg[], admin = false, sources: Passage[] = [], signal?: AbortSignal, wrote: { model?: string } = {}): Promise<string> {
   signal?.throwIfAborted();
   const budget = await admit(env, messages, admin, sources);
   if (typeof budget === "string") return budget;
@@ -77,7 +81,9 @@ export async function backupOnce(env: Env, messages: Msg[], admin = false, sourc
     usage = res.usage;
     complete = true;
     // Workers AI's own shape ({ response }) or the chat-completions one (Kimi K2.6: choices[0].message).
-    return String(res.response ?? res.choices?.[0]?.message?.content ?? "").trim();
+    const text = String(res.response ?? res.choices?.[0]?.message?.content ?? "").trim();
+    if (text) wrote.model = ANSWER_MODEL;
+    return text;
   } finally { await budget.finish(usage, complete); }
 }
 

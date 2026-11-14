@@ -20,7 +20,7 @@ concurrency:
 
 env:
   # The app commit the iPhone build was checked against. Change it in a pull request.
-  APP_COMMIT: 11d6f8d83994bb4d3d1b0bc801efbcc3a20ae341
+  APP_COMMIT: 63709d0d79e5f1f11ac4d118bbe7752bdc09cb0b
 
 jobs:
   deploy:
@@ -83,12 +83,13 @@ jobs:
           rm -rf web/dist
           cp -R cyberjudah-app/apps/expo/dist web/dist
           # Every page: no MIME sniffing, no full URL sent to other sites, and no other site may
-          # show the app inside a frame. Expo names each script by its content, so those keep a year.
+          # show the app inside a frame, except Telegram Web, which shows Mini Apps in one.
+          # Expo names each script by its content, so those keep a year.
           cat > web/dist/_headers <<'HEADERS'
           /*
             X-Content-Type-Options: nosniff
             Referrer-Policy: strict-origin-when-cross-origin
-            Content-Security-Policy: frame-ancestors 'self'
+            Content-Security-Policy: frame-ancestors 'self' https://web.telegram.org
           /_expo/static/*
             Cache-Control: public, max-age=31536000, immutable
           HEADERS

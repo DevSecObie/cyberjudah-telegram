@@ -6,25 +6,34 @@ import { markCoverageGap } from "../src/grounding.mjs";
 const out = new URL("./.build/answer-cache.mjs", import.meta.url).pathname;
 await build({ entryPoints: [new URL("../src/answer-cache.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", packages: "external", outfile: out, logLevel: "error" });
 const { cacheKey, cachedAnswer, keepAnswer, linkTrace, dropReported, normalizeQuestion, CACHE_TTL_S } = await import(out);
+const versionsOut = new URL("./.build/answer-cache-versions.mjs", import.meta.url).pathname;
+await build({ entryPoints: [new URL("../src/ask-versions.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "node", packages: "external", outfile: versionsOut, logLevel: "error" });
+const { PROMPT_VERSION } = await import(versionsOut);
 
 const kv = () => {
   const m = new Map(), ttl = new Map();
   return { m, ttl, get: async (k, t) => (m.has(k) ? (t === "json" ? JSON.parse(m.get(k)) : m.get(k)) : null), put: async (k, v, o) => { m.set(k, v); ttl.set(k, o?.expirationTtl); }, delete: async (k) => { m.delete(k); } };
 };
 
-test("the same first question, in any case or punctuation, has one key per model, mode and release", async () => {
+test("the same first question, in any case or punctuation, has one key per prompt version, corpus, model, mode and release", async () => {
   assert.equal(normalizeQuestion("  Who is Esau's  father?! "), "who is esaus father");
-  const a = await cacheKey("Who is Esau's father?", [], "m1", "app", "v1");
-  assert.equal(a, await cacheKey("who is esau's father", [], "m1", "app", "v1"));
-  assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m2", "app", "v1"));
-  assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "study", "v1"));
-  assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v2"), "a new release never serves an old answer");
-  assert.match(a, /^ask_cache:depth-quote-citations-source-links-20261107:v1:app:m1:[0-9a-f]{64}$/);
+  const c = "lib-aaaaaaaaaaaa/idx-20261110T0412Z";
+  const a = await cacheKey("Who is Esau's father?", [], "m1", "app", "v1", c);
+  assert.equal(a, await cacheKey("who is esau's father", [], "m1", "app", "v1", c));
+  assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m2", "app", "v1", c));
+  assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "study", "v1", c));
+  assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v2", c), "a new release never serves an old answer");
+  assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v1", "lib-bbbbbbbbbbbb/idx-20261110T0412Z"), "a new library never serves an old answer");
+  assert.notEqual(a, await cacheKey("Who is Esau's father?", [], "m1", "app", "v1", "lib-aaaaaaaaaaaa/idx-20261111T0412Z"), "a new index build never serves an old answer");
+  assert.equal(a.split(":")[1], PROMPT_VERSION, "a new prompt version never serves an old answer");
+  assert.equal(a.split(":")[2], "reader-voice-v1", "a new cache revision (#615) never serves an old answer");
+  assert.equal(await cacheKey("Who is Esau's father?", [], "m1", "app", "v1", "lib-unavailable/idx-unavailable"), null, "an unreadable library is never cached against");
+  assert.match(a, /^ask_cache:system-v\d+\.research-v\d+\.app-v\d+\.data-policy-v\d+\.answer-v\d+\.tools-v\d+:reader-voice-v1:lib-aaaaaaaaaaaa\/idx-20261110T0412Z:v1:app:m1:[0-9a-f]{64}$/);
 });
 
 test("follow-ups and one-word questions are never cached", async () => {
-  assert.equal(await cacheKey("Who is Esau's father?", [{ role: "user", content: "x" }], "m", "app", "v"), null);
-  assert.equal(await cacheKey("Esau", [], "m", "app", "v"), null);
+  assert.equal(await cacheKey("Who is Esau's father?", [{ role: "user", content: "x" }], "m", "app", "v", "lib-unknown/idx-unknown"), null);
+  assert.equal(await cacheKey("Esau", [], "m", "app", "v", "lib-unknown/idx-unknown"), null);
   const env = { SUBS: kv() };
   await keepAnswer(env, null, { ok: true });
   assert.equal(env.SUBS.m.size, 0);
@@ -38,9 +47,27 @@ test('a coverage gap with a related cited source is never cached', async () => {
   assert.equal(env.SUBS.m.size, 0);
 });
 
+test('incomplete research cannot be admitted or replayed as a finished cached answer', async () => {
+  for (const fields of [
+    { partial: true }, { cut: true }, { unfinished: [{ id: 'p1' }] },
+    { coverage: { complete: false, stopped: 'budget', parts: [] } },
+    { coverage: { complete: true, stopped: 'deadline', parts: [] } },
+    { coverage: { complete: true, stopped: 'covered', parts: [] } },
+    { coverage: { complete: true, stopped: 'covered', parts: [{ status: 'missing' }] } },
+  ]) {
+    const env = { SUBS: kv() }, key = 'ask_cache:partial';
+    const answer = { ok: true, answer: 'A draft [1].', sources: [{ n: 1 }], ...fields };
+    await keepAnswer(env, key, answer, 'trace');
+    assert.equal(env.SUBS.m.size, 0);
+    env.SUBS.m.set(key, JSON.stringify(answer));
+    assert.equal(await cachedAnswer(env, key), null);
+    assert.equal(env.SUBS.m.has(key), false);
+  }
+});
+
 test("a kept answer is served for a week, and a report on it removes it", async () => {
   const env = { SUBS: kv() };
-  const key = await cacheKey("Who is Esau's father?", [], "m", "app", "v");
+  const key = await cacheKey("Who is Esau's father?", [], "m", "app", "v", "lib-unknown/idx-unknown");
   await keepAnswer(env, key, { ok: true, answer: "Isaac", sources: [{ n: 1 }] }, "AAAAAAAA-0000-4000-8000-000000000000");
   assert.equal(env.SUBS.ttl.get(key), CACHE_TTL_S);
   assert.deepEqual(await cachedAnswer(env, key), { ok: true, answer: "Isaac", sources: [{ n: 1 }] });
@@ -62,7 +89,7 @@ test("an answer holding tool-call markup is never kept, and one kept before the 
   const B = "｜";
   const markup = { ok: true, answer: `<${B}DSML${B}tool_calls> <${B}DSML${B}invoke name="search_library"></${B}DSML${B}invoke> </${B}DSML${B}tool_calls>` };
   const env = { SUBS: kv() };
-  const key = await cacheKey("Who are the twelve tribes today?", [], "m", "app", "v");
+  const key = await cacheKey("Who are the twelve tribes today?", [], "m", "app", "v", "lib-unknown/idx-unknown");
   await keepAnswer(env, key, markup);
   assert.equal(env.SUBS.m.size, 0, "not kept");
   env.SUBS.m.set(key, JSON.stringify(markup));

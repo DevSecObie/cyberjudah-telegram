@@ -3,12 +3,12 @@ import { askHealth } from "./ask-health";
 import { deviceAuth } from "./device-auth";
 import { IdentityError } from "./account-links";
 import { publicReader, readerContent } from "./reader";
-import { loadTranscript } from "./teachings";
 import { sweepWebhookUpdates } from "./webhook-updates";
 import { alertFreeBudget, sweepFreeBudget } from "./free-budget";
 import { sweepAskEvents } from "./ask-events";
+import { ASK_REQUEST_ID, deleteAskRequests, recoverAskRequest, sweepAskRequests } from "./ask-requests";
 import { issueAnswerReceipt, feedbackInput, parseFeedback, recordFeedback, sweepFeedback } from "./feedback";
-import { CmsError, CONTENT_REPO } from "./cms-github";
+import { CmsError } from "./cms-github";
 import { cms } from "./cms";
 import { ResourcePinsSchema } from "../../shared/resources";
 import { recordings, recordingAudio } from "./recordings";
@@ -28,9 +28,10 @@ import { chapter, dataJson, escapeHtml, openLink } from "./data";
 
 
 import { readSources, saveSources } from "./cms-sources";
+import { answerVersions } from "./ask-versions";
 import { ask, askStream, creditsOn, defaultModelId, freeModel, freeModels, similar, speakVerse, sweepRateCounts, takeAskIpQuota, takeQuota } from "./ai";
 import { searchAnswers } from "./search-answer";
-import { semanticSearch } from "./semantic-search";
+import { semanticSearch, takeSearchQuota } from "./semantic-search";
 import { normalizeHistory, withStudyContext, VOICES } from "./ai.mjs";
 import { verseCard } from "./card";
 import { sendDaily } from "./daily";
@@ -43,9 +44,10 @@ import { resources } from "./resources";
 import { bs } from "./bs";
 import { canEdit, commitEdit, isAdmin, readSource, type NoteEdit } from "./edit";
 import { CHAT_ID, deleteChat, getChat, getPending, listChats, moveLegacy, setActionState } from "./chats";
-import { askedBy, closeRequest, getRequest, listRequests, requestNotes, validVideo } from "./requests";
+import { askedBy, closeRequest, getRequest, listRequests, requestNotes, tellersOf, validVideo } from "./requests";
+import { deliverReadyNotes } from "./notes-ready";
+import { announceRequest, appRequests } from "./app-requests";
 import { tellAdmins } from "./health";
-import { syncRequestIssue } from "./request-issues";
 import { reportMessage } from "./report.mjs";
 import { notePdf, pdfName } from "./pdf.mjs";
 import { donationsConfig, invoiceFor, invoiceForDonation, pruneBilling, refundStars } from "./billing";
@@ -59,6 +61,7 @@ import { board, publicBoard, sheet, warmFrames, warmVideo } from "./frames";
 import { hasClaude, unifiedBilling } from "./providers";
 import { modelOf } from "../../shared/ask-models.mjs";
 import { askModels, modelCosts } from "./ask-routing";
+import { MODEL_NOT_ALLOWED } from "../../shared/ask-allowlist.mjs";
 import { askJson } from "./ask-json";
 import { keyedHash, pid, seal } from "./privacy.mjs";
 import { migratePrivacy } from "./privacy-migrate";
@@ -85,7 +88,7 @@ const app = new Hono<App>();
 // Bundled native readers have local webview origins, and the web app lives at web.cyberjudah.io.
 // No cookie credentials are allowed
 // across origins; private endpoints still require their existing signed authorization.
-app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], credentials: false }));
+app.use("/api/*", cors({ origin: origin => ["capacitor://localhost", "https://localhost", "https://web.cyberjudah.io"].includes(origin) ? origin : "", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Authorization", "Content-Type", "X-Trace-ID"], exposeHeaders: ["Retry-After"], credentials: false }));
 // Public Bible Strong resource feed; independent of Telegram authentication.
 app.route("/bs", bs);
 app.route("/api/recordings", recordings);
@@ -111,6 +114,7 @@ const SAFE_PARAM = /^[A-Za-z0-9_-]{1,512}$/;
 app.use("/api/*", async (c, next) => {
   // JSON only: no MIME sniffing on anything the API serves.
   c.header("x-content-type-options", "nosniff");
+  if (c.req.path.startsWith("/api/ask/requests/")) c.header("cache-control", "no-store");
   // The frames' geometry is public like the sheets themselves: the library's build reads it to place frames in the notes.
   // A note's PDF is fetched by Telegram's downloader, which carries no launch data: its link is signed instead.
   if (c.req.method === "GET" && c.req.path.startsWith("/api/pdf/")) return next();
@@ -129,6 +133,8 @@ app.use("/api/*", async (c, next) => {
   if (c.req.path === "/api/app/ask" || c.req.path.startsWith("/api/app/ask/")) return next();
   // "Said in Class" in the app checks its own Firebase sign-in, like Ask (app-teachings.ts).
   if (c.req.method === "GET" && c.req.path === "/api/app/teachings") return next();
+  // "Request notes" in the app checks its own Firebase sign-in, like Said in Class (app-requests.ts).
+  if (c.req.path === "/api/app/requests" || c.req.path.startsWith("/api/app/requests/")) return next();
   // Link previews in the app check their own Firebase sign-in, like Ask (app-og.ts).
   if (c.req.method === "GET" && c.req.path === "/api/og") return next();
   // The channel's newest uploads and live stream are public YouTube listings, open to every app reader (app-channel.ts).
@@ -140,7 +146,7 @@ app.use("/api/*", async (c, next) => {
     // Telegram delivery, Stars invoices and administrative actions still need Telegram proof.
     const allowed = (c.req.method === "POST" && ["/api/ask", "/api/report", "/api/feedback"].includes(c.req.path)) ||
       (c.req.method === "GET" && /^\/api\/(?:search|teachings|live|recent|taught|transcript|visuals)(?:\/|$)/.test(c.req.path)) ||
-      (c.req.method === "GET" && ["/api/ask/account", "/api/ask/history", "/api/me", "/api/privacy/export"].includes(c.req.path)) ||
+      (c.req.method === "GET" && (["/api/ask/account", "/api/ask/history", "/api/me", "/api/privacy/export"].includes(c.req.path) || /^\/api\/ask\/requests\/[a-z0-9_-]{8,64}$/i.test(c.req.path))) ||
       (/^\/api\/chats(?:\/[a-zA-Z0-9_-]+(?:\/actions\/[a-zA-Z0-9_-]+)?)?$/.test(c.req.path)) ||
       c.req.path.startsWith("/api/study-backup") || (c.req.method === "POST" && c.req.path === "/api/privacy/delete");
     if (!allowed) return c.json({ error: "telegram_sign_in_required" }, 403);
@@ -280,25 +286,35 @@ app.post("/api/ask", async (c) => {
   if (!(await takeAskIpQuota(c.req.raw, c.env))) {
     return c.json({ error: "limit" }, 429);
   }
-  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; context?: unknown; stream?: boolean; chat?: string; retry?: boolean; model?: string; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
+  const body = await c.req.json<{ q?: string; history?: { role?: string; content?: string }[]; context?: unknown; stream?: boolean; chat?: string; retry?: boolean; model?: string; depth?: unknown; consent?: unknown; request?: string; caps?: Record<string, unknown>; resources?: unknown }>().catch(() => null);
+  if (body?.depth !== undefined && body.depth !== "quick" && body.depth !== "study") return c.json({ error: "Invalid answer depth" }, 400);
   // The request's id (a retry of the same request holds once), and the most the reader accepted a
   // request may cost on each model (balance units, mc): the server takes the one for the model it resolves.
   const caps = body?.caps && typeof body.caps === "object" ? Object.fromEntries(Object.entries(body.caps).filter(([k, v]) => k.length < 120 && typeof v === "number" && Number.isFinite(v) && v > 0).slice(0, 200)) as Record<string, number> : undefined;
   const resourcePins = body?.resources === undefined ? undefined : ResourcePinsSchema.safeParse(body.resources);
   if (resourcePins && !resourcePins.success) return c.json({ error: "Invalid resource releases" }, 400);
-  const meterOpts = { clientStreaming: Boolean(body?.stream), resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps };
+  const meterOpts = { clientStreaming: Boolean(body?.stream), resources: resourcePins?.data, signal: c.req.raw.signal, request: typeof body?.request === "string" ? body.request : undefined, caps, depth: body?.depth as "quick" | "study" | undefined };
   // The AI providers this reader has agreed may receive their questions (docs/PRIVACY.md).
   const consent = Array.isArray(body?.consent) ? body.consent.filter((x): x is string => typeof x === "string").slice(0, 40) : [];
   // Always a well-formed conversation for the model, whatever the app sent (see normalizeHistory).
   const history = withStudyContext(normalizeHistory(body?.history, 8), body?.context);
-  if (body?.stream || typeof body?.model === "string") {
+  if (body?.stream || typeof body?.model === "string" || body?.depth !== undefined || typeof body?.request === "string") {
     const start = Date.now();
-    const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : undefined, consent, meterOpts);
+    const response = await askStream(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, typeof body?.chat === "string" && CHAT_ID.test(body.chat) ? body.chat : undefined, body?.retry === true, typeof body?.model === "string" ? body.model : body?.depth ? "auto" : undefined, consent, meterOpts);
     return body?.stream ? response : askJson(response, String(body?.q ?? ""), start);
   }
   const res = await ask(c.env, String(body?.q ?? ""), c.get("tma").user!.id, c.executionCtx, history, consent, resourcePins?.data, c.req.raw.signal);
+  if (!res.ok && res.reason === MODEL_NOT_ALLOWED.error) return c.json({ ...res, ...MODEL_NOT_ALLOWED }, 403);
   if (!res.ok && res.reason === "consent") return c.json(res, 428);
-  return c.json(res.ok ? { ...res, answer_id: await issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources) } : res, res.ok ? 200 : res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
+  if (res.ok) {
+    // Like every streamed finished line (ai.ts askStream), the one-piece answer names what it was made
+    // with (ask-versions.ts); "none" when a fixed sentence, written by no model, is the answer.
+    // The writer is sent only inside `versions`, so the reply keeps its shape.
+    const { model, ...answer } = res;
+    const [answer_id, versions] = await Promise.all([issueAnswerReceipt(c.env, c.get("tma").user!.id, res.sources), answerVersions(c.env, model ?? "none")]);
+    return c.json({ ...answer, answer_id, versions });
+  }
+  return c.json(res, res.reason === "limit" || res.reason === "free-paused" ? 429 : res.reason === "credits" ? 402 : res.reason === "too-short" || res.reason === "too-long" ? 400 : 503);
 });
 app.post('/api/feedback', async c => {
   c.header('cache-control', 'no-store');
@@ -312,9 +328,20 @@ app.post('/api/feedback', async c => {
     return status === 200 ? c.json({ ok: true }) : c.json({ error: status === 404 ? 'not-found' : status === 429 ? 'limit' : 'bad-source' }, status);
   } catch { return c.json({ error: 'unavailable' }, 503); }
 });
+app.get("/api/ask/requests/:request", async c => {
+  c.header("cache-control", "no-store");
+  const request = c.req.param("request");
+  if (!ASK_REQUEST_ID.test(request)) return c.json({ ok: false, error: "invalid-request" }, 400);
+  try {
+    const saved = await recoverAskRequest(c.env, c.get("tma").user!.id, request);
+    if (!saved) return c.json({ ok: false, error: "not-found" }, 404);
+    return c.json({ ok: true, ...saved });
+  } catch { return c.json({ ok: false, error: "unavailable" }, 503); }
+});
 // Native Ask authenticates every route itself with Firebase; Telegram linking stays optional.
 app.route("/api/app/ask", appAsk);
 app.route("/api/app/teachings", appTeachings);
+app.route("/api/app/requests", appRequests);
 app.route("/api/og", appOg);
 app.route("/api/app/channel", appChannel);
 // A note as a PDF: a signed link the app hands to Telegram's downloader, or the file sent to the
@@ -458,29 +485,30 @@ app.post("/api/admin/adjust", async (c) => {
 // most asked for first and are told as a class gathers asks.
 app.get("/api/requests", async (c) => {
   if (!isAdmin(c.env, c.get("tma").user!.id)) return c.json({ ok: false }, 403);
-  return c.json({ ok: true, requests: await listRequests(c.env) });
+  // Each class with the names of the readers waiting to be told (admins only; never published).
+  const rows = await listRequests(c.env);
+  const requests = await Promise.all(rows.map(async (row) => {
+    const askers = (await tellersOf(c.env, await getRequest(c.env, row.video))).map((t) => ({ name: t.name }));
+    return { ...row, askers };
+  }));
+  return c.json({ ok: true, requests });
 });
 app.get("/api/requests/:video", async (c) => {
   const video = c.req.param("video");
   if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
   const r = await getRequest(c.env, video);
-  return c.json({ ok: true, count: r?.count ?? 0, mine: await askedBy(c.env, r, c.get("tma").user!.id) });
+  const uid = c.get("tma").user!.id;
+  const me = await pid(c.env, uid);
+  return c.json({ ok: true, count: r?.count ?? 0, mine: await askedBy(c.env, r, uid), tell: (await tellersOf(c.env, r)).some((t) => t.pid === me) });
 });
 app.post("/api/requests/:video", async (c) => {
   const video = c.req.param("video");
   if (!validVideo(video)) return c.json({ ok: false, error: "bad-video" }, 400);
-  const body = await c.req.json().catch(() => ({})) as { title?: unknown };
+  const body = await c.req.json().catch(() => ({})) as { title?: unknown; tell?: unknown };
   const title = typeof body.title === "string" ? body.title.replace(/[\u0000-\u001f]/g, " ").trim().slice(0, 200) : "";
-  const res = await requestNotes(c.env, video, c.get("tma").user!.id, title, new Date(), (r) => {
-    c.executionCtx.waitUntil((async () => {
-      // Queue the class for the notes job: only a class with a transcript, titled from it.
-      const t = await loadTranscript(c.env, video, c.executionCtx).catch(() => null);
-      const issue = t && "file" in t && t.kind === "class"
-        ? await syncRequestIssue(c.env, r, { title: t.file.cleanTitle || t.file.title || "", date: t.file.date ?? "" }).catch(() => null)
-        : null;
-      await tellAdmins(c.env, `Notes requested ${r.count === 1 ? "for the first time" : `${r.count} times`}: ${r.title || video}\nhttps://www.youtube.com/watch?v=${video}\n${issue ? `Queued for the notes job: https://github.com/${CONTENT_REPO}/issues/${issue}` : `Not queued (no class transcript, or GitHub refused). Video id: ${video}`}`);
-    })());
-  });
+  const u = c.get("tma").user!;
+  const asker = { pid: await pid(c.env, u.id), name: u.first_name ?? "", via: "telegram" as const, chat: u.id };
+  const res = await requestNotes(c.env, video, asker, title, new Date(), (r) => announceRequest(c.env, c.executionCtx, video, r), body.tell === true);
   return c.json({ ok: true, ...res });
 });
 app.delete("/api/requests/:video", async (c) => {
@@ -505,10 +533,15 @@ app.post("/api/chats/:id/actions/:action", async (c) => {
   return c.json({ ok }, ok ? 200 : 404);
 });
 app.delete("/api/chats/:id", async (c) => {
-  const ok = await deleteChat(c.env, c.get("tma").user!.id, c.req.param("id"));
+  const uid = c.get("tma").user!.id, id = c.req.param("id");
+  const ok = await deleteChat(c.env, uid, id);
+  if (ok) await deleteAskRequests(c.env, uid, id);
   return c.json({ ok }, ok ? 200 : 400);
 });
 app.get("/api/similar", async (c) => {
+  // Each call embeds the query and reranks (model calls): limited like the semantic search (OWASP LLM10).
+  // A query too short to search (similar() answers it with nothing, no model call) spends no allowance.
+  if ((c.req.query("q") ?? "").trim().length >= 2 && !(await takeSearchQuota(c.env, c.req.raw, c.get("tma").user!.id, "similar"))) return c.json({ error: "limit" }, 429);
   const res = await similar(c.env, c.req.query("q") ?? "", Math.min(Math.max(Number(c.req.query("limit")) || 20, 1), 40));
   return c.json(res, res.ok ? 200 : 503);
 });
@@ -712,7 +745,11 @@ export default {
       await Promise.all([
         sendReminders(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "reminders_failed" }))),
         sendTopupReminders(env, event.scheduledTime, sender).then((r) => { if (r.checked) console.log(JSON.stringify({ event: "topup_reminders", ...r })); }).catch(() => console.error(JSON.stringify({ event: "topup_reminders_failed" }))),
-        ...(event.cron === "0 * * * *" ? [sendDaily(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "daily_failed" })))] : []),
+        ...(event.cron === "0 * * * *" ? [
+          sendDaily(env, new Date(event.scheduledTime), sender).catch(() => console.error(JSON.stringify({ event: "daily_failed" }))),
+          // Requested notes that came out this hour reach the readers who asked (notes-ready.ts).
+          deliverReadyNotes(env, sender).then((r) => { if (r.ready || r.failed) console.log(JSON.stringify({ event: "notes_ready", ...r })); }).catch(() => console.error(JSON.stringify({ event: "notes_ready_failed" }))),
+        ] : []),
       ]);
     }).then((ran) => { if (!ran) console.log(JSON.stringify({ event: "broadcast_skipped", reason: "leased" })); })
       .catch(() => console.error(JSON.stringify({ event: "broadcast_failed" }))));
@@ -729,6 +766,7 @@ export default {
     ctx.waitUntil(sweepWebhookUpdates(env).catch((e) => console.error(JSON.stringify({ event: "webhook_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepFreeBudget(env).catch((e) => console.error(JSON.stringify({ event: "free_budget_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
     ctx.waitUntil(sweepAskEvents(env).catch((e) => console.error(JSON.stringify({ event: "ask_events_sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
+    ctx.waitUntil(sweepAskRequests(env).catch(() => console.error(JSON.stringify({ event: "ask_requests_sweep_failed" }))));
     ctx.waitUntil(sweepFeedback(env).catch((e) => console.error(JSON.stringify({ event: 'ask_feedback_sweep_failed', message: (e as Error).message?.slice(0, 120) }))));
     // Yesterday's quota rows are swept here, never on the request path (ai.ts).
     ctx.waitUntil(sweepRateCounts(env).catch((e) => console.error(JSON.stringify({ event: "sweep_failed", message: (e as Error).message?.slice(0, 120) }))));
