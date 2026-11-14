@@ -94,7 +94,7 @@ export function Privacy() {
           <li><b>Ask balance:</b> what is left, each top-up, and what each answer you paid for was charged. Kept until you delete your data; Download my data includes the latest 500 balance entries. Which model wrote each answer and what it cost (never the question) is kept for 180 days.</li>
           <li><b>Top-up reminder:</b> if you turned it on, your time zone and the chat to send it to. Kept until you turn it off.</li>
           <li><b>Stars payments and gifts:</b> Telegram's charge reference, what was bought or given, the amount and the date, for refunds and the accounts. Downloading your data includes both; deleting your data unlinks them from you.</li>
-          <li><b>Class-note requests:</b> so each person counts once. Kept until the notes are written.</li>
+          <li><b>Class-note requests:</b> so each person counts once. If you ask to be told when the notes are ready, also your first name (shown to the admins with the request) and, in Telegram, the chat the bot writes to. Kept until the notes are published and you have been told, then deleted.</li>
           <li><b>Counts:</b> how many times today you asked, used the search answer or the reading voice, shared or reported an answer, for limits and costs. Cleared daily.</li>
           <li><b>Network address for Ask:</b> the address a question comes from, with a count, to limit abuse from one network. Never linked to you. Cleared within two days.</li>
           <li><b>New browsers for reminders:</b> how many browsers set up reminders from one network address today, filed under a keyed code of the address rather than the address itself. Cleared after two days.</li>

@@ -51,6 +51,12 @@ function* splitLines(lines, tables) {
   if (cur.trim()) yield cur.trim();
 }
 
+/** Starts listening to an async iterable's items now, before the first one is asked for. */
+function listen(lines) {
+  const it = lines[Symbol.asyncIterator]();
+  return { [Symbol.asyncIterator]: () => it };
+}
+
 /**
  * The same, from lines read one at a time (an async iterable, such as readline over a file), so a
  * load file larger than a JavaScript string can hold (the teachings index is) is never read whole.
@@ -154,10 +160,11 @@ export async function bluegreenLoad(sql, run, { tables = SEARCH.tables, probe = 
 }
 
 async function loadHeld(sql, run, { tables, probe, maxBytes, log, tag, renew }) {
-  // A function opens the file only now that the lease is held (lines read early would be lost).
-  const text = typeof sql === "function" ? sql() : sql;
-  const source = typeof text === "string" ? splitLines(text.split("\n"), tables) : statementStream(text, tables);
   await run(tables.map((t) => `DROP TABLE IF EXISTS ${t}_next;`).join("\n"));
+  // A function opens the file only now, and its lines are taken at once: a stream like readline
+  // reads on while the loader waits on a query, and lines it reads before anyone listens are lost.
+  const text = typeof sql === "function" ? sql() : sql;
+  const source = typeof text === "string" ? splitLines(text.split("\n"), tables) : statementStream(listen(text), tables);
   log(`loading into ${tables.map((t) => `${t}_next`).join(", ")} in batches of up to ${Math.round(maxBytes / 1000)} kB`);
   const inserts = {};
   let batch = [], size = 0, sent = 0, count = 0;

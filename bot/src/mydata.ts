@@ -8,7 +8,8 @@ import { forgetTopupReminder, getTopupReminder } from "./topup-remind";
 import { forgetReminder, loadReminder, tgRid } from "./remind";
 import { publicView } from "./reminders.mjs";
 import { open, pid, seal } from "./privacy.mjs";
-import type { NoteRequest } from "./requests";
+import { withoutReader, type NoteRequest } from "./requests";
+import { forgetReady } from "./notes-ready";
 import { deleteSub, sentKeyOf } from "./subscribe";
 import { deleteAccountSyncMarks, exportAccountSyncMarks } from "./firestore-admin";
 import { deleteAskRequests, exportAskRequests } from "./ask-requests";
@@ -94,11 +95,12 @@ export async function deleteData(env: Env, uid: number): Promise<Deleted> {
   await deleteSub(env, subKey);
   const reqs = await noteRequestsOf(env, uid);
   for (const { video, r, meta } of reqs) {
-    const users = r.users.filter((u) => u !== me && u !== uid);
-    const count = Math.max(0, r.count - 1);
-    if (!count) { await env.SUBS.delete(`notereq:${video}`); continue; }
-    await env.SUBS.put(`notereq:${video}`, JSON.stringify({ ...r, users, count }), { metadata: { ...(meta as object), count } });
+    // Their ask leaves the count, and their name and chat leave those waiting to be told.
+    const rest = await withoutReader(env, r, uid);
+    if (!rest) { await env.SUBS.delete(`notereq:${video}`); continue; }
+    await env.SUBS.put(`notereq:${video}`, JSON.stringify(rest), { metadata: { ...(meta as object), count: rest.count } });
   }
+  await forgetReady(env, uid);
   // These stores cannot be deleted in one transaction. A failed step must reject so the
   // caller reports incomplete deletion; repeating the operation safely finishes it.
   const billing = await deleteBilling(env, uid);
