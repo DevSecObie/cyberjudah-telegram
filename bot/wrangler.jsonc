@@ -103,8 +103,8 @@
     "D1_SIZE_ALERT_BYTES": "8000000000",
     // The Mini App's direct link from @BotFather (/newapp). Shared links and buttons open the app.
     "APP_URL": "https://cyberjudah.io/app",
-    // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set (claude-sonnet-5 is the
-    // cheaper choice; claude-opus-5 the strongest). Without the key, Llama 3.3 70B on Workers AI.
+    // Ask CyberJudah's model when the ANTHROPIC_API_KEY secret is set: Opus 5.5 for every tier (owner,
+    // "use the best for all"). Without the key, the backup on Workers AI (ai.mjs ANSWER_MODEL, Kimi K2.6).
     "CLAUDE_MODEL": "claude-opus-5-5", "CLAUDE_MODEL_LIGHT": "claude-opus-5-5", "CLAUDE_MODEL_ADMIN": "claude-opus-5-5", "LIVE_CHANNEL": "UC8gdvMmoqFOcx2N8YdjqRxw",
     // Cloudflare AI Gateway for Workers AI calls (logs, analytics, rate limits on the dashboard).
     // "default" is created by Cloudflare on the first request (providers.ts). Claude goes through it
