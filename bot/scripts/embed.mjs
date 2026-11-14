@@ -85,9 +85,18 @@ const stale = [];
 /** The records to embed, streamed page by page from D1. */
 async function* records() {
   if (ONLY !== "spoken") {
+    // A note's rows sit together in rowid order; count each heading's rows within the note so
+    // every section gets its own vector (docRecord's `part`).
+    let note = "", parts = new Map();
     for (let last = 0; ; ) {
       const rows = await sql(`SELECT rowid AS id, kind, title, url, sub, text FROM search_docs WHERE rowid > ${last} ORDER BY rowid LIMIT ${PAGE}`);
-      for (const r of rows) yield docRecord(r);
+      for (const r of rows) {
+        const key = `${r.kind}|${r.url}`;
+        if (key !== note) { note = key; parts = new Map(); }
+        const part = parts.get(r.sub ?? "") ?? 0;
+        parts.set(r.sub ?? "", part + 1);
+        yield docRecord(r, part);
+      }
       if (rows.length < PAGE) break;
       last = rows[rows.length - 1].id;
     }

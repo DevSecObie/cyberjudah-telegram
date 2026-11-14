@@ -8,7 +8,7 @@ export const VOICES: { id: string; name: string; note: string }[];
 export const MAX_PASSAGE: number;
 export const SYSTEM: string;
 export function hash(s: string): string;
-export function docRecord(row: { kind: string; title: string; url: string; sub?: string; text?: string }): { id: string; text: string; metadata: Record<string, string> };
+export function docRecord(row: { kind: string; title: string; url: string; sub?: string; text?: string }, part?: number): { id: string; text: string; metadata: Record<string, string> };
 export function chunkRecord(row: { video: string; t: number; text: string; kind: string; title: string; url?: string; date?: string }): { id: string; text: string; metadata: Record<string, string | number> };
 export function answerCandidates<T extends Passage & { score?: number }>(question: string, passages: T[], limit?: number): T[];
 export type Turn = { role: "user" | "assistant"; content: string };
