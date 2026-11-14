@@ -84,8 +84,11 @@ export async function retrieve(env: Env, text: string, topK = 12, spend?: Spend,
     const url = retrievedSourceUrl(h, hosts);
     return url ? [recordRetrieval({ kind: h.kind, title: h.title, url, sub: h.sub, text: h.text!.slice(0, 1400), score: 0.5 }, "keyword")] : [];
   }) : [];
-  const seen = new Set(close.map((p) => `${p.kind}|${p.url}|${p.sub ?? ""}`));
-  const all = [...close, ...keyed.filter((p) => !seen.has(`${p.kind}|${p.url}|${p.sub ?? ""}`))];
+  // The same section found both ways is read once; another section under the same heading is not
+  // the same passage (a note has many "Scriptures Opened" sections).
+  const same = (p: Passage) => `${p.kind}|${p.url}|${p.sub ?? ""}|${p.text.replace(/\s+/g, " ").trim().slice(0, 200)}`;
+  const seen = new Set(close.map(same));
+  const all = [...close, ...keyed.filter((p) => !seen.has(same(p)))];
   // What this search cost: the question embedded, one vector query, and what the reranker read.
   spend?.search({ query: text, contexts: all.length > 1 ? all.map((p) => `${p.title}\n${p.text}`.slice(0, 2000)) : [] });
   return withTeachers(env, await rerank(env, text, all, topK, signal));

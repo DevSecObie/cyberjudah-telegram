@@ -84,7 +84,7 @@ test("junk transcript fragments cannot become answer evidence", () => {
   assert.deepEqual(answerCandidates("Why do we keep the Passover?", [filler, tiny, good]), [good]);
 });
 
-test("matches collapse to one per page or per recording minute-and-a-half, best score first", () => {
+test("matches collapse to one per library section or per recording minute-and-a-half, best score first", () => {
   const m = dedupeMatches([
     { id: "1", score: 0.5, metadata: { kind: "class", url: "/a", sub: "Scriptures Opened" } },
     { id: "2", score: 0.9, metadata: { kind: "class", url: "/a", sub: "Scriptures Opened" } },

@@ -212,7 +212,7 @@ export function citations(answer, count) {
   return citationReport(answer, count).supported;
 }
 
-/** Hits from the index, one per page or recording moment, the best score kept. */
+/** Hits from the index, one per library section or recording moment, the best score kept. */
 export function dedupeMatches(matches) {
   const seen = new Map();
   for (const m of matches) {
