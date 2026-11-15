@@ -52,7 +52,8 @@ test('every class hit has a match reason, a moment link, a teacher or "teacher u
   assert.match(hits[0], /Notes: https:\/\/cyberjudah\.io\/classes\/2026\/passover/);
   assert.match(hits[1], /^2\. Gods Holidays \(15 Min w\/ Captains\), 2020-05-25, teacher unknown\n   Match: calls for Exodus 12:14 at 11:53 and reads it at 12:12/);
   assert.match(hits[1], /Video: https:\/\/www\.youtube\.com\/watch\?v=-t9W3dyGuTI&t=732s/);
-  assert.match(hits[1], /Notes: none yet/);
+  // No written notes: the transcript is the record, so the notes line links the video.
+  assert.match(hits[1], /Notes: none written; the transcript is the record: https:\/\/www\.youtube\.com\/watch\?v=-t9W3dyGuTI&t=732s \(read it with read_transcript video "-t9W3dyGuTI" at 732\)/);
 });
 
 test('a note with no verse of its own (a chapter-level row) does not match a verse; one citing the verse does, ranked last', () => {
@@ -80,7 +81,7 @@ test('snippets are fetched for the readings shown first and cut from the caption
   assert.equal(captionAt([[1850, '>> Uh-huh.'], [1851.5, '>> And this day shall be unto you for a'], [1853.9, 'memorial.']], 1851, 10), 'And this day shall be unto you for a memorial.');
 });
 
-test('a notes link that is really the video address is "none yet", and classes come 25 a page', () => {
+test('a notes link that is really the video address links the transcript, and classes come 25 a page', () => {
   const read = { 14: Array.from({ length: 30 }, (_, i) => ({ video: `vid${String(i).padStart(8, '0')}`, t: 100 + i, ts: '1:40', title: `Class ${i}`, date: `2026-01-${String((i % 28) + 1).padStart(2, '0')}`, teacher: 'Bishop Nathanyel', how: 'verse', url: i === 0 ? 'https://www.youtube.com/watch?v=vid00000000' : i === 1 ? '/classes/2026/one' : undefined })) };
   const c = { book: 'Exodus', chapter: 12, read };
   const first = formatVerseStudy(c, null, ask, names, site);

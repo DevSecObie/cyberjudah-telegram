@@ -49,7 +49,7 @@ export async function searchClasses(env: Env, query: string, feed: string, page:
     const at = Math.max(0, Math.floor(h.start || 0));
     const when = `${Math.floor(at / 3600)}:${String(Math.floor((at % 3600) / 60)).padStart(2, "0")}:${String(at % 60).padStart(2, "0")}`;
     const kind = (FEED_LABEL as Record<string, string>)[h.feed] ?? h.feed;
-    return `${unmark(h.title)} (${kind}, ${h.date || "date unknown"}) at ${when}\n“${unmark(h.excerpt)}”\nVideo: https://www.youtube.com/watch?v=${h.video}&t=${at}s\nNotes: ${h.note ? linkOn(env, h.note) : "none yet"}`;
+    return `${unmark(h.title)} (${kind}, ${h.date || "date unknown"}) at ${when}\n“${unmark(h.excerpt)}”\nVideo: https://www.youtube.com/watch?v=${h.video}&t=${at}s\nNotes: ${h.note ? linkOn(env, h.note) : `none written; the transcript is the record: https://www.youtube.com/watch?v=${h.video}&t=${at}s (read it with read_transcript video "${h.video}" at ${at})`}`;
   });
   return answer(`${out.join("\n\n")}${r.more ? `\n\nMore classes match: call again with page ${page + 1}.` : ""}`, r.hits.map(h => ({ kind: "spoken", title: unmark(h.title), video: h.video, t: Math.max(0, Math.floor(h.start || 0)), date: h.date || undefined, url: h.note || `https://www.youtube.com/watch?v=${h.video}&t=${Math.max(0, Math.floor(h.start || 0))}s`, text: unmark(h.excerpt) })));
 }
@@ -144,7 +144,7 @@ export async function readTranscript(env: Env, video: string, at: number, span: 
   // Clear caption errors (a book or feast word misheard), shown beside the captions, never in place of them.
   const fixes = (await captionCorrections(env, video, ctx)).filter(([, t]) => t >= at - span && t <= at + span);
   const fixed = fixes.length ? `\n\nCaption corrections (the captions above are as YouTube gave them):\n${fixes.map(([, t, was, now]) => `[${clock(t)}] “${was}” reads “${now}”`).join("\n")}` : "";
-  const text = `${w.title} (${w.date || "date unknown"})\nVideo: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s\nNotes: ${w.url ? linkOn(env, w.url) : "none yet"}\n\n${w.chunks.map((c) => `[${clock(c.t)}] ${c.text}`).join("\n")}${fixed}`;
+  const text = `${w.title} (${w.date || "date unknown"})\nVideo: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s\nNotes: ${w.url ? linkOn(env, w.url) : `none written; the transcript is the record: https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s`}\n\n${w.chunks.map((c) => `[${clock(c.t)}] ${c.text}`).join("\n")}${fixed}`;
   return answer(text, [{ kind: "spoken", title: w.title, video, t: at, date: w.date || undefined, url: w.url || `https://www.youtube.com/watch?v=${video}&t=${Math.floor(at)}s`, text }]);
 }
 
@@ -219,7 +219,7 @@ export async function readTranscriptRange(env: Env, req: TranscriptRequest, ctx?
   const title = note?.title || file.cleanTitle || file.title || video;
   const head = [`${title} (${file.date || note?.date || "date unknown"}${note?.teacher ? `, ${note.teacher}` : ""})`,
     `Video: https://www.youtube.com/watch?v=${video}&t=${Math.floor(from)}s`,
-    `Notes: ${note?.url ? linkOn(env, note.url) : "none yet (the captions are the only record of this class)"}`,
+    `Notes: ${note?.url ? linkOn(env, note.url) : `none written; the transcript is the record: https://www.youtube.com/watch?v=${video}`}`,
     `Length: ${file.duration ? clock(file.duration) : "unknown"}. Showing ${clock(from)} on, ${req.format === "verbatim" ? "verbatim captions" : "clean view (verbatim: format \"verbatim\")"}.`].join("\n");
   let lines: { t: number; text: string }[];
   let changes: { t: number; was: string; now: string; rule: string }[] = [];
@@ -253,7 +253,7 @@ export async function lintTranscriptReading(env: Env, video: string, ctx?: Exec)
   const [fixes, note, list] = await Promise.all([captionCorrections(env, video, ctx), noteFor(env, video, ctx).catch(() => null), books(env, ctx)]);
   const report = lintTranscript(got.file, fixes, (list ?? []).map((b) => b.book), { teacher: note?.teacher, notes: note?.url });
   const title = note?.title || got.file.cleanTitle || got.file.title || video;
-  return answer(`${formatLint(title, video, report)}${note?.url ? `\nNotes: ${linkOn(env, note.url)}` : ""}`);
+  return answer(`${formatLint(title, video, report)}\nNotes: ${note?.url ? linkOn(env, note.url) : "none written; the transcript is the record (the video above)"}`);
 }
 
 /**
