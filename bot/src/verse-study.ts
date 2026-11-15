@@ -52,6 +52,8 @@ export function teacherRank(t: string | undefined): number {
   if (/^captain\b/i.test(s)) return 2;
   return s ? 3 : 4;
 }
+/** A notes link only when it is a page of the site: some rows carry the video's address there instead. */
+export const notePath = (u: string | null | undefined): string | null => (u && !/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com|youtu\.be)\//i.test(u) ? u : null);
 const who = (t: string | undefined) => (t && t.trim() ? t.trim() : "teacher unknown");
 const when = (d: string | undefined) => (d && d.trim() ? d.trim() : "date unknown");
 
@@ -71,7 +73,7 @@ type Hit = { tier: number; rank: number; date: string; video: string | null; t: 
  * caller for the hits it chose (key `${video}@${second}`); without one the words where the
  * reference was called for (`said`) stand in.
  */
-export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: Ask, names: BookNames, site: (path: string) => string, snippets: Record<string, string> = {}): string {
+export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: Ask, names: BookNames, site: (path: string) => string, snippets: Record<string, string> = {}, page = 0): string {
   const { book, chapter } = ask;
   const verseLabel = ask.from == null ? `${book} ${chapter}` : `${book} ${chapter}:${ask.from}${ask.to && ask.to > ask.from ? `-${ask.to}` : ""}`;
   const from = ask.from ?? 1, to = ask.to ?? ask.from ?? 999;
@@ -127,7 +129,7 @@ export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: 
     const own = snippets[`${r.video}@${Math.floor(at)}`];
     const snippet = own ?? (r.said ? (r.how === "followed" ? `(where the reading began, ${r.ts}) ${r.said}` : r.said) : "");
     seen.add(`${r.video}`);
-    hits.push({ tier: 0, rank: teacherRank(r.teacher), date: r.date || "", video: r.video, t: at, title: r.title, feed: FEED[r.feed ?? ""] ?? "", teacher: r.teacher, notes: r.url ?? null, reason, snippet, link: videoAt(r.video, at) });
+    hits.push({ tier: 0, rank: teacherRank(r.teacher), date: r.date || "", video: r.video, t: at, title: r.title, feed: FEED[r.feed ?? ""] ?? "", teacher: r.teacher, notes: notePath(r.url), reason, snippet, link: videoAt(r.video, at) });
   }
   // Class notes that opened a passage holding the verse, with the note's own words on it.
   const said = new Map<string, string>();
@@ -136,12 +138,12 @@ export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: 
     if (!(whole || overlaps(m.verses, from, to))) continue;
     if (seen.has(m.video)) {
       // The reading is already listed: lend it the note's link and teacher.
-      for (const h of hits) if (h.video === m.video) { h.notes ??= m.url; if (!h.teacher && m.teacher) { h.teacher = m.teacher; h.rank = teacherRank(m.teacher); } }
+      for (const h of hits) if (h.video === m.video) { h.notes ??= notePath(m.url); if (!h.teacher && m.teacher) { h.teacher = m.teacher; h.rank = teacherRank(m.teacher); } }
       continue;
     }
     seen.add(m.video);
     const words = said.get(`${m.url}|${m.ts}`) ?? "";
-    hits.push({ tier: 2, rank: teacherRank(m.teacher), date: m.date || "", video: m.video, t: m.t, title: m.label, feed: "", teacher: m.teacher || "", notes: m.url, reason: `its notes open ${book} ${chapter}:${m.verses || "the chapter"} at ${m.ts}, a passage that holds ${verseLabel}`, snippet: words, link: videoAt(m.video, m.t) });
+    hits.push({ tier: 2, rank: teacherRank(m.teacher), date: m.date || "", video: m.video, t: m.t, title: m.label, feed: "", teacher: m.teacher || "", notes: notePath(m.url), reason: `its notes open ${book} ${chapter}:${m.verses || "the chapter"} at ${m.ts}, a passage that holds ${verseLabel}`, snippet: words, link: videoAt(m.video, m.t) });
   }
   // A precept placed on the verse, or the verse used as a precept under another scripture.
   const videoOfNote = new Map((c?.moments ?? []).map((m) => [m.url, m.video]));
@@ -167,14 +169,21 @@ export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: 
   for (const r of cites.values()) hits.push({ tier: r.kind === "note" ? 4 : 5, rank: 3, date: "", video: null, t: 0, title: `${MENTION[r.kind]}${r.label}`, feed: "", teacher: "", notes: r.url, reason: r.verses ? `cites ${book} ${chapter}:${r.verses} in its text (no moment recorded)` : `cites ${book} ${chapter} in its text`, snippet: "", link: null });
 
   hits.sort((a, b) => a.tier - b.tier || a.rank - b.rank || b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
-  if (hits.length) {
-    const shown = hits.slice(0, MAX_CLASSES).map((h, i) => {
+  const first = Math.max(0, Math.floor(page)) * MAX_CLASSES;
+  if (hits.length && first < hits.length) {
+    const shown = hits.slice(first, first + MAX_CLASSES).map((h, k) => {
+      const i = first + k;
       const head = `${i + 1}. ${tidyTitle(h.title)}${h.feed ? ` (${h.feed})` : ""}, ${when(h.date)}, ${who(h.teacher)}`;
-      const notes = h.notes ? `Notes: ${site(h.notes)}` : "Notes: none yet";
+      const own = notePath(h.notes);
+      const notes = own ? `Notes: ${site(own)}` : "Notes: none yet";
       return [head, `   Match: ${h.reason}.`, h.snippet ? `   Said: “${h.snippet.replace(/\s+/g, " ").trim()}”` : null, h.link ? `   Video: ${h.link}` : null, `   ${notes}`].filter(Boolean).join("\n");
     });
-    out.push(`\nCLASSES (${hits.length > MAX_CLASSES ? `the first ${MAX_CLASSES} of ${hits.length}` : `${hits.length}`}; readings of the verse first, then Bishops, Deacons, Captains)\n${shown.join("\n")}`);
-  } else out.push(`\nCLASSES\nNo class or note has been found reading ${verseLabel} yet.`);
+    const last = Math.min(hits.length, first + MAX_CLASSES);
+    const range = hits.length > MAX_CLASSES ? `${first + 1} to ${last} of ${hits.length}` : `${hits.length}`;
+    const more = last < hits.length ? `\nMore classes: call verse_study again with page ${Math.floor(first / MAX_CLASSES) + 1}.` : "";
+    out.push(`\nCLASSES (${range}; readings of the verse first, then Bishops, Deacons, Captains)\n${shown.join("\n")}${more}`);
+  } else if (hits.length) out.push(`\nCLASSES\nNo more classes: there are ${hits.length}.`);
+  else out.push(`\nCLASSES\nNo class or note has been found reading ${verseLabel} yet.`);
 
   // 3. Cross-references.
   const xr: string[] = [];

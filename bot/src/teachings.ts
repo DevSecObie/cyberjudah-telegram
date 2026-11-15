@@ -124,7 +124,7 @@ export async function transcriptAround(env: Env, video: string, t: number, ctx?:
   return applyClassCorrection({ ok: true as const, video, kind, title: note?.title || file.cleanTitle || file.title || video, url: note?.url ?? "", date: file.date ?? note?.date ?? "", duration: file.duration ?? null, t, chunks }, await classCorrections(env));
 }
 
-type IndexedNote = { kind?: string; url?: string; title?: string; date?: string | null; videoId?: string | null };
+type IndexedNote = { kind?: string; url?: string; title?: string; date?: string | null; videoId?: string | null; teacher?: string | null };
 let notesByVideo: { origin: string; at: number; map: Map<string, IndexedNote> } | null = null;
 /** The published notes (api/notes/index.json) by their recording, refreshed hourly. */
 async function notesIndex(env: Env, ctx?: Exec): Promise<Map<string, IndexedNote> | null> {
@@ -142,9 +142,9 @@ async function notesIndex(env: Env, ctx?: Exec): Promise<Map<string, IndexedNote
  * The page a recording has, when it is written up: the published notes index first (every note,
  * as soon as it is published), then teaching_refs' note column for recordings the index misses.
  */
-async function noteFor(env: Env, video: string, ctx?: Exec): Promise<{ url: string; title: string; date: string } | null> {
+export async function noteFor(env: Env, video: string, ctx?: Exec): Promise<{ url: string; title: string; date: string; teacher?: string } | null> {
   const indexed = (await notesIndex(env, ctx).catch(() => null))?.get(video);
-  if (indexed?.url) return { url: indexed.url, title: indexed.title ?? "", date: indexed.date ?? "" };
+  if (indexed?.url) return { url: indexed.url, title: indexed.title ?? "", date: indexed.date ?? "", ...(indexed.teacher ? { teacher: indexed.teacher } : {}) };
   try {
     const row = await env.TEACH.prepare("SELECT note, title, date FROM teaching_refs WHERE video = ?1 AND note IS NOT NULL LIMIT 1").bind(video).first<{ note: string; title: string; date: string }>();
     return row?.note ? { url: noteUrl(row.note), title: row.title, date: row.date ?? "" } : null;

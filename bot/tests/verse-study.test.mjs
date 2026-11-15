@@ -79,3 +79,18 @@ test('snippets are fetched for the readings shown first and cut from the caption
   assert.deepEqual(snippetWanted(conc, 14, 14).map((x) => x.video), ['VyDEbsxgcas', '-t9W3dyGuTI']);
   assert.equal(captionAt([[1850, '>> Uh-huh.'], [1851.5, '>> And this day shall be unto you for a'], [1853.9, 'memorial.']], 1851, 10), 'And this day shall be unto you for a memorial.');
 });
+
+test('a notes link that is really the video address is "none yet", and classes come 25 a page', () => {
+  const read = { 14: Array.from({ length: 30 }, (_, i) => ({ video: `vid${String(i).padStart(8, '0')}`, t: 100 + i, ts: '1:40', title: `Class ${i}`, date: `2026-01-${String((i % 28) + 1).padStart(2, '0')}`, teacher: 'Bishop Nathanyel', how: 'verse', url: i === 0 ? 'https://www.youtube.com/watch?v=vid00000000' : i === 1 ? '/classes/2026/one' : undefined })) };
+  const c = { book: 'Exodus', chapter: 12, read };
+  const first = formatVerseStudy(c, null, ask, names, site);
+  assert.match(first, /CLASSES \(1 to 25 of 30;/);
+  assert.match(first, /More classes: call verse_study again with page 1\./);
+  const second = formatVerseStudy(c, null, ask, names, site, {}, 1);
+  assert.doesNotMatch(first + second, /Notes: https:\/\/www\.youtube\.com/);
+  assert.match(first + second, /Notes: https:\/\/cyberjudah\.io\/classes\/2026\/one/);
+  assert.match(second, /CLASSES \(26 to 30 of 30;/);
+  assert.match(second, /^26\. /m);
+  assert.doesNotMatch(second, /More classes/);
+  assert.match(formatVerseStudy(c, null, ask, names, site, {}, 5), /No more classes: there are 30\./);
+});

@@ -15,7 +15,7 @@ await build({ stdin: { contents: 'export { runAgent } from "./src/agent.ts"; exp
     'resource-tools': 'export async function resolveResourcePins() { return {}; }',
     'ask-tools': 'export const MORE_TOOLS=[]; export const MORE_RUN={};',
     data: 'export async function dataJson(env,path) { env.reads.push(path); return env.data[path] ?? null; } export async function books() { return [{book:"Exodus",slug:"exodus",chapters:40}]; } export async function chapter() { return null; }',
-    teachings: 'export async function transcriptAround(env) { return env.transcript; } export async function captionCorrections() { return []; } export async function searchTeachings(env) { return env.classes; }',
+    teachings: 'export async function transcriptAround(env) { return env.transcript; } export async function captionCorrections() { return []; } export async function searchTeachings(env) { return env.classes; } export async function loadTranscript() { return { error: "not-found" }; } export async function noteFor() { return null; }',
     bs: 'export const bs={request:async (url,init,env)=>Response.json({content:env.commentary})};',
   }[args.path] }));
 } }] });

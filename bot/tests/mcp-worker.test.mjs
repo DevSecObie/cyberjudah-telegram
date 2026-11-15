@@ -27,13 +27,18 @@ function worker(bindings = { MCP_KEY: KEY }, seen = []) {
     outboundService: (request) => {
       seen.push(request.url);
       const path = new URL(request.url).pathname;
+      if (request.url === 'https://raw.githubusercontent.com/DevSecObie/cyberjudah/main/blog/transcripts/abcdefghijk.json') return Response.json(TRANSCRIPT);
+      if (request.url === 'https://raw.githubusercontent.com/DevSecObie/cyberjudah/main/data/transcripts/corrections.json') return Response.json({ abcdefghijk: [[1, 4, 'turn to second edges chapter 2', 'turn to 2 Esdras chapter 2', 'esdras-edges']] });
+      if (path === '/api/precepts/index.json') return Response.json([{ slug: 'clean', title: 'Clean', url: '/precepts/clean' }, { slug: 'clean-meats', title: 'Clean Meats', url: '/precepts/clean-meats' }]);
+      if (path === '/api/precepts/clean-meats.json') return Response.json({ title: 'Clean Meats', slug: 'clean-meats', refs: [{ label: 'Leviticus 11:2', url: '/bible/leviticus/11#v2', text: [{ verse: 2, text: 'These are the beasts which ye shall eat.' }] }] });
+      if (path === '/api/notes/classes/2026/markup.json') return Response.json({ title: 'Markup', body: '<p class="taught">IUIC · 2026-08-22</p>\n\n<!-- truncate -->\n\n<div class="class-video-mount" data-video-id="abcdefghijk"></div>\n\n> <sup>[1](/bible/psalms/2#v1)</sup> Why do the heathen rage?\n\n<b>Bold</b> words.' });
       if (path === '/api/kjv/books.json') return Response.json(books);
       if (path === '/api/kjv/exodus/12.json') return Response.json(exodus12);
       if (path === '/api/notes/classes/2026/test-class.json') return Response.json({ title: 'Test Class', teacher: 'Bishop Nathanyel', date: '2026-10-31', videoId: 'abcdefghijk', body: 'Word for word.' });
       if (path === '/api/cases/index.json') return Response.json({ cases: [{ slug: 'edom', name: 'Edom' }] });
       if (path === '/api/cases/edom.json') return Response.json({ name: 'Edom', summary: 'The case of Edom.' });
       if (path === '/api/notes/index.json') return Response.json([
-        { kind: 'class', title: 'The Passover', url: '/classes/2026/passover', teacher: 'Bishop Nathanyel', topics: ['passover'], summary: '' },
+        { kind: 'class', title: 'The Passover', url: '/classes/2026/passover', teacher: 'Bishop Nathanyel', videoId: 'abcdefghijk', date: '2026-04-01', topics: ['passover'], summary: '' },
         { kind: 'class', title: 'Another class', url: '/classes/2026/other', teacher: 'Deacon Test', topics: [], summary: '' },
       ]);
       if (path === '/api/notes/classes/2026/passover.json') return Response.json({ kind: 'class', title: 'The Passover', url: '/classes/2026/passover', teacher: 'Bishop Nathanyel', date: '2026-04-01', videoId: 'abcdefghijk', body: 'An opening paragraph that greets the class and says nothing more.\n\nThe passover is a memorial kept for ever, the teacher said, word for word from the class.\n\nA closing paragraph about something else entirely, said at the end.' });
@@ -47,6 +52,8 @@ function worker(bindings = { MCP_KEY: KEY }, seen = []) {
     },
   }));
 }
+
+const TRANSCRIPT = { title: 'Test Class', date: '2026-10-31', duration: 120, segments: [[0, 'Shalom brothers.'], [4, 'turn to second edges chapter 2'], [8, '>> Um and the the Lord said [Music]'], [60, '>> Read on.'], [110, 'The end.']] };
 
 const rpc = (mf, body, key = KEY) => mf.dispatchFetch('https://cyberjudah.test/mcp', {
   method: 'POST',
@@ -92,7 +99,9 @@ test('/mcp lists only read tools, and reads a passage word for word with its lin
 
     const listed = await message(await rpc(mf, { jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }));
     const names = listed.result.tools.map((t) => t.name).sort();
-    assert.deepEqual(names, ['commentary', 'law', 'look_up_word', 'person', 'precepts', 'read_data', 'read_note', 'read_passage', 'read_resource', 'read_transcript', 'search_classes', 'search_library', 'timeline', 'verse_study']);
+    assert.deepEqual(names, ['commentary', 'find_teaching', 'law', 'lint_transcript', 'look_up_word', 'person', 'precepts', 'read_data', 'read_note', 'read_passage', 'read_resource', 'read_transcript', 'search_classes', 'search_library', 'timeline', 'verse_study']);
+    const prompts = await message(await rpc(mf, { jsonrpc: '2.0', id: 5, method: 'prompts/list', params: {} }));
+    assert.deepEqual(prompts.result.prompts.map((p) => p.name).sort(), ['check_transcript', 'research_question', 'study_verse']);
     for (const t of listed.result.tools) {
       assert.equal(t.annotations.readOnlyHint, true, t.name);
       assert.equal(t.annotations.destructiveHint, false, t.name);
@@ -178,6 +187,82 @@ test('Ask research reads the commentary, the whole class notes and the places', 
     assert.match(place.content[0].text, /Named in genesis 45:10; exodus 8:22\./);
     assert.match(place.content[0].text, /Link: https:\/\/cyberjudah\.test\/bible\/genesis\/45#v10$/m);
   } finally { await mf.dispose(); }
+});
+
+test('/mcp reads a whole transcript clean or verbatim, in parts by time, and lints it', async () => {
+  const mf = worker();
+  try {
+    await rpc(mf, init);
+    const call = async (name, args) => (await message(await rpc(mf, { jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name, arguments: args } }))).result;
+
+    const clean = await call('read_transcript', { video: 'abcdefghijk' });
+    assert.equal(clean.isError, undefined, clean.content[0].text);
+    const text = clean.content[0].text;
+    assert.match(text, /^The Passover \(2026-10-31, Bishop Nathanyel\)\nVideo: https:\/\/www\.youtube\.com\/watch\?v=abcdefghijk&t=0s\nNotes: https:\/\/cyberjudah\.test\/classes\/2026\/passover/);
+    assert.match(text, /\[0:00:00\] Shalom brothers\. turn to 2 Esdras chapter 2\n\[0:00:08\] » and the Lord said\n\[0:01:00\] » Read on\. The end\./);
+    assert.match(text, /Corrected in this view \(the captions said\):\n\[0:00:04\] “turn to second edges chapter 2” → “turn to 2 Esdras chapter 2” \(esdras-edges\)/);
+
+    const verbatim = await call('read_transcript', { video: 'abcdefghijk', from: 5, to: 70, format: 'verbatim' });
+    assert.match(verbatim.content[0].text, /\n\n\[0:00:08\] >> Um and the the Lord said \[Music\]\n\[0:01:00\] >> Read on\.$/);
+
+    // Read on by time: a small part ends with where to start the next one.
+    const small = await call('read_transcript', { video: 'abcdefghijk', format: 'verbatim', max_chars: 2000 });
+    assert.doesNotMatch(small.content[0].text, /\[More:/);
+
+    // Without the meaning index or the class search (as here), find_teaching says what to try instead.
+    const asked = await call('find_teaching', { question: 'what is the passover' });
+    assert.equal(asked.isError, true);
+    assert.match(asked.content[0].text, /Try search_classes or search_library/);
+
+    const missing = await call('read_transcript', { video: 'zzzzzzzzzzz' });
+    assert.equal(missing.isError, true);
+    assert.match(missing.content[0].text, /No transcript is kept/);
+
+    const lint = await call('lint_transcript', { video: 'abcdefghijk' });
+    assert.equal(lint.isError, undefined, lint.content[0].text);
+    assert.match(lint.content[0].text, /^Transcript lint: The Passover\nVideo: https:\/\/www\.youtube\.com\/watch\?v=abcdefghijk\nGrade [A-D]/);
+    assert.match(lint.content[0].text, /known corrections: 1 misheard/);
+    assert.match(lint.content[0].text, /gaps: 2 stretches/);
+  } finally { await mf.dispose(); }
+});
+
+test('/mcp lists the commentary first, reads notes as Markdown, and matches precepts on every word', async () => {
+  const mf = worker();
+  try {
+    await rpc(mf, init);
+    const call = async (name, args) => (await message(await rpc(mf, { jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name, arguments: args } }))).result;
+
+    const list = await call('commentary', { reference: 'Exodus 12:14' });
+    assert.equal(list.isError, undefined, list.content[0].text);
+    assert.match(list.content[0].text, /^Exodus 12:14: 1 class breakdown in the commentary/);
+    assert.match(list.content[0].text, /\n1\. Exodus 12:14 · .*Bishop Nathanyel/);
+    const full = await call('commentary', { reference: 'Exodus 12:14', format: 'detailed' });
+    assert.match(full.content[0].text, /A memorial: the feast kept for ever\./);
+
+    const note = await call('read_note', { path: '/classes/2026/markup' });
+    assert.doesNotMatch(note.content[0].text, /<[a-z!\/]/);
+    assert.match(note.content[0].text, /IUIC · 2026-08-22/);
+    assert.match(note.content[0].text, /> 1 Why do the heathen rage\?/);
+    assert.match(note.content[0].text, /\*\*Bold\*\* words\./);
+
+    const meats = await call('precepts', { topic: 'clean meats' });
+    assert.match(meats.content[0].text, /^Precepts: Clean Meats/);
+    assert.match(meats.content[0].text, /Leviticus 11:2: These are the beasts which ye shall eat\./);
+    assert.match(meats.content[0].text, /Other topics that may fit: Clean\./);
+  } finally { await mf.dispose(); }
+});
+
+test('/mcp opens to anyone only with MCP_PUBLIC=1, and a wrong key is never read as anonymous', async () => {
+  const closed = worker({ MCP_KEY: KEY });
+  const open = worker({ MCP_KEY: KEY, MCP_PUBLIC: '1' });
+  try {
+    assert.equal((await rpc(closed, init, '')).status, 401);
+    const hello = await rpc(open, init, '');
+    assert.equal(hello.status, 200, await hello.clone().text());
+    assert.equal((await message(hello)).result.serverInfo.version, '2.0.0');
+    assert.equal((await rpc(open, init, 'wrong-key')).status, 401);
+    assert.equal((await rpc(open, init)).status, 200);
+  } finally { await closed.dispose(); await open.dispose(); }
 });
 
 test('the deployed Worker sees /mcp before the site assets do', async () => {
