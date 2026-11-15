@@ -8,6 +8,7 @@ import { FEED_LABEL } from "./teachings.mjs";
 import { createAppResearch, RESEARCH_RESOURCES } from "./app-study-research";
 import { bs } from "./bs";
 import { BOOKS, COLLECTION } from "./bs/core";
+import { Parser } from "htmlparser2";
 import { htmlToText } from "./html-text";
 import { cleanTranscript, clock, formatLint, lintTranscript } from "./transcript-lint";
 
@@ -88,20 +89,28 @@ const sizeOf = (o?: ReadOptions) => (o?.maxChars ? Math.max(2_000, Math.min(40_0
  * strip, the video mount, the truncate marker, verse-number superscripts) turned into plain text.
  */
 export function noteMarkdown(body: string): string {
-  // The answer is text for a model, never rendered; still, each pass repeats until nothing more
-  // is removed, so no marker can be rebuilt out of what one pass left behind.
-  const strip = (s: string) => s
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/<div class="class-video-mount"[^>]*><\/div>/g, "")
-    .replace(/<sup>\[(\d+)\]\([^)]*\)<\/sup>/g, "$1")
-    .replace(/<sup>(\d+)<\/sup>/g, "$1")
-    .replace(/<\/?(?:b|strong)>/g, "**")
-    .replace(/<\/?(?:i|em)>/g, "*")
-    .replace(/<br\s*\/?>/g, "\n")
-    .replace(/<\/?(?:p|span|div)(?:\s[^>]*)?>/g, "");
-  let out = body, before: string;
-  do { before = out; out = strip(out); } while (out !== before);
-  return out.replace(/<!--|-->/g, "").replace(/\n{3,}/g, "\n\n").trim();
+  // A parser reads the markup (never a tag-stripping regex): comments and the video mount drop
+  // out, bold and italics become Markdown, a verse-number superscript keeps only its number.
+  let out = "", sup: string | null = null, skip = 0;
+  const parser = new Parser({
+    onopentag: (name, attrs) => {
+      if (skip || (name === "div" && /\bclass-video-mount\b/.test(attrs.class ?? ""))) { skip++; return; }
+      if (name === "sup") sup = "";
+      else if (name === "b" || name === "strong") out += "**";
+      else if (name === "i" || name === "em") out += "*";
+      else if (name === "br") out += "\n";
+    },
+    ontext: (text) => { if (skip) return; if (sup != null) sup += text; else out += text; },
+    onclosetag: (name) => {
+      if (skip) { skip--; return; }
+      if (name === "sup") { out += /(\d+)/.exec(sup ?? "")?.[1] ?? sup ?? ""; sup = null; }
+      else if (name === "b" || name === "strong") out += "**";
+      else if (name === "i" || name === "em") out += "*";
+    },
+  }, { decodeEntities: false });
+  parser.write(body);
+  parser.end();
+  return out.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export async function searchLibrary(env: Env, resource: (typeof RESEARCH_RESOURCES)[number], query: string, ctx?: Exec): Promise<Answer> {
