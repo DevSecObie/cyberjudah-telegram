@@ -1,0 +1,6 @@
+- MCP: a new `find_teaching` tool answers a question from the whole library at once (every class transcript, notes or not, and the notes, law, cases and verses), by meaning and by keyword, and says where to read on.
+- MCP: `read_transcript` now reads a whole class, a stretch or a moment, in a clean view (a paragraph per speaker, known mishearings such as "second edges" for 2 Esdras corrected and listed) or verbatim, without the repeated lines it used to show.
+- MCP: a new `lint_transcript` tool grades how far a recording's captions can be trusted and points out likely mishearings to check against the video.
+- MCP: answers are shorter by default and read on in parts; the commentary lists its class breakdowns first; notes read as clean text; Strong's entries through `read_resource` no longer come back empty.
+- Precepts: "clean meats" finds the Clean Meats topic, not "Clean", and a near match says it is only the closest.
+- Verse study: a class with no written notes says "Notes: none yet" instead of linking the video as its notes, and every class can be read, 25 a page.

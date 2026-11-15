@@ -121,8 +121,10 @@ export type Env = {
   READER_LIMIT?: RateLimit;
   /** Worker secret, set by the owner only: the key the private MCP server at /mcp asks for (mcp.ts). Unset, /mcp answers nothing. */
   MCP_KEY?: string;
-  /** Calls to /mcp a minute (mcp.ts). */
+  /** Calls to /mcp a minute, per caller (mcp.ts). */
   MCP_LIMIT?: RateLimit;
+  /** "1" opens /mcp to anyone without a key (read-only, still rate limited per address); unset, only the owner's key or sign-in. */
+  MCP_PUBLIC?: string;
 };
 
 /** A daily-verse subscription, KV key sub:<userId>. hour is local, tz the offset in minutes. */

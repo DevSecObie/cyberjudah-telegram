@@ -173,7 +173,8 @@ const verseStudy: Tool = async (env, input, ctx, emit) => {
   const names = Object.fromEntries((books ?? []).map((x) => [x.slug, x.book]));
   // Whole addresses, so an assistant outside the app can open them; Ask's reader resolves them the same.
   const site = (path: string) => (path.startsWith("/") && env.SITE_URL ? `${env.SITE_URL}${path}` : path);
-  return { content: formatVerseStudy(conc, xref, { book: b.book, slug: b.slug, chapter: ch, from: v, to }, names, site, snippets) };
+  const page = Number.isInteger(input.page) && (input.page as number) >= 0 && (input.page as number) <= 40 ? input.page as number : 0;
+  return { content: formatVerseStudy(conc, xref, { book: b.book, slug: b.slug, chapter: ch, from: v, to }, names, site, snippets, page) };
 };
 
 type LawIndex = { n: number; title: string; url: string; sections: { id: string; title: string; laws: number; url: string }[] }[];
@@ -205,12 +206,26 @@ const precepts: Tool = async (env, input, ctx, emit, line) => {
   if (!topic) return { content: "Give a subject.", error: true };
   emit({ status: `Gathering the precepts on “${topic}”` });
   const idx = await dataJson<{ slug: string; title: string; url: string }[]>(env, "/api/precepts/index.json", ctx).catch(() => null);
-  const q = words(topic);
-  const best = (idx ?? []).map((t) => ({ t, k: score(q, t.title, t.slug) })).filter((x) => x.k > 0).sort((a, b) => b.k - a.k)[0]?.t;
-  if (!best) return { content: `No precept topic on “${topic}”. The topics include: ${(idx ?? []).slice(0, 40).map((t) => t.title).join(", ")}.` };
-  const full = await dataJson<PreceptTopic>(env, `/api/precepts/${best.slug}.json`, ctx).catch(() => null);
+  // Words compared by their stem ("meats" finds "meat"), and a topic that holds every word asked
+  // first: "clean meats" once picked the topic "Clean" (washing) over nothing better said so.
+  const stem = (w: string) => w.replace(/(?:ies)$/, "y").replace(/(?:es|s)$/, "");
+  const q = words(topic).map(stem);
+  const ranked = (idx ?? []).map((t) => {
+    const title = words(t.title).map(stem), slug = words(t.slug.replace(/-/g, " ")).map(stem);
+    const hit = (w: string) => title.includes(w) || slug.includes(w) || title.some((x) => x.length > 3 && (x.startsWith(w) || w.startsWith(x)));
+    const all = q.length > 0 && q.every(hit), some = q.filter(hit).length;
+    return { t, all, k: (all ? 10 : 0) + some * 3 - Math.abs(title.length - q.length) * 0.1 };
+  }).filter((x) => x.k > 0).sort((a, b) => b.k - a.k);
+  const best = ranked[0];
+  if (!best) {
+    const near = (idx ?? []).filter((t) => q.some((w) => norm(t.title).includes(w.slice(0, 4)))).slice(0, 12).map((t) => t.title);
+    return { content: `No precept topic on “${topic}”.${near.length ? ` Nearest topics: ${near.join(", ")}.` : ""} For a commandment or statute (food, feasts, the sabbath), try the law tool; for any wording, search_library with resource "precepts".` };
+  }
+  const full = await dataJson<PreceptTopic>(env, `/api/precepts/${best.t.slug}.json`, ctx).catch(() => null);
   const refs = (full?.refs ?? []).slice(0, 14).map((r) => `${r.label}: ${(r.text ?? []).map((t) => t.text).join(" ")}`);
-  return { content: `${line(`Precepts: ${best.title}`, `${refs.length} scriptures.`, best.url)}\n${refs.join("\n")}` };
+  const others = ranked.slice(1, 6).map((x) => x.t.title);
+  const caveat = best.all ? "" : `Closest topic to “${topic}” (not every word matches). `;
+  return { content: `${caveat}${line(`Precepts: ${best.t.title}`, `${refs.length} scriptures.`, best.t.url)}\n${refs.join("\n")}${others.length ? `\nOther topics that may fit: ${others.join(", ")}.` : ""}${best.all ? "" : "\nFor a commandment or statute, the law tool may fit better."}` };
 };
 
 type TlEvent = { slug: string; title: string; start: number; end?: number; portrait?: string; leader?: string; cases?: { slug: string; name: string }[]; fc?: boolean };
