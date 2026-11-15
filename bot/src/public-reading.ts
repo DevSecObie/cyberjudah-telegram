@@ -88,7 +88,9 @@ const sizeOf = (o?: ReadOptions) => (o?.maxChars ? Math.max(2_000, Math.min(40_0
  * strip, the video mount, the truncate marker, verse-number superscripts) turned into plain text.
  */
 export function noteMarkdown(body: string): string {
-  return body
+  // The answer is text for a model, never rendered; still, each pass repeats until nothing more
+  // is removed, so no marker can be rebuilt out of what one pass left behind.
+  const strip = (s: string) => s
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/<div class="class-video-mount"[^>]*><\/div>/g, "")
     .replace(/<sup>\[(\d+)\]\([^)]*\)<\/sup>/g, "$1")
@@ -96,9 +98,10 @@ export function noteMarkdown(body: string): string {
     .replace(/<\/?(?:b|strong)>/g, "**")
     .replace(/<\/?(?:i|em)>/g, "*")
     .replace(/<br\s*\/?>/g, "\n")
-    .replace(/<\/?(?:p|span|div)(?:\s[^>]*)?>/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+    .replace(/<\/?(?:p|span|div)(?:\s[^>]*)?>/g, "");
+  let out = body, before: string;
+  do { before = out; out = strip(out); } while (out !== before);
+  return out.replace(/<!--|-->/g, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 export async function searchLibrary(env: Env, resource: (typeof RESEARCH_RESOURCES)[number], query: string, ctx?: Exec): Promise<Answer> {
