@@ -1,0 +1,1 @@
+- MCP and Ask: a class with no written notes now links its video on the notes line ("the transcript is the record"), with where to read it, instead of stopping at "none yet".
