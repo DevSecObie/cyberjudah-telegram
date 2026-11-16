@@ -1,0 +1,1 @@
+- The weekly holy-days refresh retries a calendar page the site fails to serve, and if it still fails keeps that event's dates from the last read instead of failing the whole run.

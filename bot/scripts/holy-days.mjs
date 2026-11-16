@@ -103,27 +103,61 @@ export function summary(c) {
   return parts.length ? parts.join("\n") : "No dates changed.";
 }
 
-/** Every occurrence of every event, read from the site. A page that cannot be read stops the run: no half-read calendar is proposed. */
-async function fetchEvents(get) {
-  const out = [];
+/**
+ * Every occurrence of every event, read from the site: { events, unread }. A page the site fails
+ * to serve (after `get`'s retries) leaves its whole event unread, so its dates come from the last
+ * read instead (keepUnread) rather than from half its occurrences; the other events still refresh.
+ */
+export async function fetchEvents(get, log = console.log) {
+  const out = [], unread = [];
   for (const [slug, name] of Object.entries(EVENTS)) {
-    let first = null;
-    for (let ri = 0; ri < MAX_OCCURRENCES; ri++) {
-      const t = parseTime(await get(`https://israelunite.org/events/${slug}/var/ri-${ri}.l-L1/`));
-      if (!t) break;
-      if (ri === 0) first = t;
-      else if (t[0] === first[0] && t[1] === first[1]) break;
-      out.push({ slug, name, ri, start: t[0], end: t[1] });
+    const mine = [];
+    try {
+      let first = null;
+      for (let ri = 0; ri < MAX_OCCURRENCES; ri++) {
+        const t = parseTime(await get(`https://israelunite.org/events/${slug}/var/ri-${ri}.l-L1/`));
+        if (!t) break;
+        if (ri === 0) first = t;
+        else if (t[0] === first[0] && t[1] === first[1]) break;
+        mine.push({ slug, name, ri, start: t[0], end: t[1] });
+      }
+    } catch (e) {
+      log(`${slug}: not read (${e.message}); keeping its dates from the last read`);
+      unread.push(slug);
+      continue;
     }
-    console.log(`${slug}: ${out.filter((o) => o.slug === slug).length}`);
+    out.push(...mine);
+    log(`${slug}: ${mine.length}`);
   }
-  return out;
+  if (unread.length === Object.keys(EVENTS).length) throw new Error("No event page could be read: not written.");
+  return { events: out, unread };
 }
-async function get(url) {
-  const res = await fetch(url, { headers: { "user-agent": "CyberJudah holy-days refresh (+https://cyberjudah.io)" } });
-  if (res.status === 404) return "";
-  if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
-  return res.text();
+
+/** Adds back, from the last read (`before`, the file's days), the dates of the events not read this time. */
+export function keepUnread(days, before, unread, since) {
+  const names = unread.map((slug) => EVENTS[slug]);
+  const kept = before.filter((d) => d.date >= since && names.some((n) => d.name === n || d.name.startsWith(`${n} (`)));
+  return [...days, ...kept].sort((x, y) => x.date.localeCompare(y.date) || x.name.localeCompare(y.name));
+}
+
+/** Fetches a page, retrying what the site may serve next time (a 5xx, a dropped connection). A 404 is no page. */
+export async function get(url, { tries = 4, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), fetchImpl = fetch } = {}) {
+  for (let attempt = 1; ; attempt++) {
+    let res, error;
+    try {
+      res = await fetchImpl(url, { headers: { "user-agent": "CyberJudah holy-days refresh (+https://cyberjudah.io)" } });
+    } catch (e) {
+      error = e;
+    }
+    if (res) {
+      if (res.status === 404) return "";
+      if (res.ok) return res.text();
+      error = new Error(`${url}: HTTP ${res.status}`);
+      if (res.status < 500 && res.status !== 429) throw error;
+    }
+    if (attempt >= tries) throw error;
+    await sleep(2000 * 3 ** (attempt - 1));
+  }
 }
 
 async function main() {
@@ -131,12 +165,14 @@ async function main() {
   const since = arg("--since") ?? nyParts(Date.now() / 1000).date;
   const file = new URL("../../shared/holy-days.json", import.meta.url);
   const before = JSON.parse(readFileSync(file, "utf8"));
-  const days = pickDays(await fetchEvents(get), since);
+  const { events, unread } = await fetchEvents((url) => get(url));
+  const days = keepUnread(pickDays(events, since), before.days ?? [], unread, since);
   if (!days.length) throw new Error("The calendar gave no dates from today on: not written.");
   const c = compare((before.days ?? []).filter((d) => d.date >= since), days);
   if (worthWriting(before, c)) writeFileSync(file, `${JSON.stringify({ source: SOURCE, rule: RULE, days }, null, 1)}\n`);
   const out = arg("--summary");
-  if (out) writeFileSync(out, `${summary(c)}\n`);
-  console.log(summary(c));
+  const note = unread.length ? `\n\nNot read this time (the site did not serve them), so their dates are kept from the last read: ${unread.map((slug) => EVENTS[slug]).join(", ")}.` : "";
+  if (out) writeFileSync(out, `${summary(c)}${note}\n`);
+  console.log(summary(c) + note);
 }
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main().catch((e) => { console.error(e.message); process.exit(1); });
