@@ -1,1 +1,0 @@
-- A blue-green load whose switch went through but was reported as failed (D1 timed out, the retry found no spare tables) now counts as switched instead of failing the run.

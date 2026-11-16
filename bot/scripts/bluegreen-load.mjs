@@ -203,16 +203,6 @@ async function loadHeld(sql, run, { tables, probe, maxBytes, log, tag, renew }) 
   try {
     await run(swap.join("\n"));
   } catch (e) {
-    // A slow switch can go through and still report an error: the runner retries it after a
-    // timeout, and the retry finds no <table>_next. Every spare table gone and every live table
-    // there means it went through.
-    let done = true;
-    for (const t of tables) if ((await exists(run, `${t}_next`)) || !(await exists(run, t))) done = false;
-    if (done) {
-      log(`switched (the switch reported "${String(e?.message ?? e).slice(0, 120)}" after it had gone through)`);
-      log(`readers now use the new tables; the previous ones are kept as ${tables.map((t) => `${t}_prev`).join(", ")}`);
-      return { rows };
-    }
     // Should the switch not run as one transaction and stop part-way, put back any live table
     // left missing, so readers are never without an index.
     for (const t of tables) if (!(await exists(run, t)) && (await exists(run, `${t}_prev`))) await run(`ALTER TABLE ${t}_prev RENAME TO ${t};`);

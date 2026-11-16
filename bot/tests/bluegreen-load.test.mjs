@@ -99,26 +99,6 @@ test("a readline file loads whole when each query waits on the network", async (
   assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_refs").get().n, 3);
 });
 
-test("a switch that went through but reported an error (a retried timeout) still counts as done", async () => {
-  const { db, run } = sqlite();
-  const opts = { ...TEACHINGS, maxBytes: 300 };
-  await bluegreenLoad(teachingsSql(["god said", "more"]), run, opts);
-  // Like d1-query.mjs after a timeout: the switch ran, the retry found no _next and failed.
-  const flaky = async (sql) => {
-    if (!sql.includes("_next RENAME TO")) return run(sql);
-    await run(sql);
-    throw new Error("D1 query failed (no such table: teaching_passages_next: SQLITE_ERROR)");
-  };
-  const { rows } = await bluegreenLoad(teachingsSql(["god again", "x", "y"]), flaky, opts);
-  assert.deepEqual(rows, { teaching_passages: 3, teaching_refs: 3 });
-  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_passages").get().n, 3);
-  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_passages_prev").get().n, 2);
-  // A switch that really failed still throws and leaves the live tables as they were.
-  const broken = async (sql) => { if (sql.includes("_next RENAME TO")) throw new Error("D1 query failed (overloaded)"); return run(sql); };
-  await assert.rejects(bluegreenLoad(teachingsSql(["god once more"]), broken, opts), /overloaded/);
-  assert.equal(db.prepare("SELECT count(*) AS n FROM teaching_passages").get().n, 3);
-});
-
 test("batches stay under the size, one oversized statement goes alone", () => {
   assert.deepEqual(batches(["aaaa", "bbbb", "cccc", "x".repeat(20)], 10).map((b) => b.length), [2, 1, 1]);
 });
