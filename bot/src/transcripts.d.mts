@@ -4,5 +4,7 @@ export const CHUNK_WORDS: number;
 export const OVERLAP_SEGMENTS: number;
 export const MIN_WORDS: number;
 export function embedTailMode(value: string | undefined): "whole" | "legacy";
-export function chunkSegments(segments: [number, string][], options?: { tail?: "whole" | "legacy" }): Chunk[];
+export function embedMiddleMode(value: string | undefined): "fold" | "drop";
+export function embedChunkModes(env: Record<string, string | undefined> | undefined): { tail: "whole" | "legacy"; middle: "fold" | "drop" };
+export function chunkSegments(segments: [number, string][], options?: { tail?: "whole" | "legacy"; middle?: "fold" | "drop" }): Chunk[];
 export function videoOfThumb(thumb: string | null | undefined): string | null;
