@@ -175,7 +175,9 @@ export function formatVerseStudy(c: Concordance | null, xref: Xref | null, ask: 
       const i = first + k;
       const head = `${i + 1}. ${tidyTitle(h.title)}${h.feed ? ` (${h.feed})` : ""}, ${when(h.date)}, ${who(h.teacher)}`;
       const own = notePath(h.notes);
-      const notes = own ? `Notes: ${site(own)}` : "Notes: none yet";
+      // No written notes: the class's own words are the record, so the notes line links the video.
+      const watch = h.link ?? (h.video ? videoAt(h.video, h.t) : null);
+      const notes = own ? `Notes: ${site(own)}` : watch ? `Notes: none written; the transcript is the record: ${watch}${h.video ? ` (read it with read_transcript video "${h.video}" at ${Math.floor(h.t)})` : ""}` : "Notes: none yet";
       return [head, `   Match: ${h.reason}.`, h.snippet ? `   Said: “${h.snippet.replace(/\s+/g, " ").trim()}”` : null, h.link ? `   Video: ${h.link}` : null, `   ${notes}`].filter(Boolean).join("\n");
     });
     const last = Math.min(hits.length, first + MAX_CLASSES);
