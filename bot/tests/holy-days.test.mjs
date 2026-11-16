@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { coordsOf, DEFAULT_ZONE, eveOfHolyDay, fullDark, fullDarkIn, sunsetIn, HOLY_DAYS, holyDay, pauseMessage, topupPause, zoneOf } from "../../shared/holy-days.mjs";
-import { compare, parseTime, pickDays, RULE, SOURCE, summary, worthWriting } from "../scripts/holy-days.mjs";
+import { compare, EVENTS as SITE_EVENTS, fetchEvents, get, keepUnread, parseTime, pickDays, RULE, SOURCE, summary, worthWriting } from "../scripts/holy-days.mjs";
 
 const at = (iso) => Date.parse(iso);
 const near = (ms, iso, minutes, what) => assert.ok(Math.abs(ms - at(iso)) <= minutes * 60000, `${what}: ${new Date(ms).toISOString()} is not within ${minutes} min of ${iso}`);
@@ -140,4 +140,46 @@ test("the weekly read rewrites the calendar only for a real change from today on
   assert.equal(worthWriting(before, compare(today(before), [{ ...before.days[1], name: "Last Great Day" }])), true);
   // So is a new rule.
   assert.equal(worthWriting({ ...before, rule: "old" }, compare(today(before), [before.days[1]])), true);
+});
+
+test("a page the site fails to serve is retried, and a 404 is no page", async () => {
+  const calls = [];
+  const replies = [{ status: 502 }, { status: 503 }, { status: 200, text: "ok" }];
+  const fetchImpl = async (url) => { calls.push(url); const r = replies.shift(); return { status: r.status, ok: r.status === 200, text: async () => r.text }; };
+  assert.equal(await get("https://x/a", { fetchImpl, sleep: async () => {} }), "ok");
+  assert.equal(calls.length, 3);
+  assert.equal(await get("https://x/b", { fetchImpl: async () => ({ status: 404, ok: false }), sleep: async () => {} }), "");
+  let n = 0;
+  await assert.rejects(get("https://x/c", { fetchImpl: async () => { n++; return { status: 502, ok: false }; }, sleep: async () => {} }), /HTTP 502/);
+  assert.equal(n, 4);
+  // A refusal the site will repeat is not retried.
+  n = 0;
+  await assert.rejects(get("https://x/d", { fetchImpl: async () => { n++; return { status: 403, ok: false }; }, sleep: async () => {} }), /HTTP 403/);
+  assert.equal(n, 1);
+});
+
+test("an event the site still fails to serve keeps its dates from the last read; the others refresh", async () => {
+  const at = (date) => Date.parse(`${date}T16:00:00Z`) / 1000;
+  const page = (t) => `<div data-time="${t}-${t + 3600}"></div>`;
+  const fake = async (url) => {
+    if (url.includes("/passover-")) throw new Error(`${url}: HTTP 502`);
+    if (url.includes("/new-moon/var/ri-0.")) return page(at("2026-12-20"));
+    return "";
+  };
+  const { events, unread } = await fetchEvents(fake, () => {});
+  assert.deepEqual(unread, ["passover-feast-of-unleavened-bread"]);
+  const before = [
+    { date: "2026-11-20", kind: "newmoon", name: "New Moon" },
+    { date: "2027-04-21", kind: "feast", name: `${SITE_EVENTS["passover-feast-of-unleavened-bread"]} (opening day)` },
+    { date: "2027-04-28", kind: "feast", name: `${SITE_EVENTS["passover-feast-of-unleavened-bread"]} (closing day)` },
+    { date: "2027-06-01", kind: "feast", name: "Pentecost" },
+  ];
+  const days = keepUnread(pickDays(events, "2026-11-16"), before, unread, "2026-11-16");
+  assert.deepEqual(days.map((d) => `${d.date} ${d.name}`), [
+    "2026-12-20 New Moon",
+    "2027-04-21 Passover / Feast of Unleavened Bread (opening day)",
+    "2027-04-28 Passover / Feast of Unleavened Bread (closing day)",
+  ]);
+  // Every page failing writes nothing.
+  await assert.rejects(fetchEvents(async () => { throw new Error("HTTP 502"); }, () => {}), /No event page could be read/);
 });
