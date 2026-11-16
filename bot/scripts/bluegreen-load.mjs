@@ -196,8 +196,16 @@ async function loadHeld(sql, run, { tables, probe, maxBytes, log, tag, renew }) 
   log(`checked: ${Object.entries(rows).map(([t, n]) => `${t} ${n} rows`).join(", ")}; search works`);
   // Switch in one transaction: live -> _prev, next -> live.
   await renew();
+  // The copy before the previous one goes first, in a step of its own: dropping a table of a
+  // gigabyte or more holds the database for a minute or two while D1 compacts the file, and a
+  // retry of it after a timeout is harmless. The switch itself is then only renames.
+  for (const t of tables) {
+    if (!(await exists(run, `${t}_prev`))) continue;
+    const t0 = Date.now();
+    await run(`DROP TABLE IF EXISTS ${t}_prev;`);
+    log(`dropped the older copy ${t}_prev in ${Math.round((Date.now() - t0) / 1000)} s`);
+  }
   const swap = [];
-  for (const t of tables) swap.push(`DROP TABLE IF EXISTS ${t}_prev;`);
   for (const t of tables) if (await exists(run, t)) swap.push(`ALTER TABLE ${t} RENAME TO ${t}_prev;`);
   for (const t of tables) swap.push(`ALTER TABLE ${t}_next RENAME TO ${t};`);
   try {

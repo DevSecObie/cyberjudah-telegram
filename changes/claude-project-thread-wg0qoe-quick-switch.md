@@ -1,0 +1,1 @@
+- Release verification asks the health check again for up to four minutes while a search database is busy (the teachings load's switch holds its database for a minute or two), instead of rolling back a good release. The blue-green loader drops the older copy in a step of its own before the switch, so the switch is only renames.

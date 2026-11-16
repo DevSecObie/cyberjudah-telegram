@@ -20,7 +20,7 @@ const knownVerse = passage => passage?.kind === "verse"
  * (bot/src/ai.ts SEARCH_ANSWER_DEADLINE_MS) and meters it before and after, so the check waits
  * longer than that: a slow meter is not a missing answer.
  */
-export async function verifyRelease({ url, token, expectedModel, verifySync = false, bibleStrongApp = false, fetcher = fetch, log = console.log, warn = console.warn, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000 }) {
+export async function verifyRelease({ url, token, expectedModel, verifySync = false, bibleStrongApp = false, fetcher = fetch, log = console.log, warn = console.warn, allowPaused = false, retryMs = 5_000, answerWaitMs = 75_000, healthWaitMs = 240_000 }) {
   if (!url || !token || !expectedModel) throw new Error("Set WORKER_URL, BOT_TOKEN and EXPECTED_SEARCH_MODEL for release verification.");
   // Every Search model needs the reader's agreement to its provider, hosted or not (docs/PRIVACY.md);
   // the provider is the shared catalog's, as the server's 428 names it.
@@ -31,9 +31,19 @@ export async function verifyRelease({ url, token, expectedModel, verifySync = fa
   const requireStatus = (response, status, label) => {
     if (response.status !== status) throw new Error(`${label}: expected HTTP ${status}, received ${response.status}.`);
   };
-  const health = await get("/api/health");
-  requireStatus(health, 200, "Health");
-  if (!(await health.json()).ok) throw new Error("Health: a search database is unavailable.");
+  // A database that is busy for a while (the teachings load's switch drops its previous copy,
+  // which holds the database for a minute or two) is asked again until healthWaitMs; one still
+  // down after that fails the release.
+  for (const until = Date.now() + healthWaitMs; ;) {
+    const health = await get("/api/health");
+    requireStatus(health, 200, "Health");
+    const body = await health.json();
+    if (body.ok) break;
+    const down = ["search", "teachings"].filter((k) => body[k] && !body[k].ok).map((k) => `${k} (${body[k].error ?? "unavailable"})`).join(", ") || "unknown";
+    if (Date.now() + retryMs > until) throw new Error(`Health: a search database is unavailable: ${down}.`);
+    warn(`Health: ${down} not answering yet; asking again`);
+    await new Promise(r => setTimeout(r, retryMs));
+  }
   log("Search databases: healthy");
   // /app/ is the Mini App on both workers.dev and the production custom domain;
   // the custom domain's root belongs to the separate public website.

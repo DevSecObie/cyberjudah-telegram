@@ -152,3 +152,17 @@ test("Bible Strong staging fails if its original dictionary is unavailable", asy
     return inner(url, init);
   } }), /Bible Strong dictionaries: expected HTTP 200, received 503/);
 });
+
+test("a search database busy for a while is asked again; one that stays down fails the release", async () => {
+  const busy = (n) => {
+    const f = fixture();
+    let left = n;
+    const inner = f.options.fetcher;
+    return { ...f.options, warn() {}, healthWaitMs: 1_000, async fetcher(url, init) {
+      if (new URL(url).pathname === "/api/health" && left-- > 0) return new Response(JSON.stringify({ ok: false, search: { ok: true }, teachings: { ok: false, error: "D1 busy" } }), { headers: { "content-type": "application/json" } });
+      return inner(url, init);
+    } };
+  };
+  await verifyRelease(busy(3));
+  await assert.rejects(verifyRelease({ ...busy(Infinity), retryMs: 300 }), /a search database is unavailable: teachings \(D1 busy\)/);
+});
