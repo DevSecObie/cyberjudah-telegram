@@ -307,7 +307,7 @@ test('a backup answer names its model only when a model wrote it; the no-budget 
       assert.equal(done.model, undefined, 'the fixed notice and excerpts were written by no model');
     } else {
       assert.equal(done.answer, 'Backup words [1].');
-      assert.equal(done.model, '@cf/meta/llama-3.3-70b-instruct-fp8-fast');
+      assert.equal(done.model, '@cf/moonshotai/kimi-k2.6');
     }
   }
 });

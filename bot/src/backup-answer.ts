@@ -22,6 +22,9 @@ export const BACKUP_PROVIDER = modelOf(ANSWER_MODEL).provider;
  */
 export const mayUseBackup = (consent: readonly string[]) => consent.includes(BACKUP_PROVIDER);
 class BackupBudgetUnavailable extends Error {}
+/** The backup is a fallback, written while the reader waits: Kimi K2 is asked not to reason first
+ *  (its default is "high"), so its reasoning cannot use up max_tokens and leave a charged, empty answer. */
+const NO_THINK = /^@cf\/moonshotai\/kimi-k2/.test(ANSWER_MODEL) ? { reasoning_effort: "none" } : {};
 
 /** A longer backup still has to fit the sponsor's allowance before any provider call. */
 async function prepare(env: Env, messages: Msg[], admin: boolean) {
@@ -74,10 +77,11 @@ export async function backupOnce(env: Env, messages: Msg[], admin = false, sourc
   if (typeof budget === "string") return budget;
   let usage: object | undefined, complete = false;
   try {
-    const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3 }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { response?: string; usage?: object };
+    const res = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3, ...NO_THINK } as never, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as { response?: string; usage?: object; choices?: { message?: { content?: string } }[] };
     usage = res.usage;
     complete = true;
-    const text = (res.response ?? "").trim();
+    // Workers AI's own shape ({ response }) or the chat-completions one (Kimi K2.6: choices[0].message).
+    const text = String(res.response ?? res.choices?.[0]?.message?.content ?? "").trim();
     if (text) wrote.model = ANSWER_MODEL;
     return text;
   } finally { await budget.finish(usage, complete); }
@@ -93,7 +97,7 @@ export async function* backupPieces(env: Env, messages: Msg[], admin = false, so
   if (typeof budget === "string") { yield budget; return; }
   let usage: object | undefined, complete = false, reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    const out = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3, stream: true }, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as ReadableStream<Uint8Array>;
+    const out = await env.AI.run(ANSWER_MODEL, { messages, max_tokens: budget.maxTokens, temperature: 0.3, stream: true, ...NO_THINK } as never, { ...viaGateway(env), ...(signal ? { signal } : {}) }) as ReadableStream<Uint8Array>;
     reader = out.getReader();
     let buffer = "";
     const decoder = new TextDecoder();

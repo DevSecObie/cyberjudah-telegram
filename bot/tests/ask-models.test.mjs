@@ -146,13 +146,23 @@ test("an answer keeps each model's full reasoning: no reasoning setting is sent 
   assert.equal(deep.sent[0].input.chat_template_kwargs, undefined);
 });
 
-test("a step asked not to think: DeepSeek V4 reasons at none and Gemma 4 turns thinking off", async () => {
+test("a step asked not to think: DeepSeek V4 and Kimi K2 reason at none and Gemma 4 turns thinking off", async () => {
   const reply = () => ({ choices: [{ message: { role: "assistant", content: "[]" }, finish_reason: "stop" }], usage: { prompt_tokens: 10, completion_tokens: 2 } });
-  for (const [id, check] of [["@cf/deepseek-ai/deepseek-v4-flash-0731", (i) => assert.equal(i.reasoning_effort, "none")], ["@cf/google/gemma-4-26b-a4b-it", (i) => assert.deepEqual(i.chat_template_kwargs, { enable_thinking: false })]]) {
+  for (const [id, check] of [["@cf/deepseek-ai/deepseek-v4-flash-0731", (i) => assert.equal(i.reasoning_effort, "none")], ["@cf/moonshotai/kimi-k2.6", (i) => assert.equal(i.reasoning_effort, "none")], ["@cf/google/gemma-4-26b-a4b-it", (i) => assert.deepEqual(i.chat_template_kwargs, { enable_thinking: false })]]) {
     const { env, sent } = binding([reply()]);
     await researchOpen(env, modelOf(id), "S", [{ role: "user", content: "q" }], [], new Map(), async () => ({ content: "" }), () => {}, 1, undefined, false, "Plan.", { think: false });
     check(sent[0].input);
   }
+});
+
+test("a thinking model's reasoning goes back with its own tool-call turn (Kimi K2 expects it)", async () => {
+  const { sent } = await research("@cf/moonshotai/kimi-k2.6", [
+    { choices: [{ message: { role: "assistant", content: "", reasoning_content: "Placeholder plan to search.", tool_calls: [{ id: "k1", type: "function", function: { name: "search_library", arguments: "{\"query\":\"passover\"}" } }] }, finish_reason: "tool_calls" }], usage: { prompt_tokens: 100, completion_tokens: 5 } },
+    { choices: [{ message: { role: "assistant", content: "Placeholder answer [1]." }, finish_reason: "stop" }], usage: { prompt_tokens: 120, completion_tokens: 8 } },
+  ]);
+  const turn = sent[1].input.messages.find((m) => m.role === "assistant" && m.tool_calls);
+  assert.equal(turn.reasoning_content, "Placeholder plan to search.");
+  assert.ok(!sent[1].input.messages.some((m) => m.role === "assistant" && !m.tool_calls && "reasoning_content" in m));
 });
 
 // DeepSeek V4 on Workers AI can write its tool calls into the text as DSML markup (seen on the

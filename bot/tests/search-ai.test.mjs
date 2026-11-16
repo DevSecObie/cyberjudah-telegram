@@ -129,6 +129,15 @@ function fixture(t, reply = { choices: [{ message: { content: "Melchizedek was k
   return { ...db, sent };
 }
 
+test("Search's one answer asks Kimi K2.6 not to reason first, so it answers within the Search deadline", async t => {
+  const { env, sent } = fixture(t);
+  env.SEARCH_AI_MODEL = "@cf/moonshotai/kimi-k2.6";
+  const r = await answerSearch(env, "melchizedek", 7, ["Cloudflare (Workers AI)"]);
+  assert.equal(r.ok, true, JSON.stringify(r));
+  const call = sent.find((c) => c.model === "@cf/moonshotai/kimi-k2.6");
+  assert.equal(call?.input.reasoning_effort, "none");
+});
+
 test("external search needs consent before touching storage or retrieval; unknown models fail closed", async () => {
   assert.equal((await answerSearch({ SEARCH_AI_MODEL: GOOGLE, SEARCH_AI_FREE_ONLY: "off" }, "Melchizedek", 7)).reason, "consent");
   // A hosted (Cloudflare) model needs the reader's agreement too; agreeing to another provider is not enough.

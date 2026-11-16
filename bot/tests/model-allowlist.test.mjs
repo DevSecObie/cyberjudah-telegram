@@ -53,7 +53,10 @@ async function capture(work) {
 test('seed is exactly the existing frontier/fast routes, configured model vars and backup', async () => {
   const config = await readFile(new URL('../wrangler.jsonc', import.meta.url), 'utf8');
   const pins = [...config.matchAll(/"(?:CLAUDE_MODEL(?:_[A-Z_]+)?|ASK_FREE(?:_DEEP)?_MODEL|ASK_FREE_MODELS)"\s*:\s*"([^"]*)"/g)].flatMap((m) => m[1].split(',').map((s) => s.trim()).filter(Boolean));
-  const expected = new Set([...FRONTIER_ORDER, ...FAST, ...pins.map(configuredModel), configuredModel(ANSWER_MODEL)]);
+  // The models these settings named before the best-models switch (#612) stay listed: gemma and DeepSeek
+  // remain selectable for readers who picked them, and a step that loses its eval goes back to its old model.
+  const earlier = ['claude-sonnet-5-5', '@cf/google/gemma-4-26b-a4b-it', '@cf/deepseek-ai/deepseek-v4-flash-0731', '@cf/meta/llama-3.3-70b-instruct-fp8-fast'];
+  const expected = new Set([...FRONTIER_ORDER, ...FAST, ...pins.map(configuredModel), configuredModel(ANSWER_MODEL), ...earlier.map(configuredModel)]);
   assert.deepEqual([...ALLOWLIST_IDS].sort(), [...expected].sort());
   assert.equal(new Set(ALLOWLIST_IDS).size, ALLOWLIST_IDS.length);
   assert.ok(ALLOWLIST_IDS.length < MODELS.length, 'catalog refreshes do not silently allow every candidate');

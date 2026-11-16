@@ -3,7 +3,7 @@
 export const APP_STUDY_RELEASE = {
   version: 'teacher-grounded-study-v6-thorough',
   trainingEnabled: false,
-  approvedModels: ['@cf/google/gemma-4-26b-a4b-it', '@cf/deepseek-ai/deepseek-v4-flash-0731'],
+  approvedModels: ['@cf/moonshotai/kimi-k2.6', '@cf/google/gemma-4-26b-a4b-it', '@cf/deepseek-ai/deepseek-v4-flash-0731'],
   uiContract: 'study-v1',
   maxSupplementarySearches: 6,
   maxEvidenceSources: 24,

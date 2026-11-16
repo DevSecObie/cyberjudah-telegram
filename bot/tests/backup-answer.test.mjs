@@ -8,7 +8,7 @@ import { callUsd } from '../../shared/credits.mjs';
 const out = new URL('./.build/backup-answer.mjs', import.meta.url).pathname;
 await build({ stdin: { contents: 'export * from "./src/backup-answer.ts"; export {freeSpendToday} from "./src/free-budget.ts";', resolveDir: new URL('..', import.meta.url).pathname }, bundle: true, format: 'esm', platform: 'node', packages: 'external', outfile: out, logLevel: 'error' });
 const { backupOnce, backupPieces, freeSpendToday } = await import(out);
-const model = modelOf('@cf/meta/llama-3.3-70b-instruct-fp8-fast');
+const model = modelOf('@cf/moonshotai/kimi-k2.6'); // the backup model (ai.mjs ANSWER_MODEL)
 const messages = [{ role: 'system', content: 'Use only the existing provided material.' }, { role: 'user', content: 'Existing recorded source words.' }];
 
 test('the expanded backup fits its model and sponsor reservation and settles measured usage', async t => {
@@ -93,4 +93,14 @@ test('admin backup reserves a separate daily pool without using the shared reade
   assert.equal(await backupOnce(env, messages, true), 'Existing answer.');
   assert.equal(sql.prepare("SELECT count(*) AS n FROM free_spend_holds WHERE day LIKE 'admin:%'").get().n, 1);
   assert.equal(await freeSpendToday(env), 0);
+});
+
+test('a non-streamed backup reads the chat-completions reply that Kimi K2.6 sends, as well as Workers AI\'s own', async t => {
+  for (const reply of [{ choices: [{ message: { content: ' Chat-shaped placeholder answer. ' } }], usage: { prompt_tokens: 10, completion_tokens: 5 } }, { response: 'Workers-shaped placeholder answer.', usage: { prompt_tokens: 10, completion_tokens: 5 } }]) {
+    const { env } = financialDb(t);
+    const inputs = [];
+    Object.assign(env, { ASK_FREE_DAILY_USD_CAP: '1', ASK_FREE_MAX_USD: '0.15', AI: { run: async (id, input) => { inputs.push(input); return reply; } } });
+    assert.equal(await backupOnce(env, messages), (reply.response ?? reply.choices[0].message.content).trim());
+    assert.equal(inputs[0].reasoning_effort, 'none', 'the backup asks Kimi not to reason first, so its tokens go to the answer');
+  }
 });
