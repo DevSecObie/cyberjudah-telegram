@@ -40,9 +40,9 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@capacitor/cli": "8.6.0",
+    "@capacitor/cli": "8.6.2",
     "@firebase/rules-unit-testing": "6.0.0",
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.6",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
@@ -50,6 +50,6 @@
     "esbuild": "0.28.2",
     "sharp": "0.35.5",
     "typescript": "^5.9.0",
-    "vite": "^7.3.7"
+    "vite": "^7.3.8"
   }
 }
