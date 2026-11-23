@@ -19,15 +19,15 @@
     "build:bs-topics-index": "node scripts/build-bs-topics-index.mjs"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.7.0",
+    "@anthropic-ai/sdk": "^1.12.0",
     "@modelcontextprotocol/server": "2.4.0",
-    "@openuidev/lang-core": "^1.1.0",
+    "@openuidev/lang-core": "^1.1.1",
     "entities": "^9.0.0",
     "grammy": "^1.38.0",
-    "hono": "^4.13.17",
+    "hono": "^4.13.19",
     "htmlparser2": "^12.0.0",
-    "jose": "6.2.17",
-    "marked": "^18.2.0",
+    "jose": "6.2.18",
+    "marked": "^18.2.1",
     "pdf-lib": "^1.17.1",
     "zod": "^4.6.7"
   },
